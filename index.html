@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="TuCloset">
+<title>TuCloset</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="iconos/icono-129-180.png">
+<link rel="apple-touch-icon" href="iconos/icono-129-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bellefair&family=Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900&family=Inter:opsz,wght@14..32,400..700&family=Atkinson+Hyperlegible+Next:wght@400..800&family=Jost:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css?v=0.7.1">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="i129" fill="none" stroke="#C9A24B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M34 30 A16 16 0 0 1 66 30"/><path d="M21 30 H79"/><path d="M25 30 V82 H75 V30"/><path d="M50 30 V82"/><path d="M28 82 V87 M72 82 V87"/>
+      <path d="M30 37 H46 V76 H30 Z M54 37 H70 V76 H54 Z" stroke-width="1.7"/><circle cx="46" cy="58" r="2.3" fill="#C9A24B" stroke="none"/><circle cx="54" cy="58" r="2.3" fill="#C9A24B" stroke="none"/>
+    </g>
+    <symbol id="ic-camara" viewBox="0 0 24 24"><path d="M3.5 8h3.3l1.7-2.6h7L17.2 8h3.3v11.5h-17Z"/><circle cx="12" cy="13.5" r="3.6"/><circle cx="12" cy="13.5" r="1.4"/></symbol>
+    <symbol id="ic-cuerpo" viewBox="0 0 24 24"><circle cx="12" cy="4.6" r="2.2"/><path d="M8.5 22v-6.5l-1.8.8 2-5.6a3.6 3.6 0 0 1 6.6 0l2 5.6-1.8-.8V22"/></symbol>
+    <symbol id="ic-flecha" viewBox="0 0 12 12"><path d="m4 2 4 4-4 4"/></symbol>
+  </defs>
+</svg>
+
+<div id="app">
+
+<!-- ENTRADA: las puertas del 129 se abren -->
+<div class="intro" id="intro" aria-hidden="true">
+  <div class="escena">
+    <div class="armario">
+      <div class="interior"><svg viewBox="0 0 48 50"><g fill="none" stroke="#C9A24B" stroke-width=".9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7H43"/><path d="M14 7v2.5M9.5 14.5 14 9.5l4.5 5Z"/><path d="M24 7v2.5M19.5 14.5 24 9.5l4.5 5Z"/><path d="M34 7v2.5M29.5 14.5 34 9.5l4.5 5Z"/></g></svg></div>
+      <div class="puerta izq"><span class="moldura"></span><i class="pomo"></i></div>
+      <div class="puerta der"><span class="moldura"></span><i class="pomo"></i></div>
+      <svg class="marco" viewBox="0 0 100 100"><g fill="none" stroke="#C9A24B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M28 82v5M72 82v5"/></g></svg>
+    </div>
+    <div class="nombre">Tu<span class="oro">Closet</span></div>
+  </div>
+</div>
+
+<!-- INICIO -->
+<main class="pantalla" id="p-inicio">
+  <div>
+    <svg class="logo" viewBox="0 0 100 100"><use href="#i129"/></svg>
+    <div class="nombre">Tu<span class="oro">Closet</span></div>
+    <div class="lema" data-t="lema">Tu ropa, puesta en ti.</div>
+  </div>
+  <div class="abajo">
+    <button class="boton" data-ir="alta" data-t="crear">Crear mi clóset</button>
+    <button class="boton linea" style="margin-top:8px" data-ir="hoy" data-t="ya_tengo">Ya tengo cuenta</button>
+    <p class="legal" data-t="legal">Prueba gratis 7 días con 10 prendas.<br>Después, desde 2,99 € al mes.</p>
+    <div class="idioma"><button data-idioma="es">Español</button><button data-idioma="en">English</button></div>
+  </div>
+</main>
+
+<!-- ALTA 1: cuenta -->
+<main class="pantalla con-margen sin-tabs" id="p-alta">
+  <div class="cab"><button data-ir="inicio" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="marca"><svg viewBox="0 0 100 100"><use href="#i129"/></svg><span>Tu<span class="oro">Closet</span></span></span><span style="width:30px"></span></div>
+  <div class="pasos"><span class="activo" data-t="p_cuenta">Cuenta</span><span data-t="p_silueta">Silueta</span><span data-t="p_prendas">Prendas</span></div>
+  <h1 style="margin-top:22px" data-t="alta_titulo">Lo justo para empezar</h1>
+  <p class="sub" data-t="alta_sub">Todo se guarda en tu móvil. Nada sale de aquí sin que tú lo pidas.</p>
+  <label class="campo"><span data-t="nombre">Tu nombre</span><input id="a-nombre" autocomplete="given-name" placeholder="Sheila"></label>
+  <label class="campo"><span data-t="ciudad">Ciudad para el tiempo</span><input id="a-ciudad" placeholder="Madrid"></label>
+  <button class="boton suave" style="margin-top:10px" id="a-ubicacion" data-t="usar_ubicacion">Usar mi ubicación</button>
+  <div class="reglas">
+    <div><b>1</b><span data-t="r1">Tus fotos se quedan en este móvil; la app no las sube a ningún sitio en esta versión.</span></div>
+    <div><b>2</b><span data-t="r2">La prueba dura 7 días con 10 prendas; después, desde 2,99 € al mes.</span></div>
+    <div><b>3</b><span data-t="r3">Lo que decide la app (tipo, color, conjuntos) siempre lo puedes corregir.</span></div>
+  </div>
+  <button class="boton" style="margin-top:18px" id="a-seguir" data-t="seguir">Seguir</button>
+</main>
+
+<!-- ALTA 2: silueta -->
+<main class="pantalla con-margen sin-tabs" id="p-silueta">
+  <div class="cab"><button data-ir="alta" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="marca"><svg viewBox="0 0 100 100"><use href="#i129"/></svg><span>Tu<span class="oro">Closet</span></span></span><button class="accion" data-ir="hoy" data-t="saltar">Saltar</button></div>
+  <div class="pasos"><span class="hecho" data-t="p_cuenta">Cuenta</span><span class="activo" data-t="p_silueta">Silueta</span><span data-t="p_prendas">Prendas</span></div>
+  <h1 style="margin-top:22px" data-t="sil_titulo">Dos fotos y ya</h1>
+  <p class="sub" data-t="sil_sub">Con ellas te verás con tu ropa puesta.</p>
+  <div class="fotos">
+    <label id="l-selfie"><svg><use href="#ic-camara"/></svg><span data-t="selfie">Selfie</span><span class="et" data-t="selfie_et">luz natural, sin filtros</span><input type="file" accept="image/*" capture="user" id="f-selfie"></label>
+    <label id="l-cuerpo"><svg><use href="#ic-cuerpo"/></svg><span data-t="cuerpo">Cuerpo entero</span><span class="et" data-t="cuerpo_et">de pie, ropa ajustada</span><input type="file" accept="image/*" capture="environment" id="f-cuerpo"></label>
+  </div>
+  <div class="reglas">
+    <div><b>1</b><span data-t="s1">Luz natural, sin filtros ni gafas de sol.</span></div>
+    <div><b>2</b><span data-t="s2">De frente y con el cuerpo entero dentro.</span></div>
+    <div><b>3</b><span data-t="s3">Puedes cambiarlas cuando quieras desde «Yo».</span></div>
+  </div>
+  <button class="boton" style="margin-top:18px" data-ir="hoy" data-t="seguir">Seguir</button>
+  <p class="nota" data-t="privado">Las fotos se quedan en tu móvil. Solo tu silueta, sin tu cara, se usará para probarte la ropa.</p>
+</main>
+
+<!-- HOY -->
+<main class="pantalla" id="p-hoy"></main>
+
+<!-- CLÓSET -->
+<main class="pantalla con-margen" id="p-closet">
+  <div class="c-cab"><h1>Mi<span class="oro">Closet</span></h1><span class="cuenta" id="closet-sub"></span><button class="mas" data-ir="subir" aria-label="Subir prendas"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
+  <div class="busca" id="busca-caja"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><input id="busca" data-ph="buscar" placeholder="Buscar por nombre, color o tipo"></div>
+  <div class="cats sinbarra" id="cats"></div>
+  <div class="pared" id="pared"></div>
+  <div id="closet-vacio"></div>
+</main>
+
+<!-- SUBIR: varias prendas de golpe (patrón de Vinted) -->
+<main class="pantalla con-margen sin-tabs" id="p-subir">
+  <div class="cab"><button data-ir="closet" aria-label="Cerrar"><svg viewBox="0 0 18 18"><path d="M4 4l10 10M14 4 4 14"/></svg></button><span class="et" data-t="subir_titulo">Subir prendas</span><span style="width:30px"></span></div>
+  <h1 data-t="subir_h1">Tu ropa, como en un catálogo</h1>
+  <p class="sub" data-t="subir_sub">Hasta 20 fotos: una prenda por foto, sobre un fondo liso. La app pone el fondo en blanco y te propone tipo y color.</p>
+  <div class="s-fotos" id="s-fotos"></div>
+  <div id="s-lista"></div>
+  <button class="boton" id="s-guardar" disabled>Guardar</button>
+</main>
+
+<!-- AÑADIR / EDITAR PRENDA -->
+<main class="pantalla con-margen sin-tabs" id="p-anadir">
+  <div class="cab"><button data-ir="closet" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et" id="an-titulo" data-t="nueva">Nueva prenda</span><button class="accion oculto" id="an-borrar" data-t="borrar">Borrar</button></div>
+  <div class="previa" id="previa">
+    <label><svg><use href="#ic-camara"/></svg><span data-t="hacer_foto">Haz una foto o elige una de la galería</span><span class="et" data-t="foto_et">sobre fondo liso, la prenda entera</span><input type="file" accept="image/*" id="f-prenda"></label>
+  </div>
+  <label class="campo"><span data-t="nombre_prenda">Nombre</span><input id="an-nombre" placeholder="Chaleco de rayas"></label>
+  <div class="fila2">
+    <label class="campo"><span data-t="tipo">Tipo</span><select id="an-tipo"></select></label>
+    <label class="campo"><span data-t="estacion">Estación</span><select id="an-estacion"></select></label>
+  </div>
+  <div class="campo"><span data-t="color">Color</span><div class="colores" id="an-colores"></div></div>
+  <label class="campo"><span data-t="notas">Notas (talla, tienda, cuidado…)</span><input id="an-notas" placeholder="Talla M · Zara · lavar en frío"></label>
+  <button class="boton" style="margin-top:18px" id="an-guardar" data-t="guardar_closet">Guardar en mi clóset</button>
+  <button class="boton linea" style="margin-top:8px" id="an-otra" data-t="guardar_otra">Guardar y añadir otra</button>
+</main>
+
+<!-- FICHA -->
+<main class="pantalla con-margen" id="p-ficha">
+  <div class="cab"><button data-ir="closet" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et" id="f-cat"></span><button class="accion" id="f-editar" data-t="editar">Editar</button></div>
+  <div class="f-foto"><img id="f-img" src="" alt=""><span class="estado oculto" id="f-estado"></span></div>
+  <h1 id="f-nombre" style="font-size:28px;margin-top:14px"></h1>
+  <p class="sub" id="f-sub"></p>
+  <div class="cifras"><div><b id="f-usos"></b><span data-t="veces">veces puesta</span></div><div><b id="f-ultima"></b><span data-t="ultima">última vez</span></div><div><b id="f-conj"></b><span data-t="conjuntos_min">conjuntos</span></div></div>
+  <button class="boton" style="margin-top:16px" id="f-hoy" data-t="hoy_llevo">Hoy llevo esto</button>
+  <div class="asi"><div class="tit"><b data-t="asi">Así te queda</b><button data-ir="looks" data-t="ver_conjuntos">Ver conjuntos</button></div><div id="f-asi"></div></div>
+  <div class="lista" id="f-acciones"></div>
+  <p class="nota" id="f-nota"></p>
+</main>
+
+<!-- CONJUNTOS -->
+<main class="pantalla con-margen" id="p-looks">
+  <div class="l-cab"><h1 data-t="conjuntos">Conjuntos</h1><button class="mas" data-ir="nuevo-look" aria-label="Nuevo conjunto"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
+  <div id="looks-gen"></div>
+  <p class="sub" id="looks-sub"></p>
+  <div class="galeria" id="galeria"></div>
+  <div id="looks-vacio"></div>
+</main>
+
+<!-- NUEVO CONJUNTO -->
+<main class="pantalla con-margen sin-tabs" id="p-nuevo-look">
+  <div class="cab"><button data-ir="looks" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et" data-t="nuevo_conjunto">Nuevo conjunto</span><span style="width:30px"></span></div>
+  <label class="campo"><span data-t="nombre_conjunto">Nombre</span><input id="nl-nombre" placeholder="Viernes de oficina"></label>
+  <div class="campo"><span data-t="ocasion">Ocasión</span><div class="chips" id="nl-ocasiones"></div></div>
+  <div class="campo"><span data-t="elige_prendas">Elige las prendas</span><div class="elegir" id="nl-prendas"></div></div>
+  <button class="boton" style="margin-top:18px" id="nl-guardar" data-t="guardar_conjunto">Guardar conjunto</button>
+</main>
+
+<!-- CONJUNTO (detalle) -->
+<main class="pantalla con-margen" id="p-look">
+  <div class="cab"><button data-ir="looks" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et" id="lk-ocasion"></span><button class="accion" id="lk-borrar" data-t="borrar">Borrar</button></div>
+  <div class="asi" style="margin-top:4px"><div class="puesta" id="lk-foto"></div></div>
+  <h1 id="lk-nombre" style="font-size:28px;margin-top:14px"></h1>
+  <p class="sub" id="lk-sub"></p>
+  <div class="piezas" id="lk-piezas"></div>
+  <button class="boton" style="margin-top:16px" id="lk-pongo" data-t="me_lo_pongo">Me lo pongo</button>
+</main>
+
+<!-- DISEÑO: para decidir letra, color, tiempo y simetría (Gabriela, 19/10) -->
+<main class="pantalla con-margen" id="p-diseno">
+  <div class="cab"><button data-ir="yo" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et">Diseño · para decidir</span><span style="width:30px"></span></div>
+  <h1>Prueba el diseño</h1>
+  <p class="sub">Cada cambio se ve al momento en todas las pantallas. El nombre, TuCloset, sigue en su letra.</p>
+  <div class="d-grupo d-proto"><span>Prototipos listos</span><div class="chips" id="d-proto"></div></div>
+  <div class="d-grupo"><span>Letra de dentro de la app</span><div class="chips" id="d-letra"></div><div class="d-muestra" id="d-muestra"></div></div>
+  <div class="d-grupo"><span>Color</span><div class="chips" id="d-tema"></div></div>
+  <div class="d-grupo"><span>El tiempo</span><div class="chips" id="d-tiempo"></div></div>
+  <div class="d-grupo"><span>Simetría</span><div class="chips" id="d-sim"></div></div>
+  <button class="boton" style="margin-top:20px" data-ir="hoy">Ver cómo queda en Hoy</button>
+</main>
+
+<!-- YO -->
+<main class="pantalla con-margen" id="p-yo">
+  <h1 data-t="yo">Yo</h1>
+  <div class="yo"><div class="cara" id="yo-cara"></div><div><b id="yo-nombre"></b><span id="yo-sub"></span></div></div>
+  <div class="estad" id="yo-estad"></div>
+  <div class="lista" id="yo-lista"></div>
+  <div class="lista" id="yo-ajustes"></div>
+  <p class="nota" id="yo-version">TuCloset web 0.6 · 18 de octubre de 2026</p>
+</main>
+
+<nav class="tabs" id="tabs">
+  <button data-ir="hoy"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M5.3 18.7l1.5-1.5M17.2 6.8l1.5-1.5"/></svg></span><span data-t="t_hoy">Hoy</span></button>
+  <button data-ir="closet"><span class="ic"><svg viewBox="0 0 24 24"><path d="M8.6 5.4a3.4 3.4 0 0 1 6.8 0"/><path d="M4.6 5.4h14.8"/><path d="M5.6 5.4v14.4h12.8V5.4"/><path d="M12 5.4v14.4"/><path d="M6.8 19.8v1.4M17.2 19.8v1.4"/><path d="M7.2 7.4h3.2v9.8H7.2zM13.6 7.4h3.2v9.8h-3.2z" stroke-width=".8"/><circle cx="11" cy="12.6" r=".7" fill="currentColor" stroke="none"/><circle cx="13" cy="12.6" r=".7" fill="currentColor" stroke="none"/></svg></span><span data-t="t_closet">Clóset</span></button>
+  <button data-ir="subir" class="subir"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span data-t="t_anadir">Subir</span></button>
+  <button data-ir="looks"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 2.8v1.6"/><path d="M8.2 4.4h7.6l1 5.2a4.8 4.8 0 0 1-9.6 0Z"/><path d="M8.6 13.4 7.3 18h9.4l-1.3-4.6"/><path d="M12 18v3.2M9.2 21.2h5.6"/></svg></span><span data-t="t_conjuntos">Conjuntos</span></button>
+  <button data-ir="yo"><span class="ic"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8.2" ry="9.6"/><circle cx="12" cy="9.6" r="2.6"/><path d="M7.6 17.6c.9-2.4 2.4-3.6 4.4-3.6s3.5 1.2 4.4 3.6"/></svg></span><span data-t="t_yo">Yo</span></button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<dialog id="dlg"><h2 id="dlg-t"></h2><p id="dlg-p"></p><div class="botones"><button class="boton" id="dlg-si"></button><button class="boton linea" id="dlg-no"></button></div></dialog>
+</div>
+<script>window.TC_PUBLICA=true</script>
+<script src="app.js?v=0.7.1"></script>
+</body>
+</html>
