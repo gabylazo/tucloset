@@ -660,3 +660,8 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 #p-inicio.dibuja .abajo{animation:tc-suave .9s .1s ease-out forwards}
 #p-inicio.dibuja .lema[data-anim="b"] .t{animation:tc-lb 1.3s 1.4s cubic-bezier(.45,.05,.35,1) forwards}
 .intro.eb.con-nombre .nom{animation:tc-nombre .7s .1s ease-out both}
+/* 0.9.14 (Gabriela, 21/10: «no, le quita protagonismo al clóset»): primero el arco y el armario solos; después TuCloset y los botones; al final la frase */
+#p-inicio.dibuja .nom{animation:tc-nombre .7s 1.35s ease-out both}
+#p-inicio.dibuja .abajo{opacity:0;animation:tc-suave .9s 1.35s ease-out forwards}
+#p-inicio.dibuja .lema[data-anim="b"] .t{animation:tc-lb 1.3s 2.1s cubic-bezier(.45,.05,.35,1) forwards}
+.intro.eb.con-nombre .nom{animation:tc-nombre .7s 1.35s ease-out both}
