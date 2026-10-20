@@ -537,3 +537,26 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 #s-raiz .uno .ops.col button.on{outline:1.5px solid var(--oro);outline-offset:2px}
 #s-raiz .uno .ops.col button.on::before{display:none}
 #s-raiz .uno .sub-l[data-sorig]{margin-top:12px}
+
+/* 0.9 · bienvenida (Gabriela, 20/10): icono y nombre fijos en el centro, igual que la entrada; lema suave; precio discreto */
+#p-inicio{padding:0}
+#p-inicio.activa{display:block}
+#p-inicio .ini-centro{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+#p-inicio .x{display:grid;justify-items:center;gap:18px;position:relative}
+#p-inicio .x svg{width:120px;height:120px;fill:none;stroke:var(--oro);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#p-inicio .nom{font-family:var(--f-marca);font-size:44px;line-height:1;color:var(--tinta)}#p-inicio .nom span{color:var(--oro)}
+#p-inicio .lema{position:absolute;top:100%;left:50%;transform:translateX(-50%);white-space:nowrap;margin-top:14px;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:300;font-size:21px;letter-spacing:.01em;color:var(--sec)}
+#p-inicio .abajo{position:absolute;left:0;right:0;bottom:0;padding:0 26px 30px;text-align:center}
+#p-inicio .abajo .boton{width:100%}
+#p-inicio .legal{font-size:11.5px;color:var(--ter);margin-top:14px;letter-spacing:.02em}
+#p-inicio .idioma{margin-top:10px}
+#p-inicio.aparece .lema{animation:tc-suave .9s .05s ease-out both}
+#p-inicio.aparece .abajo{animation:tc-suave .9s .35s ease-out both}
+@keyframes tc-suave{from{opacity:0}to{opacity:1}}
+.intro.eb.suave{transition:opacity .7s ease;opacity:0}
+#p-inicio .idioma{font-size:12px;font-weight:400;gap:14px}
+#p-inicio .idioma button.activo{border-bottom-width:1px}
+/* lemas a prueba (?lema=1|2|3) */
+[data-lema="2"] #p-inicio .lema{font-size:19px}
+[data-lema="3"] #p-inicio .lema{font-family:Jost,sans-serif;font-style:normal;font-weight:300;font-size:14px;letter-spacing:.04em}
+#p-inicio .nom{position:relative;top:6px}

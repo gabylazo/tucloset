@@ -31,8 +31,8 @@ const COLORES = [['Negro', '#1B1B1B'], ['Blanco', '#F4F4F4'], ['Gris', '#8E8E8E'
 
 /* ---------- idioma ---------- */
 const T = {
-  lema: ['Tu ropa, puesta en ti.', 'Your clothes, on you.'], crear: ['Crear mi clóset', 'Create my closet'], ya_tengo: ['Ya tengo cuenta', 'I already have one'],
-  legal: ['Prueba gratis 7 días con 10 prendas.<br>Después, desde 2,99 € al mes.', 'Free 7-day trial with 10 garments.<br>Then from €2.99 a month.'],
+  lema: ['Optimiza tu clóset', 'Make the most of your closet'], crear: ['Crear mi clóset', 'Create my closet'], ya_tengo: ['Ya tengo cuenta', 'I already have one'],
+  legal: ['Pruébala gratis 7 días', 'Try it free for 7 days'],
   p_cuenta: ['Cuenta', 'Account'], p_silueta: ['Silueta', 'Figure'], p_prendas: ['Prendas', 'Garments'],
   alta_titulo: ['Lo justo para empezar', 'Just enough to start'], alta_sub: ['Todo se guarda en tu móvil. Nada sale de aquí sin que tú lo pidas.', 'Everything stays on your phone. Nothing leaves unless you ask.'],
   nombre: ['Tu nombre', 'Your name'], ciudad: ['Ciudad para el tiempo', 'City for the weather'], usar_ubicacion: ['Usar mi ubicación', 'Use my location'],
@@ -718,18 +718,12 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (v === 'c') { el.className = 'intro ec'; el.innerHTML = `<div class="fondo"></div><div class="barra"></div><div class="anillas"></div><div class="tela">${nom}</div>`; }
   el.classList.add('activa');
   let hecho = false; el.addEventListener('click', () => { if (hecho) return; hecho = true; el.classList.add('fuera'); setTimeout(() => el.remove(), 220); });
-  if (v === 'b' && !matchMedia('(prefers-reduced-motion: reduce)').matches) { // B (elegida por Gabriela el 20/10): el nombre vuela a su sitio en la cabecera y la página entra por debajo
+  if (v === 'b' && !matchMedia('(prefers-reduced-motion: reduce)').matches) { // B (Gabriela, 20/10): se dibuja en el centro y ahí se queda; no sube a la cabecera
     if (q.get('fin') !== '0') setTimeout(() => {
-      const nom = el.querySelector('.nom'), pant = document.querySelector('.pantalla.activa');
-      const dest = pant && [...pant.querySelectorAll('.marca > span, .nombre')].find(x => x.offsetParent);
-      if (nom && dest) {
-        const a = nom.getBoundingClientRect(), b = dest.getBoundingClientRect(), k = b.height / a.height;
-        dest.style.opacity = '0';
-        nom.style.transform = `translate(${b.left - a.left}px, ${b.top - a.top}px) scale(${k})`;
-      }
-      el.classList.add('llega'); if (pant) { pant.classList.add('entra'); setTimeout(() => pant.classList.remove('entra'), 900); }
-      setTimeout(() => { if (dest) { dest.style.transition = 'opacity .15s'; dest.style.opacity = ''; } el.classList.add('fuera'); setTimeout(() => el.remove(), 200); }, 700);
-    }, 1650);
+      const pant = document.querySelector('.pantalla.activa');
+      if (pant && pant.id === 'p-inicio') { el.remove(); pant.classList.add('aparece'); return; } // la bienvenida tiene el icono y el nombre en el mismo sitio: solo aparece lo demás
+      el.classList.add('suave'); setTimeout(() => el.remove(), 750); // en el resto, el dibujo se desvanece en su sitio y deja ver la app
+    }, 1700);
   } else if (q.get('fin') !== '0') setTimeout(() => el.remove(), matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2250);
 }
 (async () => {
@@ -737,6 +731,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || [];
   let migra = false; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
   traducir(); pintarSilueta();
+  { const l = new URLSearchParams(location.search).get('lema'); const LEMAS = { 2: ['Optimiza tu clóset, viste mejor', 'Make the most of your closet'], 3: ['Optimiza tu clóset y viste con lo que ya tienes', 'Make the most of the clothes you already have'] }; if (LEMAS[l]) { document.documentElement.dataset.lema = l; document.querySelector('#p-inicio .lema').textContent = LEMAS[l][idioma() === 'en' ? 1 : 0]; } }
   const q = new URLSearchParams(location.search);
   for (const k of Object.keys(DIS)) if (DIS[k].vals.includes(q.get(k))) DIS_URL[k] = q.get(k);
   if (PROTOS[q.get('proto')]) Object.assign(DIS_URL, PROTOS[q.get('proto')]);
