@@ -605,3 +605,28 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 #p-inicio.aparece .abajo{animation:tc-suave .9s ease-out forwards}
 #p-inicio .lema{margin-top:6px}
 #p-inicio.aparece .lema[data-anim="b"] .t{animation:tc-lb 1.3s .75s cubic-bezier(.45,.05,.35,1) forwards}
+/* 0.9.8 · marcos de la bienvenida a prueba (Gabriela, 20/10: «prueba poner algún marco de madera o del color nogal para que arriba no esté muy blanco, propón varios modelos») · ?marco=1…6 */
+[data-marco] #p-inicio::before,[data-marco] #p-inicio::after,[data-marco] .intro.eb::before,[data-marco] .intro.eb::after{content:'';position:absolute;pointer-events:none;z-index:0}
+[data-marco] #p-inicio .ini-centro,[data-marco] #p-inicio .abajo,[data-marco] .intro.eb .x{z-index:1}
+[data-marco] .intro.eb .x{position:relative}
+/* 1 · marco fino nogal */
+[data-marco="1"] #p-inicio::before,[data-marco="1"] .intro.eb::before{inset:14px;border:1px solid var(--tinta)}
+/* 2 · paspartú: nogal y dorado */
+[data-marco="2"] #p-inicio::before,[data-marco="2"] .intro.eb::before{inset:12px;border:1.5px solid var(--tinta)}
+[data-marco="2"] #p-inicio::after,[data-marco="2"] .intro.eb::after{inset:19px;border:1px solid var(--oro)}
+/* 3 · arco como el del icono */
+[data-marco="3"] #p-inicio::before,[data-marco="3"] .intro.eb::before{left:44px;right:44px;top:70px;height:400px;border:1.2px solid var(--tinta);border-bottom:0;border-radius:151px 151px 0 0}
+[data-marco="3"] #p-inicio::after,[data-marco="3"] .intro.eb::after{left:51px;right:51px;top:77px;height:393px;border:1px solid var(--oro);border-bottom:0;border-radius:144px 144px 0 0}
+/* 4 · puerta nogal arriba */
+[data-marco="4"] #p-inicio::before,[data-marco="4"] .intro.eb::before{left:0;right:0;top:0;height:57%;background:var(--tinta)}
+[data-marco="4"] #p-inicio::after,[data-marco="4"] .intro.eb::after{left:22px;right:22px;top:22px;height:calc(57% - 44px);border:1px solid rgba(201,162,75,.7)}
+/* 5 · madera de nogal con moldura dorada */
+[data-marco="5"] #p-inicio::before,[data-marco="5"] .intro.eb::before{left:0;right:0;top:0;height:57%;background:linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,0) 30%,rgba(0,0,0,.1)),repeating-linear-gradient(90deg,#4A3526 0 2px,#563E2C 2px 5px,#46321F 5px 6px,#503A29 6px 11px,#4A3526 11px 13px,#5A4130 13px 15px,#47331F 15px 19px)}
+[data-marco="5"] #p-inicio::after,[data-marco="5"] .intro.eb::after{left:22px;right:22px;top:22px;height:calc(57% - 44px);border:1.5px solid var(--oro);box-shadow:inset 0 0 0 5px rgba(0,0,0,.12)}
+/* 6 · puerta de armario entera: marco grueso nogal y moldura dorada */
+[data-marco="6"] #p-inicio::before,[data-marco="6"] .intro.eb::before{inset:0;border:12px solid var(--tinta)}
+[data-marco="6"] #p-inicio::after,[data-marco="6"] .intro.eb::after{inset:22px;border:1px solid var(--oro)}
+[data-marco="6"] #p-inicio .abajo{padding:0 38px 40px}
+/* con fondo nogal arriba, el nombre y la frase en claro */
+[data-marco="4"] #p-inicio .nom,[data-marco="5"] #p-inicio .nom,[data-marco="4"] .intro.eb .nom,[data-marco="5"] .intro.eb .nom{color:#F6F1EA}
+[data-marco="4"] #p-inicio .lema,[data-marco="5"] #p-inicio .lema{color:rgba(246,241,234,.78)}
