@@ -633,12 +633,12 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 /* 0.9.9 · arcos (Gabriela, 20/10: «me gusta el arco, ponme ambos, el solo y con el arco al lado; que la línea horizontal se una con la frase; otra como está ahora; otra con el arco sin cerrar abajo, desvaneciéndose») · ?marco=a1|a2|b1|b2|c1|c2 (1 sencillo, 2 doble)
    el arco cuelga del bloque del icono, así que coincide en la entrada y en la bienvenida en cualquier pantalla */
 [data-marco^="a"] .intro.eb .x,[data-marco^="b"] .intro.eb .x,[data-marco^="c"] .intro.eb .x{position:relative}
-.x::before,.x::after{pointer-events:none}
-[data-marco^="a"] .x::before,[data-marco^="b"] .x::before,[data-marco^="c"] .x::before{content:'';position:absolute;z-index:-1;left:50%;width:302px;margin-left:-151px;top:-163px;height:400px;border:1.2px solid var(--tinta);border-bottom:0;border-radius:151px 151px 0 0}
-[data-marco$="2"] .x::after{content:'';position:absolute;z-index:-1;left:50%;width:288px;margin-left:-144px;top:-156px;height:393px;border:1px solid var(--oro);border-bottom:0;border-radius:144px 144px 0 0}
+:is(#p-inicio,.intro.eb) .x::before,:is(#p-inicio,.intro.eb) .x::after{pointer-events:none}
+[data-marco^="a"] :is(#p-inicio,.intro.eb) .x::before,[data-marco^="b"] :is(#p-inicio,.intro.eb) .x::before,[data-marco^="c"] :is(#p-inicio,.intro.eb) .x::before{content:'';position:absolute;z-index:-1;left:50%;width:302px;margin-left:-151px;top:-163px;height:400px;border:1.2px solid var(--tinta);border-bottom:0;border-radius:151px 151px 0 0}
+[data-marco$="2"] :is(#p-inicio,.intro.eb) .x::after{content:'';position:absolute;z-index:-1;left:50%;width:288px;margin-left:-144px;top:-156px;height:393px;border:1px solid var(--oro);border-bottom:0;border-radius:144px 144px 0 0}
 /* a · cerrado: la raya de abajo llega hasta la frase */
-[data-marco^="a"] .x::before{height:339px;border-bottom:1.2px solid var(--tinta);border-radius:151px 151px 0 0}
-[data-marco="a2"] .x::after{height:325px;border-bottom:1px solid var(--oro)}
+[data-marco^="a"] :is(#p-inicio,.intro.eb) .x::before{height:339px;border-bottom:1.2px solid var(--tinta);border-radius:151px 151px 0 0}
+[data-marco="a2"] :is(#p-inicio,.intro.eb) .x::after{height:325px;border-bottom:1px solid var(--oro)}
 [data-marco^="a"] #p-inicio .lema{background:#fff;padding:0 12px;z-index:1}
 /* c · sin cerrar: se desvanece antes de llegar abajo */
-[data-marco^="c"] .x::before,[data-marco^="c"] .x::after{-webkit-mask-image:linear-gradient(#000 45%,transparent 92%);mask-image:linear-gradient(#000 45%,transparent 92%)}
+[data-marco^="c"] :is(#p-inicio,.intro.eb) .x::before,[data-marco^="c"] :is(#p-inicio,.intro.eb) .x::after{-webkit-mask-image:linear-gradient(#000 45%,transparent 92%);mask-image:linear-gradient(#000 45%,transparent 92%)}
