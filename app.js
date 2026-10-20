@@ -250,6 +250,7 @@ function generarLooks(n, plan) {
 /* ---------- navegación ---------- */
 const SIN_TABS = ['inicio', 'alta', 'silueta', 'anadir', 'nuevo-look', 'subir'];
 function ir(nombre, datos) {
+  if (nombre === 'inicio' && !$('intro')) $('p-inicio').classList.add('aparece');
   if (nombre === 'anadir') prepararAnadir(datos);
   if (nombre === 'subir' && !datos) prepararSubir();
   if (nombre === 'nuevo-look') prepararNuevoLook(datos);
@@ -714,7 +715,7 @@ const LEMAS = ['Optimiza tu tiempo, vive tus outfits', 'Optimiza tu tiempo, vive
 // cómo aparece el lema (Gabriela, 20/10: «no me gusta lo de bordar, ¿qué otras opciones?»): a fundido · b se escribe · c hilo y sube · d letra a letra · e las letras se juntan
 function bordar() {
   const l = $('p-inicio').querySelector('.lema'); if (!l) return;
-  const v = new URLSearchParams(location.search).get('anim'); l.dataset.anim = 'abcde'.includes(v) && v ? v : 'e';
+  const v = new URLSearchParams(location.search).get('anim'); l.dataset.anim = 'abcde'.includes(v) && v ? v : 'b'; // B elegida por Gabriela el 20/10
   if (l.dataset.anim === 'd') { const t = l.querySelector('.t'); t.innerHTML = [...t.textContent].map((c, i) => `<span style="--i:${i}">${c === ' ' ? '&nbsp;' : c}</span>`).join(''); }
 }
 function entrada(q) { // las puertas del 129 se abren al entrar; un toque la salta
@@ -730,9 +731,9 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
     if (q.get('fin') !== '0') setTimeout(() => {
       const pant = document.querySelector('.pantalla.activa');
       if (pant && pant.id === 'p-inicio') { el.remove(); pant.classList.add('aparece'); return; } // la bienvenida tiene el icono y el nombre en el mismo sitio: solo aparece lo demás
-      el.classList.add('suave'); setTimeout(() => el.remove(), 750); // en el resto, el dibujo se desvanece en su sitio y deja ver la app
-    }, 1700);
-  } else if (q.get('fin') !== '0') setTimeout(() => el.remove(), matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2250);
+      el.classList.add('con-nombre'); setTimeout(() => { el.classList.add('suave'); setTimeout(() => el.remove(), 750); }, 1500); // en el resto, se escribe el nombre y el dibujo se desvanece en su sitio
+    }, 1350);
+  } else if (q.get('fin') !== '0') setTimeout(() => { el.remove(); if ($('p-inicio').classList.contains('activa')) $('p-inicio').classList.add('aparece'); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2250);
 }
 (async () => {
   entrada(new URLSearchParams(location.search));

@@ -584,3 +584,15 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 @media (prefers-reduced-motion:reduce){#p-inicio .lema .t,#p-inicio .lema .t span{opacity:1!important;animation:none!important;clip-path:none!important}}
 #p-inicio.aparece .lema{animation:none}
 #p-inicio .lema[data-anim="c"]{margin-top:26px}#p-inicio .lema[data-anim="c"] .hilo{top:-9px}
+/* 0.9.6 (Gabriela, 20/10: «me gusta la B, pero sube TuCloset más cerca del icono y que aparezca junto con lo de abajo»):
+   la entrada solo dibuja el icono; el nombre se escribe a la vez que el lema (B) y los botones aparecen con ellos */
+.intro.eb .x,#p-inicio .x{gap:8px}
+.intro.eb .nom{opacity:0;animation:none;clip-path:inset(-8px 100% -8px 0)}
+.intro.eb.con-nombre .nom{opacity:1;animation:tc-lb 1.3s cubic-bezier(.45,.05,.35,1) forwards}
+#p-inicio .nom{top:0;opacity:0}
+#p-inicio.aparece .nom{opacity:1;clip-path:inset(-8px 100% -8px 0);animation:tc-lb 1.3s .05s cubic-bezier(.45,.05,.35,1) forwards}
+#p-inicio .lema{margin-top:10px}
+#p-inicio.aparece .lema[data-anim="b"] .t{animation:tc-lb 1.3s .05s cubic-bezier(.45,.05,.35,1) forwards}
+#p-inicio .abajo{opacity:0}
+#p-inicio.aparece .abajo{animation:tc-suave 1s .1s ease-out forwards}
+@media (prefers-reduced-motion:reduce){#p-inicio .nom,#p-inicio .abajo{opacity:1!important;animation:none!important;clip-path:none!important}}
