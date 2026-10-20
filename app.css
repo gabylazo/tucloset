@@ -557,8 +557,6 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 #p-inicio .idioma{font-size:12px;font-weight:400;gap:14px}
 #p-inicio .idioma button.activo{border-bottom-width:1px}
 /* lemas a prueba (?lema=1|2|3) */
-[data-lema="2"] #p-inicio .lema{font-size:19px}
-[data-lema="3"] #p-inicio .lema{font-family:Jost,sans-serif;font-style:normal;font-weight:300;font-size:14px;letter-spacing:.04em}
 #p-inicio .nom{position:relative;top:6px}
 /* 0.9.2 (Gabriela, 20/10: «centra todo más hacia arriba»): el icono y el nombre suben lo mismo en la entrada y en la bienvenida */
 .intro.eb .x{transform:translateY(-110px)}

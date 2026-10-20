@@ -31,7 +31,7 @@ const COLORES = [['Negro', '#1B1B1B'], ['Blanco', '#F4F4F4'], ['Gris', '#8E8E8E'
 
 /* ---------- idioma ---------- */
 const T = {
-  lema: ['Optimiza tu clóset', 'Make the most of your closet'], crear: ['Crear mi clóset', 'Create my closet'], ya_tengo: ['Ya tengo cuenta', 'I already have one'],
+  lema: ['Optimiza lo que ya tienes', 'Make the most of what you have'], crear: ['Crear mi clóset', 'Create my closet'], ya_tengo: ['Ya tengo cuenta', 'I already have one'],
   legal: ['Pruébala gratis 7 días', 'Try it free for 7 days'],
   p_cuenta: ['Cuenta', 'Account'], p_silueta: ['Silueta', 'Figure'], p_prendas: ['Prendas', 'Garments'],
   alta_titulo: ['Lo justo para empezar', 'Just enough to start'], alta_sub: ['Todo se guarda en tu móvil. Nada sale de aquí sin que tú lo pidas.', 'Everything stays on your phone. Nothing leaves unless you ask.'],
@@ -731,7 +731,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || [];
   let migra = false; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
   traducir(); pintarSilueta();
-  { const l = new URLSearchParams(location.search).get('lema'); const LEMAS = { 2: ['Optimiza tu clóset, viste mejor', 'Make the most of your closet'], 3: ['Optimiza tu clóset y viste con lo que ya tienes', 'Make the most of the clothes you already have'] }; if (LEMAS[l]) { document.documentElement.dataset.lema = l; document.querySelector('#p-inicio .lema').textContent = LEMAS[l][idioma() === 'en' ? 1 : 0]; } }
+  { const l = new URLSearchParams(location.search).get('lema'); const LEMAS = { 2: ['Optimiza tu estilo', 'Make the most of your style'], 3: ['Optimiza cada prenda', 'Make every garment count'] }; if (LEMAS[l]) { document.documentElement.dataset.lema = l; document.querySelector('#p-inicio .lema').textContent = LEMAS[l][idioma() === 'en' ? 1 : 0]; } }
   const q = new URLSearchParams(location.search);
   for (const k of Object.keys(DIS)) if (DIS[k].vals.includes(q.get(k))) DIS_URL[k] = q.get(k);
   if (PROTOS[q.get('proto')]) Object.assign(DIS_URL, PROTOS[q.get('proto')]);
