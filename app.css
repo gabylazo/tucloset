@@ -596,3 +596,12 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 #p-inicio .abajo{opacity:0}
 #p-inicio.aparece .abajo{animation:tc-suave 1s .1s ease-out forwards}
 @media (prefers-reduced-motion:reduce){#p-inicio .nom,#p-inicio .abajo{opacity:1!important;animation:none!important;clip-path:none!important}}
+/* 0.9.7 (Gabriela, 20/10: «TuCloset y la parte de abajo aparecen juntas, con la animación que tenían, y de último se escribe lo de Optimiza tu estilo»; «hay mucho espacio entre el icono, el nombre y la frase») */
+.intro.eb .x,#p-inicio .x{gap:0}
+.intro.eb .nom,#p-inicio .nom{margin-top:-6px}
+.intro.eb .nom{clip-path:none}
+.intro.eb.con-nombre .nom{animation:tc-nombre .6s ease-out forwards}
+#p-inicio.aparece .nom{clip-path:none;animation:tc-nombre .6s ease-out both}
+#p-inicio.aparece .abajo{animation:tc-suave .9s ease-out forwards}
+#p-inicio .lema{margin-top:6px}
+#p-inicio.aparece .lema[data-anim="b"] .t{animation:tc-lb 1.3s .75s cubic-bezier(.45,.05,.35,1) forwards}
