@@ -466,3 +466,22 @@ body{font-family:var(--f);font-weight:300}
 .tabs button.activo{color:var(--tinta)}.tabs button.activo .ic{background:none;color:var(--tinta)}
 .tabs button{color:var(--suave2)}
 h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
+/* entradas B (trazo dorado) y C (cortina de probador), para comparar: ?entrada=b|c (Gabriela, 20/10: «¿dónde veo esto?») */
+.intro.eb{background:#fff;display:grid;place-items:center}
+.intro.eb .x{display:grid;justify-items:center;gap:18px}
+.intro.eb svg{width:120px;height:120px;fill:none;stroke:var(--oro);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.intro.eb svg path{stroke-dasharray:240;stroke-dashoffset:240;animation:tc-traza 1.1s .1s ease-in-out forwards}
+.intro.eb svg path:nth-child(n+5){animation-delay:.6s;animation-duration:.7s}
+.intro.eb .nom{font-family:var(--f-marca);font-size:44px;line-height:1;color:var(--tinta);animation:tc-nombre .6s .9s ease-out both}.intro.eb .nom span{color:var(--oro)}
+.intro.eb.activa{animation:tc-funde .45s 2s ease-in forwards}
+@keyframes tc-traza{to{stroke-dashoffset:0}}
+.intro.ec .barra{position:absolute;left:0;right:0;top:26px;height:2px;background:var(--oro);z-index:3}
+.intro.ec .anillas{position:absolute;left:0;right:0;top:20px;height:14px;transform-origin:100% 0;z-index:4;background:radial-gradient(circle at 7px 7px,transparent 4px,var(--oro) 4.6px,var(--oro) 5.6px,transparent 6.2px) 0 0/30px 14px repeat-x}
+.intro.ec .tela{position:absolute;top:28px;bottom:0;left:0;right:0;transform-origin:100% 0;background:repeating-linear-gradient(90deg,#F2ECE4 0 14px,#E6DCCF 22px,#F2ECE4 30px);display:grid;place-items:center}
+.intro.ec .tela .nom{font-family:var(--f-marca);font-size:44px;color:var(--tinta)}.intro.ec .tela .nom span{color:var(--oro)}
+.intro.ec .fondo{position:absolute;inset:0;background:#fff}
+.intro.ec.activa .tela,.intro.ec.activa .anillas{animation:tc-corre 1.05s .95s cubic-bezier(.6,.05,.3,1) both}
+.intro.ec.activa .tela .nom{animation:tc-funde .25s .9s forwards}.intro.ec.activa .fondo{animation:tc-funde .01s .95s forwards}
+.intro.ec.activa{animation:tc-funde .3s 2s forwards}
+@keyframes tc-corre{to{transform:scaleX(.09)}}
+.intro.eb .nom,.intro.ec .nom{position:static;top:auto}
