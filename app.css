@@ -673,3 +673,8 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 #p-inicio.dibuja .nom,.intro.eb.con-nombre .nom{animation:tc-nombre .8s 2.3s ease-out both}
 #p-inicio.dibuja .abajo{animation:tc-suave 1s 2.3s ease-out forwards}
 #p-inicio.dibuja .lema[data-anim="b"] .t{animation:tc-lb 1.4s 3.1s cubic-bezier(.45,.05,.35,1) forwards}
+/* 0.9.16 (Gabriela, 21/10: «prueba poner el color del botón Crear mi clóset en dorado, para que esté más coordinado») · ?boton=1|2|3 */
+#p-inicio .abajo .boton[data-ir="alta"]{background:var(--oro);color:var(--tinta)}
+[data-boton="2"] #p-inicio .abajo .boton[data-ir="alta"]{color:#fff}
+[data-boton="3"] #p-inicio .abajo .boton[data-ir="alta"]{color:var(--tinta)}
+[data-boton="3"] #p-inicio .abajo .boton.linea{border-color:var(--oro)}
