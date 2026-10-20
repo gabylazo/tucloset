@@ -719,7 +719,7 @@ function bordar() {
   if (l.dataset.anim === 'd') { const t = l.querySelector('.t'); t.innerHTML = [...t.textContent].map((c, i) => `<span style="--i:${i}">${c === ' ' ? '&nbsp;' : c}</span>`).join(''); }
 }
 function entrada(q) { // las puertas del 129 se abren al entrar; un toque la salta
-  { const m = q.get('marco'); if (/^([1-6]|[abc][12])$/.test(m || '')) document.documentElement.dataset.marco = m; } // marcos a prueba (20/10)
+  { const m = q.get('marco'); document.documentElement.dataset.marco = /^([1-6]|[abc][12])$/.test(m || '') ? m : 'c2'; } // arco c2 elegido por Gabriela el 21/10 («me quedo con c2»); ?marco= para comparar
   const el = $('intro'); if (!el) return;
   if (q.get('intro') !== '1' && (q.get('intro') === '0' || q.get('pantalla') || q.get('ficha'))) { el.remove(); $('p-inicio').classList.add('aparece'); return; }
   const v = q.get('entrada') || localStorage.getItem('tc_entrada') || 'b'; // B por defecto (Gabriela, 20/10: «me gusta la B») if (q.get('entrada')) localStorage.setItem('tc_entrada', v);
