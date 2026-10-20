@@ -1,4 +1,4 @@
-/* TuCloset · web 0.7 · lógica (0.7, 19/10: subida en lote y generador de conjuntos, encargo de Sheila) (Dirección, 18/10/2026; 0.6 la misma noche: base V5 tarjeta, maniquí del Básico, estilos nogal/verde/color, entrada con las puertas)
+/* TuCloset · web 0.8 · lógica (0.8, 20/10: Hoy, Clóset, filtros y entrada cerrados por Gabriela) (0.7, 19/10: subida en lote y generador de conjuntos, encargo de Sheila) (Dirección, 18/10/2026; 0.6 la misma noche: base V5 tarjeta, maniquí del Básico, estilos nogal/verde/color, entrada con las puertas)
    Todo se guarda en el navegador (IndexedDB): perfil, prendas con su foto, conjuntos y usos. Sin servidor.
    Pantallas: inicio, alta, silueta, hoy, closet, anadir, ficha, looks, nuevo-look, look, yo. */
 'use strict';
@@ -43,14 +43,14 @@ const T = {
   selfie: ['Selfie', 'Selfie'], selfie_et: ['luz natural, sin filtros', 'natural light, no filters'], cuerpo: ['Cuerpo entero', 'Full body'], cuerpo_et: ['de pie, ropa ajustada', 'standing, fitted clothes'],
   s1: ['Luz natural, sin filtros ni gafas de sol.', 'Natural light, no filters or sunglasses.'], s2: ['De frente y con el cuerpo entero dentro.', 'Facing the camera, whole body in frame.'], s3: ['Puedes cambiarlas cuando quieras desde «Yo».', 'You can change them any time from “Me”.'],
   privado: ['Las fotos se quedan en tu móvil. Solo tu silueta, sin tu cara, se usará para probarte la ropa.', 'Photos stay on your phone. Only your figure, without your face, will be used to try clothes on.'],
-  buscar: ['Buscar por nombre, color o tipo', 'Search by name, colour or type'], nueva: ['Nueva prenda', 'New garment'], editar_prenda: ['Editar prenda', 'Edit garment'], borrar: ['Borrar', 'Delete'],
+  buscar: ['Buscar en mi clóset', 'Search my closet'], nueva: ['Nueva prenda', 'New garment'], editar_prenda: ['Editar prenda', 'Edit garment'], borrar: ['Borrar', 'Delete'],
   hacer_foto: ['Haz una foto o elige una de la galería', 'Take a photo or pick one from the gallery'], foto_et: ['sobre fondo liso, la prenda entera', 'plain background, whole garment'],
   nombre_prenda: ['Nombre', 'Name'], tipo: ['Tipo', 'Type'], estacion: ['Estación', 'Season'], color: ['Color', 'Colour'], notas: ['Notas (talla, tienda, cuidado…)', 'Notes (size, shop, care…)'],
   guardar_closet: ['Guardar en mi clóset', 'Save to my closet'], guardar_otra: ['Guardar y añadir otra', 'Save and add another'], guardar_cambios: ['Guardar cambios', 'Save changes'],
   editar: ['Editar', 'Edit'], veces: ['veces puesta', 'times worn'], ultima: ['última vez', 'last worn'], conjuntos_min: ['conjuntos', 'outfits'], hoy_llevo: ['Hoy llevo esto', 'Wearing this today'],
   asi: ['Así te queda', 'How it looks on you'], ver_conjuntos: ['Ver conjuntos', 'See outfits'], conjuntos: ['Conjuntos', 'Outfits'], nuevo_conjunto: ['Nuevo conjunto', 'New outfit'],
   nombre_conjunto: ['Nombre', 'Name'], ocasion: ['Ocasión', 'Occasion'], elige_prendas: ['Elige las prendas', 'Pick the garments'], guardar_conjunto: ['Guardar conjunto', 'Save outfit'], me_lo_pongo: ['Me lo pongo', 'I’ll wear it'],
-  yo: ['Yo', 'Me'], t_hoy: ['Hoy', 'Today'], t_closet: ['Clóset', 'Closet'], t_anadir: ['Subir', 'Upload'], subir_titulo: ['Subir prendas', 'Upload garments'], subir_h1: ['Tu ropa, como en un catálogo', 'Your clothes, like a catalogue'], subir_sub: ['Hasta 20 fotos: una prenda por foto, sobre un fondo liso. La app pone el fondo en blanco y te propone tipo y color.', 'Up to 20 photos: one garment per photo, on a plain background. The app whitens the background and suggests type and colour.'], t_conjuntos: ['Conjuntos', 'Outfits'], t_yo: ['Yo', 'Me'],
+  yo: ['Yo', 'Me'], t_hoy: ['Hoy', 'Today'], t_closet: ['Clóset', 'Closet'], t_anadir: ['Subir', 'Upload'], subir_titulo: ['Subir prendas', 'Upload garments'], subir_h1: ['Tu ropa, como en un catálogo', 'Your clothes, like a catalogue'], subir_sub: ['Hasta 20 fotos: una prenda por foto, sobre un fondo liso. La app pone el fondo en blanco y te propone tipo y color.', 'Up to 20 photos: one garment per photo, on a plain background. The app whitens the background and suggests type and colour.'], t_conjuntos: ['Looks', 'Looks'], t_yo: ['Yo', 'Me'],
 };
 const idioma = () => (E.perfil?.idioma) || localStorage.getItem('tc_idioma') || 'es';
 const t = (es, en) => idioma() === 'en' ? en : es;
@@ -141,11 +141,33 @@ function aplicarTono(ps) { // estilo «color»: el tono de la prenda principal, 
 }
 // maniquí de sastre (plan Básico): el conjunto compuesto en el móvil, sin coste por conjunto
 const BUSTO = '<svg class="busto" viewBox="0 0 100 200" aria-hidden="true"><circle cx="50" cy="8" r="3.5"/><path d="M46 11.5h8v9h-8z"/><path d="M46 20.5C34 22 23 24.5 19.5 30C16.5 35 19 46 23 56C26.5 65 27.5 72 26 80C24.5 88 21.5 94 21.5 100C21.5 104 30 106 50 106C70 106 78.5 104 78.5 100C78.5 94 75.5 88 74 80C72.5 72 73.5 65 77 56C81 46 83.5 35 80.5 30C77 24.5 66 22 54 20.5"/><path d="M43 110h14M50 106v70M50 176l-15 16M50 176l15 16M50 176v17"/></svg>';
-function maniqui(ps, mini) {
-  const capa = { Arriba: 'm-arriba', Abrigo: 'm-abrigo', Vestidos: 'm-vestido', Abajo: 'm-abajo', Calzado: 'm-calzado', Bolsos: 'm-bolso' };
-  const usadas = new Set(); const imgs = [];
-  for (const p of ps) { const c = capa[p.tipo]; if (!c || usadas.has(c)) continue; usadas.add(c); imgs.push(`<img class="${c}" src="${urlFoto(p)}" alt="" style="${p.foto ? 'mix-blend-mode:multiply' : ''}">`); }
-  return `<div class="maniqui${mini ? ' mini' : ''}">${BUSTO}${imgs.join('')}</div>`;
+// 0.8: sin maniquí (Gabriela 20/10: «está bastante feo»). El conjunto se compone con las prendas sueltas, a su tamaño
+// aproximado en cm y simétrico: A · Eje (arriba / pieza grande / bolso y calzado); con bolso y calzado, B · Cruz.
+const MEDIDA = { Arriba: [60, 58], Abrigo: [72, 88], Abajo: [58, 100], Vestidos: [72, 100], Calzado: [30, 28], Bolsos: [30, 32], Accesorios: [22, 22] };
+function composicion(ps) {
+  const G = 7, m = p => MEDIDA[p.tipo] || [40, 40], rol = r => ps.filter(p => r.includes(p.tipo));
+  const arriba = rol(['Arriba', 'Abrigo']).slice(0, 3), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0];
+  const ancho = f => f.reduce((t, p) => t + m(p)[0], 0) + G * (f.length - 1), out = [];
+  const fila = (f, y, W) => { const h = Math.max(...f.map(p => m(p)[1])); let x = (W - ancho(f)) / 2; f.forEach(p => { out.push([p, x, y + (h - m(p)[1]) / 2]); x += m(p)[0] + G; }); return h; };
+  let W, y = 0;
+  if (grande && bolso && calzado) { // Cruz
+    const col = Math.max(m(bolso)[0], m(calzado)[0]), cw = m(grande)[0];
+    W = Math.max(2 * (col + G) + cw, arriba.length ? ancho(arriba) : 0);
+    if (arriba.length) y = fila(arriba, 0, W) + G;
+    out.push([grande, (W - cw) / 2, y]); const yb = y + m(grande)[1] * .62;
+    out.push([bolso, (W - cw) / 2 - G - col + (col - m(bolso)[0]) / 2, yb - m(bolso)[1] / 2]);
+    out.push([calzado, (W + cw) / 2 + G + (col - m(calzado)[0]) / 2, yb - m(calzado)[1] / 2]);
+    y += m(grande)[1];
+  } else { // Eje
+    const filas = [arriba, grande ? [grande] : [], [bolso, calzado].filter(Boolean)].filter(f => f.length);
+    if (!filas.length) return '';
+    W = Math.max(...filas.map(ancho)); filas.forEach(f => { y += fila(f, y, W) + G; }); y -= G;
+  }
+  return out.map(([p, x, yy]) => `<img src="${urlFoto(p)}" alt="" style="left:${x / W * 100}%;top:${yy / y * 100}%;width:${m(p)[0] / W * 100}%;height:${m(p)[1] / y * 100}%">`).join('') + `<!--${W}x${y}-->`;
+}
+function maniqui(ps, mini) { // nombre heredado: ahora devuelve la composición simétrica
+  const html = composicion(ps); const r = html.match(/<!--([\d.]+)x([\d.]+)-->/);
+  return `<div class="lienzo${mini ? ' mini' : ''}" style="aspect-ratio:${r ? r[1] + '/' + r[2] : '1/1'}">${html}</div>`;
 }
 const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
 /* ---------- tiempo (Open-Meteo) ---------- */
@@ -254,48 +276,31 @@ function proponer() {
   for (const g of generarLooks(4, E.plan)) if (!props.some(x => x.ids.join() === g.ids.join())) props.push({ tipo: 'propuesta', ids: g.ids, nombre: g.nombre, ocasion: g.ocasion });
   E.propuestas = props; if (E.hoyIdx >= props.length) E.hoyIdx = 0;
 }
-function pintarHoy() {
+function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin menú arriba, el tiempo una vez junto a la fecha, debajo solo la ocasión
   const pant = $('p-hoy'); const w = E.tiempo; const l = idioma();
-  if (!E.propuestas.length) proponer();
+  E.plan = 'Todos'; if (!E.propuestas.length) proponer();
   const lista = E.propuestas; const pr = lista[E.hoyIdx];
   const hoyD = new Date(); const dia = cap(hoyD.toLocaleDateString(l === 'en' ? 'en-GB' : 'es-ES', { weekday: 'long', day: 'numeric' }));
-  const sim = dis('sim') === '1', estiloT = dis('tiempo');
-  const marcaH = `<span class="marca"><svg viewBox="0 0 100 100"><use href="#i129"/></svg><span>Tu<span class="oro">Closet</span></span></span>`;
-  const ac = w ? avisoCorto(w) : null;
-  const medallon = w ? `<span class="t-med">${ICO_T[w.clave].replace('<svg', `<svg class="ico-${w.clave}"`)}<span><b>${w.t}°</b><small class="${ac.lluvia ? 'lluvia' : ''}">${ac.txt}</small></span></span>` : '';
-  const derecha = estiloT === 'medallon' && w ? medallon : `<span class="dia">${sim ? (w ? w.nombre : '') : dia}${sim ? '' : `<small>${w ? w.nombre : ''}</small>`}</span>`;
-  const cab = sim ? `<header class="h-cab"><span class="izq"><b>${hoyD.getDate()}</b>${cap(hoyD.toLocaleDateString(l === 'en' ? 'en-GB' : 'es-ES', { weekday: 'long' }))}</span>${marcaH}<span class="der">${derecha}</span></header>`
-    : `<header class="h-cab">${marcaH}<span class="der">${derecha}</span></header>`;
-  if (w && dis('tema') === 'categorias') document.documentElement.style.setProperty('--t-suave', colorTemp(w.t)[1]);
-  const planes = `<div class="planes sinbarra" aria-label="${t('¿Qué haces hoy?', 'What are you doing today?')}">${PLANES.map(o => `<button class="chip ${o === E.plan ? 'activo' : ''}" data-plan="${o}">${o === 'Todos' ? t('Todo', 'All') : ocNombre(o)}</button>`).join('')}</div>`;
-  const tiempo = w ? fraseTiempo(w) : null;
-  const franja = w && estiloT === 'franja' ? `<div class="t-franja" style="--t-color:${colorTemp(w.t)[0]}">${ICO_T[w.clave]}<b>${w.t}°</b>${w.txt[l === 'en' ? 1 : 0]} · ${ac.txt}</div>` : '';
-  const lineaTiempo = !w ? '' : estiloT === 'linea' ? `<p class="h-tiempo ${tiempo.lluvia ? 'lluvia' : ''}">${tiempo.html}</p>`
-    : estiloT === 'emoji' ? `<p class="t-emoji"><span class="e">${EMO_T[w.clave]}</span>${w.t}° · ${ac.lluvia ? '☂️ ' : ''}${ac.txt}</p>`
-    : estiloT === 'medallon' && ac.lluvia ? `<span class="t-aviso">☂ ${tiempo.html.match(/<em>(.*?)<\/em>/)?.[1] || ac.txt}</span>` : '';
+  const ico = k => ICO_T[k] || ICO_T.nube;
+  const cieloAhora = w ? (w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(w.clave) ? 'nube' : w.clave) : null; // el icono del cielo: sol si hay sol, aunque haga frío
+  const avisoLluvia = !w ? '' : ['lluvia', 'tormenta'].includes(w.clave) ? ` · ${ico('lluvia')}${t('ahora', 'now')}` : w.lluviaH != null ? ` · ${ico('lluvia')}${w.lluviaH}:00` : '';
+  const cab = `<header class="hz-cab"><span class="marca"><svg viewBox="0 0 100 100"><use href="#i129"/></svg><span>Tu<span class="oro">Closet</span></span></span>
+    <div class="hz-dia mini-et">${dia}${w ? `${ico(cieloAhora)}${w.t}°${avisoLluvia}` : ''}</div></header>`;
   if (!pr) {
     const hay = activas().length;
-    pant.innerHTML = cab + planes + `<section class="h-tarjeta">${franja}<div class="h-escena" style="grid-template-columns:1fr"><div class="h-figura"><div class="silueta">${BUSTO.replace('class="busto"', 'style="width:90px;height:180px;fill:none;stroke:#C9A24B;stroke-width:1.6"')}<span>${hay ? (E.plan === 'Todos' ? t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.') : t('Aún no tienes conjuntos para este plan. Crea uno en Conjuntos.', 'No outfits for this plan yet. Create one in Outfits.')) : t('Tu conjunto de hoy aparecerá aquí en cuanto tengas tres prendas: una de arriba, una de abajo y unos zapatos.', 'Your outfit of the day will appear here once you have three garments: a top, a bottom and shoes.')}</span></div></div></div>
-      <div class="h-pie"><h1>${t('Hoy', 'Today')}</h1>${lineaTiempo}</div></section>
-      <div class="botones"><button class="boton" data-ir="${hay && E.plan !== 'Todos' ? 'nuevo-look' : 'subir'}">${hay && E.plan !== 'Todos' ? t('Crear un conjunto', 'Create an outfit') : t('Subir mis prendas', 'Upload my garments')}</button>${hay || PUBLICA ? '' : `<button class="boton linea" id="hoy-ejemplo">${t('Ver un ejemplo', 'See an example')}</button>`}</div>`;
+    pant.innerHTML = cab + `<div class="hz-vacio">${hay ? t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.') : t('Tu conjunto de hoy aparecerá aquí en cuanto tengas tres prendas: una de arriba, una de abajo y unos zapatos.', 'Your outfit of the day will appear here once you have three garments: a top, a bottom and shoes.')}
+      <button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button>${hay || PUBLICA ? '' : `<button class="hz-bt" id="hoy-ejemplo" style="border:0;margin-top:4px">${t('Ver un ejemplo', 'See an example')}</button>`}</div>`;
     const ej = $('hoy-ejemplo'); if (ej) ej.onclick = cargarEjemplo;
     return;
   }
   const ps = pr.ids.map(P).filter(Boolean); const c = pr.c;
-  aplicarTono(ps);
   const avatar = planDemo() === 'pro' ? c?.img : null;
   const figura = avatar ? `<img src="${avatar}" alt="${t('Tú con el conjunto', 'You wearing the outfit')}">` : maniqui(ps);
-  const flechas = lista.length > 1 ? `<button class="h-flecha izq" id="hoy-ant" aria-label="${t('Anterior', 'Previous')}"><svg viewBox="0 0 16 16"><path d="m10 2-6 6 6 6"/></svg></button><button class="h-flecha der" id="hoy-sig" aria-label="${t('Otro', 'Next')}"><svg viewBox="0 0 16 16"><path d="m6 2 6 6-6 6"/></svg></button>` : '';
-  const pieza = p => `<button data-ficha="${p.id}" style="--cat:${catVar(p.tipo)}"><img src="${urlFoto(p)}" alt=""><span>${p.nombre}</span></button>`;
-  const lista5 = ps.slice(0, sim ? 6 : 5); const mitad = Math.ceil(lista5.length / 2);
-  const escena = sim ? `<div class="h-piezas">${lista5.slice(0, mitad).map(pieza).join('')}</div><div class="h-figura">${figura}</div><div class="h-piezas">${lista5.slice(mitad).map(pieza).join('')}</div>` : `<div class="h-figura">${figura}</div><div class="h-piezas">${lista5.map(pieza).join('')}</div>`;
-  const nombre = c ? c.nombre : (pr.nombre || t('Propuesta de hoy', 'Today’s pick'));
-  const razon = c ? (c.ocasion ? ocNombre(c.ocasion) + ' · ' : '') + (c.usos?.length ? `${veces(c.usos.length)} · ${fecha(c.usos[c.usos.length - 1], true)}` : t('nunca puesto', 'never worn')) : t('Combinado por la app con tu ropa', 'Combined by the app from your clothes');
-  pant.innerHTML = cab + planes + `<section class="h-tarjeta">${franja}<div class="h-escena">${escena}${sim ? '' : flechas}</div>
-    <div class="h-pie"><h1>${nombre}</h1>${lineaTiempo}<p class="h-razon">${razon}</p></div></section>
-    <div class="botones"><button class="boton" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="boton linea" id="hoy-otro">${t('Otro', 'Another')}</button></div>${sim && lista.length > 1 ? `<div class="puntos">${lista.map((_, i) => `<i class="${i === E.hoyIdx ? 'activo' : ''}"></i>`).join('')}</div>` : ''}`;
-  const sig = () => { E.hoyIdx = (E.hoyIdx + 1) % lista.length; pintarHoy(); };
-  $('hoy-otro').onclick = sig; if ($('hoy-sig')) $('hoy-sig').onclick = sig; if ($('hoy-ant')) $('hoy-ant').onclick = () => { E.hoyIdx = (E.hoyIdx + lista.length - 1) % lista.length; pintarHoy(); };
+  const oc = (c && c.ocasion) || pr.ocasion || ocasionDe(ps);
+  const flechas = lista.length > 1 ? `<div class="hz-flechas"><button id="hoy-ant" aria-label="${t('Anterior', 'Previous')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><button id="hoy-sig" aria-label="${t('Otro', 'Next')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>` : '';
+  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}</div><button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button></div></div>`;
+  if ($('hoy-sig')) $('hoy-sig').onclick = () => { E.hoyIdx = (E.hoyIdx + 1) % lista.length; pintarHoy(); };
+  if ($('hoy-ant')) $('hoy-ant').onclick = () => { E.hoyIdx = (E.hoyIdx + lista.length - 1) % lista.length; pintarHoy(); };
   $('hoy-pongo').onclick = async () => { await ponerse(pr.ids, c); };
 }
 async function ponerse(ids, conj) {
@@ -307,17 +312,49 @@ async function ponerse(ids, conj) {
 }
 
 /* ---------- CLÓSET ---------- */
-function pintarCloset() {
-  const todas = E.prendas; const act = activas();
-  $('closet-sub').textContent = todas.length ? `${todas.length} ${t('prendas', 'garments')}` : t('vacío', 'empty');
-  const cats = ['Todo', ...TIPOS.filter(tp => todas.some(p => p.tipo === tp))];
-  $('cats').innerHTML = cats.map(c => `<button class="${c === E.filtro ? 'activo' : ''}" data-filtro="${c}" style="${c === 'Todo' ? '' : `--cat:${catVar(c)}`}">${tipoNombre(c)}</button>`).join('');
-  const q = E.busca.trim().toLowerCase();
-  const lista = todas.filter(p => (E.filtro === 'Todo' || p.tipo === E.filtro) && (!q || [p.nombre, p.color, tipoNombre(p.tipo), p.notas].join(' ').toLowerCase().includes(q)));
-  $('pared').innerHTML = lista.map(p => `<button class="prenda" data-ficha="${p.id}"><span class="cuadro" style="--cat:${catVar(p.tipo)}"><img src="${urlFoto(p)}" alt="">${p.estado ? `<i>${estadoTxt(p.estado)}</i>` : ''}</span><b>${p.nombre}</b><span>${p.color} · ${(p.usos || []).length} ${t('usos', 'uses')}</span></button>`).join('');
-  $('closet-vacio').innerHTML = todas.length ? (lista.length ? '' : `<div class="vacio">${t('Nada con ese filtro.', 'Nothing matches.')}</div>`) : `<div class="vacio"><b>${t('Tu ropa, como en una tienda', 'Your clothes, like in a shop')}</b>${t('Haz una foto a cada prenda sobre un fondo liso. Con tres ya hay conjunto de hoy.', 'Photograph each garment on a plain background. With three there is already an outfit of the day.')}<button class="boton" data-ir="subir">${t('Subir mis primeras prendas', 'Upload my first garments')}</button>${PUBLICA ? '' : `<button class="boton suave" style="margin-top:8px" id="cl-ejemplo">${t('Cargar un clóset de ejemplo', 'Load a sample closet')}</button>`}</div>`;
-  const ej = $('cl-ejemplo'); if (ej) ej.onclick = cargarEjemplo;
+// 0.8 · categorías de tienda: lo de abajo se separa en pantalones y faldas por el nombre
+const catDe = p => p.tipo === 'Abajo' ? (/falda|skirt/i.test(p.nombre) ? 'Faldas' : 'Pantalones') : ({ Arriba: 'Tops', Abrigo: 'Abrigos', Vestidos: 'Vestidos', Calzado: 'Zapatos', Bolsos: 'Bolsos', Accesorios: 'Accesorios' }[p.tipo] || p.tipo);
+const CATS_ORDEN = ['Tops', 'Pantalones', 'Faldas', 'Vestidos', 'Abrigos', 'Zapatos', 'Bolsos', 'Accesorios'];
+const catTxt = c => idioma() === 'en' ? ({ Todo: 'All', Tops: 'Tops', Pantalones: 'Trousers', Faldas: 'Skirts', Vestidos: 'Dresses', Abrigos: 'Outerwear', Zapatos: 'Shoes', Bolsos: 'Bags', Accesorios: 'Accessories' }[c] || c) : c;
+E.f = { ocasion: [], estacion: [], color: [], uso: [], estado: [] };
+const FILTROS = () => [
+  ['ocasion', t('Ocasión', 'Occasion'), OCASIONES.map(o => [o, ocNombre(o)])],
+  ['estacion', t('Estación', 'Season'), ESTACIONES.map(x => [x, x])],
+  ['color', 'Color', COLORES.map(([n, c]) => [n, c])],
+  ['uso', t('Uso', 'Use'), [['nueva', t('Sin estrenar', 'Never worn')], ['olvidada', t('Sin poner en 3 meses', 'Not worn in 3 months')], ['mas', t('Las que más uso', 'Most worn')]]],
+  ['estado', t('Estado', 'Status'), [['', t('Lista para poner', 'Ready to wear')], ['lavar', t('Para lavar', 'To wash')], ['guardada', t('Guardada', 'Stored')]]]
+];
+function pasaFiltros(p) {
+  const f = E.f, hace3 = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10), u = p.usos || [];
+  const ocs = E.conjuntos.filter(c => c.ids.includes(p.id)).map(c => c.ocasion || 'Diario');
+  const maxUsos = Math.max(1, ...E.prendas.map(x => (x.usos || []).length));
+  return (!f.ocasion.length || f.ocasion.some(o => ocs.includes(o)))
+    && (!f.estacion.length || f.estacion.includes(p.estacion) || p.estacion === 'Todo el año')
+    && (!f.color.length || f.color.includes(p.color))
+    && (!f.uso.length || f.uso.some(k => k === 'nueva' ? !u.length : k === 'olvidada' ? (u.length && u[u.length - 1] < hace3) : u.length >= maxUsos * .6))
+    && (!f.estado.length || f.estado.includes(p.estado || ''));
 }
+function pintarCloset() {
+  const todas = E.prendas;
+  const cats = ['Todo', ...CATS_ORDEN.filter(c => todas.some(p => catDe(p) === c))];
+  if (!cats.includes(E.filtro)) E.filtro = 'Todo';
+  $('cats').innerHTML = cats.map(c => `<button class="${c === E.filtro ? 'activo' : ''}" data-filtro="${c}">${catTxt(c)}</button>`).join('');
+  const q = E.busca.trim().toLowerCase();
+  const lista = todas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && pasaFiltros(p) && (!q || [p.nombre, p.color, catDe(p), p.notas].join(' ').toLowerCase().includes(q)));
+  const nf = Object.values(E.f).reduce((t, v) => t + v.length, 0); $('mc-nf').textContent = nf || '';
+  $('pared').innerHTML = lista.map(p => `<button data-ficha="${p.id}" aria-label="${p.nombre}"><img src="${urlFoto(p)}" alt="">${p.estado ? `<i>${estadoTxt(p.estado)}</i>` : ''}</button>`).join('');
+  $('closet-vacio').innerHTML = todas.length ? (lista.length ? '' : `<div class="vacio">${t('Nada con ese filtro.', 'Nothing matches.')}</div>`) : `<div class="vacio">${t('Haz una foto a cada prenda sobre un fondo liso. Con tres ya hay conjunto de hoy.', 'Photograph each garment on a plain background. With three there is already an outfit of the day.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button>${PUBLICA ? '' : `<button class="hz-bt" style="border:0" id="cl-ejemplo">${t('Cargar un clóset de ejemplo', 'Load a sample closet')}</button>`}</div>`;
+  const ej = $('cl-ejemplo'); if (ej) ej.onclick = cargarEjemplo;
+  if (!$('mc-hoja').hidden) pintarFiltros();
+}
+function pintarFiltros() {
+  $('mc-grupos').innerHTML = FILTROS().map(([k, tit, ops]) => `<div class="mc-gr"><p class="mini-et">${tit}</p><div class="mc-ops">${ops.map(([v, txt]) => k === 'color'
+    ? `<button class="sw ${E.f.color.includes(v) ? 'on' : ''}" data-fil="${k}|${v}" title="${v}" style="background:${txt}"></button>`
+    : `<button class="${E.f[k].includes(v) ? 'on' : ''}" data-fil="${k}|${v}">${txt}</button>`).join('')}</div>${k === 'ocasion' ? `<small>${t('según los conjuntos en los que está cada prenda', 'from the outfits each garment is in')}</small>` : ''}</div>`).join('');
+  const n = E.prendas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && pasaFiltros(p)).length;
+  $('mc-ver').textContent = t(`Ver ${n} prendas`, `See ${n} garments`);
+}
+function hojaFiltros(abrir) { $('mc-hoja').hidden = !abrir; $('mc-velo').hidden = !abrir; if (abrir) pintarFiltros(); }
 const estadoTxt = e => ({ lavar: t('A lavar', 'To wash'), guardada: t('Guardada', 'Stored'), donar: t('Para donar', 'To donate') }[e] || '');
 
 /* ---------- SUBIR: varias prendas de golpe (patrón de Vinted) ---------- */
@@ -632,6 +669,9 @@ document.addEventListener('click', e => {
   else if (b.dataset.sel) { const id = b.dataset.sel; const i = E.preseleccion.indexOf(id); i >= 0 ? E.preseleccion.splice(i, 1) : E.preseleccion.push(id); b.classList.toggle('sel', i < 0); }
 });
 $('busca').oninput = e => { E.busca = e.target.value; pintarCloset(); };
+$('mc-filtrar').onclick = () => hojaFiltros(true); $('mc-velo').onclick = () => hojaFiltros(false); $('mc-ver').onclick = () => hojaFiltros(false);
+$('mc-borrar').onclick = () => { for (const k in E.f) E.f[k] = []; pintarCloset(); };
+$('mc-grupos').onclick = e => { const b = e.target.closest('[data-fil]'); if (!b) return; const [k, v] = b.dataset.fil.split('|'); const a = E.f[k]; const i = a.indexOf(v); i >= 0 ? a.splice(i, 1) : a.push(v); pintarCloset(); };
 if ($('c-buscar')) $('c-buscar').onclick = () => { const c = $('busca-caja'); c.classList.toggle('oculto'); if (!c.classList.contains('oculto')) $('busca').focus(); else { E.busca = ''; $('busca').value = ''; pintarCloset(); } };
 $('a-seguir').onclick = guardarAlta;
 $('a-ubicacion').onclick = () => { if (!navigator.geolocation) return toast(t('Tu navegador no da la ubicación', 'Your browser gives no location')); navigator.geolocation.getCurrentPosition(async p => { E.perfil = Object.assign(E.perfil || {}, { lat: p.coords.latitude, lon: p.coords.longitude, ciudad: '' }); $('a-ciudad').value = ''; await guardar(); await cargarTiempo(true); toast(E.tiempo ? `${E.tiempo.nombre || t('Ubicación', 'Location')} · ${E.tiempo.t}°` : t('Ubicación guardada', 'Location saved')); }, () => toast(t('Sin permiso de ubicación: escribe la ciudad', 'No location permission: type the city'))); };
@@ -650,7 +690,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (q.get('intro') !== '1' && (q.get('intro') === '0' || q.get('pantalla') || q.get('ficha'))) { el.remove(); return; }
   el.classList.add('activa');
   let hecho = false; el.addEventListener('click', () => { if (hecho) return; hecho = true; el.classList.add('fuera'); setTimeout(() => el.remove(), 220); });
-  if (q.get('fin') !== '0') setTimeout(() => el.remove(), matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2550);
+  if (q.get('fin') !== '0') setTimeout(() => el.remove(), matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2250);
 }
 (async () => {
   entrada(new URLSearchParams(location.search));

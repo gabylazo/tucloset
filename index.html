@@ -13,8 +13,8 @@
 <link rel="icon" href="iconos/icono-129-180.png">
 <link rel="apple-touch-icon" href="iconos/icono-129-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bellefair&family=Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900&family=Inter:opsz,wght@14..32,400..700&family=Atkinson+Hyperlegible+Next:wght@400..800&family=Jost:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=0.7.1">
+<link href="https://fonts.googleapis.com/css2?family=Bellefair&family=Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900&family=Inter:opsz,wght@14..32,400..700&family=Atkinson+Hyperlegible+Next:wght@400..800&family=Jost:wght@300..700&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css?v=0.8.0">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -31,17 +31,10 @@
 
 <div id="app">
 
-<!-- ENTRADA: las puertas del 129 se abren -->
+<!-- ENTRADA (0.8, Gabriela 20/10): el móvil es el armario; dos puertas con moldura dorada se abren y detrás está la app -->
 <div class="intro" id="intro" aria-hidden="true">
-  <div class="escena">
-    <div class="armario">
-      <div class="interior"><svg viewBox="0 0 48 50"><g fill="none" stroke="#C9A24B" stroke-width=".9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7H43"/><path d="M14 7v2.5M9.5 14.5 14 9.5l4.5 5Z"/><path d="M24 7v2.5M19.5 14.5 24 9.5l4.5 5Z"/><path d="M34 7v2.5M29.5 14.5 34 9.5l4.5 5Z"/></g></svg></div>
-      <div class="puerta izq"><span class="moldura"></span><i class="pomo"></i></div>
-      <div class="puerta der"><span class="moldura"></span><i class="pomo"></i></div>
-      <svg class="marco" viewBox="0 0 100 100"><g fill="none" stroke="#C9A24B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M28 82v5M72 82v5"/></g></svg>
-    </div>
-    <div class="nombre">Tu<span class="oro">Closet</span></div>
-  </div>
+  <div class="p izq"><span class="nom">Tu</span><i></i></div>
+  <div class="p der"><span class="nom oro">Closet</span><i></i></div>
 </div>
 
 <!-- INICIO -->
@@ -98,14 +91,18 @@
 <!-- HOY -->
 <main class="pantalla" id="p-hoy"></main>
 
-<!-- CLÓSET -->
-<main class="pantalla con-margen" id="p-closet">
-  <div class="c-cab"><h1>Mi<span class="oro">Closet</span></h1><span class="cuenta" id="closet-sub"></span><button class="mas" data-ir="subir" aria-label="Subir prendas"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
-  <div class="busca" id="busca-caja"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><input id="busca" data-ph="buscar" placeholder="Buscar por nombre, color o tipo"></div>
-  <div class="cats sinbarra" id="cats"></div>
-  <div class="pared" id="pared"></div>
+<!-- CLÓSET (0.8, cerrado por Gabriela el 20/10): rejilla de Zara, buscador a todo el ancho con el filtro dentro -->
+<main class="pantalla" id="p-closet">
+  <div class="mc-cab"><h1>Mi<span class="oro">Closet</span></h1></div>
+  <div class="mc-busca" id="busca-caja"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="busca" data-ph="buscar" placeholder="Buscar en mi clóset"><button id="mc-filtrar" aria-label="Filtrar"><svg viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></svg><sup id="mc-nf"></sup></button></div>
+  <div class="mc-cats sinbarra" id="cats"></div>
+  <div class="mc-rejilla" id="pared"></div>
   <div id="closet-vacio"></div>
+  <span id="closet-sub" hidden></span>
 </main>
+<div class="mc-velo" id="mc-velo" hidden></div>
+<section class="mc-hoja" id="mc-hoja" hidden><i class="asa"></i><h2>Filtrar</h2><div id="mc-grupos"></div>
+  <div class="pie"><button class="boton" id="mc-ver"></button><button class="borrar" id="mc-borrar">Borrar filtros</button></div></section>
 
 <!-- SUBIR: varias prendas de golpe (patrón de Vinted) -->
 <main class="pantalla con-margen sin-tabs" id="p-subir">
@@ -195,7 +192,7 @@
   <div class="estad" id="yo-estad"></div>
   <div class="lista" id="yo-lista"></div>
   <div class="lista" id="yo-ajustes"></div>
-  <p class="nota" id="yo-version">TuCloset web 0.6 · 18 de octubre de 2026</p>
+  <p class="nota" id="yo-version">TuCloset web 0.8 · 20 de octubre de 2026</p>
 </main>
 
 <nav class="tabs" id="tabs">
@@ -210,6 +207,6 @@
 <dialog id="dlg"><h2 id="dlg-t"></h2><p id="dlg-p"></p><div class="botones"><button class="boton" id="dlg-si"></button><button class="boton linea" id="dlg-no"></button></div></dialog>
 </div>
 <script>window.TC_PUBLICA=true</script>
-<script src="app.js?v=0.7.1"></script>
+<script src="app.js?v=0.8.0"></script>
 </body>
 </html>

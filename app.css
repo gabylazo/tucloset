@@ -378,3 +378,91 @@ dialog p{margin-top:8px;color:var(--sec);font-size:15.5px;line-height:1.45}
 /* el interior del armario al abrirse: blanco con una sombra suave, sin dorado ni perchas (Gabriela 01:xx) */
 .intro .interior{background:#fff;box-shadow:inset 0 0 calc(var(--u) * 7) rgba(74,53,38,.22)}
 .intro .interior svg{display:none}
+
+/* ================= 0.8 · diseño cerrado por Gabriela el 20/10/2026 («con eso cerramos») =================
+   Referencia: prototipo/modelos/final.html. Todo centrado; fondo blanco; sin raya dorada; letra fina (Jost 300) dentro y
+   Bellefair para el nombre y los títulos; rótulos pequeños en mayúsculas espaciadas; botones cuadrados; el botón de dos agujeros marca lo elegido. */
+:root{--f:'Jost',system-ui,sans-serif;--sec:#6B5A4E;--suave2:#A99B90;--gris:#F6F4F1;--tabs:62px;
+  --boton2:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C9A24B' stroke-width='1.7'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Ccircle cx='12' cy='12' r='6.3' stroke-width='1'/%3E%3Ccircle cx='10' cy='12' r='1.1' fill='%23C9A24B'/%3E%3Ccircle cx='14' cy='12' r='1.1' fill='%23C9A24B'/%3E%3Cpath d='M10 12h4' stroke-width='1.2'/%3E%3C/svg%3E")}
+body{font-family:var(--f);font-weight:300}
+.mini-et{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;font-weight:400}
+
+/* entrada A: dos puertas a pantalla completa */
+.intro{position:absolute;inset:0;z-index:120;perspective:1100px;background:none;display:block}
+.intro .p{position:absolute;top:0;bottom:0;width:50%;background:#fff;display:flex;align-items:center}
+.intro .p::before{content:'';position:absolute;inset:34px 22px;border:1.5px solid var(--oro)}
+.intro .p i{position:absolute;top:50%;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;background:var(--oro)}
+.intro .izq{left:0;transform-origin:0 50%;justify-content:flex-end;padding-right:5px;box-shadow:inset -1px 0 0 rgba(201,162,75,.6)}
+.intro .der{right:0;transform-origin:100% 50%;justify-content:flex-start;padding-left:5px}
+.intro .izq i{right:14px}.intro .der i{left:14px}
+.intro .nom{position:relative;top:-70px;font-family:var(--f-marca);font-size:44px;line-height:1;color:var(--tinta)}.intro .nom.oro{color:var(--oro)}
+.intro.activa .izq{animation:tc-pizq 1.1s .9s cubic-bezier(.55,.05,.3,1) both}
+.intro.activa .der{animation:tc-pder 1.1s .9s cubic-bezier(.55,.05,.3,1) both}
+.intro.activa{animation:tc-funde .3s 1.9s forwards}
+@keyframes tc-pizq{to{transform:rotateY(-100deg)}}@keyframes tc-pder{to{transform:rotateY(100deg)}}
+@media (prefers-reduced-motion:reduce){.intro.activa .izq,.intro.activa .der{animation:none}.intro.activa{animation:tc-funde .3s .5s forwards}}
+
+/* barra de abajo: iconos con el nombre muy pequeño */
+.tabs{height:var(--tabs)}
+.tabs button span:not(.ic){font-size:7.5px!important;letter-spacing:.14em;text-transform:uppercase;font-weight:400}
+.tabs button.subir .ic{background:none!important;color:inherit!important;box-shadow:none!important}
+
+/* HOY */
+#p-hoy{text-align:center}
+.hz-cab{position:absolute;top:0;left:0;right:0;padding:40px 0 0;text-align:center}
+.hz-cab .marca{font-size:26px;gap:8px}.hz-cab .marca svg{width:22px;height:22px}
+.hz-dia{margin-top:9px;color:var(--sec);display:flex;justify-content:center;align-items:center;gap:5px}
+.hz-dia svg{width:13px;height:13px;fill:none;stroke:var(--sec);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.hz-escena{position:absolute;left:0;right:0;top:118px;bottom:var(--tabs);display:flex;flex-direction:column;align-items:center}
+.hz-fig{position:relative;width:100%;flex:1;min-height:0}
+.hz-fig>img{position:absolute;inset:0;margin:auto;width:100%;height:100%;object-fit:contain}
+.lienzo{position:absolute;inset:0;margin:auto;max-width:92%;max-height:100%}
+.lienzo img{position:absolute;object-fit:contain}
+.lienzo.mini{max-width:100%}
+.hz-flechas{position:absolute;left:0;right:0;top:45%;display:flex;justify-content:space-between;padding:0 6px;pointer-events:none}
+.hz-flechas button{pointer-events:auto;width:34px;height:34px;display:grid;place-items:center}
+.hz-flechas svg{width:18px;height:18px;fill:none;stroke:var(--suave2);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.hz-pie{padding:10px 0 18px}
+.hz-oc{color:var(--sec)}
+.hz-bt{margin:12px auto 0;width:200px;height:40px;border:1px solid var(--tinta);display:grid!important;place-items:center;font-size:10px;letter-spacing:.2em;text-transform:uppercase;text-align:center;font-weight:400}
+.hz-vacio{position:absolute;left:28px;right:28px;top:40%;transform:translateY(-50%);color:var(--sec);font-size:14px;line-height:1.5}
+.hz-vacio .hz-bt{width:240px;margin-top:18px}
+
+/* CLÓSET */
+#p-closet{padding:0 0 calc(var(--tabs) + 10px)}
+.mc-cab{text-align:center;padding:40px 0 12px}.mc-cab h1{font-family:var(--f-marca);font-weight:400;font-size:30px;letter-spacing:0}
+.mc-busca{display:flex;align-items:center;gap:10px;height:44px;padding:0 18px;background:var(--gris)}
+.mc-busca svg{width:16px;height:16px;fill:none;stroke:var(--sec);stroke-width:1.2;stroke-linecap:round;flex:none}
+.mc-busca input{flex:1;min-width:0;font-size:13px;font-weight:300;outline:0}
+.mc-busca input::placeholder{color:var(--suave2)}
+.mc-busca button{position:relative;display:flex}.mc-busca button svg{width:18px;height:18px;stroke:var(--tinta);stroke-width:1.3}
+.mc-busca sup{position:absolute;top:-6px;right:-8px;font-size:8px;background:var(--tinta);color:#fff;min-width:13px;height:13px;display:grid;place-items:center}
+.mc-busca sup:empty{display:none}
+.mc-cats{display:flex;justify-content:center;gap:11px;padding:12px 10px 18px;overflow-x:auto}
+.mc-cats button{position:relative;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--sec);font-weight:400;white-space:nowrap}
+.mc-cats button.activo{color:var(--tinta);font-weight:500}
+.mc-cats button.activo::after{content:'';position:absolute;left:50%;top:15px;width:12px;height:12px;margin-left:-6px;background:var(--boton2) center/contain no-repeat}
+.mc-rejilla{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.mc-rejilla button{background:var(--gris);aspect-ratio:3/4;position:relative}
+.mc-rejilla img{position:absolute;inset:9%;width:82%;height:82%;object-fit:contain;mix-blend-mode:multiply}
+.mc-rejilla i{position:absolute;left:6px;bottom:6px;font-style:normal;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;background:#fff;padding:2px 5px}
+#closet-vacio .vacio{text-align:center;padding:40px 28px;color:var(--sec)}
+.mc-velo{position:absolute;inset:0;background:rgba(40,30,22,.32);z-index:60}
+.mc-hoja{position:absolute;left:0;right:0;bottom:0;max-height:calc(100% - 120px);overflow-y:auto;background:#fff;z-index:61;padding:20px 20px 0;text-align:center}
+.mc-hoja .asa{display:block;width:34px;height:3px;background:var(--linea);margin:-8px auto 12px}
+.mc-hoja h2{font-family:var(--f-marca);font-weight:400;font-size:24px}
+.mc-gr{margin-top:20px}.mc-gr p{color:var(--sec);margin-bottom:7px}
+.mc-ops{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px}
+.mc-ops button{font-size:12px;color:var(--sec);padding:3px 0;font-weight:300}
+.mc-ops button.on{color:var(--tinta);font-weight:500}
+.mc-ops button.on::before{content:'';display:inline-block;width:11px;height:11px;margin-right:6px;vertical-align:-1px;background:var(--boton2) center/contain no-repeat}
+.mc-ops .sw{width:18px;height:18px;padding:0}.mc-ops .sw.on{outline:1px solid var(--tinta);outline-offset:2px}.mc-ops .sw.on::before{display:none}
+.mc-gr small{display:block;font-size:9.5px;color:var(--suave2);margin-top:4px}
+.mc-hoja .pie{position:sticky;bottom:0;background:#fff;display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 0 18px;margin-top:10px}
+.mc-hoja .pie .boton{width:260px;text-align:center;justify-content:center}
+.mc-hoja .borrar{font-size:11px;color:var(--sec)}
+.boton{min-height:44px;font-size:10.5px;font-weight:400;letter-spacing:.18em;text-transform:uppercase}
+.boton.linea{background:#fff;color:var(--tinta);border:1px solid var(--tinta)}
+.tabs button.activo{color:var(--tinta)}.tabs button.activo .ic{background:none;color:var(--tinta)}
+.tabs button{color:var(--suave2)}
+h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
