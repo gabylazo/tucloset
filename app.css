@@ -651,3 +651,12 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .intro.eb .x svg.arco path{stroke-dasharray:1;stroke-dashoffset:1;animation:tc-traza 1.3s .05s cubic-bezier(.45,.05,.35,1) forwards}
 .intro.eb .x svg.arco path.d{animation-delay:.2s}
 @media (prefers-reduced-motion:reduce){.intro.eb .x svg.arco path{stroke-dashoffset:0;animation:none}}
+/* 0.9.13 (Gabriela, 21/10: «quiero que todo aparezca a la vez y solo de último la frase»): en la bienvenida, arco, armario, nombre y botones a la vez; la frase al terminar el dibujo */
+#p-inicio.dibuja .x svg:not(.arco) path{stroke-dasharray:240;stroke-dashoffset:240;animation:tc-traza 1.1s .1s ease-in-out forwards}
+#p-inicio.dibuja .x svg:not(.arco) path:nth-child(n+5){animation-delay:.6s;animation-duration:.7s}
+#p-inicio.dibuja .x svg.arco path{stroke-dasharray:1;stroke-dashoffset:1;animation:tc-traza 1.3s .05s cubic-bezier(.45,.05,.35,1) forwards}
+#p-inicio.dibuja .x svg.arco path.d{animation-delay:.2s}
+#p-inicio.dibuja .nom{animation:tc-nombre .7s .1s ease-out both}
+#p-inicio.dibuja .abajo{animation:tc-suave .9s .1s ease-out forwards}
+#p-inicio.dibuja .lema[data-anim="b"] .t{animation:tc-lb 1.3s 1.4s cubic-bezier(.45,.05,.35,1) forwards}
+.intro.eb.con-nombre .nom{animation:tc-nombre .7s .1s ease-out both}

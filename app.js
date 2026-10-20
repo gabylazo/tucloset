@@ -724,16 +724,21 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (q.get('intro') !== '1' && (q.get('intro') === '0' || q.get('pantalla') || q.get('ficha'))) { el.remove(); $('p-inicio').classList.add('aparece'); return; }
   const v = q.get('entrada') || localStorage.getItem('tc_entrada') || 'b'; // B por defecto (Gabriela, 20/10: «me gusta la B») if (q.get('entrada')) localStorage.setItem('tc_entrada', v);
   const nom = '<span class="nom">Tu<span>Closet</span></span>';
-  if (v === 'b') { el.className = 'intro eb'; el.innerHTML = `<div class="x"><svg class="arco" viewBox="0 0 302 400" aria-hidden="true"><path class="o" pathLength="1" d="M151 .6A150.4 150.4 0 0 0 .6 151V400"/><path class="o" pathLength="1" d="M151 .6A150.4 150.4 0 0 1 301.4 151V400"/><path class="d" pathLength="1" d="M151 7.5A143.5 143.5 0 0 0 7.5 151V400"/><path class="d" pathLength="1" d="M151 7.5A143.5 143.5 0 0 1 294.5 151V400"/></svg><svg viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg>${nom}</div>`; }
+  const dibujoB = `<div class="x"><svg class="arco" viewBox="0 0 302 400" aria-hidden="true"><path class="o" pathLength="1" d="M151 .6A150.4 150.4 0 0 0 .6 151V400"/><path class="o" pathLength="1" d="M151 .6A150.4 150.4 0 0 1 301.4 151V400"/><path class="d" pathLength="1" d="M151 7.5A143.5 143.5 0 0 0 7.5 151V400"/><path class="d" pathLength="1" d="M151 7.5A143.5 143.5 0 0 1 294.5 151V400"/></svg><svg viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg>${nom}</div>`;
+  if (v === 'b') el.className = 'intro eb'; // B: el contenido se pone cuando se sabe a qué pantalla se entra
   if (v === 'c') { el.className = 'intro ec'; el.innerHTML = `<div class="fondo"></div><div class="barra"></div><div class="anillas"></div><div class="tela">${nom}</div>`; }
   el.classList.add('activa');
   let hecho = false; el.addEventListener('click', () => { if (hecho) return; hecho = true; el.classList.add('fuera'); $('p-inicio').classList.add('aparece'); setTimeout(() => el.remove(), 220); });
-  if (v === 'b' && !matchMedia('(prefers-reduced-motion: reduce)').matches) { // B (Gabriela, 20/10): se dibuja en el centro y ahí se queda; no sube a la cabecera
-    if (q.get('fin') !== '0') setTimeout(() => {
+  if (v === 'b' && !matchMedia('(prefers-reduced-motion: reduce)').matches) { // B (Gabriela, 21/10: «todo aparezca a la vez y solo de último la frase»)
+    let n = 0;
+    const decide = () => {
       const pant = document.querySelector('.pantalla.activa');
-      if (pant && pant.id === 'p-inicio') { el.remove(); pant.classList.add('aparece'); return; } // la bienvenida tiene el icono y el nombre en el mismo sitio: solo aparece lo demás
-      el.classList.add('con-nombre'); setTimeout(() => { el.classList.add('suave'); setTimeout(() => el.remove(), 750); }, 1500); // en el resto, se escribe el nombre y el dibujo se desvanece en su sitio
-    }, 1350);
+      if (!pant && n++ < 60) return setTimeout(decide, 25);
+      if (pant && pant.id === 'p-inicio') { el.remove(); pant.classList.add('aparece', 'dibuja'); return; } // la bienvenida lo hace todo: arco, armario, nombre y botones a la vez; la frase al final
+      el.innerHTML = dibujoB; el.classList.add('con-nombre'); // en el resto: arco, armario y nombre a la vez, y se desvanece dejando ver la app
+      if (q.get('fin') !== '0') setTimeout(() => { el.classList.add('suave'); setTimeout(() => el.remove(), 750); }, 1900);
+    };
+    decide();
   } else if (q.get('fin') !== '0') setTimeout(() => { el.remove(); if ($('p-inicio').classList.contains('activa')) $('p-inicio').classList.add('aparece'); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2250);
 }
 (async () => {
