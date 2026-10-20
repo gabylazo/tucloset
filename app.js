@@ -688,13 +688,25 @@ $('s-lista').addEventListener('input', e => { const id = e.target.dataset.snombr
 function entrada(q) { // las puertas del 129 se abren al entrar; un toque la salta
   const el = $('intro'); if (!el) return;
   if (q.get('intro') !== '1' && (q.get('intro') === '0' || q.get('pantalla') || q.get('ficha'))) { el.remove(); return; }
-  const v = q.get('entrada') || localStorage.getItem('tc_entrada') || 'a'; if (q.get('entrada')) localStorage.setItem('tc_entrada', v);
+  const v = q.get('entrada') || localStorage.getItem('tc_entrada') || 'b'; // B por defecto (Gabriela, 20/10: «me gusta la B») if (q.get('entrada')) localStorage.setItem('tc_entrada', v);
   const nom = '<span class="nom">Tu<span>Closet</span></span>';
   if (v === 'b') { el.className = 'intro eb'; el.innerHTML = `<div class="x"><svg viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg>${nom}</div>`; }
   if (v === 'c') { el.className = 'intro ec'; el.innerHTML = `<div class="fondo"></div><div class="barra"></div><div class="anillas"></div><div class="tela">${nom}</div>`; }
   el.classList.add('activa');
   let hecho = false; el.addEventListener('click', () => { if (hecho) return; hecho = true; el.classList.add('fuera'); setTimeout(() => el.remove(), 220); });
-  if (q.get('fin') !== '0') setTimeout(() => el.remove(), matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2250);
+  if (v === 'b' && !matchMedia('(prefers-reduced-motion: reduce)').matches) { // B (elegida por Gabriela el 20/10): el nombre vuela a su sitio en la cabecera y la página entra por debajo
+    if (q.get('fin') !== '0') setTimeout(() => {
+      const nom = el.querySelector('.nom'), pant = document.querySelector('.pantalla.activa');
+      const dest = pant && [...pant.querySelectorAll('.marca > span, .nombre')].find(x => x.offsetParent);
+      if (nom && dest) {
+        const a = nom.getBoundingClientRect(), b = dest.getBoundingClientRect(), k = b.height / a.height;
+        dest.style.opacity = '0';
+        nom.style.transform = `translate(${b.left - a.left}px, ${b.top - a.top}px) scale(${k})`;
+      }
+      el.classList.add('llega'); if (pant) { pant.classList.add('entra'); setTimeout(() => pant.classList.remove('entra'), 900); }
+      setTimeout(() => { if (dest) { dest.style.transition = 'opacity .15s'; dest.style.opacity = ''; } el.classList.add('fuera'); setTimeout(() => el.remove(), 200); }, 700);
+    }, 1650);
+  } else if (q.get('fin') !== '0') setTimeout(() => el.remove(), matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2250);
 }
 (async () => {
   entrada(new URLSearchParams(location.search));
