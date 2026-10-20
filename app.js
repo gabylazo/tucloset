@@ -720,7 +720,6 @@ function bordar() {
 }
 function entrada(q) { // las puertas del 129 se abren al entrar; un toque la salta
   { const m = q.get('marco'); document.documentElement.dataset.marco = /^([1-6]|[abc][12])$/.test(m || '') ? m : 'c2'; } // arco c2 elegido por Gabriela el 21/10 («me quedo con c2»); ?marco= para comparar
-  { const b = q.get('boton'); if (/^[1-3]$/.test(b || '')) document.documentElement.dataset.boton = b; } // botón dorado a prueba (21/10)
   const el = $('intro'); if (!el) return;
   if (q.get('intro') !== '1' && (q.get('intro') === '0' || q.get('pantalla') || q.get('ficha'))) { el.remove(); $('p-inicio').classList.add('aparece'); return; }
   const v = q.get('entrada') === 'c' ? 'c' : 'b'; // B cerrada por Gabriela (20–21/10); las puertas A ya no existen // B por defecto (Gabriela, 20/10: «me gusta la B») if (q.get('entrada')) localStorage.setItem('tc_entrada', v);
