@@ -570,16 +570,41 @@ function abrirFicha(id) {
 }
 
 /* ---------- CONJUNTOS ---------- */
+// 0.10 · Looks con el diseño cerrado (21/10): título centrado, «Mis looks» e «Ideas para hoy» en letras con el botón de dos agujeros,
+// filtro por ocasión y tres formas de verlos a prueba (?looks=1 rejilla de 2 · 2 uno a uno · 3 lista)
+E.lkTab = 'mios'; E.lkOc = 'Todo'; E.lkI = 0;
+const lkVista = () => { const v = new URLSearchParams(location.search).get('looks') || localStorage.getItem('tc_looks'); return ['1', '2', '3'].includes(v) ? v : '1'; };
+const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(c.ids.map(P).filter(Boolean), mini);
+const usosTxt = c => c.usos?.length ? veces(c.usos.length) : t('sin estrenar', 'not worn yet');
 function pintarLooks() {
-  const cs = E.conjuntos;
-  $('looks-sub').textContent = '';
-  const gen = E.generados;
-  $('looks-gen').innerHTML = `<div class="g-cab"><b>${t('Generador de conjuntos', 'Outfit generator')}</b><p>${t('Combina tu ropa y te propone looks completos para el tiempo de hoy, empezando por lo que menos te pones.', 'Combines your clothes into complete looks for today’s weather, starting with what you wear least.')}</p><button class="boton" id="g-generar">${gen.length ? t('Generar otros', 'Generate others') : t('Generar conjuntos', 'Generate outfits')}</button></div>`
-    + (gen.length ? `<div class="g-lista">${gen.map((g, i) => `<div class="g-look"><span class="img">${maniqui(g.ids.map(P).filter(Boolean), true)}</span><b>${g.nombre}</b><span>${g.ids.length} ${t('prendas', 'garments')}</span><div class="acc"><button class="si" data-gguardar="${i}">${t('Guardar', 'Save')}</button><button data-ghoy="${i}">${t('Hoy', 'Today')}</button></div></div>`).join('')}</div>` : '')
-    + `<div class="g-titulo"><h2>${t('Guardados', 'Saved')}</h2><span>${cs.length}</span></div>`;
-  $('g-generar').onclick = () => { E.generados = generarLooks(6, 'Todos'); if (!E.generados.length) toast(t('Necesito una parte de arriba y una de abajo, o un vestido, de esta estación.', 'I need a top and a bottom, or a dress, for this season.')); pintarLooks(); };
-  $('galeria').innerHTML = cs.map(c => `<button class="look" data-look="${c.id}"><span class="img">${c.img && planDemo() === 'pro' ? `<img src="${c.img}" alt="">` : maniqui(c.ids.map(P).filter(Boolean), true)}</span><b>${c.nombre}</b><span>${c.usos?.length ? `${veces(c.usos.length)} · ${fecha(c.usos[c.usos.length - 1], true)}` : t('nunca puesto', 'never worn')}</span></button>`).join('');
-  $('looks-vacio').innerHTML = cs.length ? '' : `<div class="vacio"><b>${t('Tus conjuntos, guardados', 'Your outfits, saved')}</b>${t('Combina prendas de tu clóset y guárdalas con nombre. Cada «Me lo pongo» cuenta un uso.', 'Combine garments from your closet and save them with a name. Every “I’ll wear it” counts as a use.')}<button class="boton" data-ir="nuevo-look">${t('Crear un conjunto', 'Create an outfit')}</button></div>`;
+  const v = lkVista(), raiz = $('lk-raiz'); document.documentElement.dataset.looks = v;
+  if (E.lkTab === 'ideas' && !E.generados.length) E.generados = generarLooks(6, 'Todos');
+  const ocs = ['Todo', ...OCASIONES.filter(o => E.conjuntos.some(c => (c.ocasion || 'Diario') === o))];
+  if (!ocs.includes(E.lkOc)) E.lkOc = 'Todo';
+  const ideas = E.lkTab === 'ideas';
+  const lista = ideas ? E.generados.map((g, i) => ({ ...g, i })) : E.conjuntos.filter(c => E.lkOc === 'Todo' || (c.ocasion || 'Diario') === E.lkOc);
+  const cab = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
+    <div class="mc-cats lk-tabs"><button class="${ideas ? '' : 'activo'}" data-lktab="mios">${t('Mis looks', 'My looks')}</button><button class="${ideas ? 'activo' : ''}" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button></div>
+    ${ideas || ocs.length < 3 ? '' : `<div class="lk-ocs">${ocs.map(o => `<button class="${o === E.lkOc ? 'on' : ''}" data-lkoc="${o}">${o === 'Todo' ? t('Todo', 'All') : ocNombre(o)}</button>`).join('')}</div>`}`;
+  const pie = c => ideas ? `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span><span class="lk-acc"><button data-gguardar="${c.i}">${t('Guardar', 'Save')}</button><button data-ghoy="${c.i}">${t('Me lo pongo', 'Wear it')}</button></span>`
+    : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span><span class="lk-us">${usosTxt(c)}</span>`;
+  const abre = c => ideas ? '' : ` data-look="${c.id}"`;
+  let cuerpo;
+  if (!lista.length) cuerpo = ideas ? `<div class="hz-vacio lk-vacio">${t('Para proponerte looks necesito una parte de arriba y una de abajo, o un vestido, de esta estación.', 'To suggest looks I need a top and a bottom, or a dress, for this season.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button></div>`
+    : `<div class="hz-vacio lk-vacio">${t('Aún no tienes looks guardados. Mira las ideas para hoy o crea uno con tu ropa.', 'No saved looks yet. See today’s ideas or create one with your clothes.')}<button class="hz-bt" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button></div>`;
+  else if (v === '2') { E.lkI = Math.min(E.lkI, lista.length - 1); const c = lista[E.lkI];
+    cuerpo = `<div class="lk-uno"><div class="lk-fig"${abre(c)}>${figLook(c)}</div><div class="lk-nav"><button data-lkmov="-1" aria-label="${t('Anterior', 'Previous')}" ${E.lkI ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><span>${E.lkI + 1} / ${lista.length}</span><button data-lkmov="1" aria-label="${t('Siguiente', 'Next')}" ${E.lkI < lista.length - 1 ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>${pie(c)}</div>`; }
+  else if (v === '3') cuerpo = `<div class="lk-lista">${lista.map(c => `<div class="lk-fila"${abre(c)}><span class="lk-mini">${figLook(c, true)}</span><span class="lk-txt">${pie(c)}</span>${ideas ? '' : '<svg class="fl" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>'}</div>`).join('')}</div>`;
+  else cuerpo = `<div class="lk-rejilla">${lista.map(c => `<div class="lk-t"><div class="lk-fig"${abre(c)}>${figLook(c, true)}</div>${pie(c)}</div>`).join('')}</div>`;
+  raiz.innerHTML = cab + cuerpo + (ideas && lista.length ? `<button class="hz-bt lk-otras" data-lkotras>${t('Otras ideas', 'Other ideas')}</button>` : '');
+  raiz.onclick = e => {
+    const b = e.target.closest('[data-lktab],[data-lkoc],[data-lkmov],[data-lkotras]'); if (!b || b.disabled) return;
+    if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkI = 0; }
+    else if (b.dataset.lkoc) { E.lkOc = b.dataset.lkoc; E.lkI = 0; }
+    else if (b.dataset.lkmov) E.lkI += +b.dataset.lkmov;
+    else { E.generados = generarLooks(6, 'Todos'); E.lkI = 0; }
+    pintarLooks();
+  };
 }
 function prepararNuevoLook(pre) {
   E.preseleccion = Array.isArray(pre) ? pre.slice() : [];
