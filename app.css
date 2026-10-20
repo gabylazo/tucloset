@@ -642,3 +642,12 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 [data-marco^="a"] #p-inicio .lema{background:#fff;padding:0 12px;z-index:1}
 /* c · sin cerrar: se desvanece antes de llegar abajo */
 [data-marco^="c"] :is(#p-inicio,.intro.eb) .x::before,[data-marco^="c"] :is(#p-inicio,.intro.eb) .x::after{-webkit-mask-image:linear-gradient(#000 45%,transparent 92%);mask-image:linear-gradient(#000 45%,transparent 92%)}
+/* 0.9.12 (Gabriela, 21/10: «¿pero el arco aparece solo así?»): el arco c2 se dibuja a la vez que el armario, desde arriba hacia los lados */
+:is(#p-inicio,.intro.eb) .x svg.arco{display:none}
+[data-marco="c2"] :is(#p-inicio,.intro.eb) .x::before,[data-marco="c2"] :is(#p-inicio,.intro.eb) .x::after{display:none}
+[data-marco="c2"] :is(#p-inicio,.intro.eb) .x svg.arco{display:block;position:absolute;z-index:-1;left:50%;margin-left:-151px;top:-163px;width:302px;height:400px;overflow:visible;fill:none;stroke-linecap:round;-webkit-mask-image:linear-gradient(#000 45%,transparent 92%);mask-image:linear-gradient(#000 45%,transparent 92%)}
+.x svg.arco .o{stroke:var(--tinta);stroke-width:1.2}
+.x svg.arco .d{stroke:var(--oro);stroke-width:1}
+.intro.eb .x svg.arco path{stroke-dasharray:1;stroke-dashoffset:1;animation:tc-traza 1.3s .05s cubic-bezier(.45,.05,.35,1) forwards}
+.intro.eb .x svg.arco path.d{animation-delay:.2s}
+@media (prefers-reduced-motion:reduce){.intro.eb .x svg.arco path{stroke-dashoffset:0;animation:none}}

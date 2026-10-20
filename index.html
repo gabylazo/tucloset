@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="iconos/icono-129-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bellefair&family=Cormorant+Garamond:ital,wght@1,300;1,400&family=Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900&family=Inter:opsz,wght@14..32,400..700&family=Atkinson+Hyperlegible+Next:wght@400..800&family=Jost:wght@300..700&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=0.9.11">
+<link rel="stylesheet" href="app.css?v=0.9.12">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -40,7 +40,7 @@
 <!-- INICIO -->
 <main class="pantalla" id="p-inicio">
   <!-- 0.9 (Gabriela, 20/10): el icono y el nombre se quedan donde se dibujaron, en el centro; el lema, más suave; el precio, discreto -->
-  <div class="ini-centro"><div class="x"><svg viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><span class="nom">Tu<span>Closet</span></span><div class="lema"><span class="t" data-t="lema">Optimiza tu estilo</span><i class="hilo"></i></div></div></div>
+  <div class="ini-centro"><div class="x"><svg class="arco" viewBox="0 0 302 400" aria-hidden="true"><path class="o" pathLength="1" d="M151 .6A150.4 150.4 0 0 0 .6 151V400"/><path class="o" pathLength="1" d="M151 .6A150.4 150.4 0 0 1 301.4 151V400"/><path class="d" pathLength="1" d="M151 7.5A143.5 143.5 0 0 0 7.5 151V400"/><path class="d" pathLength="1" d="M151 7.5A143.5 143.5 0 0 1 294.5 151V400"/></svg><svg viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><span class="nom">Tu<span>Closet</span></span><div class="lema"><span class="t" data-t="lema">Optimiza tu estilo</span><i class="hilo"></i></div></div></div>
   <div class="abajo">
     <button class="boton" data-ir="alta" data-t="crear">Crear mi clóset</button>
     <button class="boton linea" style="margin-top:8px" data-ir="hoy" data-t="ya_tengo">Ya tengo cuenta</button>
@@ -182,7 +182,7 @@
   <div class="estad" id="yo-estad"></div>
   <div class="lista" id="yo-lista"></div>
   <div class="lista" id="yo-ajustes"></div>
-  <p class="nota" id="yo-version">TuCloset web 0.9.11 · 21 de octubre de 2026</p>
+  <p class="nota" id="yo-version">TuCloset web 0.9.12 · 21 de octubre de 2026</p>
 </main>
 
 <nav class="tabs" id="tabs">
@@ -197,6 +197,6 @@
 <dialog id="dlg"><h2 id="dlg-t"></h2><p id="dlg-p"></p><div class="botones"><button class="boton" id="dlg-si"></button><button class="boton linea" id="dlg-no"></button></div></dialog>
 </div>
 <script>window.TC_PUBLICA=true</script>
-<script src="app.js?v=0.9.11"></script>
+<script src="app.js?v=0.9.12"></script>
 </body>
 </html>
