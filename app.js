@@ -31,7 +31,7 @@ const COLORES = [['Negro', '#1B1B1B'], ['Blanco', '#F4F4F4'], ['Gris', '#8E8E8E'
 
 /* ---------- idioma ---------- */
 const T = {
-  lema: ['Optimiza lo que ya tienes', 'Make the most of what you have'], crear: ['Crear mi clóset', 'Create my closet'], ya_tengo: ['Ya tengo cuenta', 'I already have one'],
+  lema: ['Optimiza tu tiempo, luce tu estilo', 'Save time, wear your style'], crear: ['Crear mi clóset', 'Create my closet'], ya_tengo: ['Ya tengo cuenta', 'I already have one'],
   legal: ['Pruébala gratis 7 días', 'Try it free for 7 days'],
   p_cuenta: ['Cuenta', 'Account'], p_silueta: ['Silueta', 'Figure'], p_prendas: ['Prendas', 'Garments'],
   alta_titulo: ['Lo justo para empezar', 'Just enough to start'], alta_sub: ['Todo se guarda en tu móvil. Nada sale de aquí sin que tú lo pidas.', 'Everything stays on your phone. Nothing leaves unless you ask.'],
@@ -709,15 +709,19 @@ $('an-borrar').onclick = async () => { const p = E.editando; if (!p) return; if 
 $('nl-guardar').onclick = guardarLook;
 
 /* ---------- arranque ---------- */
+// lemas a prueba (?lema=1…9), Gabriela 20/10: «optimiza tu tiempo, y vive tus outfits / optimiza tus outfits / optimiza tu estilo…»
+const LEMAS = ['Optimiza tu tiempo, vive tus outfits', 'Optimiza tu tiempo, vive tus looks', 'Optimiza tu tiempo, luce tu estilo', 'Optimiza tus outfits', 'Optimiza tu estilo', 'Optimiza tu estilo, vive tus looks', 'Optimiza tus mañanas, vive tu estilo', 'Menos tiempo eligiendo, más tiempo luciendo', 'Optimiza tu tiempo. Tu estilo, cada día'];
+// el lema se borda: una puntada por letra (Gabriela, 20/10: «¿y si pudiera salir como si lo estuvieran bordando?»)
+function bordar() { const l = $('p-inicio').querySelector('.lema'); if (l) l.style.setProperty('--n', l.querySelector('.t').textContent.length); }
 function entrada(q) { // las puertas del 129 se abren al entrar; un toque la salta
   const el = $('intro'); if (!el) return;
-  if (q.get('intro') !== '1' && (q.get('intro') === '0' || q.get('pantalla') || q.get('ficha'))) { el.remove(); return; }
+  if (q.get('intro') !== '1' && (q.get('intro') === '0' || q.get('pantalla') || q.get('ficha'))) { el.remove(); $('p-inicio').classList.add('aparece'); return; }
   const v = q.get('entrada') || localStorage.getItem('tc_entrada') || 'b'; // B por defecto (Gabriela, 20/10: «me gusta la B») if (q.get('entrada')) localStorage.setItem('tc_entrada', v);
   const nom = '<span class="nom">Tu<span>Closet</span></span>';
   if (v === 'b') { el.className = 'intro eb'; el.innerHTML = `<div class="x"><svg viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg>${nom}</div>`; }
   if (v === 'c') { el.className = 'intro ec'; el.innerHTML = `<div class="fondo"></div><div class="barra"></div><div class="anillas"></div><div class="tela">${nom}</div>`; }
   el.classList.add('activa');
-  let hecho = false; el.addEventListener('click', () => { if (hecho) return; hecho = true; el.classList.add('fuera'); setTimeout(() => el.remove(), 220); });
+  let hecho = false; el.addEventListener('click', () => { if (hecho) return; hecho = true; el.classList.add('fuera'); $('p-inicio').classList.add('aparece'); setTimeout(() => el.remove(), 220); });
   if (v === 'b' && !matchMedia('(prefers-reduced-motion: reduce)').matches) { // B (Gabriela, 20/10): se dibuja en el centro y ahí se queda; no sube a la cabecera
     if (q.get('fin') !== '0') setTimeout(() => {
       const pant = document.querySelector('.pantalla.activa');
@@ -731,7 +735,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || [];
   let migra = false; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
   traducir(); pintarSilueta();
-  { const l = new URLSearchParams(location.search).get('lema'); const LEMAS = { 2: ['Optimiza tu estilo', 'Make the most of your style'], 3: ['Optimiza cada prenda', 'Make every garment count'] }; if (LEMAS[l]) { document.documentElement.dataset.lema = l; document.querySelector('#p-inicio .lema').textContent = LEMAS[l][idioma() === 'en' ? 1 : 0]; } }
+  { const l = +new URLSearchParams(location.search).get('lema'); const t = LEMAS[l - 1]; if (t) $('p-inicio').querySelector('.lema .t').textContent = t; bordar(); }
   const q = new URLSearchParams(location.search);
   for (const k of Object.keys(DIS)) if (DIS[k].vals.includes(q.get(k))) DIS_URL[k] = q.get(k);
   if (PROTOS[q.get('proto')]) Object.assign(DIS_URL, PROTOS[q.get('proto')]);
