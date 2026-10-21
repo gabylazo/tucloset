@@ -577,8 +577,8 @@ function abrirFicha(id) {
 /* ---------- CONJUNTOS ---------- */
 // 0.10 · Looks con el diseño cerrado (21/10): título centrado, «Mis looks» e «Ideas para hoy» en letras con el botón de dos agujeros,
 // filtro por ocasión y tres formas de verlos a prueba (?looks=1 rejilla de 2 · 2 uno a uno · 3 lista)
-E.lkTab = 'mios'; E.lkOc = 'Todo'; E.lkI = 0;
-const lkVista = () => { const v = new URLSearchParams(location.search).get('looks') || localStorage.getItem('tc_looks'); return ['1', '2', '3'].includes(v) ? v : '1'; };
+E.lkTab = new URLSearchParams(location.search).get('lk') === 'ideas' ? 'ideas' : 'mios'; E.lkOc = 'Todo'; E.lkI = 0;
+const lkVista = () => { const v = new URLSearchParams(location.search).get('looks') || localStorage.getItem('tc_looks'); return ['1', '2', '3', '4', '5'].includes(v) ? v : '4'; }; // 4 y 5 (21/10, «adapta la interfaz a mi estilo»): sobre blanco, sin cajas
 const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(c.ids.map(P).filter(Boolean), mini);
 const usosTxt = c => c.usos?.length ? veces(c.usos.length) : t('sin estrenar', 'not worn yet');
 function pintarLooks() {
@@ -600,6 +600,8 @@ function pintarLooks() {
   else if (v === '2') { E.lkI = Math.min(E.lkI, lista.length - 1); const c = lista[E.lkI];
     cuerpo = `<div class="lk-uno"><div class="lk-fig"${abre(c)}>${figLook(c)}</div><div class="lk-nav"><button data-lkmov="-1" aria-label="${t('Anterior', 'Previous')}" ${E.lkI ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><span>${E.lkI + 1} / ${lista.length}</span><button data-lkmov="1" aria-label="${t('Siguiente', 'Next')}" ${E.lkI < lista.length - 1 ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>${pie(c)}</div>`; }
   else if (v === '3') cuerpo = `<div class="lk-lista">${lista.map(c => `<div class="lk-fila"${abre(c)}><span class="lk-mini">${figLook(c, true)}</span><span class="lk-txt">${pie(c)}</span>${ideas ? '' : '<svg class="fl" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>'}</div>`).join('')}</div>`;
+  else if (v === '4') cuerpo = `<div class="lk-libro">${lista.map(c => `<div class="lk-pag"><div class="lk-fig"${abre(c)}>${figLook(c, true)}</div>${ideas ? pie(c) : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span>`}</div>`).join('<i class="lk-hilo"></i>')}</div>`;
+  else if (v === '5') cuerpo = `<div class="lk-blanca">${lista.map(c => `<div class="lk-t"><div class="lk-fig"${abre(c)}>${figLook(c, true)}</div>${ideas ? pie(c) : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span>`}</div>`).join('')}</div>`;
   else cuerpo = `<div class="lk-rejilla">${lista.map(c => `<div class="lk-t"><div class="lk-fig"${abre(c)}>${figLook(c, true)}</div>${pie(c)}</div>`).join('')}</div>`;
   raiz.innerHTML = cab + cuerpo + (ideas && lista.length ? `<button class="hz-bt lk-otras" data-lkotras>${t('Otras ideas', 'Other ideas')}</button>` : '');
   raiz.onclick = e => {

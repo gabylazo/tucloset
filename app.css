@@ -773,3 +773,32 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .pl-per{font-size:10.5px;color:var(--sec);font-weight:300}
 .pl-inc{font-size:11.5px;color:var(--sec);font-weight:300;line-height:1.6;margin-top:10px}
 #p-planes .ac-cab{padding-top:60px}
+/* 0.13 · planes a su estilo (Gabriela, 21/10: «adapta la interfaz a mi estilo»): todo centrado, sin cajas, la prueba en una línea con tres puntos, los planes separados por un hilo dorado */
+.pl-linea{display:grid;grid-template-columns:repeat(3,1fr);width:100%;margin-top:34px;position:relative}
+.pl-linea::before{content:'';position:absolute;left:16.6%;right:16.6%;top:4px;height:1px;background:var(--linea2)}
+.pl-linea div{display:grid;justify-items:center;gap:3px;position:relative}
+.pl-linea i{width:9px;height:9px;border-radius:50%;background:#fff;border:1px solid var(--oro);margin-bottom:8px}.pl-linea i.on{background:var(--oro)}
+.pl-linea b{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:500}
+.pl-linea span{font-size:12px;color:var(--sec);font-weight:300}
+#p-planes .pl-periodo{margin-top:36px}
+.pl-planes2{display:grid;grid-template-columns:1fr 1px 1fr;width:100%;margin-top:22px}
+.pl-planes2::after{content:'';grid-column:2;grid-row:1;background:linear-gradient(transparent,var(--oro) 20%,var(--oro) 80%,transparent);opacity:.7}
+.pl-p{grid-row:1;display:grid;justify-items:center;gap:2px;text-align:center;padding:24px 6px 6px;position:relative;color:var(--ter)}
+.pl-p[data-pplan="basico"]{grid-column:1}.pl-p[data-pplan="pro"]{grid-column:3}
+.pl-p::before{content:'';position:absolute;top:0;left:50%;width:13px;height:13px;margin-left:-6.5px;background:var(--boton2) center/contain no-repeat;opacity:0;transition:opacity .2s}
+.pl-p.on{color:var(--tinta)}.pl-p.on::before{opacity:1}
+.pl-p .pl-nom{font-family:var(--f-marca);font-size:24px;line-height:1}
+.pl-p .pl-pre{font-size:17px;margin-top:8px}
+.pl-p .pl-per{font-size:10.5px;font-weight:300;color:inherit;opacity:.8}
+.pl-p .pl-inc{font-size:11.5px;font-weight:300;line-height:1.65;margin-top:12px;color:inherit}
+/* 0.13 · Looks a su estilo: 4 libro de looks (uno bajo otro, sobre blanco, solo la ocasión) · 5 rejilla de 2 sobre blanco */
+.lk-libro{display:grid;justify-items:center;padding:4px 0 10px}
+.lk-pag{width:100%;text-align:center}
+.lk-libro .lk-fig{width:70%;margin:0 auto;aspect-ratio:3/4;background:none}
+.lk-libro .lk-fig .lienzo{max-width:92%;max-height:100%}
+.lk-libro .lk-oc{margin-top:12px}
+.lk-hilo{display:block;width:13px;height:13px;margin:30px auto;background:var(--boton2) center/contain no-repeat;opacity:.9}
+.lk-blanca{display:grid;grid-template-columns:1fr 1fr;gap:34px 18px;padding:6px 22px 10px}
+.lk-blanca .lk-fig{aspect-ratio:3/4;background:none}
+.lk-blanca .lk-fig .lienzo{max-width:96%;max-height:100%}
+.lk-blanca .lk-t{text-align:center}
