@@ -215,18 +215,68 @@ function fraseTiempo(w) { // una sola frase: grados, cielo y qué hacer con la l
 const estacionDelDia = () => { const m = new Date().getMonth() + 1; return m >= 6 && m <= 8 ? 'Verano' : (m === 12 || m <= 2) ? 'Invierno' : 'Entretiempo'; };
 const estacionesAptas = () => { const tmp = E.tiempo?.t; if (tmp == null) return ['Todo el año', estacionDelDia()]; return tmp >= 24 ? ['Verano', 'Todo el año'] : tmp <= 12 ? ['Invierno', 'Todo el año', 'Entretiempo'] : ['Entretiempo', 'Todo el año', 'Verano']; };
 
-/* ---------- generador de conjuntos (Sheila, 19/10: «la función estrella») ---------- */
+/* ---------- generador de conjuntos (Sheila, 19/10: «la función estrella»; 0.29, 21/10: «optimiza las combinaciones») ----------
+   Reglas de estilista: (1) colores: neutros con todo, como mucho un color fuerte o dos que casen, nunca dos estampados;
+   (2) estilo: no mezclar deportivo con noche (zapatillas con vestido de fiesta); (3) el calzado y el bolso se eligen para cada conjunto
+   (neutros, del mismo tono o del color del conjunto); (4) abrigo si hace frío; (5) que salga lo que menos te pones;
+   (6) en el Pro, con tu tipo de cuerpo, se ordenan primero los que te favorecen. */
 const NEUTROS = new Set(['Negro', 'Blanco', 'Gris', 'Beige', 'Camel', 'Marrón', 'Azul claro', 'Azul']);
-const esFormal = p => /tac[oó]n|vestido|americana|blazer|camisa/i.test(p.nombre) || (p.tipo === 'Vestidos');
-function ocasionDe(ps) { return ps.some(p => /tac[oó]n/i.test(p.nombre) || (p.tipo === 'Vestidos' && p.color === 'Negro')) ? 'Noche' : ps.some(p => /zapatilla|deport/i.test(p.nombre)) ? 'Diario' : 'Diario'; }
+const CASAN = new Set(['Rosa|Azul claro', 'Rosa|Gris', 'Rojo|Azul', 'Rojo|Azul claro', 'Amarillo|Azul', 'Amarillo|Azul claro', 'Naranja|Azul', 'Verde|Camel', 'Verde|Beige', 'Morado|Gris', 'Rosa|Rojo', 'Verde|Azul claro', 'Rosa|Verde']);
+const CHOCAN = new Set(['Rojo|Naranja', 'Rojo|Verde', 'Morado|Amarillo', 'Morado|Naranja', 'Naranja|Rosa', 'Amarillo|Rosa', 'Rojo|Morado', 'Naranja|Verde']);
+const par = (a, b) => [a, b].sort().join('|');
+// estilo de cada prenda: 0 deportivo, 1 diario, 2 arreglado, 3 noche
+function estilo(p) {
+  const n = (p.nombre || '').toLowerCase();
+  if (/zapatilla|deport|sudadera|ch[aá]ndal|legging|sneaker|hoodie/.test(n)) return 0;
+  if (/tac[oó]n|sat[eé]n|lentejuela|fiesta|heel|sequin/.test(n) || (p.tipo === 'Vestidos' && p.color === 'Negro')) return 3;
+  if (/camisa|blusa|americana|blazer|vestir|traje|chaleco|lazo|cruzado|shirt|blouse/.test(n) || p.tipo === 'Vestidos' || p.tipo === 'Bolsos') return 2;
+  return 1;
+}
+const esFormal = p => estilo(p) >= 2;
+const ropaDe = ps => ps.filter(p => !['Bolsos', 'Calzado', 'Accesorios'].includes(p.tipo));
+const nivelRopa = ps => { const r = ropaDe(ps).map(estilo); return r.length ? r.reduce((a, b) => a + b, 0) / r.length : 1; };
+function ocasionDe(ps) { // la ocasión la marca la ropa; el calzado solo la sube (tacones) o la baja (zapatillas)
+  const r = ropaDe(ps).map(estilo), zap = ps.find(p => p.tipo === 'Calzado'), z = zap ? estilo(zap) : 1, m = nivelRopa(ps);
+  if (Math.max(...r) === 3 || (m >= 1.5 && z === 3)) return 'Noche';
+  if (m >= 1.5 && z >= 1) return 'Oficina';
+  return 'Diario';
+}
 function puntuar(ps) {
-  const fuertes = ps.filter(p => !NEUTROS.has(p.color)); let s = 0;
-  if (fuertes.length === 0) s += 1; else if (fuertes.length === 1) s += 2.2; else s += new Set(fuertes.map(p => p.color)).size === 1 ? 1 : -2;
-  if (ps.filter(p => p.color === 'Estampado').length > 1) s -= 3;
+  let s = 0; const col = ps.filter(p => p.tipo !== 'Bolsos' && p.tipo !== 'Calzado'), fuertes = [...new Set(col.filter(p => !NEUTROS.has(p.color) && p.color !== 'Estampado').map(p => p.color))];
+  const estamp = col.filter(p => p.color === 'Estampado').length;
+  // colores
+  if (estamp > 1) s -= 4; else if (estamp === 1) s += fuertes.length ? -1.5 : 1.6;
+  if (!fuertes.length && !estamp) s += 1;
+  else if (fuertes.length === 1) s += 2.2;
+  else if (fuertes.length === 2) s += CASAN.has(par(...fuertes)) ? 1.8 : CHOCAN.has(par(...fuertes)) ? -3 : -1;
+  else if (fuertes.length > 2) s -= 3;
   const ar = ps.find(p => p.tipo === 'Arriba'), ab = ps.find(p => p.tipo === 'Abajo');
-  if (ar && ab && ar.color === ab.color && !['Negro', 'Azul claro'].includes(ar.color)) s -= .6;
-  const usos = ps.reduce((a, p) => a + (p.usos || []).length, 0) / ps.length; s += Math.max(0, 2 - usos / 4);   // que salga lo que menos te pones
-  return s + Math.random() * .7;
+  if (ar && ab && ar.color === ab.color && !['Negro', 'Azul claro', 'Blanco', 'Beige'].includes(ar.color)) s -= .6;
+  if (ar && ab && ar.color === 'Negro' && ab.color === 'Azul') s -= .5;           // negro con marino, solo si se busca
+  // estilo: no mezclar deportivo con arreglado o noche
+  const es = ps.filter(p => p.tipo !== 'Bolsos').map(estilo), salto = Math.max(...es) - Math.min(...es);
+  s -= salto >= 3 ? 4 : salto === 2 ? 1.5 : 0;
+  // calzado y bolso: neutros o del color del conjunto; bolso y calzado del mismo color, mejor
+  const zap = ps.find(p => p.tipo === 'Calzado'), bol = ps.find(p => p.tipo === 'Bolsos');
+  for (const x of [zap, bol]) if (x) s += NEUTROS.has(x.color) || fuertes.includes(x.color) ? .4 : -.8;
+  if (zap) s -= 1.2 * Math.max(0, Math.abs(estilo(zap) - nivelRopa(ps)) - .5);        // zapatillas con lo informal, tacones con lo arreglado
+  if (zap && bol && zap.color === bol.color) s += .3;
+  // tipo de cuerpo (Pro): primero lo que favorece
+  const tc = planDemo() === 'pro' && E.perfil?.tipoCuerpo, fz = p => p && (!NEUTROS.has(p.color) || p.color === 'Estampado');
+  const vest = ps.some(p => p.tipo === 'Vestidos'), falda = ab && /falda|skirt/i.test(ab.nombre);
+  if (tc === 'triangulo') s += (fz(ar) ? .8 : 0) - (fz(ab) ? .6 : 0) + (falda ? .3 : 0);
+  if (tc === 'invertido') s += (fz(ab) ? .8 : 0) - (fz(ar) ? .6 : 0) + (falda ? .4 : 0);
+  if (tc === 'reloj') s += (vest ? .7 : 0) + (falda ? .3 : 0);
+  if (tc === 'rectangulo') s += (ps.some(p => p.tipo === 'Abrigo') ? .4 : 0) + (falda ? .3 : 0) + (vest ? .3 : 0);
+  if (tc === 'ovalo') s += (ar && ab && ar.color === ab.color ? .8 : 0) + (vest ? .4 : 0) - (fz(ab) ? .4 : 0);
+  // que salga lo que menos te pones
+  const usos = ps.reduce((a, p) => a + (p.usos || []).length, 0) / ps.length; s += Math.max(0, 2 - usos / 4);
+  return s + Math.random() * .6;
+}
+function mejorAcompanante(lista, base) { // calzado o bolso que mejor puntúa con la base
+  let mejor = null, mp = -Infinity;
+  for (const x of lista) { const v = puntuar([...base, x]) - Math.random() * .6; if (v > mp) { mp = v; mejor = x; } }
+  return mejor;
 }
 function generarLooks(n, plan) {
   const aptas = estacionesAptas(); const act = activas().filter(p => aptas.includes(p.estacion));
@@ -235,13 +285,14 @@ function generarLooks(n, plan) {
   const frio = (E.tiempo?.t ?? 18) <= 14;
   const bases = [...vestidos.map(v => [v]), ...arriba.flatMap(a => abajo.map(b => [a, b]))];
   const cands = bases.map(base => {
-    const formal = base.some(esFormal) || base.some(p => p.tipo === 'Abajo' && p.color === 'Negro');
-    const zap = calzado.slice().sort((x, y) => (formal ? (/tac[oó]n/i.test(y.nombre) - /tac[oó]n/i.test(x.nombre)) : (/tac[oó]n/i.test(x.nombre) - /tac[oó]n/i.test(y.nombre))) || ((x.usos || []).length - (y.usos || []).length))[0];
-    const ps = [...base, zap, frio ? abrigos[0] : null, formal && bolsos[0] ? bolsos[0] : null].filter(Boolean);
+    let ps = [...base]; const ab = frio ? mejorAcompanante(abrigos, ps) : null; if (ab) ps.push(ab);
+    const zap = mejorAcompanante(calzado, ps); if (zap) ps.push(zap);
+    const bol = ocasionDe(ps) !== 'Deporte' ? mejorAcompanante(bolsos, ps) : null; if (bol) ps.push(bol);
     return { ps, puntos: puntuar(ps) };
   }).sort((a, b) => b.puntos - a.puntos);
   const vistos = new Set(), usados = new Map(), out = [];
   for (const c of cands) {
+    if (c.puntos < -1.5 && out.length) break;                                      // mejor menos ideas que ideas malas
     const clave = c.ps.map(p => p.id).join(); if (vistos.has(clave)) continue;
     const prin = c.ps[0]; if ((usados.get(prin.id) || 0) >= 2) continue;       // variedad: la misma prenda principal, como mucho dos veces
     const oc = ocasionDe(c.ps); if (plan && plan !== 'Todos' && oc !== plan) continue;
@@ -414,6 +465,20 @@ async function mascaraU2(img) { // máscara 320×320 en el canal alfa de un lien
   for (let p = 0; p < S * S; p++) { const a = (m[p] - lo) / ((hi - lo) || 1); md.data[p * 4 + 3] = Math.round(Math.max(0, Math.min(1, (a - .2) / .6)) * 255); }
   mxc.putImageData(md, 0, 0); return mc;
 }
+// reconocimiento de prendas (0.29, Sheila: «entrena reconocimiento de prendas»): MobileCLIP-S0 en el propio móvil (45 MB, se descarga una vez)
+// compara la foto con 46 descripciones de prendas calculadas antes (modelos/ropa-textos.json); con las 24 fotos de Sheila acierta 23
+let SES_ROPA = null, TXT_ROPA = null;
+async function reconocerPrenda(cv) {
+  if (!SES_ROPA) { await modeloRecorte(); [SES_ROPA, TXT_ROPA] = await Promise.all([ort.InferenceSession.create('modelos/ropa-mobileclip-s0.onnx', { executionProviders: ['wasm'] }), fetch('modelos/ropa-textos.json').then(r => r.json())]); }
+  const S = 256, c = document.createElement('canvas'); c.width = S; c.height = S; const x = c.getContext('2d', { willReadFrequently: true });
+  x.fillStyle = '#fff'; x.fillRect(0, 0, S, S); const e = Math.min(S / cv.width, S / cv.height); x.drawImage(cv, (S - cv.width * e) / 2, (S - cv.height * e) / 2, cv.width * e, cv.height * e);
+  const d = x.getImageData(0, 0, S, S).data, ent = new Float32Array(3 * S * S);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) for (let ch = 0; ch < 3; ch++) ent[ch * S * S + p] = d[i + ch] / 255;
+  const sal = await SES_ROPA.run({ [SES_ROPA.inputNames[0]]: new ort.Tensor('float32', ent, [1, 3, S, S]) });
+  const v = sal[SES_ROPA.outputNames[0]].data; let n = 0; for (const a of v) n += a * a; n = Math.sqrt(n);
+  const pc = {}; for (const p of TXT_ROPA.prompts) { let s = 0; for (let i = 0; i < p.e.length; i++) s += p.e[i] * v[i]; s /= n; if (!(s <= pc[p.cat])) pc[p.cat] = s; }
+  return Object.entries(pc).sort((a, b) => b[1] - a[1])[0][0];
+}
 async function procesarPrenda(file) {
   const u = URL.createObjectURL(file);
   try {
@@ -437,12 +502,13 @@ async function procesarPrenda(file) {
     } catch (e) { /* sin modelo: relleno desde los bordes */ }
     if (!recortada) { cx.globalCompositeOperation = 'source-over'; cx.clearRect(0, 0, w, h); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(img, 0, 0, w, h); const f = fondoABlanco(cx, w, h); caja = f.caja; color = f.color; recortada = f.ok; }
     const [x0, y0, x1, y1] = caja; const bw = x1 - x0 + 1, bh = y1 - y0 + 1; const prop = bh / bw;
-    const tipo = prop < .75 ? 'Calzado' : prop < 1.55 ? 'Arriba' : 'Abajo';
+    let tipo = prop < .75 ? 'Calzado' : prop < 1.55 ? 'Arriba' : 'Abajo', cat = null;
     const W = 900, H = 1200, out = document.createElement('canvas'); out.width = W; out.height = H; const o = out.getContext('2d');
     o.fillStyle = '#fff'; o.fillRect(0, 0, W, H); const e = Math.min(W * .84 / bw, H * .84 / bh), dw = bw * e, dh = bh * e;
     o.drawImage(capa, x0, y0, bw, bh, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    try { cat = await reconocerPrenda(out); tipo = TIPO_DE_CAT[cat]; } catch (e) { /* sin modelo: por la forma */ }
     const aBlob = (cv, q) => new Promise(r => cv.toBlob(r, 'image/jpeg', q));
-    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, recortada };
+    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, recortada };
   } finally { URL.revokeObjectURL(u); }
 }
 // nombre automático legible: «Top negro», «Pantalón azul claro», «Zapatos blancos»
@@ -467,7 +533,7 @@ function pintarSubida() {
     const i = E.subida.indexOf(det), listo = det.estado === 'listo';
     const ops = (lista, sel, k, nom) => `<div class="ops">${lista.map(x => `<button type="button" class="${x === sel ? 'on' : ''}" data-s${k}="${x}">${nom(x)}</button>`).join('')}</div>`;
     raiz.innerHTML = `<div class="sb uno">${n === 1 ? X : `<button class="x" data-svolver aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>`}<div class="tit"><h1>${t('Revisa tu prenda', 'Check your garment')}</h1>${n > 1 ? `<div class="mini-et">${i + 1} ${t('de', 'of')} ${n}</div>` : ''}</div>
-      <div class="foto">${det.url ? `<img src="${det.url}" alt="">` : `<p class="s-procesando">${t('Quitando el fondo…', 'Removing the background…')}</p>`}</div>
+      <div class="foto">${det.url ? `<img src="${det.url}" alt="">` : `<p class="s-procesando">${t('Quitando el fondo y reconociendo la prenda…', 'Removing the background and recognising the garment…')}</p>`}</div>
       ${listo ? `<input class="nom" value="${det.nombre}" data-snom aria-label="${t('Nombre', 'Name')}">
       <div class="gr"><p class="mini-et">${t('Tipo', 'Type')}</p>${ops(CATS_ORDEN, catDe(det), 'tipo', catTxt)}</div>
       <div class="gr"><p class="mini-et">${t('Color', 'Colour')}</p><div class="ops col">${COLORES.map(([c, h]) => `<button type="button" class="${c === det.color ? 'on' : ''}" data-scolor="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>
@@ -500,7 +566,7 @@ async function anadirFotos(files) {
   if (!nuevos.length) return toast(t('Como mucho 20 fotos cada vez', 'At most 20 photos at a time'));
   E.subida.push(...nuevos); pintarSubida();
   for (const it of nuevos) {
-    try { const r = await procesarPrenda(it.file); Object.assign(it, r, { estado: 'listo', estacion: 'Todo el año', url: URL.createObjectURL(r.blob), nombre: nombreAuto(r.tipo, r.color) }); delete it.file; }
+    try { const r = await procesarPrenda(it.file); Object.assign(it, r, { estado: 'listo', estacion: 'Todo el año', url: URL.createObjectURL(r.blob), nombre: r.cat ? nombreSubida(r, r.cat) : nombreAuto(r.tipo, r.color) }); delete it.file; }
     catch (e) { E.subida = E.subida.filter(x => x !== it); toast(t('No he podido leer una de las fotos', 'Could not read one of the photos')); }
     pintarSubida();
   }
