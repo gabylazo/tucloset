@@ -182,23 +182,25 @@ const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:$
 const COMP = (() => { try { const q = new URLSearchParams(location.search).get('comp'); if (q) localStorage.setItem('tc_comp', q); return localStorage.getItem('tc_comp') || 'sim'; } catch (e) { return 'sim'; } })();
 function collage(ps) {
   const m = tam, rol = r => ps.filter(p => r.includes(p.tipo)), G = 6;
-  const arriba = rol(['Arriba', 'Abrigo']).slice(0, 2), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0], acc = rol(['Accesorios']).slice(0, 2);
+  const arriba = rol(['Arriba', 'Abrigo']).slice(0, 2), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0], acc = rol(['Accesorios']).slice(0, 3);
   const col = [arriba[0], grande].filter(Boolean); if (!col.length) return null;
-  const lado = [arriba[1], bolso, ...acc, calzado].filter(Boolean);
   const colW = Math.max(...col.map(p => m(p)[0])), out = []; let y = 0;
-  col.forEach((p, k) => { const [w, h] = m(p); if (k) y -= Math.min(6, m(col[0])[1] * .06); out.push([p, null, y, w, h, col.length > 1 ? (k ? 1 : -1) * colW * .07 : 0]); y += h; }); // un poco en diagonal, como en sus referencias
-  const H = y; if (!lado.length) { const W = colW * 1.14; out.forEach(o => o[1] = (W - o[3]) / 2 + o[5]); return { out, W, H }; }
-  // el lado: un poco más pequeño que su tamaño real para que respire, repartido de arriba abajo
-  const esc = 0.92, sz = lado.map(p => m(p).map(v => v * esc)), ladoW = Math.max(...sz.map(s => s[0]));
-  const W = ladoW + G * 1.5 + colW * 1.07; out.forEach(o => o[1] = ladoW + G * 1.5 + colW * .035 + (colW - o[3]) / 2 + o[5]);
-  const total = sz.reduce((a, s) => a + s[1], 0), hueco = Math.max(G, (H - total) / Math.max(1, lado.length - 1)); let ly = lado.length === 1 ? (H - sz[0][1]) * .35 : 0;
-  if (total + hueco * (lado.length - 1) > H) ly = 0;
-  lado.forEach((p, k) => { const [w, h] = sz[k]; const yy = p === calzado && lado.length > 1 ? H - h : ly; out.push([p, (ladoW - w) / 2 + (p === bolso ? Math.min(w * .22, G * 2.2) : 0), yy, w, h]); ly += h + hueco; }); // el bolso pisa un poco el look
-  return { out, W, H: Math.max(H, ly - hueco) };
+  col.forEach((p, k) => { const [w, h] = m(p); if (k) y -= Math.min(6, m(col[0])[1] * .06); out.push([p, 0, y, w, h, col.length > 1 ? (k ? 1 : -1) * colW * .05 : 0]); y += h; }); // un poco en diagonal
+  const H = y, esc = .9;
+  // izquierda: segunda prenda de arriba y accesorios, de arriba abajo, y el calzado abajo pisando un poco el look; derecha: el bolso, a un tercio
+  const izq = [arriba[1], ...acc].filter(Boolean), szI = izq.map(p => m(p).map(v => v * esc)), szZ = calzado ? m(calzado).map(v => v * esc) : [0, 0], szB = bolso ? m(bolso).map(v => v * esc) : [0, 0];
+  const izW = Math.max(0, ...szI.map(s => s[0]), szZ[0] * .7), deW = szB[0] * .8;
+  const x0 = izW + (izW ? G : 0), W = x0 + colW * 1.1 + (deW ? deW + G * .5 : 0);
+  out.forEach(o => o[1] = x0 + colW * .05 + (colW - o[3]) / 2 + o[5]);
+  let ly = 0; izq.forEach((p, k) => { const [w, h] = szI[k]; out.push([p, (izW - w) / 2, ly, w, h]); ly += h + G; });
+  if (calzado) { const [w, h] = szZ; out.push([calzado, Math.max(0, x0 - w * .55), H - h * .85, w, h]); }
+  if (bolso) { const [w, h] = szB; out.push([bolso, W - w, H * .3 - h / 2, w, h]); }
+  const Ht = Math.max(H + (calzado ? szZ[1] * .15 : 0), ly - G);
+  return { out, W, H: Ht };
 }
 function composicion(ps) {
   if (ps.some(p => !p.caja && (p.foto || p.src))) setTimeout(medirTodas, 0);
-  if (COMP === 'collage') { const c = collage(ps); if (c) return c.out.sort((a, b) => (a[0].tipo === 'Bolsos') - (b[0].tipo === 'Bolsos')).map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
+  if (COMP === 'collage') { const c = collage(ps); if (c) return c.out.sort((a, b) => ['Bolsos', 'Calzado'].includes(a[0].tipo) - ['Bolsos', 'Calzado'].includes(b[0].tipo)).map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   const G = 5, m = tam, rol = r => ps.filter(p => r.includes(p.tipo));
   const arriba = rol(['Arriba', 'Abrigo']).slice(0, 3), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0];
   const ancho = f => f.reduce((t, p) => t + m(p)[0], 0) + G * (f.length - 1), out = [];
