@@ -836,3 +836,6 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .pl-inc{font-size:11.5px;line-height:1.7}
 .plb-lema{font-family:var(--f-marca);font-size:19px !important;line-height:1.35 !important;margin-top:18px !important;padding:0 18px}
 .plb-det .pl-ahorro{font-size:12px}
+/* 0.16 · B con menos letra */
+.plb-lema{font-size:22px !important;margin-top:20px !important}
+.plb-det p:not(.plb-lema){font-size:12.5px;color:var(--sec);margin-top:12px}

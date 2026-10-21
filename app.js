@@ -749,7 +749,7 @@ $('p-planes').addEventListener('click', e => {
   $('p-planes').querySelectorAll('.pl-per[data-mes]').forEach(x => x.textContent = x.dataset[E.pl.per]);
   $('p-planes').classList.toggle('anual', E.pl.per === 'anual');
 });
-if (new URLSearchParams(location.search).get('planes') === 'b') $('p-planes').classList.add('pl-b'); // diseño B, para comparar
+if (new URLSearchParams(location.search).get('planes') !== 'a') $('p-planes').classList.add('pl-b'); // diseño B por defecto desde la 0.16 (Gabriela: «me gusta la opción B»); ?planes=a, el de dos columnas
 $('pl-empezar').addEventListener('click', async () => { E.perfil = Object.assign(E.perfil || {}, { alta: E.perfil?.alta || hoyISO(), idioma: idioma(), planElegido: E.pl.plan, periodo: E.pl.per }); await guardar(); ir('hoy'); toast(t('Tu prueba de 7 días ha empezado', 'Your 7-day trial has started')); });
 document.querySelectorAll('[data-social]').forEach(b => b.onclick = () => toast(t(`Entrar con ${b.dataset.social} llegará con las cuentas en la nube. Ahora tu clóset vive en este móvil.`, `${b.dataset.social} sign-in comes with cloud accounts. For now your closet lives on this phone.`)));
 $('e-olvido').onclick = () => toast(t('Llegará con las cuentas en la nube.', 'Coming with cloud accounts.'));
