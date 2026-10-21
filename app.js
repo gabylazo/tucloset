@@ -148,9 +148,37 @@ function aplicarTono(ps) { // estilo «color»: el tono de la prenda principal, 
 const BUSTO = '<svg class="busto" viewBox="0 0 100 200" aria-hidden="true"><circle cx="50" cy="8" r="3.5"/><path d="M46 11.5h8v9h-8z"/><path d="M46 20.5C34 22 23 24.5 19.5 30C16.5 35 19 46 23 56C26.5 65 27.5 72 26 80C24.5 88 21.5 94 21.5 100C21.5 104 30 106 50 106C70 106 78.5 104 78.5 100C78.5 94 75.5 88 74 80C72.5 72 73.5 65 77 56C81 46 83.5 35 80.5 30C77 24.5 66 22 54 20.5"/><path d="M43 110h14M50 106v70M50 176l-15 16M50 176l15 16M50 176v17"/></svg>';
 // 0.8: sin maniquí (Gabriela 20/10: «está bastante feo»). El conjunto se compone con las prendas sueltas, a su tamaño
 // aproximado en cm y simétrico: A · Eje (arriba / pieza grande / bolso y calzado); con bolso y calzado, B · Cruz.
-const MEDIDA = { Arriba: [60, 58], Abrigo: [72, 88], Abajo: [58, 100], Vestidos: [72, 100], Calzado: [30, 28], Bolsos: [30, 32], Accesorios: [22, 22] };
+const MEDIDA = { Arriba: [60, 58], Abrigo: [72, 88], Abajo: [58, 100], Vestidos: [72, 100], Calzado: [34, 30], Bolsos: [36, 36], Accesorios: [22, 22] };
+// 0.31 (Sheila, 22/10: «este resultado también es bastante feo»): cada foto se mide una vez (dónde está la prenda dentro de su foto blanca) y el
+// conjunto se compone con la silueta real de cada prenda, recortada a su caja: sin huecos blancos entre piezas, más junto y más grande.
+const tam = p => { const M = MEDIDA[p.tipo] || [40, 40]; if (!p.caja) return M; let w = M[0], h = w * p.caja[4]; const tope = M[1] * 1.25; if (h > tope) { h = tope; w = h / p.caja[4]; } return [w, h]; };
+async function medirFoto(p) {
+  const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = urlFoto(p); });
+  const S = 140, k = S / Math.max(im.naturalWidth, im.naturalHeight), w = Math.round(im.naturalWidth * k), h = Math.round(im.naturalHeight * k);
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let i = 0, q = 0; i < d.length; i += 4, q++) { if (d[i + 3] < 30 || Math.min(d[i], d[i + 1], d[i + 2]) > 236) continue; const px = q % w, py = (q / w) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
+  if (x1 < 0) return [0, 0, 1, 1, h / w];
+  const c0 = [x0 / w, y0 / h, (x1 + 1) / w, (y1 + 1) / h]; return [...c0.map(v => +v.toFixed(4)), +(((c0[3] - c0[1]) * h) / ((c0[2] - c0[0]) * w)).toFixed(4)];
+}
+let midiendo = null;
+function medirTodas() {
+  if (midiendo) return midiendo;
+  midiendo = (async () => {
+    const pend = E.prendas.filter(p => !p.caja && (p.foto || p.src)); let n = 0;
+    for (const p of pend) { try { p.caja = await medirFoto(p); n++; } catch (e) { p.caja = null; } }
+    if (n) { if (E.prendas.some(p => !p.src)) await guardar(); E.propuestas = []; if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); }
+    midiendo = null;
+  })();
+  return midiendo;
+}
+const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:${y / H * 100}%;width:${w / W * 100}%;height:${h / H * 100}%`;
+  if (!p.caja) return `<img src="${urlFoto(p)}" alt="" style="${pos}">`;
+  const [a, b, c, d] = p.caja, cw = c - a, ch = d - b;
+  return `<i class="pz" style="${pos};background-image:url('${urlFoto(p)}');background-size:${100 / cw}% ${100 / ch}%;background-position:${cw < 1 ? a / (1 - cw) * 100 : 0}% ${ch < 1 ? b / (1 - ch) * 100 : 0}%"></i>`; };
 function composicion(ps) {
-  const G = 7, m = p => MEDIDA[p.tipo] || [40, 40], rol = r => ps.filter(p => r.includes(p.tipo));
+  if (ps.some(p => !p.caja && (p.foto || p.src))) setTimeout(medirTodas, 0);
+  const G = 5, m = tam, rol = r => ps.filter(p => r.includes(p.tipo));
   const arriba = rol(['Arriba', 'Abrigo']).slice(0, 3), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0];
   const ancho = f => f.reduce((t, p) => t + m(p)[0], 0) + G * (f.length - 1), out = [];
   const fila = (f, y, W) => { const h = Math.max(...f.map(p => m(p)[1])); let x = (W - ancho(f)) / 2; f.forEach(p => { out.push([p, x, y + (h - m(p)[1]) / 2]); x += m(p)[0] + G; }); return h; };
@@ -159,7 +187,7 @@ function composicion(ps) {
     const col = Math.max(m(bolso)[0], m(calzado)[0]), cw = m(grande)[0];
     W = Math.max(2 * (col + G) + cw, arriba.length ? ancho(arriba) : 0);
     if (arriba.length) y = fila(arriba, 0, W) + G;
-    out.push([grande, (W - cw) / 2, y]); const yb = y + m(grande)[1] * .62;
+    out.push([grande, (W - cw) / 2, y]); const yb = y + m(grande)[1] * .55;
     out.push([bolso, (W - cw) / 2 - G - col + (col - m(bolso)[0]) / 2, yb - m(bolso)[1] / 2]);
     out.push([calzado, (W + cw) / 2 + G + (col - m(calzado)[0]) / 2, yb - m(calzado)[1] / 2]);
     y += m(grande)[1];
@@ -168,7 +196,7 @@ function composicion(ps) {
     if (!filas.length) return '';
     W = Math.max(...filas.map(ancho)); filas.forEach(f => { y += fila(f, y, W) + G; }); y -= G;
   }
-  return out.map(([p, x, yy]) => `<img src="${urlFoto(p)}" alt="" style="left:${x / W * 100}%;top:${yy / y * 100}%;width:${m(p)[0] / W * 100}%;height:${m(p)[1] / y * 100}%">`).join('') + `<!--${W}x${y}-->`;
+  return out.map(([p, x, yy]) => pieza(p, x, yy, m(p)[0], m(p)[1], W, y)).join('') + `<!--${W}x${y}-->`;
 }
 function maniqui(ps, mini) { // nombre heredado: ahora devuelve la composición simétrica
   const html = composicion(ps); const r = html.match(/<!--([\d.]+)x([\d.]+)-->/);
@@ -227,9 +255,9 @@ const par = (a, b) => [a, b].sort().join('|');
 // estilo de cada prenda: 0 deportivo, 1 diario, 2 arreglado, 3 noche
 function estilo(p) {
   const n = (p.nombre || '').toLowerCase();
-  if (/zapatilla|deport|sudadera|ch[aá]ndal|legging|sneaker|hoodie/.test(n)) return 0;
+  if (/zapatilla|deport|sudadera|ch[aá]ndal|legging|mallas|mochila|sneaker|hoodie/.test(n)) return 0;
   if (/tac[oó]n|sat[eé]n|lentejuela|fiesta|heel|sequin/.test(n) || (p.tipo === 'Vestidos' && p.color === 'Negro')) return 3;
-  if (/camisa|blusa|americana|blazer|vestir|traje|chaleco|lazo|cruzado|shirt|blouse/.test(n) || p.tipo === 'Vestidos' || p.tipo === 'Bolsos') return 2;
+  if (/camisa|blusa|americana|blazer|gabardina|cartera|vestir|traje|chaleco|lazo|cruzado|shirt|blouse/.test(n) || p.tipo === 'Vestidos' || p.tipo === 'Bolsos') return 2;
   return 1;
 }
 const esFormal = p => estilo(p) >= 2;
@@ -466,7 +494,7 @@ async function mascaraU2(img) { // máscara 320×320 en el canal alfa de un lien
   mxc.putImageData(md, 0, 0); return mc;
 }
 // reconocimiento de prendas (0.29, Sheila: «entrena reconocimiento de prendas»): MobileCLIP-S0 en el propio móvil (45 MB, se descarga una vez)
-// compara la foto con 46 descripciones de prendas calculadas antes (modelos/ropa-textos.json); con las 24 fotos de Sheila acierta 23
+// compara la foto con 48 descripciones de prendas calculadas antes (modelos/ropa-textos.json); con las 24 fotos de Sheila acierta 23
 let SES_ROPA = null, TXT_ROPA = null;
 async function reconocerPrenda(cv) {
   if (!SES_ROPA) { await modeloRecorte(); [SES_ROPA, TXT_ROPA] = await Promise.all([ort.InferenceSession.create('modelos/ropa-mobileclip-s0.onnx', { executionProviders: ['wasm'] }), fetch('modelos/ropa-textos.json').then(r => r.json())]); }
@@ -476,22 +504,23 @@ async function reconocerPrenda(cv) {
   for (let i = 0, p = 0; i < d.length; i += 4, p++) for (let ch = 0; ch < 3; ch++) ent[ch * S * S + p] = d[i + ch] / 255;
   const sal = await SES_ROPA.run({ [SES_ROPA.inputNames[0]]: new ort.Tensor('float32', ent, [1, 3, S, S]) });
   const v = sal[SES_ROPA.outputNames[0]].data; let n = 0; for (const a of v) n += a * a; n = Math.sqrt(n);
-  const pc = {}; for (const p of TXT_ROPA.prompts) { let s = 0; for (let i = 0; i < p.e.length; i++) s += p.e[i] * v[i]; s /= n; if (!(s <= pc[p.cat])) pc[p.cat] = s; }
-  return Object.entries(pc).sort((a, b) => b[1] - a[1])[0][0];
+  const pc = {}, px = {}; for (const p of TXT_ROPA.prompts) { let s = 0; for (let i = 0; i < p.e.length; i++) s += p.e[i] * v[i]; s /= n; if (!(s <= pc[p.cat])) { pc[p.cat] = s; px[p.cat] = p.x; } }
+  const cat = Object.entries(pc).sort((a, b) => b[1] - a[1])[0][0]; return { cat, x: px[cat] };
 }
 // 0.30 (Sheila, 21/10: su falda salía como top y una sandalia como pantalón): las prendas subidas antes del reconocimiento se revisan solas una vez;
 // cambia el tipo y, si el nombre era el automático, también el nombre. Lo que ella haya escrito a mano no se toca.
-const NOMBRE_AUTO = /^(Top|Pantalón|Zapatos|Vestido|Abrigo|Bolso|Accesorio|Falda) |^(Tops|Arriba|Abajo|Calzado)$/;
+const NOMBRE_AUTO = { test: n => /^(Tops|Arriba|Abajo|Calzado)$/.test(n) || ['Top', 'Pantalón', 'Zapatos', 'Vestido', 'Abrigo', 'Bolso', 'Accesorio', 'Falda', ...Object.values(NOM_X).map(v => v[0])].some(b => n === b || (n.startsWith(b + ' ') && /^[a-zéóíáú ]+$/.test(n.slice(b.length + 1)))) };
 async function reconocerGuardadas() {
-  const pend = E.prendas.filter(p => !p.rec && !p.src && p.foto); if (!pend.length) return;
+  const pend = E.prendas.filter(p => (p.rec || 0) < 2 && !p.src && p.foto); if (!pend.length) return;
   let cambios = 0;
   for (const p of pend) {
     try {
       const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = urlFoto(p); });
       const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0);
-      const cat = await reconocerPrenda(c), tipo = TIPO_DE_CAT[cat];
-      if (tipo !== p.tipo || (cat === 'Faldas') !== /falda|skirt/i.test(p.nombre)) { if (NOMBRE_AUTO.test(p.nombre)) p.nombre = nombreSubida(Object.assign({}, p, { tipo }), cat); p.tipo = tipo; cambios++; }
-      p.rec = 1;
+      const { cat, x } = await reconocerPrenda(c), tipo = TIPO_DE_CAT[cat];
+      const nom = NOMBRE_AUTO.test(p.nombre) ? (nombreReconocido(x, p.color) || nombreSubida(Object.assign({}, p, { tipo }), cat)) : p.nombre;
+      if (tipo !== p.tipo || nom !== p.nombre) { if (tipo !== p.tipo) cambios++; p.tipo = tipo; p.nombre = nom; }
+      p.rec = 2;
     } catch (e) { return; } // sin red o sin modelo: se reintenta en la próxima apertura
   }
   await guardar();
@@ -524,9 +553,9 @@ async function procesarPrenda(file) {
     const W = 900, H = 1200, out = document.createElement('canvas'); out.width = W; out.height = H; const o = out.getContext('2d');
     o.fillStyle = '#fff'; o.fillRect(0, 0, W, H); const e = Math.min(W * .84 / bw, H * .84 / bh), dw = bw * e, dh = bh * e;
     o.drawImage(capa, x0, y0, bw, bh, (W - dw) / 2, (H - dh) / 2, dw, dh);
-    try { cat = await reconocerPrenda(out); tipo = TIPO_DE_CAT[cat]; } catch (e) { /* sin modelo: por la forma */ }
+    let x = null; try { ({ cat, x } = await reconocerPrenda(out)); tipo = TIPO_DE_CAT[cat]; } catch (e) { /* sin modelo: por la forma */ }
     const aBlob = (cv, q) => new Promise(r => cv.toBlob(r, 'image/jpeg', q));
-    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, rec: cat ? 1 : 0, recortada };
+    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, x, rec: cat ? 1 : 0, recortada };
   } finally { URL.revokeObjectURL(u); }
 }
 // nombre automático legible: «Top negro», «Pantalón azul claro», «Zapatos blancos»
@@ -539,6 +568,27 @@ function nombreAuto(tipo, color) {
   return `${n} ${c}`;
 }
 const TIPO_DE_CAT = { Tops: 'Arriba', Pantalones: 'Abajo', Faldas: 'Abajo', Vestidos: 'Vestidos', Abrigos: 'Abrigo', Zapatos: 'Calzado', Bolsos: 'Bolsos', Accesorios: 'Accesorios' };
+// 0.31: nombre concreto según lo reconocido («Zapatillas blancas», «Blusa rosa», «Vaqueros»); de él salen también el estilo y la ocasión
+const NOM_X = { 'a t-shirt': ['Camiseta', 'T-shirt', 'f'], 'a blouse': ['Blusa', 'Blouse', 'f'], 'a crop top': ['Top corto', 'Crop top', 'm'], 'a shirt': ['Camisa', 'Shirt', 'f'], 'a knitted vest': ['Chaleco', 'Vest', 'm'], 'a sweater': ['Jersey', 'Sweater', 'm'], 'a halter bodysuit': ['Body', 'Bodysuit', 'm'], 'a tank top': ['Top', 'Tank top', 'm'], 'a cardigan': ['Chaqueta de punto', 'Cardigan', 'f'],
+  trousers: ['Pantalón', 'Trousers', 'm'], jeans: ['Vaqueros', 'Jeans', 'm', 1], 'wide leg pants': ['Pantalón ancho', 'Wide-leg trousers', 'm'], shorts: ['Shorts', 'Shorts', 'm', 1], leggings: ['Mallas', 'Leggings', 'f', 1],
+  'a skirt': ['Falda', 'Skirt', 'f'], 'a mini skirt': ['Minifalda', 'Mini skirt', 'f'], 'a long skirt': ['Falda larga', 'Long skirt', 'f'], 'a pleated skirt': ['Falda plisada', 'Pleated skirt', 'f'], 'a lace skirt': ['Falda de encaje', 'Lace skirt', 'f'], 'a flared skirt': ['Falda de vuelo', 'Flared skirt', 'f'],
+  'a dress': ['Vestido', 'Dress', 'm'], 'a wrap dress': ['Vestido cruzado', 'Wrap dress', 'm'], 'a long dress': ['Vestido largo', 'Long dress', 'm'],
+  'a coat': ['Abrigo', 'Coat', 'm'], 'a jacket': ['Chaqueta', 'Jacket', 'f'], 'a blazer': ['Americana', 'Blazer', 'f'], 'a trench coat': ['Gabardina', 'Trench coat', 'f'], 'a puffer jacket': ['Plumífero', 'Puffer jacket', 'm'],
+  'a pair of shoes': ['Zapatos', 'Shoes', 'm', 1], 'a pair of sneakers': ['Zapatillas', 'Sneakers', 'f', 1], 'a pair of high heels': ['Tacones', 'Heels', 'm', 1], 'a pair of boots': ['Botas', 'Boots', 'f', 1], 'a pair of sandals': ['Sandalias', 'Sandals', 'f', 1], 'a pair of ballet flats': ['Bailarinas', 'Flats', 'f', 1], 'a pair of stiletto heels': ['Tacones', 'Heels', 'm', 1], 'a pair of pointed toe pumps': ['Tacones', 'Heels', 'm', 1],
+  'a handbag': ['Bolso', 'Bag', 'm'], 'a shoulder bag': ['Bolso de hombro', 'Shoulder bag', 'm'], 'a tote bag': ['Bolso tote', 'Tote bag', 'm'], 'a clutch bag': ['Cartera de mano', 'Clutch', 'f'], 'a backpack': ['Mochila', 'Backpack', 'f'],
+  'a hat': ['Sombrero', 'Hat', 'm'], 'a scarf': ['Pañuelo', 'Scarf', 'm'], 'a belt': ['Cinturón', 'Belt', 'm'], sunglasses: ['Gafas de sol', 'Sunglasses', 'f', 1], 'a necklace': ['Collar', 'Necklace', 'm'], earrings: ['Pendientes', 'Earrings', 'm', 1], 'a watch': ['Reloj', 'Watch', 'm'] };
+function adjColor(c, f, pl) {
+  if (['Beige', 'Camel', 'Azul claro'].includes(c)) return c.toLowerCase();
+  let a = c.toLowerCase(); if (f && /o$/.test(a)) a = a.slice(0, -1) + 'a';
+  if (pl) a = /[aeo]$/.test(a) ? a + 's' : a === 'marrón' ? 'marrones' : a + 'es';
+  return a;
+}
+function nombreReconocido(x, color) {
+  const N = NOM_X[x]; if (!N) return null; const en = idioma() === 'en';
+  if (en) return `${color} ${N[1].toLowerCase()}`.replace(/^./, c => c.toUpperCase());
+  if (color === 'Estampado') return `${N[0]} estampad${N[2] === 'f' ? 'a' : 'o'}${N[3] ? 's' : ''}`;
+  return `${N[0]} ${adjColor(color, N[2] === 'f', N[3])}`;
+}
 const FEM = c => ({ Negro: 'negra', Blanco: 'blanca', Rojo: 'roja', Amarillo: 'amarilla', Morado: 'morada', Estampado: 'estampada' }[c] || c.toLowerCase());
 const nombreSubida = (it, cat) => cat === 'Faldas' ? (idioma() === 'en' ? `${it.color} skirt` : `Falda ${FEM(it.color)}`) : nombreAuto(it.tipo, it.color);
 function prepararSubir() { E.subida = []; E.sDet = null; pintarSubida(); }
@@ -585,14 +635,14 @@ async function anadirFotos(files) {
   if (!nuevos.length) return toast(t('Como mucho 20 fotos cada vez', 'At most 20 photos at a time'));
   E.subida.push(...nuevos); pintarSubida();
   for (const it of nuevos) {
-    try { const r = await procesarPrenda(it.file); Object.assign(it, r, { estado: 'listo', estacion: 'Todo el año', url: URL.createObjectURL(r.blob), nombre: r.cat ? nombreSubida(r, r.cat) : nombreAuto(r.tipo, r.color) }); delete it.file; }
+    try { const r = await procesarPrenda(it.file); Object.assign(it, r, { estado: 'listo', estacion: 'Todo el año', url: URL.createObjectURL(r.blob), nombre: nombreReconocido(r.x, r.color) || (r.cat ? nombreSubida(r, r.cat) : nombreAuto(r.tipo, r.color)) }); delete it.file; }
     catch (e) { E.subida = E.subida.filter(x => x !== it); toast(t('No he podido leer una de las fotos', 'Could not read one of the photos')); }
     pintarSubida();
   }
 }
 async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo'); if (!listos.length) return;
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec || 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '' }));
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 2 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '' }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet');
 }
@@ -630,7 +680,7 @@ async function guardarPrenda(otra) {
   const p = E.editando; const nombre = $('an-nombre').value.trim(); const color = $('an-colores').dataset.sel || 'Gris';
   if (!p && !fotoNueva) return toast(t('Falta la foto de la prenda', 'The garment photo is missing'));
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
-  if (p) { Object.assign(p, { nombre, color, tipo: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim() }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; urls.delete(p.id); } }
+  if (p) { Object.assign(p, { nombre, color, tipo: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim() }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id); } }
   else E.prendas.unshift({ id: uid(), nombre, color, tipo: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   await guardar(); E.propuestas = [];
   toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'));
@@ -894,7 +944,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (destino !== 'inicio') await Promise.race([cargarTiempo(), new Promise(r => setTimeout(r, 4000))]);
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
-  setTimeout(reconocerGuardadas, 1500);
+  setTimeout(() => reconocerGuardadas().then(medirTodas), 1500);
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
