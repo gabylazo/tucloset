@@ -186,19 +186,19 @@ function collage(ps) {
   const col = [arriba[0], grande].filter(Boolean); if (!col.length) return null;
   const lado = [arriba[1], bolso, ...acc, calzado].filter(Boolean);
   const colW = Math.max(...col.map(p => m(p)[0])), out = []; let y = 0;
-  col.forEach((p, k) => { const [w, h] = m(p); if (k) y -= Math.min(6, m(col[0])[1] * .06); out.push([p, null, y, w, h]); y += h; });
-  const H = y; if (!lado.length) { const W = colW; out.forEach(o => o[1] = (W - o[3]) / 2); return { out, W, H }; }
+  col.forEach((p, k) => { const [w, h] = m(p); if (k) y -= Math.min(6, m(col[0])[1] * .06); out.push([p, null, y, w, h, col.length > 1 ? (k ? 1 : -1) * colW * .07 : 0]); y += h; }); // un poco en diagonal, como en sus referencias
+  const H = y; if (!lado.length) { const W = colW * 1.14; out.forEach(o => o[1] = (W - o[3]) / 2 + o[5]); return { out, W, H }; }
   // el lado: un poco más pequeño que su tamaño real para que respire, repartido de arriba abajo
   const esc = 0.92, sz = lado.map(p => m(p).map(v => v * esc)), ladoW = Math.max(...sz.map(s => s[0]));
-  const W = ladoW + G * 1.5 + colW; out.forEach(o => o[1] = ladoW + G * 1.5 + (colW - o[3]) / 2);
+  const W = ladoW + G * 1.5 + colW * 1.07; out.forEach(o => o[1] = ladoW + G * 1.5 + colW * .035 + (colW - o[3]) / 2 + o[5]);
   const total = sz.reduce((a, s) => a + s[1], 0), hueco = Math.max(G, (H - total) / Math.max(1, lado.length - 1)); let ly = lado.length === 1 ? (H - sz[0][1]) * .35 : 0;
   if (total + hueco * (lado.length - 1) > H) ly = 0;
-  lado.forEach((p, k) => { const [w, h] = sz[k]; const yy = p === calzado && lado.length > 1 ? H - h : ly; out.push([p, (ladoW - w) / 2, yy, w, h]); ly += h + hueco; });
+  lado.forEach((p, k) => { const [w, h] = sz[k]; const yy = p === calzado && lado.length > 1 ? H - h : ly; out.push([p, (ladoW - w) / 2 + (p === bolso ? Math.min(w * .22, G * 2.2) : 0), yy, w, h]); ly += h + hueco; }); // el bolso pisa un poco el look
   return { out, W, H: Math.max(H, ly - hueco) };
 }
 function composicion(ps) {
   if (ps.some(p => !p.caja && (p.foto || p.src))) setTimeout(medirTodas, 0);
-  if (COMP === 'collage') { const c = collage(ps); if (c) return c.out.map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
+  if (COMP === 'collage') { const c = collage(ps); if (c) return c.out.sort((a, b) => (a[0].tipo === 'Bolsos') - (b[0].tipo === 'Bolsos')).map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   const G = 5, m = tam, rol = r => ps.filter(p => r.includes(p.tipo));
   const arriba = rol(['Arriba', 'Abrigo']).slice(0, 3), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0];
   const ancho = f => f.reduce((t, p) => t + m(p)[0], 0) + G * (f.length - 1), out = [];
@@ -342,7 +342,7 @@ function generarLooks(n, plan) {
   const vistos = new Set(), usados = new Map(), out = [];
   for (const c of cands) {
     if (c.puntos < -1.5 && out.length) break;                                      // mejor menos ideas que ideas malas
-    const clave = c.ps.map(p => p.id).join(); if (vistos.has(clave)) continue;
+    const clave = c.ps.map(p => p.id).sort().join(); if (vistos.has(clave)) continue;
     const prin = c.ps[0]; if ((usados.get(prin.id) || 0) >= 2) continue;       // variedad: la misma prenda principal, como mucho dos veces
     const oc = ocasionDe(c.ps); if (plan && plan !== 'Todos' && oc !== plan) continue;
     vistos.add(clave); usados.set(prin.id, (usados.get(prin.id) || 0) + 1);
