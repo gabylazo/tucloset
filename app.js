@@ -479,6 +479,24 @@ async function reconocerPrenda(cv) {
   const pc = {}; for (const p of TXT_ROPA.prompts) { let s = 0; for (let i = 0; i < p.e.length; i++) s += p.e[i] * v[i]; s /= n; if (!(s <= pc[p.cat])) pc[p.cat] = s; }
   return Object.entries(pc).sort((a, b) => b[1] - a[1])[0][0];
 }
+// 0.30 (Sheila, 21/10: su falda salía como top y una sandalia como pantalón): las prendas subidas antes del reconocimiento se revisan solas una vez;
+// cambia el tipo y, si el nombre era el automático, también el nombre. Lo que ella haya escrito a mano no se toca.
+const NOMBRE_AUTO = /^(Top|Pantalón|Zapatos|Vestido|Abrigo|Bolso|Accesorio|Falda) |^(Tops|Arriba|Abajo|Calzado)$/;
+async function reconocerGuardadas() {
+  const pend = E.prendas.filter(p => !p.rec && !p.src && p.foto); if (!pend.length) return;
+  let cambios = 0;
+  for (const p of pend) {
+    try {
+      const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = urlFoto(p); });
+      const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0);
+      const cat = await reconocerPrenda(c), tipo = TIPO_DE_CAT[cat];
+      if (tipo !== p.tipo || (cat === 'Faldas') !== /falda|skirt/i.test(p.nombre)) { if (NOMBRE_AUTO.test(p.nombre)) p.nombre = nombreSubida(Object.assign({}, p, { tipo }), cat); p.tipo = tipo; cambios++; }
+      p.rec = 1;
+    } catch (e) { return; } // sin red o sin modelo: se reintenta en la próxima apertura
+  }
+  await guardar();
+  if (cambios) { E.propuestas = []; E.generados = []; if (E.pantalla === 'hoy') pintarHoy(); toast(t(`He revisado tus prendas: ${cambios} con el tipo corregido`, `I checked your garments: ${cambios} type${cambios > 1 ? 's' : ''} fixed`)); }
+}
 async function procesarPrenda(file) {
   const u = URL.createObjectURL(file);
   try {
@@ -508,7 +526,7 @@ async function procesarPrenda(file) {
     o.drawImage(capa, x0, y0, bw, bh, (W - dw) / 2, (H - dh) / 2, dw, dh);
     try { cat = await reconocerPrenda(out); tipo = TIPO_DE_CAT[cat]; } catch (e) { /* sin modelo: por la forma */ }
     const aBlob = (cv, q) => new Promise(r => cv.toBlob(r, 'image/jpeg', q));
-    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, recortada };
+    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, rec: cat ? 1 : 0, recortada };
   } finally { URL.revokeObjectURL(u); }
 }
 // nombre automático legible: «Top negro», «Pantalón azul claro», «Zapatos blancos»
@@ -521,7 +539,8 @@ function nombreAuto(tipo, color) {
   return `${n} ${c}`;
 }
 const TIPO_DE_CAT = { Tops: 'Arriba', Pantalones: 'Abajo', Faldas: 'Abajo', Vestidos: 'Vestidos', Abrigos: 'Abrigo', Zapatos: 'Calzado', Bolsos: 'Bolsos', Accesorios: 'Accesorios' };
-const nombreSubida = (it, cat) => cat === 'Faldas' ? (idioma() === 'en' ? `${it.color} skirt` : `Falda ${it.color.toLowerCase()}`) : nombreAuto(it.tipo, it.color);
+const FEM = c => ({ Negro: 'negra', Blanco: 'blanca', Rojo: 'roja', Amarillo: 'amarilla', Morado: 'morada', Estampado: 'estampada' }[c] || c.toLowerCase());
+const nombreSubida = (it, cat) => cat === 'Faldas' ? (idioma() === 'en' ? `${it.color} skirt` : `Falda ${FEM(it.color)}`) : nombreAuto(it.tipo, it.color);
 function prepararSubir() { E.subida = []; E.sDet = null; pintarSubida(); }
 // Subir (Gabriela, 20/10): una sola prenda → su ficha (3B); varias → rejilla (3A) con lo general a la vista y, al tocar una, su ficha
 function pintarSubida() {
@@ -573,7 +592,7 @@ async function anadirFotos(files) {
 }
 async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo'); if (!listos.length) return;
-  listos.forEach(it => E.prendas.unshift({ id: uid(), nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '' }));
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec || 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '' }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet');
 }
@@ -875,6 +894,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (destino !== 'inicio') await Promise.race([cargarTiempo(), new Promise(r => setTimeout(r, 4000))]);
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
+  setTimeout(reconocerGuardadas, 1500);
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
