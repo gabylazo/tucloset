@@ -794,7 +794,7 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 /* 0.13 · Looks a su estilo: 4 libro de looks (uno bajo otro, sobre blanco, solo la ocasión) · 5 rejilla de 2 sobre blanco */
 .lk-libro{display:grid;justify-items:center;padding:4px 0 10px}
 .lk-pag{width:100%;text-align:center}
-.lk-libro .lk-fig{width:70%;margin:0 auto;aspect-ratio:3/4;background:none}
+.lk-libro .lk-fig{width:62%;margin:0 auto;aspect-ratio:4/5;background:none}
 .lk-libro .lk-fig .lienzo{max-width:92%;max-height:100%}
 .lk-libro .lk-oc{margin-top:12px}
 .lk-hilo{display:block;width:13px;height:13px;margin:30px auto;background:var(--boton2) center/contain no-repeat;opacity:.9}
