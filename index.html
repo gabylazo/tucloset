@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="iconos/icono-129-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bellefair&family=Cormorant+Garamond:ital,wght@1,300;1,400&family=Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900&family=Inter:opsz,wght@14..32,400..700&family=Atkinson+Hyperlegible+Next:wght@400..800&family=Jost:wght@300..700&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=0.10">
+<link rel="stylesheet" href="app.css?v=0.11">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -40,46 +40,60 @@
   <div class="ini-centro"><div class="x"><svg class="arco" viewBox="0 0 302 400" aria-hidden="true"><path class="o" pathLength="1" d="M151 .6A150.4 150.4 0 0 0 .6 151V400"/><path class="o" pathLength="1" d="M151 .6A150.4 150.4 0 0 1 301.4 151V400"/><path class="d" pathLength="1" d="M151 7.5A143.5 143.5 0 0 0 7.5 151V400"/><path class="d" pathLength="1" d="M151 7.5A143.5 143.5 0 0 1 294.5 151V400"/></svg><svg viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><span class="nom">Tu<span>Closet</span></span><div class="lema"><span class="t" data-t="lema">Optimiza tu estilo</span><i class="hilo"></i></div></div></div>
   <div class="abajo">
     <button class="boton" data-ir="alta" data-t="crear">Crear mi clóset</button>
-    <button class="boton linea" style="margin-top:8px" data-ir="hoy" data-t="ya_tengo">Ya tengo cuenta</button>
+    <button class="boton linea" style="margin-top:8px" data-ir="entrar" data-t="ya_tengo">Ya tengo cuenta</button>
     <p class="legal" data-t="legal">Pruébala gratis 7 días</p>
     <div class="idioma"><button data-idioma="es">Español</button><button data-idioma="en">English</button></div>
   </div>
 </main>
 
 <!-- ALTA 1: cuenta -->
-<main class="pantalla con-margen sin-tabs" id="p-alta">
-  <div class="cab"><button data-ir="inicio" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="marca"><svg viewBox="0 0 100 100"><use href="#i129"/></svg><span>Tu<span class="oro">Closet</span></span></span><span style="width:30px"></span></div>
-  <div class="pasos"><span class="activo" data-t="p_cuenta">Cuenta</span><span data-t="p_silueta">Silueta</span><span data-t="p_prendas">Prendas</span></div>
-  <h1 style="margin-top:22px" data-t="alta_titulo">Lo justo para empezar</h1>
-  <p class="sub" data-t="alta_sub">Todo se guarda en tu móvil. Nada sale de aquí sin que tú lo pidas.</p>
-  <label class="campo"><span data-t="nombre">Tu nombre</span><input id="a-nombre" autocomplete="given-name" placeholder="Sheila"></label>
-  <label class="campo"><span data-t="ciudad">Ciudad para el tiempo</span><input id="a-ciudad" placeholder="Madrid"></label>
-  <button class="boton suave" style="margin-top:10px" id="a-ubicacion" data-t="usar_ubicacion">Usar mi ubicación</button>
-  <div class="reglas">
-    <div><b>1</b><span data-t="r1">Tus fotos se quedan en este móvil; la app no las sube a ningún sitio en esta versión.</span></div>
-    <div><b>2</b><span data-t="r2">La prueba dura 7 días con 10 prendas; después, desde 2,99 € al mes.</span></div>
-    <div><b>3</b><span data-t="r3">Lo que decide la app (tipo, color, conjuntos) siempre lo puedes corregir.</span></div>
+<main class="pantalla sin-tabs ac" id="p-alta">
+  <!-- 0.11 (Gabriela, 21/10: «la segunda página… cuando das en crear una cuenta o ya tengo cuenta… debes conocer mi estilo»): centrado, blanco, Bellefair, líneas finas, nada de cajas ni textos largos -->
+  <button class="ac-atras" data-ir="inicio" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+  <div class="ac-cab"><svg class="ac-ico" viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><h1 data-t="ac_crear">Crea tu clóset</h1><div class="ac-pasos" aria-label="Paso 1 de 2"><i class="on"></i><i></i></div></div>
+  <div class="ac-campos">
+    <label class="ac-campo"><span class="mini-et" data-t="ac_nombre">Tu nombre</span><input id="a-nombre" autocomplete="given-name"></label>
+    <label class="ac-campo"><span class="mini-et" data-t="ac_ciudad">Tu ciudad</span><input id="a-ciudad" autocomplete="address-level2"></label>
+    <button class="ac-enlace" id="a-ubicacion"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.2"/></svg><span data-t="ac_ubic">Usar mi ubicación</span></button>
   </div>
-  <button class="boton" style="margin-top:18px" id="a-seguir" data-t="seguir">Seguir</button>
+  <div class="ac-pie">
+    <button class="boton" id="a-seguir" data-t="seguir">Seguir</button>
+    <p class="ac-nota" data-t="ac_nota">La ciudad es solo para el tiempo. Tus fotos se quedan en tu móvil.</p>
+  </div>
 </main>
 
 <!-- ALTA 2: silueta -->
-<main class="pantalla con-margen sin-tabs" id="p-silueta">
-  <div class="cab"><button data-ir="alta" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="marca"><svg viewBox="0 0 100 100"><use href="#i129"/></svg><span>Tu<span class="oro">Closet</span></span></span><button class="accion" data-ir="hoy" data-t="saltar">Saltar</button></div>
-  <div class="pasos"><span class="hecho" data-t="p_cuenta">Cuenta</span><span class="activo" data-t="p_silueta">Silueta</span><span data-t="p_prendas">Prendas</span></div>
-  <h1 style="margin-top:22px" data-t="sil_titulo">Dos fotos y ya</h1>
-  <p class="sub" data-t="sil_sub">Con ellas te verás con tu ropa puesta.</p>
-  <div class="fotos">
-    <label id="l-selfie"><svg><use href="#ic-camara"/></svg><span data-t="selfie">Selfie</span><span class="et" data-t="selfie_et">luz natural, sin filtros</span><input type="file" accept="image/*" capture="user" id="f-selfie"></label>
-    <label id="l-cuerpo"><svg><use href="#ic-cuerpo"/></svg><span data-t="cuerpo">Cuerpo entero</span><span class="et" data-t="cuerpo_et">de pie, ropa ajustada</span><input type="file" accept="image/*" capture="environment" id="f-cuerpo"></label>
+<main class="pantalla sin-tabs ac" id="p-silueta">
+  <button class="ac-atras" data-ir="alta" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+  <div class="ac-cab"><svg class="ac-ico" viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><h1 data-t="ac_silueta">Tu silueta</h1><div class="ac-pasos" aria-label="Paso 2 de 2"><i class="on"></i><i class="on"></i></div></div>
+  <p class="ac-sub" data-t="ac_sil_sub">Dos fotos para verte con tu ropa puesta.</p>
+  <div class="ac-fotos">
+    <label id="l-selfie"><b></b><b></b><b></b><b></b><svg><use href="#ic-camara"/></svg><span class="mini-et" data-t="selfie">Selfie</span><input type="file" accept="image/*" capture="user" id="f-selfie"></label>
+    <label id="l-cuerpo"><b></b><b></b><b></b><b></b><svg><use href="#ic-cuerpo"/></svg><span class="mini-et" data-t="cuerpo">Cuerpo entero</span><input type="file" accept="image/*" capture="environment" id="f-cuerpo"></label>
   </div>
-  <div class="reglas">
-    <div><b>1</b><span data-t="s1">Luz natural, sin filtros ni gafas de sol.</span></div>
-    <div><b>2</b><span data-t="s2">De frente y con el cuerpo entero dentro.</span></div>
-    <div><b>3</b><span data-t="s3">Puedes cambiarlas cuando quieras desde «Yo».</span></div>
+  <p class="ac-consejo" data-t="ac_consejo">Luz natural, de frente y sin filtros.</p>
+  <div class="ac-pie">
+    <button class="boton" data-ir="hoy" data-t="seguir">Seguir</button>
+    <button class="ac-enlace solo" data-ir="hoy" data-t="ac_luego">Ahora no</button>
   </div>
-  <button class="boton" style="margin-top:18px" data-ir="hoy" data-t="seguir">Seguir</button>
-  <p class="nota" data-t="privado">Las fotos se quedan en tu móvil. Solo tu silueta, sin tu cara, se usará para probarte la ropa.</p>
+</main>
+
+<!-- YA TENGO CUENTA -->
+<main class="pantalla sin-tabs ac" id="p-entrar">
+  <button class="ac-atras" data-ir="inicio" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+  <div class="ac-cab"><svg class="ac-ico" viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><h1 data-t="ac_entrar">Hola de nuevo</h1></div>
+  <div class="ac-campos">
+    <label class="ac-campo"><span class="mini-et" data-t="ac_correo">Correo</span><input type="email" id="e-correo" autocomplete="email"></label>
+    <label class="ac-campo"><span class="mini-et" data-t="ac_clave">Contraseña</span><input type="password" id="e-clave" autocomplete="current-password"></label>
+    <button class="ac-enlace solo" id="e-olvido" data-t="ac_olvido">¿La has olvidado?</button>
+  </div>
+  <div class="ac-pie">
+    <button class="boton" id="e-entrar" data-t="ac_entrar_bt">Entrar</button>
+    <div class="ac-o"><span data-t="ac_o">o</span></div>
+    <button class="boton linea ac-social" data-social="Apple"><svg viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.9-3-.8C7 7.4 5.6 8.3 4.8 9.7c-1.6 2.8-.4 6.9 1.2 9.1.8 1.1 1.7 2.3 2.9 2.3 1.1 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.6-1-2.6-3.7ZM14.1 5.8c.6-.8 1.1-1.8 1-2.8-.9 0-2 .6-2.6 1.4-.6.7-1.1 1.7-1 2.7 1 .1 2-.5 2.6-1.3Z" fill="currentColor" stroke="none"/></svg><span data-t="ac_apple">Continuar con Apple</span></button>
+    <button class="boton linea ac-social" data-social="Google"><svg viewBox="0 0 24 24"><path d="M20.6 12.2c0-.6-.1-1.2-.2-1.8H12v3.4h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5Z" fill="#4A3526" stroke="none"/><path d="M12 21c2.4 0 4.5-.8 5.9-2.2L15 16.6c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H4v2.3A9 9 0 0 0 12 21Z" fill="#6B5A4E" stroke="none"/><path d="M7 13.8a5.4 5.4 0 0 1 0-3.5V8H4a9 9 0 0 0 0 8.1l3-2.3Z" fill="#A99B90" stroke="none"/><path d="M12 6.5c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 4 8l3 2.3c.7-2.1 2.7-3.8 5-3.8Z" fill="#C9A24B" stroke="none"/></svg><span data-t="ac_google">Continuar con Google</span></button>
+    <button class="ac-enlace solo" data-ir="alta"><span data-t="ac_no_tengo">¿Aún no tienes cuenta? Crea tu clóset</span></button>
+  </div>
 </main>
 
 <!-- HOY -->
@@ -173,7 +187,7 @@
   <div class="estad" id="yo-estad"></div>
   <div class="lista" id="yo-lista"></div>
   <div class="lista" id="yo-ajustes"></div>
-  <p class="nota" id="yo-version">TuCloset web 0.10 · 21 de octubre de 2026</p>
+  <p class="nota" id="yo-version">TuCloset web 0.11 · 21 de octubre de 2026</p>
 </main>
 
 <nav class="tabs" id="tabs">
@@ -188,6 +202,6 @@
 <dialog id="dlg"><h2 id="dlg-t"></h2><p id="dlg-p"></p><div class="botones"><button class="boton" id="dlg-si"></button><button class="boton linea" id="dlg-no"></button></div></dialog>
 </div>
 <script>window.TC_PUBLICA=true</script>
-<script src="app.js?v=0.10"></script>
+<script src="app.js?v=0.11"></script>
 </body>
 </html>
