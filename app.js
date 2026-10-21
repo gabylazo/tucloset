@@ -253,7 +253,7 @@ function generarLooks(n, plan) {
 }
 
 /* ---------- navegación ---------- */
-const SIN_TABS = ['inicio', 'alta', 'entrar', 'silueta', 'anadir', 'nuevo-look', 'subir'];
+const SIN_TABS = ['inicio', 'alta', 'entrar', 'planes', 'silueta', 'anadir', 'nuevo-look', 'subir'];
 function ir(nombre, datos) {
   if (nombre === 'inicio' && !$('intro')) $('p-inicio').classList.add('aparece');
   if (nombre === 'anadir') prepararAnadir(datos);
@@ -734,6 +734,17 @@ $('a-seguir').onclick = guardarAlta;
 // «Ya tengo cuenta» (0.11): en esta versión el clóset vive en el móvil, así que entrar te lleva a él; las cuentas llegarán con la versión en la nube
 const entrarYa = async () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } ir('hoy'); };
 $('e-entrar').onclick = entrarYa;
+// planes (0.12): se elige plan y periodo; el cobro irá por App Store y Google Play, aquí solo se guarda la elección
+E.pl = { plan: 'basico', per: 'mes' };
+$('p-planes').addEventListener('click', e => {
+  const b = e.target.closest('[data-pplan],[data-pper]'); if (!b) return;
+  if (b.dataset.pplan) E.pl.plan = b.dataset.pplan; else E.pl.per = b.dataset.pper;
+  $('p-planes').querySelectorAll('[data-pplan]').forEach(x => x.classList.toggle('on', x.dataset.pplan === E.pl.plan));
+  $('p-planes').querySelectorAll('[data-pper]').forEach(x => x.classList.toggle('on', x.dataset.pper === E.pl.per));
+  $('p-planes').querySelectorAll('.pl-pre[data-mes]').forEach(x => x.textContent = x.dataset[E.pl.per]);
+  $('p-planes').querySelectorAll('.pl-per:not(.fijo)').forEach(x => x.textContent = E.pl.per === 'anual' ? 'al mes, pago anual' : 'al mes');
+});
+$('pl-empezar').addEventListener('click', async () => { E.perfil = Object.assign(E.perfil || {}, { alta: E.perfil?.alta || hoyISO(), idioma: idioma(), planElegido: E.pl.plan, periodo: E.pl.per }); await guardar(); ir('hoy'); toast(t('Tu prueba de 7 días ha empezado', 'Your 7-day trial has started')); });
 document.querySelectorAll('[data-social]').forEach(b => b.onclick = () => toast(t(`Entrar con ${b.dataset.social} llegará con las cuentas en la nube. Ahora tu clóset vive en este móvil.`, `${b.dataset.social} sign-in comes with cloud accounts. For now your closet lives on this phone.`)));
 $('e-olvido').onclick = () => toast(t('Llegará con las cuentas en la nube.', 'Coming with cloud accounts.'));
 $('a-ubicacion').onclick = () => { if (!navigator.geolocation) return toast(t('Tu navegador no da la ubicación', 'Your browser gives no location')); navigator.geolocation.getCurrentPosition(async p => { E.perfil = Object.assign(E.perfil || {}, { lat: p.coords.latitude, lon: p.coords.longitude, ciudad: '' }); $('a-ciudad').value = ''; await guardar(); await cargarTiempo(true); toast(E.tiempo ? `${E.tiempo.nombre || t('Ubicación', 'Location')} · ${E.tiempo.t}°` : t('Ubicación guardada', 'Location saved')); }, () => toast(t('Sin permiso de ubicación: escribe la ciudad', 'No location permission: type the city'))); };
@@ -792,6 +803,6 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (destino !== 'inicio') await Promise.race([cargarTiempo(), new Promise(r => setTimeout(r, 4000))]);
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
-  document.querySelectorAll('#p-silueta [data-ir="hoy"]').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
+  document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
