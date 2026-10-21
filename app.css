@@ -855,3 +855,9 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .plb-fun li{line-height:1.85}
 .plb-fun li.base{color:var(--oro);font-weight:400;font-size:12px;margin-bottom:2px}
 .plb-det .pl-ahorro{margin-top:2px}
+/* 0.25 · «Básico +» de vuelta; el botón dorado solo aparece en la función que se toca */
+.plb-mas{margin-top:12px !important;margin-bottom:0 !important}
+.plb-fun{margin-top:6px}
+.plb-fun li{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.plb-fun li.on{color:var(--tinta);font-weight:400}
+.plb-fun li.on::before{content:'';display:inline-block;width:9px;height:9px;margin-right:7px;vertical-align:0;background:var(--boton2) center/contain no-repeat}
