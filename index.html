@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="iconos/icono-129-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bellefair&family=Cormorant+Garamond:ital,wght@1,300;1,400&family=Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900&family=Inter:opsz,wght@14..32,400..700&family=Atkinson+Hyperlegible+Next:wght@400..800&family=Jost:wght@300..700&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=0.13">
+<link rel="stylesheet" href="app.css?v=0.14">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -50,7 +50,7 @@
 <main class="pantalla sin-tabs ac" id="p-alta">
   <!-- 0.11 (Gabriela, 21/10: «la segunda página… cuando das en crear una cuenta o ya tengo cuenta… debes conocer mi estilo»): centrado, blanco, Bellefair, líneas finas, nada de cajas ni textos largos -->
   <button class="ac-atras" data-ir="inicio" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
-  <div class="ac-cab"><svg class="ac-ico" viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><h1 data-t="ac_crear">Crea tu clóset</h1><div class="ac-pasos" aria-label="Paso 1 de 3"><i class="on"></i><i></i><i></i></div></div>
+  <div class="ac-cab"><svg class="ac-ico" viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><h1 data-t="ac_crear">Crea tu clóset</h1><div class="ac-pasos" aria-label="Paso 1 de 4"><i class="on"></i><i></i><i></i><i></i></div></div>
   <div class="ac-campos">
     <label class="ac-campo"><span class="mini-et" data-t="ac_nombre">Tu nombre</span><input id="a-nombre" autocomplete="given-name"></label>
     <label class="ac-campo"><span class="mini-et" data-t="ac_ciudad">Tu ciudad</span><input id="a-ciudad" autocomplete="address-level2"></label>
@@ -65,7 +65,7 @@
 <!-- ALTA 2: silueta -->
 <main class="pantalla sin-tabs ac" id="p-silueta">
   <button class="ac-atras" data-ir="alta" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
-  <div class="ac-cab"><svg class="ac-ico" viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><h1 data-t="ac_silueta">Tu silueta</h1><div class="ac-pasos" aria-label="Paso 2 de 3"><i class="on"></i><i class="on"></i><i></i></div></div>
+  <div class="ac-cab"><svg class="ac-ico" viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><h1 data-t="ac_silueta">Tu silueta</h1><div class="ac-pasos" aria-label="Paso 2 de 4"><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
   <p class="ac-sub" data-t="ac_sil_sub">Dos fotos para verte con tu ropa puesta.</p>
   <div class="ac-fotos">
     <label id="l-selfie"><b></b><b></b><b></b><b></b><svg><use href="#ic-camara"/></svg><span class="mini-et" data-t="selfie">Selfie</span><input type="file" accept="image/*" capture="user" id="f-selfie"></label>
@@ -73,20 +73,39 @@
   </div>
   <p class="ac-consejo" data-t="ac_consejo">Luz natural, de frente y sin filtros.</p>
   <div class="ac-pie">
+    <button class="boton" data-ir="cuerpo" data-t="seguir">Seguir</button>
+    <button class="ac-enlace solo" data-ir="cuerpo" data-t="ac_luego">Ahora no</button>
+  </div>
+</main>
+
+<!-- ALTA 3: tipo de cuerpo (0.14, 21/10; Gabriela: «es también para hacer un análisis corporal… y ver qué estilos van con su tipo de cuerpo (hay que clasificar)») -->
+<main class="pantalla sin-tabs ac" id="p-cuerpo">
+  <button class="ac-atras" data-ir="silueta" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+  <div class="ac-cab"><svg class="ac-ico" viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><h1 data-t="ac_cuerpo">Tu tipo de cuerpo</h1><div class="ac-pasos" aria-label="Paso 3 de 4"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div></div>
+  <p class="ac-sub" id="tc-sub"></p>
+  <div class="tc-siluetas" id="tc-siluetas"></div>
+  <div class="tc-favorece" id="tc-favorece"></div>
+  <div class="ac-pie">
     <button class="boton" data-ir="planes" data-t="seguir">Seguir</button>
     <button class="ac-enlace solo" data-ir="planes" data-t="ac_luego">Ahora no</button>
   </div>
 </main>
 
-<!-- ALTA 3: planes (0.12, 21/10; como las apps de suscripción: al final del alta, con el calendario de la prueba) -->
+<!-- ALTA 4: planes (0.12, 21/10; como las apps de suscripción: al final del alta, con el calendario de la prueba) -->
 <main class="pantalla sin-tabs ac" id="p-planes">
-  <button class="ac-atras" data-ir="silueta" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
-  <div class="ac-cab"><svg class="ac-ico" viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><h1>Elige tu plan</h1><div class="ac-pasos" aria-label="Paso 3 de 3"><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+  <button class="ac-atras" data-ir="cuerpo" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+  <div class="ac-cab"><svg class="ac-ico" viewBox="0 0 100 100"><path d="M34 30A16 16 0 0 1 66 30"/><path d="M21 30H79"/><path d="M25 30V82H75V30"/><path d="M50 30V82"/><path d="M31 37h13v38H31zM56 37h13v38H56z"/><path d="M28 82v5M72 82v5"/></svg><h1>Elige tu plan</h1><div class="ac-pasos" aria-label="Paso 4 de 4"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
   <div class="pl-linea"><div><i class="on"></i><b>Hoy</b><span>gratis</span></div><div><i></i><b>Día 5</b><span>te avisamos</span></div><div><i></i><b>Día 7</b><span>decides</span></div></div>
   <div class="pl-periodo"><button class="on" data-pper="mes">Mensual</button><button data-pper="anual">Anual</button></div>
   <div class="pl-planes2">
-    <button class="pl-p on" data-pplan="basico"><span class="pl-nom">Básico</span><span class="pl-pre">2,99 €</span><span class="pl-per fijo">al mes</span><span class="pl-inc">Prendas sin límite<br>Looks con tu ropa<br>El tiempo</span></button>
+    <button class="pl-p on" data-pplan="basico"><span class="pl-nom">Básico</span><span class="pl-pre" data-mes="2,99 €" data-anual="2,39 €">2,99 €</span><span class="pl-per">al mes</span><span class="pl-inc">Prendas sin límite<br>Looks con tu ropa<br>El tiempo</span></button>
     <button class="pl-p" data-pplan="pro"><span class="pl-nom">Pro</span><span class="pl-pre" data-mes="9,99 €" data-anual="7,99 €">9,99 €</span><span class="pl-per">al mes</span><span class="pl-inc">Todo lo del Básico<br>Tu avatar con el look<br>¿A dónde vas?</span></button>
+  </div>
+  <div class="plb">
+    <div class="plb-noms"><button class="on" data-pplan="basico">Básico</button><button data-pplan="pro">Pro</button></div>
+    <div class="plb-det on" data-pdet="basico"><span class="plb-pre pl-pre" data-mes="2,99 €" data-anual="2,39 €">2,99 €</span><span class="pl-per">al mes</span><p>Prendas sin límite<br>Looks con tu ropa<br>El tiempo de tu ciudad</p></div>
+    <div class="plb-det" data-pdet="pro"><span class="plb-pre pl-pre" data-mes="9,99 €" data-anual="7,99 €">9,99 €</span><span class="pl-per">al mes</span><p>Todo lo del Básico<br>Tu avatar con el look puesto<br>¿A dónde vas? Qué ponerte según el sitio</p></div>
+    <p class="plb-prueba">Hoy empiezas gratis. El día 5 te avisamos.<br>El día 7 decides si sigues.</p>
   </div>
   <div class="ac-pie">
     <button class="boton" id="pl-empezar">Empezar 7 días gratis</button>
@@ -203,7 +222,7 @@
   <div class="estad" id="yo-estad"></div>
   <div class="lista" id="yo-lista"></div>
   <div class="lista" id="yo-ajustes"></div>
-  <p class="nota" id="yo-version">TuCloset web 0.13 · 21 de octubre de 2026</p>
+  <p class="nota" id="yo-version">TuCloset web 0.14 · 21 de octubre de 2026</p>
 </main>
 
 <nav class="tabs" id="tabs">
@@ -218,6 +237,6 @@
 <dialog id="dlg"><h2 id="dlg-t"></h2><p id="dlg-p"></p><div class="botones"><button class="boton" id="dlg-si"></button><button class="boton linea" id="dlg-no"></button></div></dialog>
 </div>
 <script>window.TC_PUBLICA=true</script>
-<script src="app.js?v=0.13"></script>
+<script src="app.js?v=0.14"></script>
 </body>
 </html>

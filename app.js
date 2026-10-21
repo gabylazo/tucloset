@@ -33,7 +33,7 @@ const COLORES = [['Negro', '#1B1B1B'], ['Blanco', '#F4F4F4'], ['Gris', '#8E8E8E'
 const T = {
   ac_crear: ['Crea tu clóset', 'Create your closet'], ac_nombre: ['Tu nombre', 'Your name'], ac_ciudad: ['Tu ciudad', 'Your city'], ac_ubic: ['Usar mi ubicación', 'Use my location'],
   ac_nota: ['La ciudad es solo para el tiempo. Tus fotos se quedan en tu móvil.', 'The city is only for the weather. Your photos stay on your phone.'],
-  ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Dos fotos para verte con tu ropa puesta.', 'Two photos to see yourself in your clothes.'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
+  ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Dos fotos para verte con tu ropa puesta, conocer tu tipo de cuerpo y tus colores.', 'Two photos to see yourself in your clothes and learn your body type and colours.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
   ac_entrar: ['Hola de nuevo', 'Welcome back'], ac_correo: ['Correo', 'Email'], ac_clave: ['Contraseña', 'Password'], ac_olvido: ['¿La has olvidado?', 'Forgot it?'], ac_entrar_bt: ['Entrar', 'Sign in'], ac_o: ['o', 'or'],
   ac_apple: ['Continuar con Apple', 'Continue with Apple'], ac_google: ['Continuar con Google', 'Continue with Google'], ac_no_tengo: ['¿Aún no tienes cuenta? Crea tu clóset', 'No account yet? Create your closet'],
   lema: ['Optimiza tu estilo', 'Make the most of your style'], crear: ['Crear mi clóset', 'Create my closet'], ya_tengo: ['Ya tengo cuenta', 'I already have one'],
@@ -253,13 +253,14 @@ function generarLooks(n, plan) {
 }
 
 /* ---------- navegación ---------- */
-const SIN_TABS = ['inicio', 'alta', 'entrar', 'planes', 'silueta', 'anadir', 'nuevo-look', 'subir'];
+const SIN_TABS = ['inicio', 'alta', 'entrar', 'planes', 'silueta', 'cuerpo', 'anadir', 'nuevo-look', 'subir'];
 function ir(nombre, datos) {
   if (nombre === 'inicio' && !$('intro')) $('p-inicio').classList.add('aparece');
   if (nombre === 'anadir') prepararAnadir(datos);
   if (nombre === 'subir' && !datos) prepararSubir();
   if (nombre === 'nuevo-look') prepararNuevoLook(datos);
   if (nombre === 'hoy') pintarHoy();
+  if (nombre === 'cuerpo') pintarCuerpo();
   if (nombre === 'closet') pintarCloset();
   if (nombre === 'looks') pintarLooks();
   if (nombre === 'yo') pintarYo();
@@ -743,9 +744,11 @@ $('p-planes').addEventListener('click', e => {
   if (b.dataset.pplan) E.pl.plan = b.dataset.pplan; else E.pl.per = b.dataset.pper;
   $('p-planes').querySelectorAll('[data-pplan]').forEach(x => x.classList.toggle('on', x.dataset.pplan === E.pl.plan));
   $('p-planes').querySelectorAll('[data-pper]').forEach(x => x.classList.toggle('on', x.dataset.pper === E.pl.per));
+  $('p-planes').querySelectorAll('[data-pdet]').forEach(x => x.classList.toggle('on', x.dataset.pdet === E.pl.plan));
   $('p-planes').querySelectorAll('.pl-pre[data-mes]').forEach(x => x.textContent = x.dataset[E.pl.per]);
   $('p-planes').querySelectorAll('.pl-per:not(.fijo)').forEach(x => x.textContent = E.pl.per === 'anual' ? 'al mes, pago anual' : 'al mes');
 });
+if (new URLSearchParams(location.search).get('planes') === 'b') $('p-planes').classList.add('pl-b'); // diseño B, para comparar
 $('pl-empezar').addEventListener('click', async () => { E.perfil = Object.assign(E.perfil || {}, { alta: E.perfil?.alta || hoyISO(), idioma: idioma(), planElegido: E.pl.plan, periodo: E.pl.per }); await guardar(); ir('hoy'); toast(t('Tu prueba de 7 días ha empezado', 'Your 7-day trial has started')); });
 document.querySelectorAll('[data-social]').forEach(b => b.onclick = () => toast(t(`Entrar con ${b.dataset.social} llegará con las cuentas en la nube. Ahora tu clóset vive en este móvil.`, `${b.dataset.social} sign-in comes with cloud accounts. For now your closet lives on this phone.`)));
 $('e-olvido').onclick = () => toast(t('Llegará con las cuentas en la nube.', 'Coming with cloud accounts.'));
@@ -808,3 +811,27 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
+
+/* ---------- tipo de cuerpo (0.14): cinco siluetas, la elige ella; con la foto se le propondrá una (función 24). Siempre en positivo. ---------- */
+const CUERPOS = [ // anchos de hombros, cintura y cadera (de 60)
+  { k: 'reloj', n: ['Reloj de arena', 'Hourglass'], a: [37, 18, 37], d: ['Hombros y cadera parejos, cintura marcada.', 'Balanced shoulders and hips, defined waist.'], f: [['Cintura marcada y cinturones', 'Vestidos cruzados', 'Tejidos que caen', 'Pantalón de tiro alto'], ['Defined waist and belts', 'Wrap dresses', 'Fluid fabrics', 'High-waisted trousers']] },
+  { k: 'triangulo', n: ['Triángulo', 'Pear'], a: [25, 20, 41], d: ['La cadera es lo más ancho.', 'Hips are the widest part.'], f: [['Detalles y color arriba', 'Escote barco o cuadrado', 'Faldas en A', 'Pantalón recto o ancho'], ['Details and colour on top', 'Boat or square neckline', 'A-line skirts', 'Straight or wide trousers']] },
+  { k: 'invertido', n: ['Triángulo invertido', 'Inverted triangle'], a: [41, 22, 25], d: ['Los hombros son lo más ancho.', 'Shoulders are the widest part.'], f: [['Escote en V', 'Volumen abajo', 'Faldas con vuelo', 'Pantalón ancho o palazzo'], ['V-neck', 'Volume below', 'Flared skirts', 'Wide or palazzo trousers']] },
+  { k: 'rectangulo', n: ['Rectángulo', 'Rectangle'], a: [31, 29, 31], d: ['Hombros, cintura y cadera en línea.', 'Shoulders, waist and hips in line.'], f: [['Crear cintura con cinturón', 'Capas y prendas con estructura', 'Peplum y volantes', 'Vestidos con forma'], ['Create a waist with a belt', 'Layers and structured pieces', 'Peplum and ruffles', 'Shaped dresses']] },
+  { k: 'ovalo', n: ['Óvalo', 'Round'], a: [30, 39, 31], d: ['El volumen está en el centro.', 'Volume sits in the middle.'], f: [['Escote en V', 'Líneas verticales', 'Prendas fluidas', 'Chaquetas abiertas y corte imperio'], ['V-neck', 'Vertical lines', 'Fluid pieces', 'Open jackets and empire cut']] },
+];
+function siluetaSVG([s, w, h]) {
+  const L = x => 30 - x / 2, R = x => 30 + x / 2;
+  const d = `M${L(s)} 27Q${L(s) - 1} 40 ${L(w)} 58Q${L(h) - 1} 70 ${L(h)} 80L${L(h) + 6} 116M${R(s)} 27Q${R(s) + 1} 40 ${R(w)} 58Q${R(h) + 1} 70 ${R(h)} 80L${R(h) - 6} 116M27 21V25Q${L(s) + 4} 25 ${L(s)} 27M33 21V25Q${R(s) - 4} 25 ${R(s)} 27M30 88V116`;
+  return `<svg viewBox="0 0 60 120"><circle cx="30" cy="12" r="7"/><path d="${d}"/></svg>`;
+}
+function pintarCuerpo() {
+  const el = E.perfil?.tipoCuerpo, c = CUERPOS.find(x => x.k === el), es = idioma() === 'en' ? 1 : 0;
+  $('tc-sub').textContent = E.perfil?.cuerpo ? t('Con tu foto te propondremos uno. Por ahora, elige el que más se parezca a ti; puedes cambiarlo cuando quieras.', 'We will suggest one from your photo. For now, pick the one closest to you; you can change it any time.') : t('Elige el que más se parezca a ti. Con tu foto de cuerpo entero te lo propondremos; tú decides.', 'Pick the one closest to you. With your full-body photo we will suggest it; you decide.');
+  $('tc-siluetas').innerHTML = CUERPOS.map(x => `<button class="${x.k === el ? 'on' : ''}" data-tcuerpo="${x.k}">${siluetaSVG(x.a)}<span>${x.n[es]}</span></button>`).join('');
+  $('tc-favorece').innerHTML = c ? `<p class="tc-d">${c.d[es]}</p><p class="tc-t">${t('Te favorece', 'Flatters you')}</p><p class="tc-l">${c.f[es].join('<br>')}</p>` : '';
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-tcuerpo]'); if (!b) return;
+  E.perfil = E.perfil || {}; E.perfil.tipoCuerpo = b.dataset.tcuerpo; await guardar(); pintarCuerpo();
+});
