@@ -176,8 +176,29 @@ const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:$
   if (!p.caja) return `<img src="${urlFoto(p)}" alt="" style="${pos}">`;
   const [a, b, c, d] = p.caja, cw = c - a, ch = d - b;
   return `<i class="pz" style="${pos};background-image:url('${urlFoto(p)}');background-size:${100 / cw}% ${100 / ch}%;background-position:${cw < 1 ? a / (1 - cw) * 100 : 0}% ${ch < 1 ? b / (1 - ch) * 100 : 0}%"></i>`; };
+// 0.32 · presentación «collage» (Sheila, 22/10: «inspírate en esto para presentar los looks», dos referencias tipo Pinterest):
+// el look en una columna (arriba tocando la pieza de abajo), y a un lado el bolso arriba, los accesorios en medio y el calzado abajo.
+// Se activa con ?comp=collage (queda guardado); la simétrica (Eje/Cruz, cerrada por Gabriela el 20/10) sigue por defecto hasta que ella decida.
+const COMP = (() => { try { const q = new URLSearchParams(location.search).get('comp'); if (q) localStorage.setItem('tc_comp', q); return localStorage.getItem('tc_comp') || 'sim'; } catch (e) { return 'sim'; } })();
+function collage(ps) {
+  const m = tam, rol = r => ps.filter(p => r.includes(p.tipo)), G = 6;
+  const arriba = rol(['Arriba', 'Abrigo']).slice(0, 2), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0], acc = rol(['Accesorios']).slice(0, 2);
+  const col = [arriba[0], grande].filter(Boolean); if (!col.length) return null;
+  const lado = [arriba[1], bolso, ...acc, calzado].filter(Boolean);
+  const colW = Math.max(...col.map(p => m(p)[0])), out = []; let y = 0;
+  col.forEach((p, k) => { const [w, h] = m(p); if (k) y -= Math.min(6, m(col[0])[1] * .06); out.push([p, null, y, w, h]); y += h; });
+  const H = y; if (!lado.length) { const W = colW; out.forEach(o => o[1] = (W - o[3]) / 2); return { out, W, H }; }
+  // el lado: un poco más pequeño que su tamaño real para que respire, repartido de arriba abajo
+  const esc = 0.92, sz = lado.map(p => m(p).map(v => v * esc)), ladoW = Math.max(...sz.map(s => s[0]));
+  const W = ladoW + G * 1.5 + colW; out.forEach(o => o[1] = ladoW + G * 1.5 + (colW - o[3]) / 2);
+  const total = sz.reduce((a, s) => a + s[1], 0), hueco = Math.max(G, (H - total) / Math.max(1, lado.length - 1)); let ly = lado.length === 1 ? (H - sz[0][1]) * .35 : 0;
+  if (total + hueco * (lado.length - 1) > H) ly = 0;
+  lado.forEach((p, k) => { const [w, h] = sz[k]; const yy = p === calzado && lado.length > 1 ? H - h : ly; out.push([p, (ladoW - w) / 2, yy, w, h]); ly += h + hueco; });
+  return { out, W, H: Math.max(H, ly - hueco) };
+}
 function composicion(ps) {
   if (ps.some(p => !p.caja && (p.foto || p.src))) setTimeout(medirTodas, 0);
+  if (COMP === 'collage') { const c = collage(ps); if (c) return c.out.map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   const G = 5, m = tam, rol = r => ps.filter(p => r.includes(p.tipo));
   const arriba = rol(['Arriba', 'Abrigo']).slice(0, 3), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0];
   const ancho = f => f.reduce((t, p) => t + m(p)[0], 0) + G * (f.length - 1), out = [];
