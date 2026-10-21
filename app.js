@@ -828,9 +828,9 @@ function siluetaSVG([s, w, h]) {
 }
 function pintarCuerpo() {
   const el = E.perfil?.tipoCuerpo, c = CUERPOS.find(x => x.k === el), es = idioma() === 'en' ? 1 : 0;
-  $('tc-sub').textContent = E.perfil?.cuerpo ? t('Con tu foto te propondremos uno. Por ahora, elige el que más se parezca a ti; puedes cambiarlo cuando quieras.', 'We will suggest one from your photo. For now, pick the one closest to you; you can change it any time.') : t('Elige el que más se parezca a ti. Con tu foto de cuerpo entero te lo propondremos; tú decides.', 'Pick the one closest to you. With your full-body photo we will suggest it; you decide.');
+  $('tc-sub').textContent = E.perfil?.cuerpo ? t('Elige el que más se parezca a ti. Puedes cambiarlo cuando quieras.', 'Pick the one closest to you. You can change it any time.') : t('Elige el que más se parezca a ti. Puedes cambiarlo cuando quieras.', 'Pick the one closest to you. You can change it any time.');
   $('tc-siluetas').innerHTML = CUERPOS.map(x => `<button class="${x.k === el ? 'on' : ''}" data-tcuerpo="${x.k}">${siluetaSVG(x.a)}<span>${x.n[es]}</span></button>`).join('');
-  $('tc-favorece').innerHTML = c ? `<p class="tc-d">${c.d[es]}</p><p class="tc-t">${t('Te favorece', 'Flatters you')}</p><p class="tc-l">${c.f[es].join('<br>')}</p>` : '';
+  $('tc-favorece').innerHTML = c ? `<p class="tc-d">${c.d[es]}</p><p class="tc-t">${t('Te favorece', 'Flatters you')}</p><ul class="tc-l">${c.f[es].map(x => `<li>${x}</li>`).join('')}</ul>` : '';
 }
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-tcuerpo]'); if (!b) return;

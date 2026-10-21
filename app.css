@@ -869,3 +869,10 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .plb-rej li.on::before{position:absolute;top:-4px;left:50%;margin:0 0 0 -4.5px}
 .plb-mas{margin-top:14px !important}
 :root{color-scheme:only light}
+/* 0.28 · Sheila: el botón «Seguir» tapaba el texto: en las pantallas del alta nada se encoge (si no cabe, se baja) */
+.ac.activa>*{flex-shrink:0}
+.tc-siluetas{margin-top:20px}
+.tc-favorece{margin-top:8px;min-height:0}
+.tc-t{margin-top:10px}
+.tc-l{list-style:none;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;max-width:320px;margin:8px auto 0;line-height:1.35}
+.tc-l li{font-size:12.5px}
