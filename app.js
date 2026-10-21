@@ -746,7 +746,8 @@ $('p-planes').addEventListener('click', e => {
   $('p-planes').querySelectorAll('[data-pper]').forEach(x => x.classList.toggle('on', x.dataset.pper === E.pl.per));
   $('p-planes').querySelectorAll('[data-pdet]').forEach(x => x.classList.toggle('on', x.dataset.pdet === E.pl.plan));
   $('p-planes').querySelectorAll('.pl-pre[data-mes]').forEach(x => x.textContent = x.dataset[E.pl.per]);
-  $('p-planes').querySelectorAll('.pl-per:not(.fijo)').forEach(x => x.textContent = E.pl.per === 'anual' ? 'al mes, pago anual' : 'al mes');
+  $('p-planes').querySelectorAll('.pl-per[data-mes]').forEach(x => x.textContent = x.dataset[E.pl.per]);
+  $('p-planes').classList.toggle('anual', E.pl.per === 'anual');
 });
 if (new URLSearchParams(location.search).get('planes') === 'b') $('p-planes').classList.add('pl-b'); // diseño B, para comparar
 $('pl-empezar').addEventListener('click', async () => { E.perfil = Object.assign(E.perfil || {}, { alta: E.perfil?.alta || hoyISO(), idioma: idioma(), planElegido: E.pl.plan, periodo: E.pl.per }); await guardar(); ir('hoy'); toast(t('Tu prueba de 7 días ha empezado', 'Your 7-day trial has started')); });
