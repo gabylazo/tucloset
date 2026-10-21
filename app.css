@@ -868,3 +868,4 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .plb-rej li span{font-size:11.5px;color:var(--sec);font-weight:300}
 .plb-rej li.on::before{position:absolute;top:-4px;left:50%;margin:0 0 0 -4.5px}
 .plb-mas{margin-top:14px !important}
+:root{color-scheme:only light}
