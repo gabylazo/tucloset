@@ -849,3 +849,9 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .plb-noms{margin-top:22px}.plb-det{margin-top:18px}
 .plb-lema{font-size:20px !important;margin-top:14px !important}
 .plb-fun{max-width:350px}.plb-fun li{font-size:12.5px}
+/* 0.23 · Pro sin «Básico +» ni viñetas: líneas centradas y juntas */
+.plb-fun li::before{content:none}
+.plb-fun{gap:0;margin-top:12px}
+.plb-fun li{line-height:1.85}
+.plb-fun li.base{color:var(--oro);font-weight:400;font-size:12px;margin-bottom:2px}
+.plb-det .pl-ahorro{margin-top:2px}
