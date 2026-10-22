@@ -1120,7 +1120,8 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
 (async () => {
   entrada(new URLSearchParams(location.search));
   E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {};
-  try { navigator.storage?.persist?.(); } catch (e) { } // 0.45: que el navegador no borre el clóset para hacer sitio
+  try { navigator.storage?.persist?.(); } catch (e) { }
+  if (E.perfil?.estilos?.some(k => ESTILO_VIEJO[k])) E.perfil.estilos = [...new Set(E.perfil.estilos.map(k => ESTILO_VIEJO[k] || k))]; // 0.52: los 6 estilos viejos pasan a los 13 // 0.45: que el navegador no borre el clóset para hacer sitio
   let migra = false; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
   traducir(); pintarSilueta();
   { const l = +new URLSearchParams(location.search).get('lema'); const t = LEMAS[l - 1]; if (t) $('p-inicio').querySelector('.lema .t').textContent = t; bordar(); }
@@ -1167,17 +1168,26 @@ document.addEventListener('click', async e => {
 
 /* ---------- tu estilo (0.36, 22/10, Sheila): el perfil lleva uno o dos estilos y los looks se ordenan según ellos.
    Los seis nombres son los de Sheila. Cada estilo suma o resta a la puntuación de puntuar(); no quita looks, los ordena. ---------- */
-const ESTILOS = [
-  { k: 'romantico', n: ['Romántico', 'Romantic'], d: ['Vestidos, faldas, blusas y tonos suaves.', 'Dresses, skirts, blouses and soft tones.'] },
-  { k: 'basico', n: ['Básico', 'Essentials'], d: ['Neutros, líneas limpias, sin estampados.', 'Neutrals, clean lines, no prints.'] },
-  { k: 'formal', n: ['Formal', 'Formal'], d: ['Camisa, americana, pantalón de vestir y tacón.', 'Shirt, blazer, tailored trousers and heels.'] },
-  { k: 'atrevido', n: ['Atrevido', 'Bold'], d: ['Color fuerte, contraste y tacón.', 'Strong colour, contrast and heels.'] },
-  { k: 'extravagante', n: ['Extravagante', 'Eclectic'], d: ['Estampados y colores que se mezclan sin miedo.', 'Prints and colours mixed fearlessly.'] },
-  { k: 'normal', n: ['Normal', 'Casual'], d: ['Cómodo para el día a día: vaqueros y zapatillas.', 'Comfortable everyday: jeans and trainers.'] },
+const ESTILOS = [ // 0.52 (22/10): los 13 estilos de la Dirección de Moda, aprobados por Gabriela («sí a todos»); diseño C, muestras de color («me gusta con las paletas de colores»). b = reglas de puntos que usa mientras se programan las suyas (orden de Moda: los estilos van al final)
+  { k: 'oldmoney', f: 0, n: ['Old money', 'Old money'], d: ['camel, tejidos nobles, sin logos', 'camel, fine fabrics, no logos'], c: ['#f4ecdf', '#c8a77c', '#ffffff', '#24324d'], b: ['basico', 'formal'] },
+  { k: 'clasico', f: 0, n: ['Clásico', 'Classic'], d: ['americana, camisa, bien cortado', 'blazer, shirt, well cut'], c: ['#24324d', '#ffffff', '#8d8f93', '#1f1f1f'], b: ['formal'] },
+  { k: 'minimalista', f: 0, n: ['Minimalista', 'Minimalist'], d: ['neutros, líneas limpias, poco', 'neutrals, clean lines, less'], c: ['#ffffff', '#e8e2d8', '#9a9a96', '#1f1f1f'], b: ['basico'] },
+  { k: 'frances', f: 0, n: ['Francés', 'French'], d: ['rayas, vaquero, sin esfuerzo', 'stripes, denim, effortless'], c: ['#ffffff', '#24324d', '#b3202a', '#6f8fb5'], b: ['basico', 'normal'] },
+  { k: 'casual', f: 1, n: ['Casual', 'Casual'], d: ['vaqueros, punto, zapatillas', 'jeans, knits, trainers'], c: ['#6f8fb5', '#efe6d6', '#9a9a96', '#ffffff'], b: ['normal'] },
+  { k: 'deportivo', f: 1, n: ['Deportivo chic', 'Athleisure'], d: ['mallas, sudadera, americana', 'leggings, sweatshirt, blazer'], c: ['#1f1f1f', '#e8e2d8', '#9a9a96', '#ffffff'], b: ['normal'] },
+  { k: 'urbano', f: 1, n: ['Urbano', 'Streetwear'], d: ['holgado, sudadera, actitud', 'loose, hoodie, attitude'], c: ['#1f1f1f', '#3e5a3a', '#6f8fb5', '#c0c0c8'], b: ['normal'] },
+  { k: 'rock', f: 2, n: ['Rock', 'Rock'], d: ['negro, cuero, botas', 'black, leather, boots'], c: ['#1f1f1f', '#3a3a3a', '#c0c0c8', '#7a1f24'], b: ['atrevido'] },
+  { k: 'glam', f: 2, n: ['Glam', 'Glam'], d: ['brillo, tacón, noche', 'shine, heels, night'], c: ['#1f1f1f', '#c9a24b', '#b3202a', '#c0c0c8'], b: ['atrevido'] },
+  { k: 'retro', f: 2, n: ['Retro', 'Retro'], d: ['años 2000, color, top corto', 'the 2000s, colour, crop top'], c: ['#e3a6a8', '#6f8fb5', '#f2c230', '#ffffff'], b: ['extravagante'] },
+  { k: 'eclectico', f: 2, n: ['Ecléctico', 'Eclectic'], d: ['mezcla, estampado, color', 'mix, print, colour'], c: ['#e94b3c', '#f2c230', '#3b7dd8', '#6e8b5e'], b: ['extravagante'] },
+  { k: 'romantico', f: 3, n: ['Romántico', 'Romantic'], d: ['vestidos, flores, tonos suaves', 'dresses, florals, soft tones'], c: ['#f3d9dc', '#efe3cc', '#ffffff', '#b9a3c9'], b: ['romantico'] },
+  { k: 'boho', f: 3, n: ['Boho', 'Boho'], d: ['tierra, capas, botines', 'earth tones, layers, boots'], c: ['#c99a6b', '#8a5a3b', '#e9dcc5', '#6d7a4f'], b: ['romantico'] },
 ];
+const FAMILIAS = [['Elegante', 'Elegant'], ['De diario', 'Everyday'], ['Con carácter', 'Bold'], ['Suave y libre', 'Soft and free']];
+const ESTILO_VIEJO = { basico: 'minimalista', formal: 'clasico', atrevido: 'glam', extravagante: 'eclectico', normal: 'casual' }; // los 6 de la 0.36 pasan a los 13 (Moda, punto 2)
 const SUAVES = new Set(['Rosa', 'Blanco', 'Beige', 'Azul claro']);
 function puntosEstilo(ps, fuertes, estamp) {
-  const el = E.perfil?.estilos || []; if (!el.length) return 0;
+  const el = [...new Set((E.perfil?.estilos || []).flatMap(k => ESTILOS.find(x => x.k === k)?.b || [k]))]; if (!el.length) return 0;
   const ropa = ropaDe(ps), n = nivelRopa(ps), zap = ps.find(p => p.tipo === 'Calzado'), z = zap ? estilo(zap) : 1;
   const nom = ropa.map(p => (p.nombre || '').toLowerCase()).join(' '), vest = ps.some(p => p.tipo === 'Vestidos'), falda = /falda|skirt/.test(nom);
   const neutros = ropa.every(p => NEUTROS.has(p.color));
@@ -1193,10 +1203,16 @@ function puntosEstilo(ps, fuertes, estamp) {
   return s / el.length;
 }
 function pintarEstilo() {
-  const el = E.perfil?.estilos || [], es = idioma() === 'en' ? 1 : 0;
-  $('es-sub').textContent = t('Elige uno o dos. Tus looks se ordenan según tu estilo y puedes cambiarlo cuando quieras.', 'Pick one or two. Your looks are ordered by your style and you can change it any time.');
-  $('es-lista').innerHTML = ESTILOS.map(x => `<button class="${el.includes(x.k) ? 'on' : ''}" data-estilo="${x.k}"><b>${x.n[es]}</b><span>${x.d[es]}</span></button>`).join('');
+  const es = idioma() === 'en' ? 1 : 0;
+  if (E.perfil?.estilos?.some(k => ESTILO_VIEJO[k])) { E.perfil.estilos = [...new Set(E.perfil.estilos.map(k => ESTILO_VIEJO[k] || k))]; guardar(); }
+  const el = E.perfil?.estilos || [];
+  if (E.esFam == null) { const pri = ESTILOS.find(x => x.k === el[0]); E.esFam = pri ? pri.f : 0; }
+  $('es-sub').textContent = t('¿Con cuál te identificas? Elige uno o dos.', 'Which one feels like you? Pick one or two.');
+  $('es-lista').innerHTML = `<div class="es-fam">${FAMILIAS.map((f, i) => `<button class="${i === E.esFam ? 'on' : ''}" data-esfam="${i}">${f[es]}</button>`).join('')}</div>`
+    + `<div class="es-rej">${ESTILOS.filter(x => x.f === E.esFam).map(x => `<button class="${el.includes(x.k) ? 'on' : ''}" data-estilo="${x.k}"><span class="es-tela">${x.c.map(c => `<i style="background:${c}"></i>`).join('')}</span><b>${x.n[es]}</b><span class="es-d">${x.d[es]}</span></button>`).join('')}</div>`
+    + `<p class="es-cuenta">${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(t(' y ', ' and ')) || '&nbsp;'}</p>`;
 }
+document.addEventListener('click', e => { const b = e.target.closest('[data-esfam]'); if (!b) return; E.esFam = +b.dataset.esfam; pintarEstilo(); });
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-estilo]'); if (!b) return;
   E.perfil = E.perfil || {}; let el = E.perfil.estilos || []; const k = b.dataset.estilo;
