@@ -1023,7 +1023,7 @@ async function quitarEjemplo() { E.prendas = E.prendas.filter(p => !p.ejemplo); 
 
 /* ---------- alta ---------- */
 async function guardarAlta() {
-  E.perfil = Object.assign(E.perfil || {}, { nombre: $('a-nombre').value.trim(), ciudad: $('a-ciudad').value.trim(), idioma: idioma(), alta: hoyISO() });
+  const pf = E.perfil || {}; E.perfil = Object.assign(pf, { nombre: $('a-nombre').value.trim() || pf.nombre || '', ciudad: $('a-ciudad').value.trim() || pf.ciudad || '', idioma: idioma(), alta: pf.alta || hoyISO() });
   await guardar(); cargarTiempo(true); ir('silueta');
 }
 function pintarSilueta() {
@@ -1130,7 +1130,9 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (['pro', 'basico'].includes(q.get('plan'))) PLAN_URL = q.get('plan');
   aplicarDiseno();
   if (q.get('ejemplo') && !E.prendas.length && !PUBLICA) await cargarEjemplo();
-  const destino = q.get('pantalla') || (E.perfil?.alta || E.prendas.length ? 'hoy' : 'inicio');
+  const REPASO = q.get('repaso') !== '0'; // 0.48 (Gabriela, 22/10: «cada vez que abra la app, salgan todos los pasos con posibilidad de siguiente página»): mientras diseñamos, se entra siempre por la bienvenida y los pasos del alta; ?repaso=0 vuelve a lo de una usuaria real (directo a Hoy)
+  const destino = q.get('pantalla') || (REPASO || !(E.perfil?.alta || E.prendas.length) ? 'inicio' : 'hoy');
+  if (E.perfil) { if (E.perfil.nombre) $('a-nombre').value = E.perfil.nombre; if (E.perfil.ciudad) $('a-ciudad').value = E.perfil.ciudad; } // en el repaso no se pierde lo ya puesto
   if (destino !== 'inicio') await Promise.race([cargarTiempo(), new Promise(r => setTimeout(r, 4000))]);
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
