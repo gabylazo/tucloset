@@ -940,3 +940,16 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .hz-ops button{font-size:13px;color:var(--sec);font-weight:300}
 .hz-ops button.on{color:var(--tinta);font-weight:500}
 .hz-ops{position:relative;z-index:5;background:#fff;padding:6px 10px 8px}.hz-preg,.hz-plan{position:relative;z-index:5}
+
+/* 0.50 (Gabriela, 22/10: «en el plan veo letras muy grandes, mucho espacio… las opciones del pro, más técnicas»): planes más compactos */
+#p-planes .pl-periodo{margin-top:18px}
+#p-planes .plb-noms{gap:40px;margin-top:16px}
+#p-planes .plb-noms button{font-size:22px;padding-bottom:16px}
+#p-planes .plb-det{margin-top:12px}
+#p-planes .plb-pre{font-size:30px}
+#p-planes .plb-lema{font-size:15.5px !important;margin-top:10px !important}
+#p-planes .plb-mas{font-size:12px !important;font-family:var(--f) !important;letter-spacing:.04em;margin-top:8px !important}
+#p-planes .plb-rej{gap:12px 14px;margin-top:14px;max-width:330px}
+#p-planes .plb-rej li{padding-top:6px}
+#p-planes .plb-rej li b{font-size:14.5px}
+#p-planes .plb-rej li span{font-size:10.5px}
