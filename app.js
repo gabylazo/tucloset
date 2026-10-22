@@ -358,17 +358,23 @@ function mejorAcompanante(lista, base) { // calzado o bolso que mejor puntúa co
   for (const x of lista) { const v = puntuar([...base, x]) - Math.random() * .6; if (v > mp) { mp = v; mejor = x; } }
   return mejor;
 }
+const sinMangas = p => (p.tipo === 'Arriba' || p.tipo === 'Vestidos') && /^top\b|chaleco|tirantes|body|sin mangas|halter|crop|tank|vest\b|bodysuit/i.test(p.nombre || '');
+const esCapa = p => p.tipo === 'Arriba' && /chaqueta|c[aá]rdigan|americana|blazer|cazadora|jacket|cardigan/i.test(p.nombre || '');
 function generarLooks(n, plan) {
   const aptas = estacionesAptas(); const act = activas().filter(p => aptas.includes(p.estacion));
   const de = tp => act.filter(p => p.tipo === tp);
   const arriba = de('Arriba'), abajo = de('Abajo'), vestidos = de('Vestidos'), calzado = de('Calzado'), abrigos = de('Abrigo'), bolsos = de('Bolsos');
-  const frio = (E.tiempo?.t ?? 18) <= 14;
-  const bases = [...vestidos.map(v => [v]), ...arriba.flatMap(a => abajo.map(b => [a, b]))];
+  // 0.43 (Sheila, 22/10: «demasiado descubierta para 17 grados»): con 19° o menos, lo que no tiene mangas (chaleco, top, body, tirantes)
+  // pide una capa encima (abrigo, chaqueta, americana o chaqueta de punto); si no hay ninguna, ese look baja al final
+  const temp = E.tiempo?.t ?? 18, frio = temp <= 14, fresco = temp <= 19;
+  const capas = [...abrigos, ...arriba.filter(esCapa)];
+  const bases = [...vestidos.map(v => [v]), ...arriba.filter(a => !esCapa(a)).flatMap(a => abajo.map(b => [a, b]))];
   const cands = bases.map(base => {
-    let ps = [...base]; const ab = frio ? mejorAcompanante(abrigos, ps) : null; if (ab) ps.push(ab);
+    let ps = [...base]; const desc = fresco && base.some(sinMangas);
+    const ab = frio || desc ? mejorAcompanante(capas.filter(c => !base.includes(c)), ps) : null; if (ab) ps.push(ab);
     const zap = mejorAcompanante(calzado, ps); if (zap) ps.push(zap);
     const bol = ocasionDe(ps) !== 'Deporte' ? mejorAcompanante(bolsos, ps) : null; if (bol) ps.push(bol);
-    return { ps, puntos: puntuar(ps) };
+    return { ps, puntos: puntuar(ps) - (desc && !ab ? 3 : 0) };
   }).sort((a, b) => b.puntos - a.puntos);
   const vistos = new Set(), usados = new Map(), out = [];
   for (const c of cands) {
