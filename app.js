@@ -51,7 +51,7 @@ const T = {
   privado: ['Las fotos se quedan en tu móvil. Solo tu silueta, sin tu cara, se usará para probarte la ropa.', 'Photos stay on your phone. Only your figure, without your face, will be used to try clothes on.'],
   buscar: ['Buscar en mi clóset', 'Search my closet'], nueva: ['Nueva prenda', 'New garment'], editar_prenda: ['Editar prenda', 'Edit garment'], borrar: ['Borrar', 'Delete'],
   hacer_foto: ['Haz una foto o elige una de la galería', 'Take a photo or pick one from the gallery'], foto_et: ['sobre fondo liso, la prenda entera', 'plain background, whole garment'],
-  nombre_prenda: ['Nombre', 'Name'], tipo: ['Tipo', 'Type'], estacion: ['Estación', 'Season'], color: ['Color', 'Colour'], notas: ['Notas (talla, tienda, cuidado…)', 'Notes (size, shop, care…)'],
+  nombre_prenda: ['Nombre', 'Name'], tipo: ['Tipo', 'Type'], categoria: ['Categoría', 'Category'], estacion: ['Estación', 'Season'], color: ['Color', 'Colour'], notas: ['Notas (talla, tienda, cuidado…)', 'Notes (size, shop, care…)'],
   guardar_closet: ['Guardar en mi clóset', 'Save to my closet'], guardar_otra: ['Guardar y añadir otra', 'Save and add another'], guardar_cambios: ['Guardar cambios', 'Save changes'],
   editar: ['Editar', 'Edit'], veces: ['veces puesta', 'times worn'], ultima: ['última vez', 'last worn'], conjuntos_min: ['conjuntos', 'outfits'], hoy_llevo: ['Hoy llevo esto', 'Wearing this today'],
   asi: ['Así te queda', 'How it looks on you'], ver_conjuntos: ['Ver conjuntos', 'See outfits'], conjuntos: ['Conjuntos', 'Outfits'], nuevo_conjunto: ['Nuevo conjunto', 'New outfit'],
@@ -790,7 +790,25 @@ const NOM_X = { 'a t-shirt': ['Camiseta', 'T-shirt', 'f'], 'a blouse': ['Blusa',
   'a coat': ['Abrigo', 'Coat', 'm'], 'a jacket': ['Chaqueta', 'Jacket', 'f'], 'a blazer': ['Americana', 'Blazer', 'f'], 'a trench coat': ['Gabardina', 'Trench coat', 'f'], 'a puffer jacket': ['Plumífero', 'Puffer jacket', 'm'],
   'a pair of shoes': ['Zapatos', 'Shoes', 'm', 1], 'a pair of sneakers': ['Zapatillas', 'Sneakers', 'f', 1], 'a pair of high heels': ['Tacones', 'Heels', 'm', 1], 'a pair of boots': ['Botas', 'Boots', 'f', 1], 'a pair of sandals': ['Sandalias', 'Sandals', 'f', 1], 'a pair of ballet flats': ['Bailarinas', 'Flats', 'f', 1], 'a pair of stiletto heels': ['Tacones', 'Heels', 'm', 1], 'a pair of pointed toe pumps': ['Tacones', 'Heels', 'm', 1],
   'a handbag': ['Bolso', 'Bag', 'm'], 'a shoulder bag': ['Bolso de hombro', 'Shoulder bag', 'm'], 'a tote bag': ['Bolso tote', 'Tote bag', 'm'], 'a clutch bag': ['Cartera de mano', 'Clutch', 'f'], 'a backpack': ['Mochila', 'Backpack', 'f'],
+  'a polo shirt': ['Polo', 'Polo shirt', 'm'], 'a hoodie': ['Sudadera', 'Hoodie', 'f'], 'a midi skirt': ['Falda midi', 'Midi skirt', 'f'], 'a mini dress': ['Vestido corto', 'Mini dress', 'm'], 'a midi dress': ['Vestido midi', 'Midi dress', 'm'], 'a jumpsuit': ['Mono', 'Jumpsuit', 'm'],
+  'a parka': ['Parka', 'Parka', 'f'], 'a denim jacket': ['Cazadora vaquera', 'Denim jacket', 'f'], 'a bomber jacket': ['Bomber', 'Bomber jacket', 'f'], 'a pair of ankle boots': ['Botines', 'Ankle boots', 'm', 1], 'a pair of knee high boots': ['Botas altas', 'Knee-high boots', 'f', 1], 'a pair of loafers': ['Mocasines', 'Loafers', 'm', 1],
+  'a crossbody bag': ['Bandolera', 'Crossbody bag', 'f'], 'a cap': ['Gorra', 'Cap', 'f'], 'a bracelet': ['Pulsera', 'Bracelet', 'f'], gloves: ['Guantes', 'Gloves', 'm', 1],
   'a hat': ['Sombrero', 'Hat', 'm'], 'a scarf': ['Pañuelo', 'Scarf', 'm'], 'a belt': ['Cinturón', 'Belt', 'm'], sunglasses: ['Gafas de sol', 'Sunglasses', 'f', 1], 'a necklace': ['Collar', 'Necklace', 'm'], earrings: ['Pendientes', 'Earrings', 'm', 1], 'a watch': ['Reloj', 'Watch', 'm'] };
+// 0.58 (Sheila, 23/10: «para hacerlo manualmente tienes que dejar un menú desplegable de categoría… apóyate en el menú de clasificación de las app de ropa o de Vinted»):
+// dos desplegables, categoría y tipo, como en Vinted; el tipo pone el nombre («Botas negras») y de él salen el estilo y la ocasión
+const SUBCATS = {
+  Tops: ['a t-shirt', 'a blouse', 'a shirt', 'a polo shirt', 'a crop top', 'a tank top', 'a sleeveless top', 'a halter bodysuit', 'a peplum top', 'a sweater', 'a hoodie', 'a cardigan', 'a knitted vest'],
+  Pantalones: ['trousers', 'jeans', 'wide leg pants', 'shorts', 'leggings'],
+  Faldas: ['a skirt', 'a mini skirt', 'a midi skirt', 'a long skirt', 'a pleated skirt', 'a flared skirt', 'a lace skirt'],
+  Vestidos: ['a dress', 'a mini dress', 'a midi dress', 'a long dress', 'a wrap dress', 'a jumpsuit'],
+  Abrigos: ['a coat', 'a trench coat', 'a puffer jacket', 'a parka', 'a jacket', 'a denim jacket', 'a bomber jacket', 'a blazer'],
+  Zapatos: ['a pair of shoes', 'a pair of sneakers', 'a pair of boots', 'a pair of knee high boots', 'a pair of ankle boots', 'a pair of high heels', 'a pair of sandals', 'a pair of ballet flats', 'a pair of loafers'],
+  Bolsos: ['a handbag', 'a shoulder bag', 'a crossbody bag', 'a tote bag', 'a clutch bag', 'a backpack'],
+  Accesorios: ['a belt', 'a scarf', 'a hat', 'a cap', 'a sunglasses', 'sunglasses', 'a necklace', 'earrings', 'a bracelet', 'a watch', 'gloves'].filter(x => NOM_X[x])
+};
+const subDe = (cat, x, nombre) => SUBCATS[cat]?.includes(x) ? x : SUBCATS[cat]?.find(k => (nombre || '').toLowerCase().startsWith(NOM_X[k][0].toLowerCase() + ' ')) || '';
+const opsCat = sel => CATS_ORDEN.map(c => `<option value="${c}"${c === sel ? ' selected' : ''}>${catTxt(c)}</option>`).join('');
+const opsSub = (cat, sel) => `<option value="">${t('Elige…', 'Choose…')}</option>` + (SUBCATS[cat] || []).map(k => `<option value="${k}"${k === sel ? ' selected' : ''}>${NOM_X[k][idioma() === 'en' ? 1 : 0]}</option>`).join('');
 function adjColor(c, f, pl) {
   if (['Beige', 'Camel', 'Azul claro'].includes(c)) return c.toLowerCase();
   let a = c.toLowerCase(); if (f && /o$/.test(a)) a = a.slice(0, -1) + 'a';
@@ -820,7 +838,7 @@ function pintarSubida() {
       ${listo && det.noPrenda && !det.siPrenda ? `<div class="s-aviso"><b>${t('Esta foto no parece una prenda', 'This photo does not look like a garment')}</b><span>${t('No coincide con ninguna categoría de ropa. Si es una captura, un texto u otra cosa, quítala.', 'It does not match any clothing category. If it is a screenshot, text or something else, remove it.')}</span><div><button class="boton" data-squita>${t('Quitarla', 'Remove it')}</button><button class="txt sub-l" data-ssi>${t('Sí es una prenda', 'It is a garment')}</button></div></div>` : ''}
       ${listo && det.fondo && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso y el recorte puede salir con restos. Para un recorte limpio, haz la foto sobre un fondo de un solo color.', 'The background is not plain, so the cut-out may keep bits of it. For a clean cut-out, shoot on a single-colour background.')}</p>` : ''}
       ${listo ? `<input class="nom" value="${det.nombre}" data-snom aria-label="${t('Nombre', 'Name')}">
-      <div class="gr"><p class="mini-et">${t('Tipo', 'Type')}</p>${ops(CATS_ORDEN, catDe(det), 'tipo', catTxt)}</div>
+      <div class="fila2 s-cat"><label class="campo"><span>${t('Categoría', 'Category')}</span><select data-scat>${opsCat(catDe(det))}</select></label><label class="campo"><span>${t('Tipo', 'Type')}</span><select data-ssub>${opsSub(catDe(det), subDe(catDe(det), det.x, det.nombre))}</select></label></div>
       <div class="gr"><p class="mini-et">${t('Color', 'Colour')}</p><div class="ops col">${COLORES.map(([c, h]) => `<button type="button" class="${c === det.color ? 'on' : ''}" data-scolor="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>
       <div class="gr"><p class="mini-et">${t('Estación', 'Season')}</p>${ops(ESTACIONES, det.estacion, 'est', estNombre)}</div>
       ${det.recortada ? `<button class="txt sub-l" data-sorig>${det.usaOriginal ? t('Usar el fondo blanco', 'Use white background') : t('Usar la foto original', 'Use the original photo')}</button>` : ''}` : ''}
@@ -841,12 +859,14 @@ function pintarSubida() {
     else if (d.squita !== undefined) { E.subida = E.subida.filter(i => i !== det); E.sDet = null; pintarSubida(); }
     else if (d.ssi !== undefined) { det.siPrenda = true; pintarSubida(); }
     else if (d.sguardar !== undefined) guardarSubida();
-    else if (d.stipo) { const falda = /falda|skirt/i.test(det.nombre); det.tipo = TIPO_DE_CAT[d.stipo]; if (auto || falda !== (d.stipo === 'Faldas')) det.nombre = nombreSubida(det, d.stipo); pintarSubida(); }
-    else if (d.scolor) { const c = catDe(det); det.color = d.scolor; if (auto || (c === 'Faldas' && det.nombre === nombreSubida(Object.assign({}, det, { color: prev }), c))) det.nombre = nombreSubida(det, c); pintarSubida(); }
+    else if (d.scolor) { const c = catDe(det); det.color = d.scolor; if (det.x && NOMBRE_AUTO.test(det.nombre) && SUBCATS[c]?.includes(det.x)) det.nombre = nombreReconocido(det.x, det.color); else if (auto || (c === 'Faldas' && det.nombre === nombreSubida(Object.assign({}, det, { color: prev }), c))) det.nombre = nombreSubida(det, c); pintarSubida(); }
     else if (d.sest) { det.estacion = d.sest; pintarSubida(); }
     else if (d.sorig !== undefined) { det.usaOriginal = !det.usaOriginal; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(det.usaOriginal ? det.original : det.blob); pintarSubida(); }
   };
   const nom = raiz.querySelector('[data-snom]'); if (nom) nom.oninput = e => { det.nombre = e.target.value; };
+  const sc = raiz.querySelector('[data-scat]'), ss = raiz.querySelector('[data-ssub]');
+  if (sc) sc.onchange = e => { const c = e.target.value, propio = !NOMBRE_AUTO.test(det.nombre) && det.nombre !== nombreAuto(det.tipo, det.color); det.tipo = TIPO_DE_CAT[c]; det.x = null; if (!propio) det.nombre = nombreSubida(det, c); pintarSubida(); };
+  if (ss) ss.onchange = e => { const k = e.target.value; if (!k) return; const propio = !NOMBRE_AUTO.test(det.nombre) && det.nombre !== nombreAuto(det.tipo, det.color); det.x = k; if (!propio) det.nombre = nombreReconocido(k, det.color); pintarSubida(); };
 }
 async function anadirFotos(files) {
   const nuevos = files.slice(0, Math.max(0, 20 - E.subida.length)).map(f => ({ id: uid(), estado: 'procesando', file: f }));
@@ -860,7 +880,7 @@ async function anadirFotos(files) {
 }
 async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '' }));
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet');
 }
@@ -874,9 +894,11 @@ function prepararAnadir(id) {
   $('an-borrar').classList.toggle('oculto', !p);
   $('an-guardar').textContent = p ? t('Guardar cambios', 'Save changes') : t('Guardar en mi clóset', 'Save to my closet');
   $('an-otra').classList.toggle('oculto', !!p);
-  $('an-tipo').innerHTML = TIPOS.map(x => `<option value="${x}">${tipoNombre(x)}</option>`).join('');
+  const cat0 = p ? catDe(p) : 'Tops'; $('an-tipo').innerHTML = opsCat(cat0); $('an-sub').innerHTML = opsSub(cat0, p ? subDe(cat0, p.x, p.nombre) : '');
+  $('an-tipo').onchange = () => { $('an-sub').innerHTML = opsSub($('an-tipo').value, ''); };
+  $('an-sub').onchange = () => { const k = $('an-sub').value, n = $('an-nombre').value.trim(); if (k && (!n || NOMBRE_AUTO.test(n))) $('an-nombre').value = nombreReconocido(k, $('an-colores').dataset.sel || 'Negro'); };
   $('an-estacion').innerHTML = ESTACIONES.map(x => `<option value="${x}">${estNombre(x)}</option>`).join('');
-  $('an-nombre').value = p?.nombre || ''; $('an-tipo').value = p?.tipo || 'Arriba'; $('an-estacion').value = p?.estacion || 'Todo el año'; $('an-notas').value = p?.notas || '';
+  $('an-nombre').value = p?.nombre || ''; $('an-estacion').value = p?.estacion || 'Todo el año'; $('an-notas').value = p?.notas || '';
   pintarColores(p?.color || '');
   pintarPrevia(p ? urlFoto(p) : '');
 }
@@ -890,7 +912,7 @@ function pintarPrevia(url) {
     : `<label><svg><use href="#ic-camara"/></svg><span>${t('Haz una foto o elige una de la galería', 'Take a photo or pick one from the gallery')}</span><span class="et">${t('sobre fondo liso, la prenda entera', 'plain background, whole garment')}</span><input type="file" accept="image/*" id="f-prenda"></label>`;
   $('f-prenda').onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
-    try { const r = await procesarFoto(f); fotoNueva = r.blob; pintarPrevia(URL.createObjectURL(r.blob)); if (!$('an-colores').dataset.sel) pintarColores(r.color); if (!$('an-nombre').value) $('an-nombre').value = `${tipoNombre($('an-tipo').value)} ${r.color.toLowerCase()}`; }
+    try { const r = await procesarFoto(f); fotoNueva = r.blob; pintarPrevia(URL.createObjectURL(r.blob)); if (!$('an-colores').dataset.sel) pintarColores(r.color); if (!$('an-nombre').value) $('an-nombre').value = $('an-sub').value ? nombreReconocido($('an-sub').value, r.color) : nombreAuto(TIPO_DE_CAT[$('an-tipo').value], r.color); }
     catch (err) { toast(t('No he podido leer esa foto', 'Could not read that photo')); }
   };
 }
@@ -898,8 +920,9 @@ async function guardarPrenda(otra) {
   const p = E.editando; const nombre = $('an-nombre').value.trim(); const color = $('an-colores').dataset.sel || 'Gris';
   if (!p && !fotoNueva) return toast(t('Falta la foto de la prenda', 'The garment photo is missing'));
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
-  if (p) { Object.assign(p, { nombre, color, tipo: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim() }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id); } }
-  else E.prendas.unshift({ id: uid(), nombre, color, tipo: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
+  const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
+  if (p) { Object.assign(p, { rec: 3, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim() }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id); } }
+  else E.prendas.unshift({ id: uid(), rec: 3, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   await guardar(); E.propuestas = [];
   toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'));
   if (otra) prepararAnadir(null); else ir(p ? 'ficha' : 'closet', p?.id), p && abrirFicha(p.id);
