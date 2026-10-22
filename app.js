@@ -416,6 +416,22 @@ function proponer() {
   for (const g of generarLooks(4, E.plan)) if (!props.some(x => x.ids.join() === g.ids.join())) props.push({ tipo: 'propuesta', ids: g.ids, nombre: g.nombre, ocasion: g.ocasion });
   E.propuestas = props; if (E.hoyIdx >= props.length) E.hoyIdx = 0;
 }
+// 0.42 (Sheila, 22/10: «si no lo hace la usuaria, la asistente virtual le debe preguntar a dónde vamos hoy y sugerirle»):
+// sin plan en el calendario para hoy, Hoy pregunta «¿A dónde vas hoy?»; la respuesta se guarda como plan del día y los looks se rehacen
+function preguntaHoy(planHoy) {
+  if (planHoy) return `<button class="hz-plan" data-hzpreg>${t('Hoy', 'Today')}: ${ocNombre(planHoy).toLowerCase()}</button>${E.hzPreg ? opcionesHoy(planHoy) : ''}`;
+  return `<button class="hz-preg" data-hzpreg>${t('¿A dónde vas hoy?', 'Where are you going today?')}</button>${E.hzPreg ? opcionesHoy() : ''}`;
+}
+const opcionesHoy = sel => `<div class="hz-ops">${OCASIONES.map(o => `<button class="${o === sel ? 'on' : ''}" data-hzoc="${o}">${ocNombre(o)}</button>`).join('')}</div>`;
+document.addEventListener('click', async e => {
+  const b = e.target.closest('#p-hoy [data-hzpreg],#p-hoy [data-hzoc]'); if (!b) return;
+  if (b.dataset.hzoc) {
+    const k = diaISO(new Date()), h = new Date().getHours(), fr = h < 14 ? 'Mañana' : h < 20 ? 'Tarde' : 'Noche';
+    E.agenda[k] = E.agenda[k] || { planes: [] }; E.agenda[k].planes = [{ oc: b.dataset.hzoc, fr }, ...E.agenda[k].planes.filter(p => p.oc !== b.dataset.hzoc)];
+    E.hzPreg = false; E.propuestas = []; E.hoyIdx = 0; await guardar();
+  } else E.hzPreg = !E.hzPreg;
+  pintarHoy();
+});
 function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin menú arriba, el tiempo una vez junto a la fecha, debajo solo la ocasión
   const pant = $('p-hoy'); const w = E.tiempo; const l = idioma();
   // 0.40 (Sheila, 22/10: «si ella pone de lunes 23 a viernes 27 oficina en la mañana ya sabes que eso tienes que sugerirle»): el plan del calendario manda
@@ -427,7 +443,7 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   const cieloAhora = w ? (w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(w.clave) ? 'nube' : w.clave) : null; // el icono del cielo: sol si hay sol, aunque haga frío
   const avisoLluvia = !w ? '' : ['lluvia', 'tormenta'].includes(w.clave) ? ` · ${ico('lluvia')}${t('ahora', 'now')}` : w.lluviaH != null ? ` · ${ico('lluvia')}${w.lluviaH}:00` : '';
   const cab = `<header class="hz-cab"><span class="marca"><svg viewBox="0 0 100 100"><use href="#i129"/></svg><span>Tu<span class="oro">Closet</span></span></span>
-    <div class="hz-dia mini-et">${dia}${w ? `${ico(cieloAhora)}${w.t}°${avisoLluvia}` : ''}</div></header>`;
+    <div class="hz-dia mini-et">${dia}${w ? `${ico(cieloAhora)}${w.t}°${avisoLluvia}` : ''}</div>${preguntaHoy(planHoy)}</header>`;
   if (!pr) {
     const hay = activas().length;
     pant.innerHTML = cab + `<div class="hz-vacio">${hay ? t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.') : t('Tu conjunto de hoy aparecerá aquí en cuanto tengas tres prendas: una de arriba, una de abajo y unos zapatos.', 'Your outfit of the day will appear here once you have three garments: a top, a bottom and shoes.')}
