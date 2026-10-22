@@ -556,9 +556,16 @@ const FILTROS = () => [
   ['uso', t('Uso', 'Use'), [['nueva', t('Sin estrenar', 'Never worn')], ['olvidada', t('Sin poner en 3 meses', 'Not worn in 3 months')], ['mas', t('Las que más uso', 'Most worn')]]],
   ['estado', t('Estado', 'Status'), [['', t('Lista para poner', 'Ready to wear')], ['lavar', t('Para lavar', 'To wash')], ['guardada', t('Guardada', 'Stored')]]]
 ];
+// 0.44 (Sheila, 22/10: el filtro «Oficina» daba 0 prendas): la ocasión salía solo de los looks guardados; ahora cada prenda tiene
+// también las suyas por su nivel (deportivo, diario, arreglado, noche); el bolso y los accesorios valen para todo menos deporte
+function ocasionesPrenda(p) {
+  if (['Bolsos', 'Accesorios'].includes(p.tipo)) return ['Diario', 'Oficina', 'Noche', 'Evento', 'Viaje'];
+  if (p.tipo === 'Calzado' && estilo(p) === 3) return ['Noche', 'Evento', 'Oficina'];
+  return [['Deporte', 'Diario', 'Viaje'], ['Diario', 'Viaje', 'Oficina'], ['Oficina', 'Evento', 'Diario', 'Noche'], ['Noche', 'Evento']][estilo(p)];
+}
 function pasaFiltros(p) {
   const f = E.f, hace3 = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10), u = p.usos || [];
-  const ocs = E.conjuntos.filter(c => c.ids.includes(p.id)).map(c => c.ocasion || 'Diario');
+  const ocs = [...ocasionesPrenda(p), ...E.conjuntos.filter(c => c.ids.includes(p.id)).map(c => c.ocasion || 'Diario')];
   const maxUsos = Math.max(1, ...E.prendas.map(x => (x.usos || []).length));
   return (!f.ocasion.length || f.ocasion.some(o => ocs.includes(o)))
     && (!f.estacion.length || f.estacion.includes(p.estacion) || p.estacion === 'Todo el año')
@@ -582,7 +589,7 @@ function pintarCloset() {
 function pintarFiltros() {
   $('mc-grupos').innerHTML = FILTROS().map(([k, tit, ops]) => `<div class="mc-gr"><p class="mini-et">${tit}</p><div class="mc-ops">${ops.map(([v, txt]) => k === 'color'
     ? `<button class="sw ${E.f.color.includes(v) ? 'on' : ''}" data-fil="${k}|${v}" title="${v}" style="background:${txt}"></button>`
-    : `<button class="${E.f[k].includes(v) ? 'on' : ''}" data-fil="${k}|${v}">${txt}</button>`).join('')}</div>${k === 'ocasion' ? `<small>${t('según los conjuntos en los que está cada prenda', 'from the outfits each garment is in')}</small>` : ''}</div>`).join('');
+    : `<button class="${E.f[k].includes(v) ? 'on' : ''}" data-fil="${k}|${v}">${txt}</button>`).join('')}</div>${k === 'ocasion' ? `<small>${t('según el tipo de prenda y tus looks', 'from the garment type and your looks')}</small>` : ''}</div>`).join('');
   const n = E.prendas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && pasaFiltros(p)).length;
   $('mc-ver').textContent = t(`Ver ${n} prendas`, `See ${n} garments`);
 }
