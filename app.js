@@ -666,7 +666,8 @@ async function reconocerPrenda(cv) {
 // cambia el tipo y, si el nombre era el automático, también el nombre. Lo que ella haya escrito a mano no se toca.
 const NOMBRE_AUTO = { test: n => /^(Tops|Arriba|Abajo|Calzado)$/.test(n) || ['Top', 'Pantalón', 'Zapatos', 'Vestido', 'Abrigo', 'Bolso', 'Accesorio', 'Falda', ...Object.values(NOM_X).map(v => v[0])].some(b => n === b || (n.startsWith(b + ' ') && /^[a-zéóíáú ]+$/.test(n.slice(b.length + 1)))) };
 async function reconocerGuardadas() {
-  const pend = E.prendas.filter(p => (p.rec || 0) < 2 && !p.src && p.foto); if (!pend.length) return;
+  // 0.46 (Sheila, 22/10: un top peplum salió como vestido y Hoy lo proponía sin pantalón): los vestidos ya guardados se revisan una vez más con las descripciones nuevas
+  const pend = E.prendas.filter(p => ((p.rec || 0) < 2 || (p.tipo === 'Vestidos' && (p.rec || 0) < 3)) && !p.src && p.foto); if (!pend.length) return;
   let cambios = 0;
   for (const p of pend) {
     try {
@@ -675,7 +676,7 @@ async function reconocerGuardadas() {
       const { cat, x } = await reconocerPrenda(c), tipo = TIPO_DE_CAT[cat];
       const nom = NOMBRE_AUTO.test(p.nombre) ? (nombreReconocido(x, p.color) || nombreSubida(Object.assign({}, p, { tipo }), cat)) : p.nombre;
       if (tipo !== p.tipo || nom !== p.nombre) { if (tipo !== p.tipo) cambios++; p.tipo = tipo; p.nombre = nom; }
-      p.rec = 2;
+      p.rec = 3;
     } catch (e) { return; } // sin red o sin modelo: se reintenta en la próxima apertura
   }
   await guardar();
@@ -734,7 +735,7 @@ function nombreAuto(tipo, color) {
 }
 const TIPO_DE_CAT = { Tops: 'Arriba', Pantalones: 'Abajo', Faldas: 'Abajo', Vestidos: 'Vestidos', Abrigos: 'Abrigo', Zapatos: 'Calzado', Bolsos: 'Bolsos', Accesorios: 'Accesorios' };
 // 0.31: nombre concreto según lo reconocido («Zapatillas blancas», «Blusa rosa», «Vaqueros»); de él salen también el estilo y la ocasión
-const NOM_X = { 'a t-shirt': ['Camiseta', 'T-shirt', 'f'], 'a blouse': ['Blusa', 'Blouse', 'f'], 'a crop top': ['Top corto', 'Crop top', 'm'], 'a shirt': ['Camisa', 'Shirt', 'f'], 'a knitted vest': ['Chaleco', 'Vest', 'm'], 'a sweater': ['Jersey', 'Sweater', 'm'], 'a halter bodysuit': ['Body', 'Bodysuit', 'm'], 'a tank top': ['Top', 'Tank top', 'm'], 'a cardigan': ['Chaqueta de punto', 'Cardigan', 'f'],
+const NOM_X = { 'a t-shirt': ['Camiseta', 'T-shirt', 'f'], 'a blouse': ['Blusa', 'Blouse', 'f'], 'a crop top': ['Top corto', 'Crop top', 'm'], 'a shirt': ['Camisa', 'Shirt', 'f'], 'a knitted vest': ['Chaleco', 'Vest', 'm'], 'a sweater': ['Jersey', 'Sweater', 'm'], 'a halter bodysuit': ['Body', 'Bodysuit', 'm'], 'a tank top': ['Top', 'Tank top', 'm'], 'a cardigan': ['Chaqueta de punto', 'Cardigan', 'f'], 'a peplum top': ['Top peplum', 'Peplum top', 'm'], 'a sleeveless top': ['Top sin mangas', 'Sleeveless top', 'm'],
   trousers: ['Pantalón', 'Trousers', 'm'], jeans: ['Vaqueros', 'Jeans', 'm', 1], 'wide leg pants': ['Pantalón ancho', 'Wide-leg trousers', 'm'], shorts: ['Shorts', 'Shorts', 'm', 1], leggings: ['Mallas', 'Leggings', 'f', 1],
   'a skirt': ['Falda', 'Skirt', 'f'], 'a mini skirt': ['Minifalda', 'Mini skirt', 'f'], 'a long skirt': ['Falda larga', 'Long skirt', 'f'], 'a pleated skirt': ['Falda plisada', 'Pleated skirt', 'f'], 'a lace skirt': ['Falda de encaje', 'Lace skirt', 'f'], 'a flared skirt': ['Falda de vuelo', 'Flared skirt', 'f'],
   'a dress': ['Vestido', 'Dress', 'm'], 'a wrap dress': ['Vestido cruzado', 'Wrap dress', 'm'], 'a long dress': ['Vestido largo', 'Long dress', 'm'],
@@ -811,7 +812,7 @@ async function anadirFotos(files) {
 }
 async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 2 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '' }));
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '' }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet');
 }
