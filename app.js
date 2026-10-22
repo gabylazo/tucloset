@@ -971,6 +971,7 @@ function pintarYo() {
     <button class="item" id="yo-plan">${t('Plan (para enseñarlo)', 'Plan (demo)')}<span class="valor">${planDemo() === 'pro' ? t('Pro · tu avatar', 'Pro · your avatar') : t('Básico · maniquí', 'Basic · mannequin')}</span></button>
     <button class="item" id="yo-ciudad">${t('Ciudad para el tiempo', 'City for the weather')}<span class="valor">${pf.ciudad || E.tiempo?.nombre || pf.lugar || t('tu ubicación', 'your location')}</span></button>
     <button class="item" id="yo-exportar">${t('Guardar una copia de mis datos', 'Save a copy of my data')}<span class="valor">JSON</span></button>
+    <label class="item" id="yo-importar">${t('Recuperar una copia', 'Restore a copy')}<span class="valor">JSON</span><input type="file" accept="application/json,.json" hidden></label>
     ${PUBLICA ? '' : `<button class="item" id="yo-ejemplo">${E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet')}<span class="valor"></span></button>`}
     <button class="item" id="yo-borrar">${t('Borrar todo de este móvil', 'Delete everything from this phone')}<span class="valor"></span></button>
     <div class="item">${t('Suscripción', 'Subscription')}<span class="valor">${t('Prueba · versión web', 'Trial · web version')}</span></div>`;
@@ -980,14 +981,28 @@ function pintarYo() {
     await guardar(); await cargarTiempo(true); E.propuestas = []; pintarYo(); };
   $('yo-plan').onclick = () => { PLAN_URL = null; localStorage.setItem('tc_plan', planDemo() === 'pro' ? 'basico' : 'pro'); pintarYo(); toast(planDemo() === 'pro' ? t('Pro: tu avatar con el conjunto', 'Pro: your avatar') : t('Básico: el conjunto en el maniquí', 'Basic: the outfit on the mannequin')); };
   $('yo-exportar').onclick = exportar;
+  $('yo-importar').querySelector('input').onchange = e => e.target.files[0] && importar(e.target.files[0]);
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
   $('yo-borrar').onclick = async () => { if (await confirmar(t('¿Borrar todo?', 'Delete everything?'), t('Prendas, fotos, conjuntos y usos de este navegador. No se puede deshacer.', 'Garments, photos, outfits and uses in this browser. Cannot be undone.'), t('Borrar todo', 'Delete all'))) { for (const k of await BD.claves()) await BD.del(k); localStorage.removeItem('tc_tiempo'); location.reload(); } };
   $('yo-colores').onclick = () => toast(t('Los colores que te favorecen llegan en la próxima versión', 'Your best colours arrive in the next version'));
 }
+// 0.45 (Sheila, 22/10: «necesito seguir trabajando con mi misma base de datos… que cada vez que actualizas la versión guarde mi base de datos»):
+// recuperar la copia en otro navegador o móvil; se suma a lo que haya, sin duplicar (por id), y no toca lo que ya existe
+async function importar(file) {
+  try {
+    const d = JSON.parse(await file.text()); if (!Array.isArray(d.prendas)) throw 0;
+    const aBlob = async u => u ? await (await fetch(u)).blob() : null; let n = 0;
+    for (const p of d.prendas) if (!E.prendas.some(x => x.id === p.id)) { E.prendas.push({ ...p, foto: await aBlob(p.foto) }); n++; }
+    for (const c of d.conjuntos || []) if (!E.conjuntos.some(x => x.id === c.id)) E.conjuntos.push(c);
+    for (const [k, v] of Object.entries(d.agenda || {})) if (!E.agenda[k]) E.agenda[k] = v;
+    if (!E.perfil && d.perfil) E.perfil = d.perfil;
+    await guardar(); E.propuestas = []; E.generados = []; toast(t(`Recuperadas ${n} prendas`, `${n} garments restored`)); pintarYo();
+  } catch (e) { toast(t('Ese fichero no es una copia de TuCloset', 'That file is not a TuCloset copy')); }
+}
 async function exportar() {
   const aB64 = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
   const prendas = []; for (const p of E.prendas) prendas.push({ ...p, foto: p.foto ? await aB64(p.foto) : null });
-  const datos = { version: 'tucloset-web-0.5', fecha: new Date().toISOString(), perfil: { ...E.perfil, selfie: null, cuerpo: null }, prendas, conjuntos: E.conjuntos };
+  const datos = { version: 'tucloset-web-0.5', fecha: new Date().toISOString(), perfil: { ...E.perfil, selfie: null, cuerpo: null }, prendas, conjuntos: E.conjuntos, agenda: E.agenda };
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(datos)], { type: 'application/json' })); a.download = `tucloset-${hoyISO()}.json`; a.click();
   toast(t('Copia guardada', 'Copy saved'));
 }
@@ -1104,6 +1119,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
 (async () => {
   entrada(new URLSearchParams(location.search));
   E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {};
+  try { navigator.storage?.persist?.(); } catch (e) { } // 0.45: que el navegador no borre el clóset para hacer sitio
   let migra = false; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
   traducir(); pintarSilueta();
   { const l = +new URLSearchParams(location.search).get('lema'); const t = LEMAS[l - 1]; if (t) $('p-inicio').querySelector('.lema .t').textContent = t; bordar(); }
