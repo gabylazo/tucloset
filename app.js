@@ -42,7 +42,7 @@ const T = {
   alta_titulo: ['Lo justo para empezar', 'Just enough to start'], alta_sub: ['Todo se guarda en tu móvil. Nada sale de aquí sin que tú lo pidas.', 'Everything stays on your phone. Nothing leaves unless you ask.'],
   nombre: ['Tu nombre', 'Your name'], ciudad: ['Ciudad para el tiempo', 'City for the weather'], usar_ubicacion: ['Usar mi ubicación', 'Use my location'],
   r1: ['Tus fotos se quedan en este móvil; la app no las sube a ningún sitio en esta versión.', 'Your photos stay on this phone; this version uploads nothing.'],
-  r2: ['La prueba dura 7 días con 10 prendas; después, desde 2,99 € al mes.', 'The trial lasts 7 days with 10 garments; then from €2.99 a month.'],
+  r2: ['La prueba dura 7 días con 10 prendas; después, desde 1,99 € al mes.', 'The trial lasts 7 days with 10 garments; then from €1.99 a month.'],
   r3: ['Lo que decide la app (tipo, color, conjuntos) siempre lo puedes corregir.', 'Whatever the app decides (type, colour, outfits) you can always correct.'],
   seguir: ['Seguir', 'Continue'], saltar: ['Saltar', 'Skip'], sil_titulo: ['Dos fotos y ya', 'Two photos and done'], sil_sub: ['Con ellas te verás con tu ropa puesta.', 'With them you will see yourself wearing your clothes.'],
   selfie: ['Selfie', 'Selfie'], selfie_et: ['luz natural, sin filtros', 'natural light, no filters'], cuerpo: ['Cuerpo entero', 'Full body'], cuerpo_et: ['de pie, ropa ajustada', 'standing, fitted clothes'],
