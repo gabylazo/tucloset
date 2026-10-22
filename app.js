@@ -5,11 +5,12 @@
 const PUBLICA = !!window.TC_PUBLICA; // la copia pública (web/): sin el clóset de ejemplo, que lleva fotos de Sheila
 
 /* ---------- almacén (IndexedDB, clave→valor) ---------- */
+let CLOSET_ACT = ''; try { CLOSET_ACT = localStorage.getItem('tc_closet') || ''; } catch (e) { } // 0.53 (Sheila, 22/10: «un genérico con las ropas de Pinterest y otro con mi ropa real»)
 const BD = (() => {
   let db;
   const abrir = () => new Promise((res, rej) => {
     if (db) return res(db);
-    const r = indexedDB.open('tucloset', 1);
+    const r = indexedDB.open('tucloset' + (CLOSET_ACT ? '-' + CLOSET_ACT : ''), 1); // 0.53: cada clóset (Mi ropa, Pruebas) en su propia base
     r.onupgradeneeded = () => r.result.createObjectStore('kv');
     r.onsuccess = () => { db = r.result; res(db); };
     r.onerror = () => rej(r.error);
@@ -960,7 +961,7 @@ function pintarYo() {
   const top = E.prendas.slice().sort((a, b) => (b.usos || []).length - (a.usos || []).length)[0];
   $('yo-cara').innerHTML = pf.selfie ? `<img src="${URL.createObjectURL(pf.selfie)}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:50% 20%">` : (pf.nombre || '?').slice(0, 1).toUpperCase();
   $('yo-nombre').textContent = pf.nombre || t('Tú', 'You');
-  $('yo-sub').textContent = [E.tiempo?.nombre || pf.ciudad || pf.lugar, estNombre(estacionDelDia()), `${E.prendas.length} ${t('prendas', 'garments')}`].filter(Boolean).join(' · ');
+  $('yo-sub').textContent = [CLOSET_ACT ? t('Clóset de pruebas', 'Test closet') : '', E.tiempo?.nombre || pf.ciudad || pf.lugar, estNombre(estacionDelDia()), `${E.prendas.length} ${t('prendas', 'garments')}`].filter(Boolean).join(' · ');
   $('yo-estad').innerHTML = `<div><b>${E.prendas.length}</b><span>${t('prendas', 'garments')}</span></div><div><b>${usosMes}</b><span>${t('usos este mes', 'uses this month')}</span></div><div><b>${E.conjuntos.length}</b><span>${t('conjuntos', 'outfits')}</span></div>`;
   const sil = pf.selfie && pf.cuerpo ? t('Fotos listas', 'Photos ready') : pf.selfie || pf.cuerpo ? t('Falta una foto', 'One photo missing') : t('Sin fotos', 'No photos');
   $('yo-lista').innerHTML = `<button class="item" data-ir="silueta">${t('Mi silueta', 'My figure')}<span class="valor ${pf.selfie && pf.cuerpo ? 'oro' : ''}">${sil}</span></button>
@@ -971,6 +972,7 @@ function pintarYo() {
     <button class="item" data-ir="diseno">${t('Diseño (para decidir)', 'Design (to decide)')}<span class="valor">${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}</span></button>
     <button class="item" id="yo-plan">${t('Plan (para enseñarlo)', 'Plan (demo)')}<span class="valor">${planDemo() === 'pro' ? t('Pro · tu avatar', 'Pro · your avatar') : t('Básico · maniquí', 'Basic · mannequin')}</span></button>
     <button class="item" id="yo-ciudad">${t('Ciudad para el tiempo', 'City for the weather')}<span class="valor">${pf.ciudad || E.tiempo?.nombre || pf.lugar || t('tu ubicación', 'your location')}</span></button>
+    <button class="item" id="yo-closet">${t('Clóset', 'Closet')}<span class="valor oro">${CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes')} · ${t('cambiar', 'switch')}</span></button>
     <button class="item" id="yo-exportar">${t('Guardar una copia de mis datos', 'Save a copy of my data')}<span class="valor">JSON</span></button>
     <label class="item" id="yo-importar">${t('Recuperar una copia', 'Restore a copy')}<span class="valor">JSON</span><input type="file" accept="application/json,.json" hidden></label>
     ${PUBLICA ? '' : `<button class="item" id="yo-ejemplo">${E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet')}<span class="valor"></span></button>`}
@@ -980,6 +982,7 @@ function pintarYo() {
   $('yo-ciudad').onclick = async () => { const c = prompt(t('Ciudad para el tiempo (déjalo vacío para usar tu ubicación)', 'City for the weather (leave empty to use your location)'), pf.ciudad || ''); if (c === null) return; E.perfil = E.perfil || {}; E.perfil.ciudad = c.trim(); E.perfil.lat = E.perfil.lon = null; E.perfil.lugar = '';
     if (!E.perfil.ciudad) { const g = await ubicacionMovil(true); if (g) Object.assign(E.perfil, g); else toast(t('Sin permiso de ubicación: escribe la ciudad', 'No location permission: type the city')); }
     await guardar(); await cargarTiempo(true); E.propuestas = []; pintarYo(); };
+  $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   $('yo-plan').onclick = () => { PLAN_URL = null; localStorage.setItem('tc_plan', planDemo() === 'pro' ? 'basico' : 'pro'); pintarYo(); toast(planDemo() === 'pro' ? t('Pro: tu avatar con el conjunto', 'Pro: your avatar') : t('Básico: el conjunto en el maniquí', 'Basic: the outfit on the mannequin')); };
   $('yo-exportar').onclick = exportar;
   $('yo-importar').querySelector('input').onchange = e => e.target.files[0] && importar(e.target.files[0]);
@@ -1124,6 +1127,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (E.perfil?.estilos?.some(k => ESTILO_VIEJO[k])) E.perfil.estilos = [...new Set(E.perfil.estilos.map(k => ESTILO_VIEJO[k] || k))]; // 0.52: los 6 estilos viejos pasan a los 13 // 0.45: que el navegador no borre el clóset para hacer sitio
   let migra = false; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
   traducir(); pintarSilueta();
+  if (CLOSET_ACT) document.querySelector('#p-closet .mc-cab')?.insertAdjacentHTML('beforeend', `<p class="mini-et" style="color:var(--oro);margin-top:4px">${t('Clóset de pruebas', 'Test closet')}</p>`);
   { const l = +new URLSearchParams(location.search).get('lema'); const t = LEMAS[l - 1]; if (t) $('p-inicio').querySelector('.lema .t').textContent = t; bordar(); }
   const q = new URLSearchParams(location.search);
   for (const k of Object.keys(DIS)) if (DIS[k].vals.includes(q.get(k))) DIS_URL[k] = q.get(k);
