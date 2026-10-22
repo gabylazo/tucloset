@@ -33,7 +33,7 @@ const COLORES = [['Negro', '#1B1B1B'], ['Blanco', '#F4F4F4'], ['Gris', '#8E8E8E'
 const T = {
   ac_crear: ['Crea tu clóset', 'Create your closet'], ac_nombre: ['Tu nombre', 'Your name'], ac_ciudad: ['Tu ciudad', 'Your city'], ac_ubic: ['Usar mi ubicación', 'Use my location'],
   ac_nota: ['La ciudad es solo para el tiempo. Tus fotos se quedan en tu móvil.', 'The city is only for the weather. Your photos stay on your phone.'],
-  ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Dos fotos para verte con tu ropa puesta, conocer tu tipo de cuerpo y tus colores.', 'Two photos to see yourself in your clothes and learn your body type and colours.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
+  ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Dos fotos para verte con tu ropa puesta, conocer tu tipo de cuerpo y tus colores.', 'Two photos to see yourself in your clothes and learn your body type and colours.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_estilo: ['Tu estilo', 'Your style'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
   ac_entrar: ['Hola de nuevo', 'Welcome back'], ac_correo: ['Correo', 'Email'], ac_clave: ['Contraseña', 'Password'], ac_olvido: ['¿La has olvidado?', 'Forgot it?'], ac_entrar_bt: ['Entrar', 'Sign in'], ac_o: ['o', 'or'],
   ac_apple: ['Continuar con Apple', 'Continue with Apple'], ac_google: ['Continuar con Google', 'Continue with Google'], ac_no_tengo: ['¿Aún no tienes cuenta? Crea tu clóset', 'No account yet? Create your closet'],
   lema: ['Optimiza tu estilo', 'Make the most of your style'], crear: ['Crear mi clóset', 'Create my closet'], ya_tengo: ['Ya tengo cuenta', 'I already have one'],
@@ -320,6 +320,7 @@ function puntuar(ps) {
   if (tc === 'reloj') s += (vest ? .7 : 0) + (falda ? .3 : 0);
   if (tc === 'rectangulo') s += (ps.some(p => p.tipo === 'Abrigo') ? .4 : 0) + (falda ? .3 : 0) + (vest ? .3 : 0);
   if (tc === 'ovalo') s += (ar && ab && ar.color === ab.color ? .8 : 0) + (vest ? .4 : 0) - (fz(ab) ? .4 : 0);
+  s += puntosEstilo(ps, fuertes, estamp);
   // que salga lo que menos te pones
   const usos = ps.reduce((a, p) => a + (p.usos || []).length, 0) / ps.length; s += Math.max(0, 2 - usos / 4);
   return s + Math.random() * .6;
@@ -355,7 +356,7 @@ function generarLooks(n, plan) {
 }
 
 /* ---------- navegación ---------- */
-const SIN_TABS = ['inicio', 'alta', 'entrar', 'planes', 'silueta', 'cuerpo', 'anadir', 'nuevo-look', 'subir'];
+const SIN_TABS = ['inicio', 'alta', 'entrar', 'planes', 'silueta', 'cuerpo', 'estilo', 'anadir', 'nuevo-look', 'subir'];
 function ir(nombre, datos) {
   if (nombre === 'inicio' && !$('intro')) $('p-inicio').classList.add('aparece');
   if (nombre === 'anadir') prepararAnadir(datos);
@@ -363,6 +364,7 @@ function ir(nombre, datos) {
   if (nombre === 'nuevo-look') prepararNuevoLook(datos);
   if (nombre === 'hoy') pintarHoy();
   if (nombre === 'cuerpo') pintarCuerpo();
+  if (nombre === 'estilo') pintarEstilo();
   if (nombre === 'closet') pintarCloset();
   if (nombre === 'looks') pintarLooks();
   if (nombre === 'yo') pintarYo();
@@ -816,6 +818,7 @@ function pintarYo() {
   $('yo-estad').innerHTML = `<div><b>${E.prendas.length}</b><span>${t('prendas', 'garments')}</span></div><div><b>${usosMes}</b><span>${t('usos este mes', 'uses this month')}</span></div><div><b>${E.conjuntos.length}</b><span>${t('conjuntos', 'outfits')}</span></div>`;
   const sil = pf.selfie && pf.cuerpo ? t('Fotos listas', 'Photos ready') : pf.selfie || pf.cuerpo ? t('Falta una foto', 'One photo missing') : t('Sin fotos', 'No photos');
   $('yo-lista').innerHTML = `<button class="item" data-ir="silueta">${t('Mi silueta', 'My figure')}<span class="valor ${pf.selfie && pf.cuerpo ? 'oro' : ''}">${sil}</span></button>
+    <button class="item" data-ir="estilo">${t('Mi estilo', 'My style')}<span class="valor ${(pf.estilos || []).length ? 'oro' : ''}">${(pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[idioma() === 'en' ? 1 : 0]).filter(Boolean).join(' · ') || t('Sin elegir', 'Not set')}</span></button>
     <button class="item" id="yo-colores">${t('Mis colores', 'My colours')}<span class="valor">${t('Próximamente', 'Coming soon')}</span></button>
     <button class="item" id="yo-top">${t('La que más te pones', 'Most worn')}<span class="valor">${top && (top.usos || []).length ? `${top.nombre} · ${top.usos.length}` : '—'}</span></button>`;
   $('yo-ajustes').innerHTML = `<button class="item" id="yo-idioma">${t('Idioma', 'Language')}<span class="valor">${idioma() === 'en' ? 'English' : 'Español'}</span></button>
@@ -994,6 +997,45 @@ function pintarCuerpo() {
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-tcuerpo]'); if (!b) return;
   E.perfil = E.perfil || {}; E.perfil.tipoCuerpo = b.dataset.tcuerpo; await guardar(); pintarCuerpo();
+});
+
+/* ---------- tu estilo (0.36, 22/10, Sheila): el perfil lleva uno o dos estilos y los looks se ordenan según ellos.
+   Los seis nombres son los de Sheila. Cada estilo suma o resta a la puntuación de puntuar(); no quita looks, los ordena. ---------- */
+const ESTILOS = [
+  { k: 'romantico', n: ['Romántico', 'Romantic'], d: ['Vestidos, faldas, blusas y tonos suaves.', 'Dresses, skirts, blouses and soft tones.'] },
+  { k: 'basico', n: ['Básico', 'Essentials'], d: ['Neutros, líneas limpias, sin estampados.', 'Neutrals, clean lines, no prints.'] },
+  { k: 'formal', n: ['Formal', 'Formal'], d: ['Camisa, americana, pantalón de vestir y tacón.', 'Shirt, blazer, tailored trousers and heels.'] },
+  { k: 'atrevido', n: ['Atrevido', 'Bold'], d: ['Color fuerte, contraste y tacón.', 'Strong colour, contrast and heels.'] },
+  { k: 'extravagante', n: ['Extravagante', 'Eclectic'], d: ['Estampados y colores que se mezclan sin miedo.', 'Prints and colours mixed fearlessly.'] },
+  { k: 'normal', n: ['Normal', 'Casual'], d: ['Cómodo para el día a día: vaqueros y zapatillas.', 'Comfortable everyday: jeans and trainers.'] },
+];
+const SUAVES = new Set(['Rosa', 'Blanco', 'Beige', 'Azul claro']);
+function puntosEstilo(ps, fuertes, estamp) {
+  const el = E.perfil?.estilos || []; if (!el.length) return 0;
+  const ropa = ropaDe(ps), n = nivelRopa(ps), zap = ps.find(p => p.tipo === 'Calzado'), z = zap ? estilo(zap) : 1;
+  const nom = ropa.map(p => (p.nombre || '').toLowerCase()).join(' '), vest = ps.some(p => p.tipo === 'Vestidos'), falda = /falda|skirt/.test(nom);
+  const neutros = ropa.every(p => NEUTROS.has(p.color));
+  let s = 0;
+  for (const k of el) {
+    if (k === 'romantico') s += (vest ? 1.2 : 0) + (falda ? .8 : 0) + (/blusa|lazo|volante|encaje|blouse/.test(nom) ? .6 : 0) + ropa.filter(p => SUAVES.has(p.color)).length * .4 - (z === 0 ? .8 : 0);
+    if (k === 'basico') s += (neutros ? 1.4 : 0) - estamp * 1.2 - (fuertes.length > 1 ? 1 : 0);
+    if (k === 'formal') s += Math.max(0, n - 1) * 1.2 + (z >= 2 ? .6 : 0) - (z === 0 ? 1.5 : 0) - (/vaquer|jean/.test(nom) ? .6 : 0);
+    if (k === 'atrevido') s += (fuertes.length ? 1.2 : -.6) + (ps.some(p => p.color === 'Rojo') ? .5 : 0) + (z === 3 ? .6 : 0);
+    if (k === 'extravagante') s += estamp * 1.2 + (fuertes.length >= 2 ? 1.5 : 0) - (neutros ? 1 : 0);
+    if (k === 'normal') s += (n <= 1.3 ? 1 : 0) + (/vaquer|jean/.test(nom) ? .6 : 0) + (z <= 1 ? .5 : 0) - (z === 3 ? .8 : 0);
+  }
+  return s / el.length;
+}
+function pintarEstilo() {
+  const el = E.perfil?.estilos || [], es = idioma() === 'en' ? 1 : 0;
+  $('es-sub').textContent = t('Elige uno o dos. Tus looks se ordenan según tu estilo y puedes cambiarlo cuando quieras.', 'Pick one or two. Your looks are ordered by your style and you can change it any time.');
+  $('es-lista').innerHTML = ESTILOS.map(x => `<button class="${el.includes(x.k) ? 'on' : ''}" data-estilo="${x.k}"><b>${x.n[es]}</b><span>${x.d[es]}</span></button>`).join('');
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-estilo]'); if (!b) return;
+  E.perfil = E.perfil || {}; let el = E.perfil.estilos || []; const k = b.dataset.estilo;
+  el = el.includes(k) ? el.filter(x => x !== k) : [...el, k].slice(-2);   // como mucho dos: el tercero sustituye al más antiguo
+  E.perfil.estilos = el; await guardar(); pintarEstilo();
 });
 
 // 0.25: las funciones de cada plan se marcan con el botón dorado solo al tocarlas (Gabriela: «cuando las selecciones sí salga, pero como predeterminada no»)
