@@ -644,8 +644,30 @@ async function mascaraU2(img) { // máscara 320×320 en el canal alfa de un lien
   const sal = await ses.run({ [ses.inputNames[0]]: new ort.Tensor('float32', ent, [1, 3, S, S]) });
   const m = sal[ses.outputNames[0]].data; let lo = Infinity, hi = -Infinity; for (let i = 0; i < m.length; i++) { if (m[i] < lo) lo = m[i]; if (m[i] > hi) hi = m[i]; }
   const mc = document.createElement('canvas'); mc.width = S; mc.height = S; const mxc = mc.getContext('2d'); const md = mxc.createImageData(S, S);
-  for (let p = 0; p < S * S; p++) { const a = (m[p] - lo) / ((hi - lo) || 1); md.data[p * 4 + 3] = Math.round(Math.max(0, Math.min(1, (a - .2) / .6)) * 255); }
+  const al = new Uint8ClampedArray(S * S); for (let p = 0; p < S * S; p++) { const a = (m[p] - lo) / ((hi - lo) || 1); al[p] = Math.round(Math.max(0, Math.min(1, (a - .2) / .6)) * 255); }
+  piezaMayor(al, S, S); for (let p = 0; p < S * S; p++) md.data[p * 4 + 3] = al[p];
   mxc.putImageData(md, 0, 0); return mc;
+}
+// 0.56 (Sheila, 22/10: «no me toma bien las prendas»): se queda solo con la pieza más grande de la máscara y un borde de 2 px;
+// quita las manchas sueltas de sábana, pared o lámpara que el modelo deja alrededor
+function piezaMayor(a, W, H) {
+  const et = new Int32Array(W * H), pila = []; let n = 0, mejor = 0, tam = 0;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] < 128 || et[i]) continue; n++; let t = 0; pila.push(i); et[i] = n;
+    while (pila.length) { const j = pila.pop(); t++; const x = j % W; for (const k of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (k >= 0 && k < a.length && !et[k] && a[k] >= 128) { et[k] = n; pila.push(k); } }
+    if (t > tam) { tam = t; mejor = n; }
+  }
+  if (!mejor) return;
+  let cerca = new Uint8Array(W * H); for (let i = 0; i < a.length; i++) cerca[i] = et[i] === mejor ? 1 : 0;
+  for (let r = 0; r < 2; r++) { const c2 = cerca.slice(); for (let i = 0; i < a.length; i++) if (!cerca[i]) { const x = i % W; if ((x > 0 && cerca[i - 1]) || (x < W - 1 && cerca[i + 1]) || cerca[i - W] || cerca[i + W]) c2[i] = 1; } cerca = c2; }
+  for (let i = 0; i < a.length; i++) if (!cerca[i]) a[i] = 0;
+}
+// 0.56: si la foto ya llega sin fondo (en el iPhone, «Levantar el sujeto» en Fotos y guardar; en Android, «Recortar»), se usa su transparencia tal cual
+function yaSinFondo(img) {
+  const S = 120, c = document.createElement('canvas'); c.width = S; c.height = S; const x = c.getContext('2d', { willReadFrequently: true });
+  x.drawImage(img, 0, 0, S, S); const d = x.getImageData(0, 0, S, S).data; let tr = 0;
+  for (let k = 3; k < d.length; k += 4) if (d[k] < 20) tr++;
+  return tr > S * S * .05;
 }
 // reconocimiento de prendas (0.29, Sheila: «entrena reconocimiento de prendas»): MobileCLIP-S0 en el propio móvil (45 MB, se descarga una vez)
 // compara la foto con 48 descripciones de prendas calculadas antes (modelos/ropa-textos.json); con las 24 fotos de Sheila acierta 23
@@ -701,8 +723,8 @@ async function procesarPrenda(file) {
     const capa = document.createElement('canvas'); capa.width = w; capa.height = h; const cx = capa.getContext('2d', { willReadFrequently: true });
     let caja = null, color = 'Gris', recortada = false;
     try {
-      const masc = await mascaraU2(img);
-      cx.drawImage(img, 0, 0, w, h); cx.globalCompositeOperation = 'destination-in'; cx.drawImage(masc, 0, 0, w, h); cx.globalCompositeOperation = 'source-over';
+      if (yaSinFondo(img)) cx.drawImage(img, 0, 0, w, h);
+      else { const masc = await mascaraU2(img); cx.drawImage(img, 0, 0, w, h); cx.globalCompositeOperation = 'destination-in'; cx.drawImage(masc, 0, 0, w, h); cx.globalCompositeOperation = 'source-over'; }
       const d = cx.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = 0, y1 = 0, R = 0, G = 0, B = 0, n = 0, opacos = 0;
       for (let p = 0, k = 0; p < w * h; p++, k += 4) { const a = d[k + 3]; if (a < 128) continue; opacos++; const px = p % w, py = (p / w) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; if (a > 220 && (p & 3) === 0) { R += d[k]; G += d[k + 1]; B += d[k + 2]; n++; } }
       if (opacos > w * h * .03) {
