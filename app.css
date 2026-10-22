@@ -932,3 +932,4 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .cal-mios{grid-template-columns:repeat(3,minmax(0,1fr))}.cal-mios button{padding:0;overflow:hidden}
 .cal-mios .lk-fig{position:absolute;inset:0;background:none}.cal-mios img.av,.cal-look img.av{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .cal-look .cal-mios .lk-fig{width:auto;margin:0;aspect-ratio:auto}
+.cal-falta{font-size:12.5px;line-height:1.45;color:var(--sec);font-weight:300;max-width:320px;margin:0 auto 12px}

@@ -302,6 +302,14 @@ function estilo(p) {
 const esFormal = p => estilo(p) >= 2;
 const ropaDe = ps => ps.filter(p => !['Bolsos', 'Calzado', 'Accesorios'].includes(p.tipo));
 const nivelRopa = ps => { const r = ropaDe(ps).map(estilo); return r.length ? r.reduce((a, b) => a + b, 0) / r.length : 1; };
+// un look sirve para un plan si es de esa ocasión o, para salir de noche, si es arreglado y lleva tacones (0.41)
+function sirvePara(ps, oc, plan) {
+  if (oc === plan) return true;
+  const zap = ps.find(p => p.tipo === 'Calzado');
+  if (plan === 'Noche') return !!zap && estilo(zap) === 3 && nivelRopa(ps) >= 1.5;
+  if (plan === 'Evento') return oc === 'Oficina' && !!zap && estilo(zap) === 3;
+  return false;
+}
 function ocasionDe(ps) { // la ocasión la marca la ropa; el calzado solo la sube (tacones) o la baja (zapatillas)
   const r = ropaDe(ps).map(estilo), zap = ps.find(p => p.tipo === 'Calzado'), z = zap ? estilo(zap) : 1, m = nivelRopa(ps);
   // 0.39 (Sheila, 22/10: «no entiendo por qué sale directamente noche», un vestido azul claro de manga corta con tacones):
@@ -367,7 +375,7 @@ function generarLooks(n, plan) {
     if (c.puntos < -1.5 && out.length) break;                                      // mejor menos ideas que ideas malas
     const clave = c.ps.map(p => p.id).sort().join(); if (vistos.has(clave)) continue;
     const prin = c.ps[0]; if ((usados.get(prin.id) || 0) >= 2) continue;       // variedad: la misma prenda principal, como mucho dos veces
-    const oc = ocasionDe(c.ps); if (plan && plan !== 'Todos' && oc !== plan) continue;
+    const oc = ocasionDe(c.ps); if (plan && plan !== 'Todos' && !sirvePara(c.ps, oc, plan)) continue;
     vistos.add(clave); usados.set(prin.id, (usados.get(prin.id) || 0) + 1);
     out.push({ ids: c.ps.map(p => p.id), ocasion: oc, nombre: `${ocNombre(oc)} ${t('con', 'with')} ${prin.nombre.charAt(0).toLowerCase() + prin.nombre.slice(1)}` });
     if (out.length >= n) break;
@@ -470,9 +478,12 @@ function pintarCalendario(raiz) {
   let look = '';
   if (a.look?.length && a.look.every(P)) look = `<div class="cal-look"><p class="mini-et">${t('Tu look para este día', 'Your look for this day')}</p><div class="lk-fig">${figLook({ ids: a.look }, true)}</div><button class="txt sub-l" data-cquitalook>${t('Quitar el look', 'Remove the look')}</button></div>`;
   else if (futuro) {
-    const oc = planes[0]?.oc || 'Todos'; let ideas = generarLooks(6, oc); if (!ideas.length) ideas = generarLooks(6, 'Todos');
+    // 0.41 (Sheila, 22/10: «no algo para la noche»): si el clóset no tiene nada de esa ocasión, se dice y se enseña lo más cercano
+    // (para Noche y Evento, lo más arreglado; para Deporte y Diario, lo más cómodo), en vez de sugerir un look cualquiera
+    const oc = planes[0]?.oc || 'Todos'; let ideas = generarLooks(6, oc), falta = false;
+    if (!ideas.length) { falta = oc !== 'Todos'; const sube = ['Noche', 'Evento', 'Oficina'].includes(oc) ? 1 : -1, nv = l => { const ps = l.ids.map(P).filter(Boolean), z = ps.find(p => p.tipo === 'Calzado'); return nivelRopa(ps) + (z ? estilo(z) : 1) * .5; }; ideas = generarLooks(12, 'Todos').sort((x, y) => sube * (nv(y) - nv(x))).slice(0, 6); }
     const g = ideas[E.cal.idea % Math.max(1, ideas.length)];
-    look = g ? `<div class="cal-look"><p class="mini-et">${planes.length ? t(`Te sugiero para ${ocNombre(oc).toLowerCase()}`, `My pick for ${ocNombre(oc).toLowerCase()}`) : t('Una idea para este día', 'An idea for this day')}</p><div class="lk-fig">${figLook(g, true)}</div><div class="cal-bts"><button class="hz-bt" data-cguarda="${g.ids.join(',')}">${t('Guardar para este día', 'Save for this day')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button></div></div>` : '';
+    look = g ? `<div class="cal-look">${falta ? `<p class="cal-falta">${t(`Aún no tienes nada de ${ocNombre(oc).toLowerCase()} en tu clóset. Te enseño lo que más se acerca; si subes algo de ${ocNombre(oc).toLowerCase()}, te lo propondré.`, `You have nothing for ${ocNombre(oc).toLowerCase()} in your closet yet. Here is the closest; upload something for ${ocNombre(oc).toLowerCase()} and I will suggest it.`)}</p>` : ''}<p class="mini-et">${falta ? t('Lo más cercano', 'The closest') : planes.length ? t(`Te sugiero para ${ocNombre(oc).toLowerCase()}`, `My pick for ${ocNombre(oc).toLowerCase()}`) : t('Una idea para este día', 'An idea for this day')}</p><div class="lk-fig">${figLook(g, true)}</div><div class="cal-bts"><button class="hz-bt" data-cguarda="${g.ids.join(',')}">${t('Guardar para este día', 'Save for this day')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button></div></div>` : '';
   }
   const pasado = ps.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(ps, true)}</div></div>`
     : !futuro && E.conjuntos.length ? `<div class="cal-look"><p class="mini-et">${t('Apunta lo que te pusiste', 'Note what you wore')}</p><div class="cal-mios">${E.conjuntos.slice(0, 12).map(c => `<button data-cpuse="${c.id}"><div class="lk-fig">${maniqui(c.ids.map(P).filter(Boolean), true)}</div></button>`).join('')}</div></div>` : '';
