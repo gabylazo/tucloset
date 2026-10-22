@@ -304,7 +304,11 @@ const ropaDe = ps => ps.filter(p => !['Bolsos', 'Calzado', 'Accesorios'].include
 const nivelRopa = ps => { const r = ropaDe(ps).map(estilo); return r.length ? r.reduce((a, b) => a + b, 0) / r.length : 1; };
 function ocasionDe(ps) { // la ocasión la marca la ropa; el calzado solo la sube (tacones) o la baja (zapatillas)
   const r = ropaDe(ps).map(estilo), zap = ps.find(p => p.tipo === 'Calzado'), z = zap ? estilo(zap) : 1, m = nivelRopa(ps);
-  if (Math.max(...r) === 3 || (m >= 1.5 && z === 3)) return 'Noche';
+  // 0.39 (Sheila, 22/10: «no entiendo por qué sale directamente noche», un vestido azul claro de manga corta con tacones):
+  // Noche solo si la ropa es de noche (satén, lentejuelas, vestido negro…); los tacones ya no la convierten en Noche:
+  // un vestido de día con tacones es Evento (comida, boda de día) y unos pantalones y blusa con tacones, Oficina
+  if (Math.max(...r) === 3) return 'Noche';
+  if (ps.some(p => p.tipo === 'Vestidos')) return z >= 2 ? 'Evento' : 'Diario';
   if (m >= 1.5 && z >= 1) return 'Oficina';
   return 'Diario';
 }
@@ -434,7 +438,7 @@ async function ponerse(ids, conj) {
   const d = hoyISO(); let n = 0;
   ids.forEach(id => { const p = P(id); if (!p) return; p.usos = p.usos || []; if (!p.usos.includes(d)) { p.usos.push(d); n++; } });
   if (conj) { conj.usos = conj.usos || []; if (!conj.usos.includes(d)) conj.usos.push(d); }
-  else if (ids.length >= 2 && !E.conjuntos.some(c => c.ids.join() === ids.join())) { E.conjuntos.unshift({ id: uid(), nombre: t('Hoy', 'Today') + ' ' + fecha(d, true), ocasion: 'Diario', ids, creada: d, usos: [d] }); }
+  else if (ids.length >= 2 && !E.conjuntos.some(c => c.ids.join() === ids.join())) { E.conjuntos.unshift({ id: uid(), nombre: t('Hoy', 'Today') + ' ' + fecha(d, true), ocasion: ocasionDe(ids.map(P).filter(Boolean)), ids, creada: d, usos: [d] }); }
   await guardar(); toast(n ? t(`Apuntado: ${n} prendas puestas hoy`, `Noted: ${n} garments worn today`) : t('Ya lo tenías apuntado hoy', 'Already noted today'));
 }
 
