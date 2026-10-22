@@ -189,8 +189,8 @@ function collage(ps) {
   const H = y, esc = .9;
   // izquierda: segunda prenda de arriba y accesorios, de arriba abajo, y el calzado abajo pisando un poco el look; derecha: el bolso, a un tercio
   const izq = [arriba[1], ...acc].filter(Boolean), szI = izq.map(p => m(p).map(v => v * esc)), szZ = calzado ? m(calzado).map(v => v * esc) : [0, 0], szB = bolso ? m(bolso).map(v => v * esc) : [0, 0];
-  const izW = Math.max(0, ...szI.map(s => s[0]), szZ[0] * .7), deW = szB[0] * .8;
-  const x0 = izW + (izW ? G : 0), W = x0 + colW * 1.1 + (deW ? deW + G * .5 : 0);
+  const lw = Math.max(0, ...szI.map(s => s[0]), szZ[0] * .7, szB[0] * .8); // los dos lados igual de anchos: el look queda siempre en el centro (Gabriela, 22/10: «¿todo sale descentrado?»)
+  const x0 = lw + (lw ? G : 0), W = 2 * x0 + colW * 1.1;
   out.forEach(o => o[1] = x0 + colW * .05 + (colW - o[3]) / 2 + o[5]);
   let ly = 0; izq.forEach((p, k) => { const [w, h] = szI[k]; out.push([p, (izW - w) / 2, ly, w, h]); ly += h + G; });
   if (calzado) { const [w, h] = szZ; out.push([calzado, Math.max(0, x0 - w * .55), H - h * .85, w, h]); }
