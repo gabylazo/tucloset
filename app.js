@@ -227,18 +227,34 @@ function maniqui(ps, mini) { // nombre heredado: ahora devuelve la composición 
 }
 const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
 /* ---------- tiempo (Open-Meteo) ---------- */
+// nombre del sitio a partir de las coordenadas (BigDataCloud, sin clave); se guarda en el perfil para no repetirlo
+async function nombreLugar(lat, lon) {
+  if (E.perfil?.lat === lat && E.perfil?.lugar) return E.perfil.lugar;
+  try { const d = await (await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=${idioma()}`)).json(); const n = d.city || d.locality || ''; if (n && E.perfil?.lat === lat) { E.perfil.lugar = n; await guardar(); } return n; } catch (e) { return ''; }
+}
+// la ubicación del móvil; solo se pide una vez si nunca se ha preguntado (tc_ubic_pedida)
+function ubicacionMovil(siempre) {
+  if (!navigator.geolocation) return Promise.resolve(null);
+  try { if (!siempre && localStorage.getItem('tc_ubic_pedida')) return Promise.resolve(null); localStorage.setItem('tc_ubic_pedida', '1'); } catch (e) { }
+  return new Promise(res => navigator.geolocation.getCurrentPosition(p => res({ lat: p.coords.latitude, lon: p.coords.longitude, lugar: '' }), () => res(null), { timeout: 10000, maximumAge: 3600000 }));
+}
 async function cargarTiempo(forzar) {
   const cache = JSON.parse(localStorage.getItem('tc_tiempo') || 'null');
-  if (!forzar && cache && cache.v && 'lluviaH' in cache.v && Date.now() - cache.ts < 30 * 60000) { E.tiempo = cache.v; return E.tiempo; }
+  if (!forzar && cache && cache.v && cache.k === 38 && 'lluviaH' in cache.v && Date.now() - cache.ts < 30 * 60000) { E.tiempo = cache.v; return E.tiempo; }
   try {
-    let lat = E.perfil?.lat, lon = E.perfil?.lon, nombre = E.perfil?.ciudad || 'Madrid';
+    let lat = E.perfil?.lat, lon = E.perfil?.lon, nombre = E.perfil?.ciudad || E.perfil?.lugar || '';
+    // 0.38 (Sheila, 22/10: «me sale Madrid y yo estoy en Huelva»): sin ciudad ni ubicación ya no se da Madrid por hecho;
+    // se pide la ubicación del móvil (una vez) y, si no la da, la aproximada por la conexión
+    if (!lat && !E.perfil?.ciudad) { const g = await ubicacionMovil(); if (g) { lat = g.lat; lon = g.lon; E.perfil = Object.assign(E.perfil || {}, g); await guardar(); } }
+    if (!lat && !E.perfil?.ciudad) { try { const ip = await (await fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=' + idioma())).json(); if (ip.latitude) { lat = ip.latitude; lon = ip.longitude; nombre = ip.city || ip.locality || ''; } } catch (e) { } }
+    if (lat && !nombre) nombre = await nombreLugar(lat, lon);
     if (!lat && E.perfil?.ciudad) { const g = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(E.perfil.ciudad)}&count=1&language=es`)).json(); if (g.results?.length) { lat = g.results[0].latitude; lon = g.results[0].longitude; nombre = g.results[0].name; } }
-    if (!lat) { lat = 40.4168; lon = -3.7038; nombre = E.perfil?.ciudad || 'Madrid'; }
+    if (!lat) { lat = 40.4168; lon = -3.7038; nombre = E.perfil?.ciudad || 'Madrid'; } // último recurso: sin red de ubicación ni ciudad encontrada
     const r = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=precipitation_probability&timezone=auto&forecast_days=1`)).json();
     const cod = r.current.weather_code; const txt = cod === 0 ? ['despejado', 'clear'] : cod <= 2 ? ['nubes y claros', 'partly cloudy'] : cod === 3 ? ['nublado', 'cloudy'] : cod < 50 ? ['niebla', 'fog'] : cod < 70 ? ['lluvia', 'rain'] : cod < 80 ? ['nieve', 'snow'] : cod < 90 ? ['chubascos', 'showers'] : ['tormenta', 'storm'];
     const ahora = new Date().getHours(); const probs = r.hourly?.precipitation_probability || []; let lluviaH = null; for (let h = ahora; h < Math.min(24, probs.length); h++) if (probs[h] >= 50) { lluviaH = h; break; }
     E.tiempo = { t: Math.round(r.current.temperature_2m), max: Math.round(r.daily.temperature_2m_max[0]), min: Math.round(r.daily.temperature_2m_min[0]), lluvia: r.daily.precipitation_probability_max?.[0] ?? 0, txt, nombre, cod, clave: claveTiempo(cod), lluviaH };
-    localStorage.setItem('tc_tiempo', JSON.stringify({ ts: Date.now(), v: E.tiempo }));
+    localStorage.setItem('tc_tiempo', JSON.stringify({ ts: Date.now(), k: 38, v: E.tiempo }));
   } catch (e) { E.tiempo = null; }
   return E.tiempo;
 }
@@ -830,7 +846,7 @@ function pintarYo() {
   const top = E.prendas.slice().sort((a, b) => (b.usos || []).length - (a.usos || []).length)[0];
   $('yo-cara').innerHTML = pf.selfie ? `<img src="${URL.createObjectURL(pf.selfie)}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:50% 20%">` : (pf.nombre || '?').slice(0, 1).toUpperCase();
   $('yo-nombre').textContent = pf.nombre || t('Tú', 'You');
-  $('yo-sub').textContent = [E.tiempo?.nombre || pf.ciudad || 'Madrid', estNombre(estacionDelDia()), `${E.prendas.length} ${t('prendas', 'garments')}`].join(' · ');
+  $('yo-sub').textContent = [E.tiempo?.nombre || pf.ciudad || pf.lugar, estNombre(estacionDelDia()), `${E.prendas.length} ${t('prendas', 'garments')}`].filter(Boolean).join(' · ');
   $('yo-estad').innerHTML = `<div><b>${E.prendas.length}</b><span>${t('prendas', 'garments')}</span></div><div><b>${usosMes}</b><span>${t('usos este mes', 'uses this month')}</span></div><div><b>${E.conjuntos.length}</b><span>${t('conjuntos', 'outfits')}</span></div>`;
   const sil = pf.selfie && pf.cuerpo ? t('Fotos listas', 'Photos ready') : pf.selfie || pf.cuerpo ? t('Falta una foto', 'One photo missing') : t('Sin fotos', 'No photos');
   $('yo-lista').innerHTML = `<button class="item" data-ir="silueta">${t('Mi silueta', 'My figure')}<span class="valor ${pf.selfie && pf.cuerpo ? 'oro' : ''}">${sil}</span></button>
@@ -840,13 +856,15 @@ function pintarYo() {
   $('yo-ajustes').innerHTML = `<button class="item" id="yo-idioma">${t('Idioma', 'Language')}<span class="valor">${idioma() === 'en' ? 'English' : 'Español'}</span></button>
     <button class="item" data-ir="diseno">${t('Diseño (para decidir)', 'Design (to decide)')}<span class="valor">${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}</span></button>
     <button class="item" id="yo-plan">${t('Plan (para enseñarlo)', 'Plan (demo)')}<span class="valor">${planDemo() === 'pro' ? t('Pro · tu avatar', 'Pro · your avatar') : t('Básico · maniquí', 'Basic · mannequin')}</span></button>
-    <button class="item" id="yo-ciudad">${t('Ciudad para el tiempo', 'City for the weather')}<span class="valor">${pf.lat ? t('tu ubicación', 'your location') : pf.ciudad || 'Madrid'}</span></button>
+    <button class="item" id="yo-ciudad">${t('Ciudad para el tiempo', 'City for the weather')}<span class="valor">${pf.ciudad || E.tiempo?.nombre || pf.lugar || t('tu ubicación', 'your location')}</span></button>
     <button class="item" id="yo-exportar">${t('Guardar una copia de mis datos', 'Save a copy of my data')}<span class="valor">JSON</span></button>
     ${PUBLICA ? '' : `<button class="item" id="yo-ejemplo">${E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet')}<span class="valor"></span></button>`}
     <button class="item" id="yo-borrar">${t('Borrar todo de este móvil', 'Delete everything from this phone')}<span class="valor"></span></button>
     <div class="item">${t('Suscripción', 'Subscription')}<span class="valor">${t('Prueba · versión web', 'Trial · web version')}</span></div>`;
   $('yo-idioma').onclick = async () => { E.perfil = E.perfil || {}; E.perfil.idioma = idioma() === 'en' ? 'es' : 'en'; localStorage.setItem('tc_idioma', E.perfil.idioma); await guardar(); traducir(); pintarYo(); };
-  $('yo-ciudad').onclick = async () => { const c = prompt(t('Ciudad para el tiempo', 'City for the weather'), pf.ciudad || ''); if (c === null) return; E.perfil = E.perfil || {}; E.perfil.ciudad = c.trim(); E.perfil.lat = E.perfil.lon = null; await guardar(); await cargarTiempo(true); E.propuestas = []; pintarYo(); };
+  $('yo-ciudad').onclick = async () => { const c = prompt(t('Ciudad para el tiempo (déjalo vacío para usar tu ubicación)', 'City for the weather (leave empty to use your location)'), pf.ciudad || ''); if (c === null) return; E.perfil = E.perfil || {}; E.perfil.ciudad = c.trim(); E.perfil.lat = E.perfil.lon = null; E.perfil.lugar = '';
+    if (!E.perfil.ciudad) { const g = await ubicacionMovil(true); if (g) Object.assign(E.perfil, g); else toast(t('Sin permiso de ubicación: escribe la ciudad', 'No location permission: type the city')); }
+    await guardar(); await cargarTiempo(true); E.propuestas = []; pintarYo(); };
   $('yo-plan').onclick = () => { PLAN_URL = null; localStorage.setItem('tc_plan', planDemo() === 'pro' ? 'basico' : 'pro'); pintarYo(); toast(planDemo() === 'pro' ? t('Pro: tu avatar con el conjunto', 'Pro: your avatar') : t('Básico: el conjunto en el maniquí', 'Basic: the outfit on the mannequin')); };
   $('yo-exportar').onclick = exportar;
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
@@ -930,7 +948,7 @@ if (new URLSearchParams(location.search).get('planes') !== 'a') $('p-planes').cl
 $('pl-empezar').addEventListener('click', async () => { E.perfil = Object.assign(E.perfil || {}, { alta: E.perfil?.alta || hoyISO(), idioma: idioma(), planElegido: E.pl.plan, periodo: E.pl.per }); await guardar(); ir('hoy'); toast(t('Tu prueba de 7 días ha empezado', 'Your 7-day trial has started')); });
 document.querySelectorAll('[data-social]').forEach(b => b.onclick = () => toast(t(`Entrar con ${b.dataset.social} llegará con las cuentas en la nube. Ahora tu clóset vive en este móvil.`, `${b.dataset.social} sign-in comes with cloud accounts. For now your closet lives on this phone.`)));
 $('e-olvido').onclick = () => toast(t('Llegará con las cuentas en la nube.', 'Coming with cloud accounts.'));
-$('a-ubicacion').onclick = () => { if (!navigator.geolocation) return toast(t('Tu navegador no da la ubicación', 'Your browser gives no location')); navigator.geolocation.getCurrentPosition(async p => { E.perfil = Object.assign(E.perfil || {}, { lat: p.coords.latitude, lon: p.coords.longitude, ciudad: '' }); $('a-ciudad').value = ''; await guardar(); await cargarTiempo(true); toast(E.tiempo ? `${E.tiempo.nombre || t('Ubicación', 'Location')} · ${E.tiempo.t}°` : t('Ubicación guardada', 'Location saved')); }, () => toast(t('Sin permiso de ubicación: escribe la ciudad', 'No location permission: type the city'))); };
+$('a-ubicacion').onclick = () => { if (!navigator.geolocation) return toast(t('Tu navegador no da la ubicación', 'Your browser gives no location')); navigator.geolocation.getCurrentPosition(async p => { E.perfil = Object.assign(E.perfil || {}, { lat: p.coords.latitude, lon: p.coords.longitude, ciudad: '', lugar: '' }); $('a-ciudad').value = ''; await guardar(); await cargarTiempo(true); toast(E.tiempo ? `${E.tiempo.nombre || t('Ubicación', 'Location')} · ${E.tiempo.t}°` : t('Ubicación guardada', 'Location saved')); }, () => toast(t('Sin permiso de ubicación: escribe la ciudad', 'No location permission: type the city'))); };
 $('f-selfie').onchange = e => e.target.files[0] && guardarFotoPerfil('selfie', e.target.files[0]);
 $('f-cuerpo').onchange = e => e.target.files[0] && guardarFotoPerfil('cuerpo', e.target.files[0]);
 $('an-guardar').onclick = () => guardarPrenda(false);
