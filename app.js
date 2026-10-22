@@ -530,7 +530,9 @@ async function reconocerPrenda(cv) {
   const sal = await SES_ROPA.run({ [SES_ROPA.inputNames[0]]: new ort.Tensor('float32', ent, [1, 3, S, S]) });
   const v = sal[SES_ROPA.outputNames[0]].data; let n = 0; for (const a of v) n += a * a; n = Math.sqrt(n);
   const pc = {}, px = {}; for (const p of TXT_ROPA.prompts) { let s = 0; for (let i = 0; i < p.e.length; i++) s += p.e[i] * v[i]; s /= n; if (!(s <= pc[p.cat])) { pc[p.cat] = s; px[p.cat] = p.x; } }
-  const cat = Object.entries(pc).sort((a, b) => b[1] - a[1])[0][0]; return { cat, x: px[cat] };
+  // 0.37 (Sheila, 22/10: una captura de Vinted entró como top): «NoPrenda» son 13 descripciones de lo que no es ropa (capturas, textos, caras, paisajes…)
+  const no = pc.NoPrenda ?? -1; delete pc.NoPrenda;
+  const [cat, sc] = Object.entries(pc).sort((a, b) => b[1] - a[1])[0]; return { cat, x: px[cat], noPrenda: no > sc - .005 };
 }
 // 0.30 (Sheila, 21/10: su falda salía como top y una sandalia como pantalón): las prendas subidas antes del reconocimiento se revisan solas una vez;
 // cambia el tipo y, si el nombre era el automático, también el nombre. Lo que ella haya escrito a mano no se toca.
@@ -550,6 +552,15 @@ async function reconocerGuardadas() {
   }
   await guardar();
   if (cambios) { E.propuestas = []; E.generados = []; if (E.pantalla === 'hoy') pintarHoy(); toast(t(`He revisado tus prendas: ${cambios} con el tipo corregido`, `I checked your garments: ${cambios} type${cambios > 1 ? 's' : ''} fixed`)); }
+}
+// 0.37 (Sheila, 22/10: «o al menos un mensaje de alerta al cliente que lo debe hacer en un fondo uniforme»): desviación media de color
+// en una franja del 5 % alrededor de la foto; un fondo liso da menos de 20; las fotos de Sheila sobre pared, lámpara y sofá, de 33 a 66
+function fondoIrregular(cv) {
+  const S = 200, b = 10, c = document.createElement('canvas'); c.width = S; c.height = S; const x = c.getContext('2d', { willReadFrequently: true });
+  x.drawImage(cv, 0, 0, S, S); const d = x.getImageData(0, 0, S, S).data, px = [];
+  for (let y = 0; y < S; y++) for (let i = 0; i < S; i++) if (i < b || y < b || i >= S - b || y >= S - b) { const k = (y * S + i) * 4; px.push([d[k], d[k + 1], d[k + 2]]); }
+  const m = [0, 1, 2].map(ch => px.reduce((a, p) => a + p[ch], 0) / px.length);
+  return px.reduce((a, p) => a + Math.hypot(p[0] - m[0], p[1] - m[1], p[2] - m[2]), 0) / px.length > 28;
 }
 async function procesarPrenda(file) {
   const u = URL.createObjectURL(file);
@@ -578,9 +589,10 @@ async function procesarPrenda(file) {
     const W = 900, H = 1200, out = document.createElement('canvas'); out.width = W; out.height = H; const o = out.getContext('2d');
     o.fillStyle = '#fff'; o.fillRect(0, 0, W, H); const e = Math.min(W * .84 / bw, H * .84 / bh), dw = bw * e, dh = bh * e;
     o.drawImage(capa, x0, y0, bw, bh, (W - dw) / 2, (H - dh) / 2, dw, dh);
-    let x = null; try { ({ cat, x } = await reconocerPrenda(out)); tipo = TIPO_DE_CAT[cat]; } catch (e) { /* sin modelo: por la forma */ }
+    let x = null, noPrenda = false; try { ({ cat, x } = await reconocerPrenda(out)); tipo = TIPO_DE_CAT[cat]; noPrenda = (await reconocerPrenda(orig)).noPrenda; } catch (e) { /* sin modelo: por la forma */ }
+    const fondo = fondoIrregular(orig);
     const aBlob = (cv, q) => new Promise(r => cv.toBlob(r, 'image/jpeg', q));
-    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, x, rec: cat ? 1 : 0, recortada };
+    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, x, rec: cat ? 1 : 0, recortada, noPrenda, fondo };
   } finally { URL.revokeObjectURL(u); }
 }
 // nombre automático legible: «Top negro», «Pantalón azul claro», «Zapatos blancos»
@@ -622,31 +634,35 @@ function pintarSubida() {
   const n = E.subida.length, raiz = $('s-raiz'), X = `<button class="x" data-ir="closet" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>`;
   const mas = (txt, cls) => `<label class="${cls}">${txt}<input type="file" accept="image/*" multiple data-sfotos></label>`;
   const det = n === 1 ? E.subida[0] : E.subida.find(i => i.id === E.sDet);
-  if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Una prenda por foto', 'One garment per photo')}</div></div><div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div><p class="consejo">${t('Extiéndela sobre una superficie lisa, con buena luz.<br>La app quita el fondo y te propone tipo y color.', 'Lay it on a plain surface, in good light.<br>The app removes the background and suggests type and colour.')}</p><div class="bts"><label class="boton">${t('Hacer una foto', 'Take a photo')}<input type="file" accept="image/*" capture="environment" data-sfotos></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}<span class="txt">${t('Hasta 20 a la vez', 'Up to 20 at a time')}</span></div></div>`;
+  if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Una prenda por foto', 'One garment per photo')}</div></div><div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div><p class="consejo">${t('Hazla sobre un fondo liso de un solo color, con buena luz y sin percha.<br>La app quita el fondo y te propone tipo y color.', 'Shoot it on a plain single-colour background, in good light, without a hanger.<br>The app removes the background and suggests type and colour.')}</p><div class="bts"><label class="boton">${t('Hacer una foto', 'Take a photo')}<input type="file" accept="image/*" capture="environment" data-sfotos></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}<span class="txt">${t('Hasta 20 a la vez', 'Up to 20 at a time')}</span></div></div>`;
   else if (det) {
     const i = E.subida.indexOf(det), listo = det.estado === 'listo';
     const ops = (lista, sel, k, nom) => `<div class="ops">${lista.map(x => `<button type="button" class="${x === sel ? 'on' : ''}" data-s${k}="${x}">${nom(x)}</button>`).join('')}</div>`;
     raiz.innerHTML = `<div class="sb uno">${n === 1 ? X : `<button class="x" data-svolver aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>`}<div class="tit"><h1>${t('Revisa tu prenda', 'Check your garment')}</h1>${n > 1 ? `<div class="mini-et">${i + 1} ${t('de', 'of')} ${n}</div>` : ''}</div>
       <div class="foto">${det.url ? `<img src="${det.url}" alt="">` : `<p class="s-procesando">${t('Quitando el fondo y reconociendo la prenda…', 'Removing the background and recognising the garment…')}</p>`}</div>
+      ${listo && det.noPrenda && !det.siPrenda ? `<div class="s-aviso"><b>${t('Esta foto no parece una prenda', 'This photo does not look like a garment')}</b><span>${t('No coincide con ninguna categoría de ropa. Si es una captura, un texto u otra cosa, quítala.', 'It does not match any clothing category. If it is a screenshot, text or something else, remove it.')}</span><div><button class="boton" data-squita>${t('Quitarla', 'Remove it')}</button><button class="txt sub-l" data-ssi>${t('Sí es una prenda', 'It is a garment')}</button></div></div>` : ''}
+      ${listo && det.fondo && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso y el recorte puede salir con restos. Para un recorte limpio, haz la foto sobre un fondo de un solo color.', 'The background is not plain, so the cut-out may keep bits of it. For a clean cut-out, shoot on a single-colour background.')}</p>` : ''}
       ${listo ? `<input class="nom" value="${det.nombre}" data-snom aria-label="${t('Nombre', 'Name')}">
       <div class="gr"><p class="mini-et">${t('Tipo', 'Type')}</p>${ops(CATS_ORDEN, catDe(det), 'tipo', catTxt)}</div>
       <div class="gr"><p class="mini-et">${t('Color', 'Colour')}</p><div class="ops col">${COLORES.map(([c, h]) => `<button type="button" class="${c === det.color ? 'on' : ''}" data-scolor="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>
       <div class="gr"><p class="mini-et">${t('Estación', 'Season')}</p>${ops(ESTACIONES, det.estacion, 'est', estNombre)}</div>
       ${det.recortada ? `<button class="txt sub-l" data-sorig>${det.usaOriginal ? t('Usar el fondo blanco', 'Use white background') : t('Usar la foto original', 'Use the original photo')}</button>` : ''}` : ''}
-      <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(t('Añadir más prendas', 'Add more garments'), 'txt sub-l')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button><button class="txt sub-l" data-squita>${t('Quitar esta prenda', 'Remove this garment')}</button>`}</div></div>`;
+      <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo && !(det.noPrenda && !det.siPrenda) ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(t('Añadir más prendas', 'Add more garments'), 'txt sub-l')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button><button class="txt sub-l" data-squita>${t('Quitar esta prenda', 'Remove this garment')}</button>`}</div></div>`;
   } else {
-    const listos = E.subida.filter(i => i.estado === 'listo').length;
-    raiz.innerHTML = `<div class="sb rv">${X}<div class="tit"><h1>${n} ${t('prendas', 'garments')}</h1><div class="mini-et">${listos < n ? t('Quitando los fondos…', 'Removing backgrounds…') : t('Revisa y guarda', 'Check and save')}</div></div>
-      <div class="rej">${E.subida.map(it => `<button type="button" data-sdet="${it.id}">${it.url ? `<img src="${it.url}" alt="">` : ''}${it.estado === 'listo' ? `<em></em><p>${it.nombre}<small>${catTxt(catDe(it))} · ${it.color}</small></p>` : `<p><small>${t('Quitando el fondo…', 'Removing the background…')}</small></p>`}</button>`).join('')}${n < 20 ? mas(`<svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><small>${t('Añadir más', 'Add more')}</small>`, 'mas') : ''}</div>
-      <div class="bts"><button class="boton" data-sguardar ${listos ? '' : 'disabled'}>${t(`Guardar ${listos} prendas`, `Save ${listos} garments`)}</button><span class="txt">${t('Toca una prenda para ver su ficha y cambiar nombre, tipo, color o estación', 'Tap a garment to open its card and change name, type, colour or season')}</span></div></div>`;
+    const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)).length, nop = E.subida.filter(i => i.noPrenda && !i.siPrenda).length;
+    raiz.innerHTML = `<div class="sb rv">${X}<div class="tit"><h1>${n} ${t('prendas', 'garments')}</h1><div class="mini-et">${E.subida.some(i => i.estado !== 'listo') ? t('Quitando los fondos…', 'Removing backgrounds…') : t('Revisa y guarda', 'Check and save')}</div></div>
+      <div class="rej">${E.subida.map(it => `<button type="button" data-sdet="${it.id}">${it.url ? `<img src="${it.url}" alt="">` : ''}${it.estado === 'listo' && it.noPrenda && !it.siPrenda ? `<p class="no">${t('No es una prenda', 'Not a garment')}<small>${t('Toca para revisarla', 'Tap to check')}</small></p>` : it.estado === 'listo' ? `<em></em><p>${it.nombre}<small>${catTxt(catDe(it))} · ${it.color}</small></p>` : `<p><small>${t('Quitando el fondo…', 'Removing the background…')}</small></p>`}</button>`).join('')}${n < 20 ? mas(`<svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><small>${t('Añadir más', 'Add more')}</small>`, 'mas') : ''}</div>
+      ${nop ? `<p class="s-aviso-l">${nop === 1 ? t('Hay 1 foto que no coincide con ninguna categoría de prenda: no se guardará.', '1 photo does not match any clothing category: it will not be saved.') : t(`Hay ${nop} fotos que no coinciden con ninguna categoría de prenda: no se guardarán.`, `${nop} photos do not match any clothing category: they will not be saved.`)}</p>` : ''}
+      <div class="bts"><button class="boton" data-sguardar ${listos ? '' : 'disabled'}>${listos === 1 ? t('Guardar 1 prenda', 'Save 1 garment') : t(`Guardar ${listos} prendas`, `Save ${listos} garments`)}</button><span class="txt">${t('Toca una prenda para ver su ficha y cambiar nombre, tipo, color o estación', 'Tap a garment to open its card and change name, type, colour or season')}</span></div></div>`;
   }
   raiz.querySelectorAll('[data-sfotos]').forEach(inp => inp.onchange = e => { anadirFotos([...e.target.files]); e.target.value = ''; });
   raiz.onclick = ev => {
-    const b = ev.target.closest('[data-sdet],[data-svolver],[data-squita],[data-sguardar],[data-stipo],[data-scolor],[data-sest],[data-sorig]'); if (!b || b.disabled) return;
+    const b = ev.target.closest('[data-sdet],[data-svolver],[data-squita],[data-ssi],[data-sguardar],[data-stipo],[data-scolor],[data-sest],[data-sorig]'); if (!b || b.disabled) return;
     const d = b.dataset, auto = det && det.nombre === nombreAuto(det.tipo, det.color), prev = det?.color;
     if (d.sdet) { E.sDet = d.sdet; pintarSubida(); raiz.scrollTop = 0; }
     else if (d.svolver !== undefined) { E.sDet = null; pintarSubida(); }
     else if (d.squita !== undefined) { E.subida = E.subida.filter(i => i !== det); E.sDet = null; pintarSubida(); }
+    else if (d.ssi !== undefined) { det.siPrenda = true; pintarSubida(); }
     else if (d.sguardar !== undefined) guardarSubida();
     else if (d.stipo) { const falda = /falda|skirt/i.test(det.nombre); det.tipo = TIPO_DE_CAT[d.stipo]; if (auto || falda !== (d.stipo === 'Faldas')) det.nombre = nombreSubida(det, d.stipo); pintarSubida(); }
     else if (d.scolor) { const c = catDe(det); det.color = d.scolor; if (auto || (c === 'Faldas' && det.nombre === nombreSubida(Object.assign({}, det, { color: prev }), c))) det.nombre = nombreSubida(det, c); pintarSubida(); }
@@ -666,7 +682,7 @@ async function anadirFotos(files) {
   }
 }
 async function guardarSubida() {
-  const listos = E.subida.filter(i => i.estado === 'listo'); if (!listos.length) return;
+  const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
   listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 2 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '' }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet');

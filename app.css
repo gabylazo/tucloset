@@ -885,3 +885,11 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .es-lista span{font-size:11px;line-height:1.35;font-weight:300}
 .es-lista button.on b{color:var(--tinta)}.es-lista button.on span{color:var(--tinta)}
 .es-lista button.on::after{content:"";position:absolute;bottom:6px;left:50%;width:11px;height:11px;margin-left:-5.5px;background:var(--boton2) center/contain no-repeat}
+/* 0.37: avisos de Subir (Sheila, 22/10): foto que no es una prenda y fondo que no es liso */
+.s-aviso{margin:14px 0 4px;padding:14px 16px;border:1px solid var(--oro);text-align:center;display:grid;gap:6px}
+.s-aviso b{font-family:Bellefair,serif;font-weight:400;font-size:18px;color:var(--tinta)}
+.s-aviso span{font-size:12.5px;color:var(--sec);font-weight:300}
+.s-aviso div{display:grid;gap:6px;margin-top:6px}
+.s-fondo{margin:12px 0 0;font-size:12px;line-height:1.45;color:var(--sec);text-align:center;font-weight:300}
+.s-aviso-l{font-size:12px;color:var(--tinta);text-align:center;margin:10px 16px 0}
+.rej p.no{color:var(--tinta)}
