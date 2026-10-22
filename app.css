@@ -893,3 +893,42 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .s-fondo{margin:12px 0 0;font-size:12px;line-height:1.45;color:var(--sec);text-align:center;font-weight:300}
 .s-aviso-l{font-size:12px;color:var(--tinta);text-align:center;margin:10px 16px 0}
 .rej p.no{color:var(--tinta)}
+/* 0.40: calendario de Looks (Sheila, 22/10) */
+.lk-tabs{gap:22px}
+.cal{padding:0 20px 30px}
+.cal-mes{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-mes h2{font-family:Bellefair,serif;font-weight:400;font-size:21px;color:var(--tinta)}
+.cal-mes button{width:36px;height:36px;display:grid;place-items:center}.cal-mes svg{width:18px;height:18px;fill:none;stroke:var(--tinta);stroke-width:1.2}
+.cal-sem,.cal-rej{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
+.cal-sem span{font-size:10px;letter-spacing:.12em;color:var(--sec);padding-bottom:6px}
+.cal-rej button{position:relative;height:52px;display:grid;align-content:start;justify-items:center;padding-top:7px;border-top:1px solid var(--linea)}
+.cal-rej b{font-weight:400;font-size:14px;color:var(--tinta)}
+.cal-rej .pasado b{color:var(--sec)}
+.cal-rej .hoy b{font-weight:600}
+.cal-rej small{font-size:8.5px;letter-spacing:.04em;color:var(--oroT,var(--sec));margin-top:2px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-rej em{position:absolute;bottom:5px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--oro)}
+.cal-rej button.on{background:var(--gris)}
+.cal-dia{margin-top:22px;text-align:center}
+.cal-dia h3{font-family:Bellefair,serif;font-weight:400;font-size:22px;color:var(--tinta);margin-bottom:10px}
+.cal-planes{list-style:none;padding:0;margin:0 auto;max-width:320px}
+.cal-planes li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--linea)}
+.cal-planes span{font-size:14px;color:var(--tinta)}.cal-planes small{flex:1;text-align:left;font-size:12px;color:var(--sec)}
+.cal-planes button svg{width:14px;height:14px;fill:none;stroke:var(--sec);stroke-width:1.3}
+.cal-vacio{font-size:13px;color:var(--sec);font-weight:300}
+.cal-add{margin:16px auto 0;max-width:340px;display:grid;gap:12px}
+.cal-ops{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px}
+.cal-ops button{font-size:13px;color:var(--sec);font-weight:300}
+.cal-ops button.on{color:var(--tinta);font-weight:500}
+.cal-ops button.on::before{content:'';display:inline-block;width:11px;height:11px;margin-right:5px;vertical-align:-1px;background:var(--boton2) center/contain no-repeat}
+.cal-hasta{font-size:12.5px;color:var(--sec)}.cal-hasta input{font:inherit;color:var(--tinta);border-bottom:1px solid var(--linea);margin-left:6px}
+.cal-otro{margin-top:12px}
+.cal-look{margin-top:24px}.cal-look .lk-fig{max-width:260px;margin:8px auto}
+.cal-bts{display:grid;gap:8px;justify-items:center}
+.cal-mios{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.cal-mios button{background:var(--gris);padding:6px}
+.cal-look .lk-fig{width:min(260px,70vw);margin:8px auto}.cal-look .lienzo{width:100%}
+
+.cal-look .lk-fig{aspect-ratio:3/4;background:none;cursor:default}
+.cal-mios .lk-fig,.cal-mios button{aspect-ratio:3/4;position:relative}
+.cal-mios{grid-template-columns:repeat(3,minmax(0,1fr))}.cal-mios button{padding:0;overflow:hidden}
+.cal-mios .lk-fig{position:absolute;inset:0;background:none}.cal-mios img.av,.cal-look img.av{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.cal-look .cal-mios .lk-fig{width:auto;margin:0;aspect-ratio:auto}

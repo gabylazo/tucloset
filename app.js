@@ -19,7 +19,7 @@ const BD = (() => {
 })();
 
 /* ---------- estado ---------- */
-const E = { perfil: null, prendas: [], conjuntos: [], pantalla: 'inicio', filtro: 'Todo', busca: '', hoyIdx: 0, propuestas: [], tiempo: null, editando: null, preseleccion: [], plan: 'Todos', subida: [], generados: [] };
+const E = { perfil: null, prendas: [], conjuntos: [], pantalla: 'inicio', filtro: 'Todo', busca: '', hoyIdx: 0, propuestas: [], tiempo: null, editando: null, preseleccion: [], plan: 'Todos', subida: [], generados: [], agenda: {} };
 const PLANES = ['Todos', 'Diario', 'Oficina', 'Noche', 'Deporte'];
 const urls = new Map();           // id → URL de la foto (objeto)
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -78,7 +78,7 @@ function confirmar(titulo, texto, si, no) { return new Promise(res => { $('dlg-t
 function urlFoto(p) { if (!p) return ''; if (p.src) return p.src; if (!p.foto) return ''; if (!urls.has(p.id)) urls.set(p.id, URL.createObjectURL(p.foto)); return urls.get(p.id); }
 const P = id => E.prendas.find(p => p.id === id);
 const activas = () => E.prendas.filter(p => !['guardada', 'donar'].includes(p.estado));
-async function guardar() { await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); }
+async function guardar() { await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda); }
 
 // reduce la foto a 1200 px de lado mayor y la devuelve como Blob JPEG; también el color dominante
 function procesarFoto(file) {
@@ -404,12 +404,15 @@ function proponer() {
   const aptas = estacionesAptas(); const act = activas().filter(p => aptas.includes(p.estacion));
   const conj = E.conjuntos.filter(c => c.ids.every(id => act.some(p => p.id === id)) && (E.plan === 'Todos' || (c.ocasion || 'Diario') === E.plan));
   const props = conj.map(c => ({ tipo: 'conjunto', c, ids: c.ids }));
+  const dia = E.agenda[diaISO(new Date())]; if (dia?.look?.length && dia.look.every(P)) props.unshift({ tipo: 'agenda', ids: dia.look, ocasion: dia.planes?.[0]?.oc });
   for (const g of generarLooks(4, E.plan)) if (!props.some(x => x.ids.join() === g.ids.join())) props.push({ tipo: 'propuesta', ids: g.ids, nombre: g.nombre, ocasion: g.ocasion });
   E.propuestas = props; if (E.hoyIdx >= props.length) E.hoyIdx = 0;
 }
 function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin menú arriba, el tiempo una vez junto a la fecha, debajo solo la ocasión
   const pant = $('p-hoy'); const w = E.tiempo; const l = idioma();
-  E.plan = 'Todos'; if (!E.propuestas.length) proponer();
+  // 0.40 (Sheila, 22/10: «si ella pone de lunes 23 a viernes 27 oficina en la mañana ya sabes que eso tienes que sugerirle»): el plan del calendario manda
+  const planHoy = E.agenda[diaISO(new Date())]?.planes?.[0]?.oc;
+  if (!E.propuestas.length) { E.plan = planHoy || 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.plan = 'Todos'; proponer(); } }
   const lista = E.propuestas; const pr = lista[E.hoyIdx];
   const hoyD = new Date(); const dia = cap(hoyD.toLocaleDateString(l === 'en' ? 'en-GB' : 'es-ES', { weekday: 'long', day: 'numeric' }));
   const ico = k => ICO_T[k] || ICO_T.nube;
@@ -440,6 +443,71 @@ async function ponerse(ids, conj) {
   if (conj) { conj.usos = conj.usos || []; if (!conj.usos.includes(d)) conj.usos.push(d); }
   else if (ids.length >= 2 && !E.conjuntos.some(c => c.ids.join() === ids.join())) { E.conjuntos.unshift({ id: uid(), nombre: t('Hoy', 'Today') + ' ' + fecha(d, true), ocasion: ocasionDe(ids.map(P).filter(Boolean)), ids, creada: d, usos: [d] }); }
   await guardar(); toast(n ? t(`Apuntado: ${n} prendas puestas hoy`, `Noted: ${n} garments worn today`) : t('Ya lo tenías apuntado hoy', 'Already noted today'));
+}
+
+/* ---------- CALENDARIO (0.40, 22/10; Sheila: «que la consumidora pueda ir guardando qué tiene cada día si quiere»; «si pone de lunes 23 a viernes 27
+   oficina en la mañana ya sabes que eso tienes que sugerirle»). Cada día: sus planes (ocasión y franja), el look elegido para ese día y, en los días
+   pasados, lo que se puso (sale de los «Me lo pongo», que se guardan con fecha). E.agenda = { 'aaaa-mm-dd': { planes: [{ oc, fr }], look: [ids] } } ---------- */
+const diaISO = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const FRANJAS = [['Mañana', 'Morning'], ['Tarde', 'Afternoon'], ['Noche', 'Evening']];
+E.cal = { mes: null, dia: null, oc: 'Oficina', fr: 'Mañana', idea: 0 };
+function pintarCalendario(raiz) {
+  const en = idioma() === 'en', loc = en ? 'en-GB' : 'es-ES', hoy = diaISO(new Date());
+  if (!E.cal.dia) E.cal.dia = hoy;
+  const sel = new Date(E.cal.dia + 'T12:00'); if (!E.cal.mes) E.cal.mes = new Date(sel.getFullYear(), sel.getMonth(), 1);
+  const m = E.cal.mes, pri = (m.getDay() + 6) % 7, dias = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+  const puesto = d => E.prendas.filter(p => (p.usos || []).includes(d));
+  let celdas = ''; for (let i = 0; i < pri; i++) celdas += '<i></i>';
+  for (let n = 1; n <= dias; n++) {
+    const d = diaISO(new Date(m.getFullYear(), m.getMonth(), n)), a = E.agenda[d], pl = a?.planes?.[0];
+    const marca = a?.look?.length || puesto(d).length;
+    celdas += `<button class="${d === E.cal.dia ? 'on' : ''}${d === hoy ? ' hoy' : ''}${d < hoy ? ' pasado' : ''}" data-cdia="${d}"><b>${n}</b>${pl ? `<small>${ocNombre(pl.oc)}</small>` : ''}${marca ? '<em></em>' : ''}</button>`;
+  }
+  const sem = (en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D']).map(x => `<span>${x}</span>`).join('');
+  const a = E.agenda[E.cal.dia] || {}, planes = a.planes || [], futuro = E.cal.dia >= hoy, ps = puesto(E.cal.dia);
+  const ocs = OCASIONES.map(o => `<button class="${o === E.cal.oc ? 'on' : ''}" data-coc="${o}">${ocNombre(o)}</button>`).join('');
+  const frs = FRANJAS.map(([es, i]) => `<button class="${es === E.cal.fr ? 'on' : ''}" data-cfr="${es}">${en ? i : es}</button>`).join('');
+  let look = '';
+  if (a.look?.length && a.look.every(P)) look = `<div class="cal-look"><p class="mini-et">${t('Tu look para este día', 'Your look for this day')}</p><div class="lk-fig">${figLook({ ids: a.look }, true)}</div><button class="txt sub-l" data-cquitalook>${t('Quitar el look', 'Remove the look')}</button></div>`;
+  else if (futuro) {
+    const oc = planes[0]?.oc || 'Todos'; let ideas = generarLooks(6, oc); if (!ideas.length) ideas = generarLooks(6, 'Todos');
+    const g = ideas[E.cal.idea % Math.max(1, ideas.length)];
+    look = g ? `<div class="cal-look"><p class="mini-et">${planes.length ? t(`Te sugiero para ${ocNombre(oc).toLowerCase()}`, `My pick for ${ocNombre(oc).toLowerCase()}`) : t('Una idea para este día', 'An idea for this day')}</p><div class="lk-fig">${figLook(g, true)}</div><div class="cal-bts"><button class="hz-bt" data-cguarda="${g.ids.join(',')}">${t('Guardar para este día', 'Save for this day')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button></div></div>` : '';
+  }
+  const pasado = ps.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(ps, true)}</div></div>`
+    : !futuro && E.conjuntos.length ? `<div class="cal-look"><p class="mini-et">${t('Apunta lo que te pusiste', 'Note what you wore')}</p><div class="cal-mios">${E.conjuntos.slice(0, 12).map(c => `<button data-cpuse="${c.id}"><div class="lk-fig">${maniqui(c.ids.map(P).filter(Boolean), true)}</div></button>`).join('')}</div></div>` : '';
+  raiz.innerHTML = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
+    <div class="mc-cats lk-tabs"><button data-lktab="mios">${t('Mis looks', 'My looks')}</button><button data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="activo" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>
+    <div class="cal"><div class="cal-mes"><button data-cmes="-1" aria-label="${t('Mes anterior', 'Previous month')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h2>${cap(m.toLocaleDateString(loc, { month: 'long', year: 'numeric' }))}</h2><button data-cmes="1" aria-label="${t('Mes siguiente', 'Next month')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
+    <div class="cal-sem">${sem}</div><div class="cal-rej">${celdas}</div>
+    <div class="cal-dia"><h3>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>
+      ${planes.length ? `<ul class="cal-planes">${planes.map((p, i) => `<li><span>${ocNombre(p.oc)}</span><small>${en ? (FRANJAS.find(f => f[0] === p.fr) || [p.fr, p.fr])[1] : p.fr}</small><button data-cquita="${i}" aria-label="${t('Quitar', 'Remove')}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></li>`).join('')}</ul>` : `<p class="cal-vacio">${futuro ? t('¿Qué tienes este día? Apúntalo y te sugiero qué ponerte.', 'What do you have on this day? Note it and I’ll suggest what to wear.') : t('Sin planes apuntados.', 'No plans noted.')}</p>`}
+      ${futuro && (E.cal.add || !planes.length) ? `<div class="cal-add"><p class="mini-et">${t('Añadir un plan', 'Add a plan')}</p><div class="cal-ops">${ocs}</div><div class="cal-ops fr">${frs}</div><label class="cal-hasta">${t('Repetir hasta el', 'Repeat until')} <input type="date" id="cal-hasta" min="${E.cal.dia}"></label><button class="boton" data-cadd>${t('Guardar el plan', 'Save the plan')}</button></div>` : futuro ? `<button class="txt sub-l cal-otro" data-cmas>${t('Añadir otro plan', 'Add another plan')}</button>` : ''}
+      ${look}${pasado}</div></div>`;
+  raiz.onclick = async e => {
+    const b = e.target.closest('[data-lktab],[data-cmas],[data-cdia],[data-cmes],[data-coc],[data-cfr],[data-cadd],[data-cquita],[data-cguarda],[data-cotra],[data-cquitalook],[data-cpuse]'); if (!b) return;
+    const d = b.dataset, ag = () => (E.agenda[E.cal.dia] = E.agenda[E.cal.dia] || { planes: [] });
+    if (d.lktab) { E.lkTab = d.lktab; E.lkI = 0; return pintarLooks(); }
+    if (d.cmas !== undefined) E.cal.add = true;
+    else if (d.cdia) { E.cal.dia = d.cdia; E.cal.idea = 0; E.cal.add = false; }
+    else if (d.cmes) E.cal.mes = new Date(E.cal.mes.getFullYear(), E.cal.mes.getMonth() + +d.cmes, 1);
+    else if (d.coc) { E.cal.oc = d.coc; e.preventDefault(); }
+    else if (d.cfr) { E.cal.fr = d.cfr; e.preventDefault(); }
+    else if (d.cadd !== undefined) {
+      const hasta = $('cal-hasta').value || E.cal.dia; let n = 0;
+      for (let x = new Date(E.cal.dia + 'T12:00'); diaISO(x) <= hasta && n < 366; x.setDate(x.getDate() + 1), n++) {
+        const k = diaISO(x); if (hasta !== E.cal.dia && [0, 6].includes(x.getDay()) && E.cal.oc === 'Oficina') continue; // la oficina se repite de lunes a viernes
+        const a2 = E.agenda[k] = E.agenda[k] || { planes: [] }; if (!a2.planes.some(p => p.oc === E.cal.oc && p.fr === E.cal.fr)) a2.planes.push({ oc: E.cal.oc, fr: E.cal.fr });
+      }
+      E.cal.add = false; await guardar(); E.propuestas = []; toast(hasta === E.cal.dia ? t('Plan guardado', 'Plan saved') : t('Plan guardado en varios días', 'Plan saved on several days'));
+    }
+    else if (d.cquita) { ag().planes.splice(+d.cquita, 1); await guardar(); E.propuestas = []; }
+    else if (d.cguarda) { ag().look = d.cguarda.split(','); await guardar(); E.propuestas = []; toast(t('Look guardado para ese día', 'Look saved for that day')); }
+    else if (d.cotra !== undefined) E.cal.idea++;
+    else if (d.cquitalook !== undefined) { delete ag().look; await guardar(); E.propuestas = []; }
+    else if (d.cpuse) { const c = E.conjuntos.find(x => x.id === d.cpuse); if (c) { c.ids.forEach(id => { const p = P(id); if (p) { p.usos = p.usos || []; if (!p.usos.includes(E.cal.dia)) p.usos.push(E.cal.dia); } }); c.usos = c.usos || []; if (!c.usos.includes(E.cal.dia)) c.usos.push(E.cal.dia); await guardar(); toast(t('Apuntado', 'Noted')); } }
+    pintarCalendario(raiz);
+  };
 }
 
 /* ---------- CLÓSET ---------- */
@@ -774,19 +842,20 @@ function abrirFicha(id) {
 /* ---------- CONJUNTOS ---------- */
 // 0.10 · Looks con el diseño cerrado (21/10): título centrado, «Mis looks» e «Ideas para hoy» en letras con el botón de dos agujeros,
 // filtro por ocasión y tres formas de verlos a prueba (?looks=1 rejilla de 2 · 2 uno a uno · 3 lista)
-E.lkTab = new URLSearchParams(location.search).get('lk') === 'ideas' ? 'ideas' : 'mios'; E.lkOc = 'Todo'; E.lkI = 0;
+E.lkTab = ({ ideas: 'ideas', cal: 'cal' })[new URLSearchParams(location.search).get('lk')] || 'mios'; E.lkOc = 'Todo'; E.lkI = 0;
 const lkVista = () => { const v = new URLSearchParams(location.search).get('looks') || localStorage.getItem('tc_looks'); return ['1', '2', '3', '4', '5'].includes(v) ? v : '4'; }; // 4 y 5 (21/10, «adapta la interfaz a mi estilo»): sobre blanco, sin cajas
 const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(c.ids.map(P).filter(Boolean), mini);
 const usosTxt = c => c.usos?.length ? veces(c.usos.length) : t('sin estrenar', 'not worn yet');
 function pintarLooks() {
   const v = lkVista(), raiz = $('lk-raiz'); document.documentElement.dataset.looks = v;
+  if (E.lkTab === 'cal') return pintarCalendario(raiz);
   if (E.lkTab === 'ideas' && !E.generados.length) E.generados = generarLooks(6, 'Todos');
   const ocs = ['Todo', ...OCASIONES.filter(o => E.conjuntos.some(c => (c.ocasion || 'Diario') === o))];
   if (!ocs.includes(E.lkOc)) E.lkOc = 'Todo';
   const ideas = E.lkTab === 'ideas';
   const lista = ideas ? E.generados.map((g, i) => ({ ...g, i })) : E.conjuntos.filter(c => E.lkOc === 'Todo' || (c.ocasion || 'Diario') === E.lkOc);
   const cab = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
-    <div class="mc-cats lk-tabs"><button class="${ideas ? '' : 'activo'}" data-lktab="mios">${t('Mis looks', 'My looks')}</button><button class="${ideas ? 'activo' : ''}" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button></div>
+    <div class="mc-cats lk-tabs"><button class="${ideas || E.lkTab === 'cal' ? '' : 'activo'}" data-lktab="mios">${t('Mis looks', 'My looks')}</button><button class="${ideas ? 'activo' : ''}" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="${E.lkTab === 'cal' ? 'activo' : ''}" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>
     ${ideas || ocs.length < 3 ? '' : `<div class="lk-ocs">${ocs.map(o => `<button class="${o === E.lkOc ? 'on' : ''}" data-lkoc="${o}">${o === 'Todo' ? t('Todo', 'All') : ocNombre(o)}</button>`).join('')}</div>`}`;
   const pie = c => ideas ? `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span><span class="lk-acc"><button data-gguardar="${c.i}">${t('Guardar', 'Save')}</button><button data-ghoy="${c.i}">${t('Me lo pongo', 'Wear it')}</button></span>`
     : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span><span class="lk-us">${usosTxt(c)}</span>`;
@@ -994,7 +1063,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
 }
 (async () => {
   entrada(new URLSearchParams(location.search));
-  E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || [];
+  E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {};
   let migra = false; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
   traducir(); pintarSilueta();
   { const l = +new URLSearchParams(location.search).get('lema'); const t = LEMAS[l - 1]; if (t) $('p-inicio').querySelector('.lema .t').textContent = t; bordar(); }
