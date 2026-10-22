@@ -8,3 +8,8 @@
 
 ## 0.37 (22/10/2026): «NoPrenda»
 `ropa-textos.json` lleva 13 descripciones más (categoría `NoPrenda`: capturas de apps y de tiendas, chats, textos, tiques, caras, paisajes, habitaciones, comida, animales, coches, edificios, dibujos), sin la coletilla «clothing product photo». Se generan con `textos-generar.mjs` (`DT=fp32 PAD=max OUT=ropa-textos.json node textos-generar.mjs`, con @huggingface/transformers). La app compara la foto ORIGINAL: si «NoPrenda» gana (o queda a menos de 0,005 de la mejor prenda), avisa «Esta foto no parece una prenda» y no la guarda salvo que la usuaria diga «Sí es una prenda». Prueba: las 12 prendas de Sheila siguen bien (NoPrenda ni segunda); 4 capturas de prueba y 8 capturas e iconos del grupo, todas NoPrenda; las 13 fotos originales de prendas de Sheila, ninguna NoPrenda.
+
+## Recorte (0.56, 22/10/2026)
+- Comparativa con fotos de Sheila (abrigo, camiseta, pantalón): u2netp (el de la app) deja halos de sábana; IS-Net (179 MB) algo mejor pero deja zonas; BiRefNet-lite fp16 en CPU, roto y lento (47–147 s); **Vision de Apple, el mejor** (no está en el navegador).
+- En la app: la máscara se queda con la pieza más grande (más 2 px de borde) y las fotos que ya llegan sin fondo (PNG con transparencia, p. ej. «Levantar el sujeto» del iPhone) se usan tal cual, sin modelo.
+- Para un recorte perfecto queda «Perfeccionar» (Gemini Pro + Vision en servidor), pendiente de decisión.

@@ -975,3 +975,4 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .cl-cambio{display:flex;justify-content:center;gap:0;margin:8px auto 2px}
 .cl-cambio button{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;padding:6px 12px;border:1px solid var(--linea);color:var(--sec);background:#fff}
 .cl-cambio button.on{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.hz-no{display:block;margin:10px auto 0;background:none;border:0;color:var(--tinta);opacity:.6;font-size:12px;letter-spacing:.04em;padding:6px 10px}

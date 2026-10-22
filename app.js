@@ -350,9 +350,21 @@ function puntuar(ps) {
   if (tc === 'rectangulo') s += (ps.some(p => p.tipo === 'Abrigo') ? .4 : 0) + (falda ? .3 : 0) + (vest ? .3 : 0);
   if (tc === 'ovalo') s += (ar && ab && ar.color === ab.color ? .8 : 0) + (vest ? .4 : 0) - (fz(ab) ? .4 : 0);
   s += puntosEstilo(ps, fuertes, estamp);
+  s += puntosGusto(ps);
   // que salga lo que menos te pones
   const usos = ps.reduce((a, p) => a + (p.usos || []).length, 0) / ps.length; s += Math.max(0, 2 - usos / 4);
   return s + Math.random() * .6;
+}
+// 0.57 (Sheila, 23/10: «debería haber una opción para decir no me gusta o sí me gusta (que debe ser la de me lo pongo); esto permite saber más
+// sobre los gustos de la usuaria»): cada pareja de prendas de un look rechazado resta y cada pareja de un look puesto suma; se guarda en el perfil
+const parejas = ps => { const ids = ps.map(p => p.id).sort(), o = []; for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) o.push(ids[i] + '|' + ids[j]); return o; };
+function puntosGusto(ps) {
+  const g = E.perfil?.gustos; if (!g) return 0;
+  return parejas(ps).reduce((a, k) => a - 2.5 * (g.no?.[k] || 0) + .6 * Math.min(3, g.si?.[k] || 0), 0);
+}
+function anotarGusto(ids, clave) {
+  if (!E.perfil) return; const g = E.perfil.gustos = E.perfil.gustos || { si: {}, no: {} }; g[clave] = g[clave] || {};
+  parejas(ids.map(P).filter(Boolean)).forEach(k => { g[clave][k] = (g[clave][k] || 0) + 1; });
 }
 function mejorAcompanante(lista, base) { // calzado o bolso que mejor puntúa con la base
   let mejor = null, mp = -Infinity;
@@ -421,7 +433,10 @@ function proponer() {
   const props = conj.map(c => ({ tipo: 'conjunto', c, ids: c.ids }));
   const dia = E.agenda[diaISO(new Date())]; if (dia?.look?.length && dia.look.every(P)) props.unshift({ tipo: 'agenda', ids: dia.look, ocasion: dia.planes?.[0]?.oc });
   for (const g of generarLooks(4, E.plan)) if (!props.some(x => x.ids.join() === g.ids.join())) props.push({ tipo: 'propuesta', ids: g.ids, nombre: g.nombre, ocasion: g.ocasion });
-  E.propuestas = props; if (E.hoyIdx >= props.length) E.hoyIdx = 0;
+  // «No me gusta»: un look propuesto no vuelve; uno guardado por ella o el del calendario solo se aparta por hoy
+  const g = E.perfil?.gustos, clave = ids => [...ids].sort().join();
+  const fuera = x => x.tipo !== 'agenda' && (g?.fuera?.includes(clave(x.ids)) || (g?.hoy?.d === hoyISO() && g.hoy.k.includes(clave(x.ids))));
+  E.propuestas = props.filter(x => !fuera(x)); if (E.hoyIdx >= E.propuestas.length) E.hoyIdx = 0;
 }
 // 0.42 (Sheila, 22/10: «si no lo hace la usuaria, la asistente virtual le debe preguntar a dónde vamos hoy y sugerirle»):
 // sin plan en el calendario para hoy, Hoy pregunta «¿A dónde vas hoy?»; la respuesta se guarda como plan del día y los looks se rehacen
@@ -453,7 +468,8 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
     <div class="hz-dia mini-et">${dia}${w ? `${ico(cieloAhora)}${w.t}°${avisoLluvia}` : ''}</div>${preguntaHoy(planHoy)}</header>`;
   if (!pr) {
     const hay = activas().length;
-    pant.innerHTML = cab + `<div class="hz-vacio">${hay ? t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.') : t('Tu conjunto de hoy aparecerá aquí en cuanto tengas tres prendas: una de arriba, una de abajo y unos zapatos.', 'Your outfit of the day will appear here once you have three garments: a top, a bottom and shoes.')}
+    const rechazos = E.perfil?.gustos?.fuera?.length || (E.perfil?.gustos?.hoy?.d === hoyISO() && E.perfil.gustos.hoy.k.length);
+    pant.innerHTML = cab + `<div class="hz-vacio">${hay && rechazos ? t('Por hoy no me quedan combinaciones nuevas con tu ropa. Sube más prendas y te propongo otras.', 'No new combinations left for today. Upload more garments and I’ll suggest others.') : hay ? t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.') : t('Tu conjunto de hoy aparecerá aquí en cuanto tengas tres prendas: una de arriba, una de abajo y unos zapatos.', 'Your outfit of the day will appear here once you have three garments: a top, a bottom and shoes.')}
       <button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button>${hay || PUBLICA ? '' : `<button class="hz-bt" id="hoy-ejemplo" style="border:0;margin-top:4px">${t('Ver un ejemplo', 'See an example')}</button>`}</div>`;
     const ej = $('hoy-ejemplo'); if (ej) ej.onclick = cargarEjemplo;
     return;
@@ -463,13 +479,22 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   const figura = avatar ? `<img src="${avatar}" alt="${t('Tú con el conjunto', 'You wearing the outfit')}">` : maniqui(ps);
   const oc = (c && c.ocasion) || pr.ocasion || ocasionDe(ps);
   const flechas = lista.length > 1 ? `<div class="hz-flechas"><button id="hoy-ant" aria-label="${t('Anterior', 'Previous')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><button id="hoy-sig" aria-label="${t('Otro', 'Next')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>` : '';
-  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}</div><button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button></div></div>`;
+  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}</div><button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button></div></div>`;
   if ($('hoy-sig')) $('hoy-sig').onclick = () => { E.hoyIdx = (E.hoyIdx + 1) % lista.length; pintarHoy(); };
   if ($('hoy-ant')) $('hoy-ant').onclick = () => { E.hoyIdx = (E.hoyIdx + lista.length - 1) % lista.length; pintarHoy(); };
   $('hoy-pongo').onclick = async () => { await ponerse(pr.ids, c); };
+  $('hoy-no').onclick = async () => {
+    anotarGusto(pr.ids, 'no'); const g = E.perfil.gustos, k = [...pr.ids].sort().join();
+    if (pr.tipo === 'propuesta') g.fuera = [...(g.fuera || []), k].slice(-300);
+    else { if (g.hoy?.d !== hoyISO()) g.hoy = { d: hoyISO(), k: [] }; g.hoy.k.push(k); }
+    await guardar();
+    lista.splice(E.hoyIdx, 1); if (E.hoyIdx >= lista.length) E.hoyIdx = 0;
+    if (!lista.length) { E.propuestas = []; E.hoyIdx = 0; }
+    pintarHoy(); toast(t('Anotado. Te propondré otras combinaciones', 'Noted. I’ll suggest other combinations'));
+  };
 }
 async function ponerse(ids, conj) {
-  const d = hoyISO(); let n = 0;
+  const d = hoyISO(); let n = 0; anotarGusto(ids, 'si');
   ids.forEach(id => { const p = P(id); if (!p) return; p.usos = p.usos || []; if (!p.usos.includes(d)) { p.usos.push(d); n++; } });
   if (conj) { conj.usos = conj.usos || []; if (!conj.usos.includes(d)) conj.usos.push(d); }
   else if (ids.length >= 2 && !E.conjuntos.some(c => c.ids.join() === ids.join())) { E.conjuntos.unshift({ id: uid(), nombre: t('Hoy', 'Today') + ' ' + fecha(d, true), ocasion: ocasionDe(ids.map(P).filter(Boolean)), ids, creada: d, usos: [d] }); }
