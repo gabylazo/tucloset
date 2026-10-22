@@ -880,15 +880,61 @@ async function anadirFotos(files) {
 }
 async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null }));
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet');
 }
 
 /* ---------- AÑADIR / EDITAR ---------- */
-let fotoNueva = null;
+let fotoNueva = null, fotoOriginal = null;
+// 0.59 (Sheila, 23/10: «cuando edito la foto debe tener la opción de recortarla»): en la ficha, «Recortar» (marco a mano) y «Quitar el fondo»;
+// la foto sin tocar se guarda aparte para poder volver a ella
+async function fotoActual() { const p = E.editando; if (fotoNueva) return fotoNueva; if (p?.foto) return p.foto; if (p?.src) return (await fetch(p.src)).blob(); return null; }
+function pintarHerr() {
+  const h = $('an-herr'); if (!h) return; const hay = !!(fotoNueva || E.editando?.foto || E.editando?.src), orig = fotoOriginal || E.editando?.original;
+  h.innerHTML = hay ? `<button type="button" class="txt sub-l" id="an-recortar">${t('Recortar', 'Crop')}</button><button type="button" class="txt sub-l" id="an-fondo">${t('Quitar el fondo', 'Remove background')}</button>${orig ? `<button type="button" class="txt sub-l" id="an-orig">${t('Volver a la original', 'Back to original')}</button>` : ''}` : '';
+  if (!hay) return;
+  $('an-recortar').onclick = async () => { const b = await fotoActual(); if (!b) return; const r = await recortarAMano(b); if (!r) return; if (!fotoOriginal && !E.editando?.original) fotoOriginal = b; fotoNueva = r; pintarPrevia(URL.createObjectURL(r)); };
+  $('an-fondo').onclick = async () => {
+    const b = await fotoActual(); if (!b) return; const bt = $('an-fondo'); bt.disabled = true; bt.textContent = t('Quitando el fondo…', 'Removing background…');
+    try { const r = await procesarPrenda(b); if (!fotoOriginal && !E.editando?.original) fotoOriginal = b; fotoNueva = r.blob; pintarPrevia(URL.createObjectURL(r.blob)); toast(t('Fondo quitado. Guarda para conservarlo', 'Background removed. Save to keep it')); }
+    catch (e) { toast(t('No he podido quitar el fondo', 'Could not remove the background')); pintarHerr(); }
+  };
+  if ($('an-orig')) $('an-orig').onclick = () => { fotoNueva = orig; pintarPrevia(URL.createObjectURL(orig)); };
+}
+// marco con cuatro esquinas sobre la foto; devuelve el trozo elegido como JPEG
+function recortarAMano(blob) {
+  return new Promise(res => {
+    const u = URL.createObjectURL(blob), cap = document.createElement('div'); cap.className = 'rc-capa';
+    cap.innerHTML = `<p class="mini-et">${t('Ajusta el marco a la prenda', 'Fit the frame to the garment')}</p><div class="rc-zona"><img src="${u}" alt=""><div class="rc-marco"><i data-c="tl"></i><i data-c="tr"></i><i data-c="bl"></i><i data-c="br"></i></div></div><div class="rc-bts"><button class="boton" data-rc="ok">${t('Recortar', 'Crop')}</button><button class="txt sub-l" data-rc="no">${t('Cancelar', 'Cancel')}</button></div>`;
+    document.body.appendChild(cap);
+    const img = cap.querySelector('img'), m = cap.querySelector('.rc-marco'); let r = null;
+    const pinta = () => Object.assign(m.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+    img.onload = () => { r = { x: img.offsetLeft + img.width * .08, y: img.offsetTop + img.height * .08, w: img.width * .84, h: img.height * .84 }; pinta(); };
+    let arr = null;
+    m.onpointerdown = e => { e.preventDefault(); m.setPointerCapture(e.pointerId); arr = { c: e.target.dataset.c || 'mover', x: e.clientX, y: e.clientY, r: { ...r } }; };
+    m.onpointermove = e => {
+      if (!arr) return; const dx = e.clientX - arr.x, dy = e.clientY - arr.y, o = arr.r, L = img.offsetLeft, T = img.offsetTop, R = L + img.width, B = T + img.height, min = 40;
+      let { x, y, w, h } = o;
+      if (arr.c === 'mover') { x = Math.min(Math.max(L, o.x + dx), R - o.w); y = Math.min(Math.max(T, o.y + dy), B - o.h); }
+      else {
+        if (arr.c[1] === 'l') { x = Math.min(Math.max(L, o.x + dx), o.x + o.w - min); w = o.x + o.w - x; } else w = Math.min(Math.max(min, o.w + dx), R - o.x);
+        if (arr.c[0] === 't') { y = Math.min(Math.max(T, o.y + dy), o.y + o.h - min); h = o.y + o.h - y; } else h = Math.min(Math.max(min, o.h + dy), B - o.y);
+      }
+      r = { x, y, w, h }; pinta();
+    };
+    m.onpointerup = () => { arr = null; };
+    cap.onclick = e => {
+      const b = e.target.closest('[data-rc]'); if (!b) return;
+      if (b.dataset.rc === 'no') { cap.remove(); URL.revokeObjectURL(u); return res(null); }
+      const k = img.naturalWidth / img.width, c = document.createElement('canvas'); c.width = Math.round(r.w * k); c.height = Math.round(r.h * k);
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, (r.x - img.offsetLeft) * k, (r.y - img.offsetTop) * k, c.width, c.height, 0, 0, c.width, c.height);
+      c.toBlob(bl => { cap.remove(); URL.revokeObjectURL(u); res(bl); }, 'image/jpeg', .9);
+    };
+  });
+}
 function prepararAnadir(id) {
-  E.editando = id ? P(id) : null; fotoNueva = null;
+  E.editando = id ? P(id) : null; fotoNueva = null; fotoOriginal = null;
   const p = E.editando;
   $('an-titulo').textContent = p ? t('Editar prenda', 'Edit garment') : t('Nueva prenda', 'New garment');
   $('an-borrar').classList.toggle('oculto', !p);
@@ -912,17 +958,18 @@ function pintarPrevia(url) {
     : `<label><svg><use href="#ic-camara"/></svg><span>${t('Haz una foto o elige una de la galería', 'Take a photo or pick one from the gallery')}</span><span class="et">${t('sobre fondo liso, la prenda entera', 'plain background, whole garment')}</span><input type="file" accept="image/*" id="f-prenda"></label>`;
   $('f-prenda').onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
-    try { const r = await procesarFoto(f); fotoNueva = r.blob; pintarPrevia(URL.createObjectURL(r.blob)); if (!$('an-colores').dataset.sel) pintarColores(r.color); if (!$('an-nombre').value) $('an-nombre').value = $('an-sub').value ? nombreReconocido($('an-sub').value, r.color) : nombreAuto(TIPO_DE_CAT[$('an-tipo').value], r.color); }
+    try { const r = await procesarPrenda(f); fotoNueva = r.blob; fotoOriginal = r.original; pintarPrevia(URL.createObjectURL(r.blob)); if (!$('an-colores').dataset.sel) pintarColores(r.color); if (!$('an-nombre').value) $('an-nombre').value = $('an-sub').value ? nombreReconocido($('an-sub').value, r.color) : nombreAuto(TIPO_DE_CAT[$('an-tipo').value], r.color); }
     catch (err) { toast(t('No he podido leer esa foto', 'Could not read that photo')); }
   };
+  pintarHerr();
 }
 async function guardarPrenda(otra) {
   const p = E.editando; const nombre = $('an-nombre').value.trim(); const color = $('an-colores').dataset.sel || 'Gris';
   if (!p && !fotoNueva) return toast(t('Falta la foto de la prenda', 'The garment photo is missing'));
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
-  if (p) { Object.assign(p, { rec: 3, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim() }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id); } }
-  else E.prendas.unshift({ id: uid(), rec: 3, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
+  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim() }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id); } }
+  else E.prendas.unshift({ id: uid(), rec: 3, original: fotoOriginal || undefined, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   await guardar(); E.propuestas = [];
   toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'));
   if (otra) prepararAnadir(null); else ir(p ? 'ficha' : 'closet', p?.id), p && abrirFicha(p.id);
