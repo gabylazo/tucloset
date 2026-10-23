@@ -1807,8 +1807,8 @@ function pintarEstilo() {
   const el = E.perfil?.estilos || [];
   if (E.esFam == null) { const pri = ESTILOS.find(x => x.k === el[0]); E.esFam = pri ? pri.f : 0; }
   $('es-sub').textContent = t('¿Con cuál te identificas? Elige uno o dos.', 'Which one feels like you? Pick one or two.');
-  $('es-lista').innerHTML = `<div class="es-fam">${FAMILIAS.map((f, i) => `<button class="${i === E.esFam ? 'on' : ''}" data-esfam="${i}">${f[es]}</button>`).join('')}</div>`
-    + `<div class="es-rej">${ESTILOS.filter(x => x.f === E.esFam).map(x => `<button class="${el.includes(x.k) ? 'on' : ''}" data-estilo="${x.k}"><span class="es-tela">${x.c.map(c => `<i style="background:${c}"></i>`).join('')}</span><b>${x.n[es]}</b><span class="es-d">${x.d[es]}</span></button>`).join('')}</div>`
+  // 0.74 (Gabriela, 23/10: «hay 4 estilos solamente, ¿no debería haber más?»): los 13 a la vista, por familias, sin pestañas
+  $('es-lista').innerHTML = FAMILIAS.map((f, i) => `<h3 class="es-tit">${f[es]}</h3><div class="es-rej">${ESTILOS.filter(x => x.f === i).map(x => `<button class="${el.includes(x.k) ? 'on' : ''}" data-estilo="${x.k}"><span class="es-tela">${x.c.map(c => `<i style="background:${c}"></i>`).join('')}</span><b>${x.n[es]}</b><span class="es-d">${x.d[es]}</span></button>`).join('')}</div>`).join('')
     + `<p class="es-cuenta">${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(t(' y ', ' and ')) || '&nbsp;'}</p>`;
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-esfam]'); if (!b) return; E.esFam = +b.dataset.esfam; pintarEstilo(); });
