@@ -326,7 +326,27 @@ const avisoFalta = (oc, hay) => { const f = faltaPara(oc); if (!f.length && hay)
   return `<div class="cal-falta">${hay ? '' : `<p>${t(`Sin ropa de ${o}: te enseño lo más parecido.`, `Nothing for ${o}: here is the closest.`)}</p>`}${f.length ? `<details><summary>${t('Qué te vendría bien', 'What would help')}</summary><p>${cap(lista(f))}.</p></details>` : ''}</div>`; };
 // 0.68 (Sheila, 23/10: «cuando pongo deporte me dice que no hay nada… puedes al menos poner las zapatillas»): sin ropa de esa ocasión,
 // lo más parecido: lo más arreglado para noche, evento y oficina; lo más cómodo para el resto; y para deporte, con zapatillas y sin bolso
+// 0.71 (Sheila, 23/10: «cómo voy a hacer deporte con una saya si hay pantalones… y una chaqueta es súper incómoda»): para deporte
+// sin ropa deportiva, el look se monta aparte: lo más cómodo de arriba (nada de camisas ni blusas), siempre pantalón (mallas, shorts,
+// jogger antes que vaquero; nunca falda ni vestido), zapatillas, sin bolso y sin abrigo salvo sudadera o chaqueta deportiva
+function lookDeporte() {
+  const act = activas(), nom = p => (p.nombre || '').toLowerCase() + ' ' + (p.x || '');
+  const comodo = p => /legging|malla|short|jogger|ch[aá]ndal|deport|sudadera|hoodie|camiseta|t-shirt|top|tirantes|tank/.test(nom(p)) ? 0 : /vaquero|jean|cuero|piel|leather/.test(nom(p)) ? 2 : 1;
+  const arriba = act.filter(p => p.tipo === 'Arriba' && estilo(p) <= 1 && !/camisa|blusa|shirt|blouse|body|cuero|piel|leather|encaje|lace/.test(nom(p)) || p.tipo === 'Arriba' && estilo(p) === 0);
+  const abajo = act.filter(p => p.tipo === 'Abajo' && !/falda|saya|skirt/.test(nom(p)) && estilo(p) <= 1);
+  const zapas = act.filter(p => p.tipo === 'Calzado' && estilo(p) === 0).sort((a, b) => (a.usos || []).length - (b.usos || []).length);
+  const zap = zapas[0] || act.filter(p => p.tipo === 'Calzado' && estilo(p) <= 1 && !/bot[ií]n|bota|boot|tac/.test(nom(p)))[0];
+  const capa = act.find(p => p.tipo === 'Abrigo' && estilo(p) === 0);
+  const out = [];
+  for (const a of arriba) for (const b of abajo) {
+    if (CHOCAN.has(par(a.color, b.color))) continue;
+    const ps = [a, b, ...(zap ? [zap] : []), ...(capa && (E.tiempo?.t ?? 20) < 15 ? [capa] : [])];
+    out.push({ tipo: 'propuesta', ids: ps.map(p => p.id), ocasion: 'Deporte', _c: comodo(a) + comodo(b) });
+  }
+  return out.sort((x, y) => x._c - y._c).slice(0, 6);
+}
 function masCercanos(oc, lista) {
+  if (oc === 'Deporte') { const d = lookDeporte(); if (d.length) return d; }
   const sube = ['Noche', 'Evento', 'Oficina'].includes(oc) ? 1 : -1, act = activas();
   const zapas = act.filter(p => p.tipo === 'Calzado' && estilo(p) === 0).sort((a, b) => (a.usos || []).length - (b.usos || []).length);
   const vistos = new Set(), out = [];
