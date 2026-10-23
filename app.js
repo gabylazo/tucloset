@@ -390,7 +390,12 @@ function puntuar(ps) {
   s += puntosEstilo(ps, fuertes, estamp);
   s += puntosGusto(ps);
   // que salga lo que menos te pones
+  if (SIN_HISTORIAL) return s + .5; // para contar lo que da el clóset, sin premiar ni castigar lo que te has puesto
   const usos = ps.reduce((a, p) => a + (p.usos || []).length, 0) / ps.length; s += Math.max(0, 2 - usos / 4);
+  // 0.69 (Sheila, 23/10: «a mí como usuaria me interesa no repetir prendas»; regla 1 de Moda, aprobada por Gabriela): lo que te pusiste
+  // en los últimos 6 días (sin contar hoy) baja mucho; zapatos, bolso, abrigo y accesorios se pueden repetir
+  const hoy = hoyISO(), dias = d => (new Date(hoy) - new Date(d)) / 864e5;
+  for (const p of ps) if (!['Calzado', 'Bolsos', 'Accesorios', 'Abrigo'].includes(p.tipo) && (p.usos || []).some(d => dias(d) > 0 && dias(d) <= 6)) s -= 2.5;
   return s + Math.random() * .6;
 }
 // 0.57 (Sheila, 23/10: «debería haber una opción para decir no me gusta o sí me gusta (que debe ser la de me lo pongo); esto permite saber más
@@ -1122,6 +1127,17 @@ function armonia(p, c) {
   const fav = Object.entries(usa).sort((a, b) => b[1] - a[1]).slice(0, 4).map(e => e[0]);
   return (CASAN.has(par(p.color, c)) ? 1 : 0) - (CHOCAN.has(par(p.color, c)) ? 2 : 0) + (fav.includes(c) ? .6 : 0) + (NEUTROS.has(c) ? .3 : 0) - (c === p.color && !NEUTROS.has(c) ? .5 : 0);
 }
+// cuántos looks buenos da el clóset y cuántos días seguidos puedes vestirte sin repetir ninguna prenda principal
+let SIN_HISTORIAL = false;
+function resumenCloset() {
+  const rnd = Math.random; Math.random = () => .5; SIN_HISTORIAL = true;
+  try {
+    const mejor = {}; for (const l of combosCon([], activas())) if (!mejor[l.base] || l.pts > mejor[l.base].pts) mejor[l.base] = l;
+    const buenos = Object.values(mejor).filter(l => l.pts >= LOOK_BUENO).sort((a, b) => b.pts - a.pts), usadas = new Set(); let dias = 0;
+    for (const l of buenos) { const pr = l.ps.filter(esBase).map(x => x.id); if (pr.some(i => usadas.has(i))) continue; pr.forEach(i => usadas.add(i)); dias++; }
+    return { looks: buenos.length, dias };
+  } finally { Math.random = rnd; SIN_HISTORIAL = false; }
+}
 function calcularPartido(p) {
   const rnd = Math.random; Math.random = () => .5; // sin azar: el mismo clóset da siempre la misma respuesta
   try {
@@ -1274,6 +1290,7 @@ function pintarYo() {
   $('yo-lista').innerHTML = `<button class="item" data-ir="silueta">${t('Mi silueta', 'My figure')}<span class="valor ${pf.selfie && pf.cuerpo ? 'oro' : ''}">${sil}</span></button>
     <button class="item" data-ir="estilo">${t('Mi estilo', 'My style')}<span class="valor ${(pf.estilos || []).length ? 'oro' : ''}">${(pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[idioma() === 'en' ? 1 : 0]).filter(Boolean).join(' · ') || t('Sin elegir', 'Not set')}</span></button>
     <button class="item" id="yo-colores">${t('Mis colores', 'My colours')}<span class="valor">${t('Próximamente', 'Coming soon')}</span></button>
+    ${(() => { const r = resumenCloset(); return `<div class="item">${t('Tu clóset da para', 'Your closet makes')}<span class="valor oro">${r.looks === 1 ? t('1 look', '1 look') : t(`${r.looks} looks`, `${r.looks} looks`)} · ${r.dias === 1 ? t('1 día sin repetir', '1 day without repeats') : t(`${r.dias} días sin repetir`, `${r.dias} days without repeats`)}</span></div>`; })()}
     <button class="item" id="yo-top">${t('La que más te pones', 'Most worn')}<span class="valor">${top && (top.usos || []).length ? `${top.nombre} · ${top.usos.length}` : '—'}</span></button>`;
   $('yo-ajustes').innerHTML = `<button class="item" id="yo-ayuda">${t('Ayuda', 'Help')}<span class="valor">${t('Preguntas frecuentes', 'FAQ')}</span></button>
     <button class="item" id="yo-idioma">${t('Idioma', 'Language')}<span class="valor">${idioma() === 'en' ? 'English' : 'Español'}</span></button>
