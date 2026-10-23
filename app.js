@@ -66,7 +66,8 @@ function traducir() {
   document.querySelectorAll('[data-ph]').forEach(el => { const v = T[el.dataset.ph]; if (v) el.placeholder = l === 'en' ? v[1] : v[0]; });
   document.querySelectorAll('[data-idioma]').forEach(b => b.classList.toggle('activo', b.dataset.idioma === l));
 }
-const tipoNombre = tp => ({ Arriba: ['Arriba', 'Tops'], Abajo: ['Abajo', 'Bottoms'], Vestidos: ['Vestidos', 'Dresses'], Abrigo: ['Abrigo', 'Outerwear'], Calzado: ['Calzado', 'Shoes'], Bolsos: ['Bolsos', 'Bags'], Accesorios: ['Accesorios', 'Accessories'], Todo: ['Todo', 'All'] }[tp] || [tp, tp])[idioma() === 'en' ? 1 : 0];
+const tipoNombre = tp => ({ Arriba: ['Tops', 'Tops'], Abajo: ['Pantalones y faldas', 'Trousers and skirts'], // 0.77 (Gabriela: «una de arriba, una de abajo: esto es feo decirlo así»)
+  Vestidos: ['Vestidos', 'Dresses'], Abrigo: ['Abrigo', 'Outerwear'], Calzado: ['Calzado', 'Shoes'], Bolsos: ['Bolsos', 'Bags'], Accesorios: ['Accesorios', 'Accessories'], Todo: ['Todo', 'All'] }[tp] || [tp, tp])[idioma() === 'en' ? 1 : 0];
 const estNombre = e => ({ 'Todo el año': ['Todo el año', 'All year'], Verano: ['Verano', 'Summer'], Entretiempo: ['Entretiempo', 'In-between'], Invierno: ['Invierno', 'Winter'] }[e] || [e, e])[idioma() === 'en' ? 1 : 0];
 const ocNombre = o => ({ Diario: ['Diario', 'Everyday'], Oficina: ['Oficina', 'Office'], Noche: ['Noche', 'Night'], Deporte: ['Deporte', 'Sport'], Evento: ['Evento', 'Event'], Viaje: ['Viaje', 'Travel'] }[o] || [o, o])[idioma() === 'en' ? 1 : 0];
 const veces = n => `${n} ${n === 1 ? t('vez', 'time') : t('veces', 'times')}`;
@@ -133,7 +134,7 @@ document.addEventListener('click', async e => {
 // Las fotos de la selfie y del cuerpo no se suben nunca (R4): se quedan en el móvil.
 const API = (() => { try { const q = localStorage.getItem('tc_api'); if (q) return q; } catch (e) { } return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://localhost:8787' : 'https://tucloset-api.apptucloset.workers.dev'; })();
 // mientras el servidor no esté publicado, la web pública no enseña las cuentas (en local, sí, con el servidor de pruebas)
-const NUBE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || (() => { try { return !!localStorage.getItem('tc_api'); } catch (e) { return false; } })() || false;
+const NUBE = true; // 0.76: servidor publicado en Cloudflare (tucloset-api.apptucloset.workers.dev)
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { } } };
 const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.parse(LS.get('tc_cuenta') || 'null'); } catch (e) { return null; } };
 async function api(ruta, op = {}) {
@@ -145,6 +146,13 @@ async function api(ruta, op = {}) {
 }
 const sinBlobs = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => !(v instanceof Blob)));
 const firma = b => b ? b.size + ':' + (b.type || '') : '';
+// el servidor admite fotos de hasta 1,9 MB: las más grandes se rehacen en WebP (conserva el fondo transparente)
+async function aptaNube(b) {
+  if (b.size <= 1.8e6) return b;
+  const bm = await createImageBitmap(b); let k = Math.min(1, 1400 / Math.max(bm.width, bm.height)), out = b;
+  for (let i = 0; i < 4 && out.size > 1.8e6; i++, k *= .8) { const c = document.createElement('canvas'); c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k); c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height); out = await new Promise(r => c.toBlob(r, 'image/webp', .85)); }
+  return out;
+}
 function docLocal() {
   return { perfil: sinBlobs(E.perfil), conjuntos: E.conjuntos, agenda: E.agenda, borradas: JSON.parse(LS.get('tc_nube_borradas') || '[]'),
     prendas: E.prendas.filter(p => !p.ejemplo).map(p => ({ ...sinBlobs(p), conFoto: !!p.foto, conOriginal: !!p.original })) };
@@ -163,8 +171,8 @@ async function subirNube(reintento) {
       let cambio = false;
       for (const p of E.prendas) {
         if (p.ejemplo) continue;
-        if (p.foto && p.nube !== firma(p.foto)) { const r = await api('/api/foto/' + p.id, { method: 'PUT', body: p.foto, headers: { 'Content-Type': p.foto.type || 'image/jpeg' } }); if (!r.ok) throw new Error('foto'); p.nube = firma(p.foto); cambio = true; }
-        if (p.original && p.nubeO !== firma(p.original)) { const r = await api('/api/foto/' + p.id + '-o', { method: 'PUT', body: p.original, headers: { 'Content-Type': p.original.type || 'image/jpeg' } }); if (r.ok) { p.nubeO = firma(p.original); cambio = true; } }
+        if (p.foto && p.fotoSub !== firma(p.foto)) { const fb = await aptaNube(p.foto); const r = await api('/api/foto/' + p.id, { method: 'PUT', body: fb, headers: { 'Content-Type': fb.type || 'image/jpeg' } }); if (!r.ok) throw new Error('foto'); p.fotoSub = firma(p.foto); p.nube = Date.now().toString(36); cambio = true; } // nube = marca de la versión subida; fotoSub = qué foto local se subió
+        if (p.original && p.fotoSubO !== firma(p.original)) { const ob = await aptaNube(p.original); const r = await api('/api/foto/' + p.id + '-o', { method: 'PUT', body: ob, headers: { 'Content-Type': ob.type || 'image/jpeg' } }); if (r.ok) { p.fotoSubO = firma(p.original); p.nubeO = Date.now().toString(36); cambio = true; } }
       }
       if (cambio) await BD.set('prendas', E.prendas);
       const r = await api('/api/datos', { method: 'PUT', json: { doc: docLocal(), version: +(LS.get('tc_nube_ver') || 0) } });
@@ -186,8 +194,8 @@ async function bajarNube() {
   const nuevas = [];
   for (const q of doc.prendas || []) {
     const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null }; delete p.conFoto; delete p.conOriginal;
-    if (q.conFoto && (!l?.foto || l.nube !== q.nube)) { try { const f = await api('/api/foto/' + q.id); if (f.ok) { p.foto = await f.blob(); p.nube = firma(p.foto); urls.delete(q.id); } } catch (e) { } }
-    if (q.conOriginal && !p.original) { try { const f = await api('/api/foto/' + q.id + '-o'); if (f.ok) { p.original = await f.blob(); p.nubeO = firma(p.original); } } catch (e) { } }
+    if (q.conFoto && (!l?.foto || l.nube !== q.nube)) { try { const f = await api('/api/foto/' + q.id); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; urls.delete(q.id); } } catch (e) { } }
+    if (q.conOriginal && (!p.original || l?.nubeO !== q.nubeO)) { try { const f = await api('/api/foto/' + q.id + '-o'); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; } } catch (e) { } }
     nuevas.push(p); locales.delete(q.id);
   }
   for (const [id, l] of locales) if (!borr.has(id)) nuevas.push(l);
@@ -217,7 +225,7 @@ async function borrarCuenta() {
   if (!await confirmar(t('¿Borrar tu cuenta?', 'Delete your account?'), t('Se borran del servidor tu clóset, tus fotos y tus looks. En este móvil se queda una copia. No se puede deshacer.', 'Your closet, photos and looks are deleted from the server. This phone keeps a copy. Cannot be undone.'), t('Borrar cuenta', 'Delete account'))) return;
   const r = await api('/api/cuenta', { method: 'DELETE' }).catch(() => null);
   if (!r?.ok) return toast(t('No se ha podido borrar. Inténtalo de nuevo.', 'Could not delete. Try again.'));
-  ['tc_cuenta', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando'].forEach(k => LS.set(k, null)); E.prendas.forEach(p => { delete p.nube; delete p.nubeO; }); await BD.set('prendas', E.prendas); pintarCuenta(); toast(t('Cuenta borrada', 'Account deleted'));
+  ['tc_cuenta', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando'].forEach(k => LS.set(k, null)); E.prendas.forEach(p => { delete p.nube; delete p.nubeO; delete p.fotoSub; delete p.fotoSubO; }); await BD.set('prendas', E.prendas); pintarCuenta(); toast(t('Cuenta borrada', 'Account deleted'));
 }
 const haceRato = iso => { if (!iso) return ''; const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? t('ahora mismo', 'just now') : m < 60 ? t(`hace ${m} min`, `${m} min ago`) : m < 1440 ? t(`hace ${Math.round(m / 60)} h`, `${Math.round(m / 60)} h ago`) : new Date(iso).toLocaleDateString(idioma()); };
 function estadoNube() { const e = E.nube.estado; return e === 'subiendo' ? t('Guardando…', 'Saving…') : e === 'bajando' ? t('Trayendo tu clóset…', 'Bringing your closet…') : e === 'error' ? t('Sin conexión: se guardará al volver', 'Offline: will save when back') : E.nube.cuando ? t(`Guardado ${haceRato(E.nube.cuando)}`, `Saved ${haceRato(E.nube.cuando)}`) : t('Pendiente de guardar', 'Not saved yet'); }
@@ -1340,7 +1348,7 @@ async function guardarPrenda(otra) {
 /* ---------- FICHA ---------- */
 function abrirFicha(id) {
   const p = P(id); if (!p) return;
-  $('f-cat').textContent = tipoNombre(p.tipo); $('f-img').src = urlFoto(p); $('f-nombre').textContent = p.nombre;
+  $('f-cat').textContent = catTxt(catDe(p)); $('f-img').src = urlFoto(p); $('f-nombre').textContent = p.nombre;
   $('f-sub').textContent = [p.color, estNombre(p.estacion), p.notas].filter(Boolean).join(' · ');
   const usos = p.usos || []; $('f-usos').textContent = usos.length; $('f-ultima').textContent = usos.length ? fecha(usos[usos.length - 1], true) : '—';
   const conj = E.conjuntos.filter(c => c.ids.includes(id)); $('f-conj').textContent = conj.length;
@@ -1457,7 +1465,7 @@ function pintarLooks() {
     : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span><span class="lk-us">${usosTxt(c)}</span>`;
   const abre = c => ideas ? '' : ` data-look="${c.id}"`;
   let cuerpo;
-  if (!lista.length) cuerpo = ideas ? `<div class="hz-vacio lk-vacio">${t('Para proponerte looks necesito una parte de arriba y una de abajo, o un vestido, de esta estación.', 'To suggest looks I need a top and a bottom, or a dress, for this season.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button></div>`
+  if (!lista.length) cuerpo = ideas ? `<div class="hz-vacio lk-vacio">${t('Para proponerte looks necesito más prendas de esta estación: por ejemplo, un top y un pantalón o una falda, o un vestido.', 'To suggest looks I need more garments for this season: for example a top and trousers or a skirt, or a dress.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button></div>`
     : `<div class="hz-vacio lk-vacio">${t('Aún no tienes looks guardados. Mira las ideas para hoy o crea uno con tu ropa.', 'No saved looks yet. See today’s ideas or create one with your clothes.')}<button class="hz-bt" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button></div>`;
   else if (v === '2') { E.lkI = Math.min(E.lkI, lista.length - 1); const c = lista[E.lkI];
     cuerpo = `<div class="lk-uno"><div class="lk-fig"${abre(c)}>${figLook(c)}</div><div class="lk-nav"><button data-lkmov="-1" aria-label="${t('Anterior', 'Previous')}" ${E.lkI ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><span>${E.lkI + 1} / ${lista.length}</span><button data-lkmov="1" aria-label="${t('Siguiente', 'Next')}" ${E.lkI < lista.length - 1 ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>${pie(c)}</div>`; }
