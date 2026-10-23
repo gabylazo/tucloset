@@ -33,7 +33,7 @@ const COLORES = [['Negro', '#1B1B1B'], ['Blanco', '#F4F4F4'], ['Gris', '#8E8E8E'
 /* ---------- idioma ---------- */
 const T = {
   ac_crear: ['Crea tu clóset', 'Create your closet'], ac_nombre: ['Tu nombre', 'Your name'], ac_ciudad: ['Tu ciudad', 'Your city'], ac_ubic: ['Usar mi ubicación', 'Use my location'],
-  ac_nota: ['La ciudad es solo para el tiempo. Tus fotos se quedan en tu móvil.', 'The city is only for the weather. Your photos stay on your phone.'],
+  ac_nota: ['La ciudad es solo para el tiempo. Con correo, tu clóset se guarda en tu cuenta; tu selfie y tu foto de cuerpo, nunca.', 'The city is only for the weather. With an email your closet is saved to your account; your selfie and body photo, never.'], ac_clave_nueva: ['Contraseña (mínimo 8)', 'Password (min. 8)'],
   ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Dos fotos para verte con tu ropa puesta, conocer tu tipo de cuerpo y tus colores.', 'Two photos to see yourself in your clothes and learn your body type and colours.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_estilo: ['Tu estilo', 'Your style'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
   ac_entrar: ['Hola de nuevo', 'Welcome back'], ac_correo: ['Correo', 'Email'], ac_clave: ['Contraseña', 'Password'], ac_olvido: ['¿La has olvidado?', 'Forgot it?'], ac_entrar_bt: ['Entrar', 'Sign in'], ac_o: ['o', 'or'],
   ac_apple: ['Continuar con Apple', 'Continue with Apple'], ac_google: ['Continuar con Google', 'Continue with Google'], ac_no_tengo: ['¿Aún no tienes cuenta? Crea tu clóset', 'No account yet? Create your closet'],
@@ -79,7 +79,172 @@ function confirmar(titulo, texto, si, no) { return new Promise(res => { $('dlg-t
 function urlFoto(p) { if (!p) return ''; if (p.src) return p.src; if (!p.foto) return ''; if (!urls.has(p.id)) urls.set(p.id, URL.createObjectURL(p.foto)); return urls.get(p.id); }
 const P = id => E.prendas.find(p => p.id === id);
 const activas = () => E.prendas.filter(p => !['guardada', 'donar'].includes(p.estado));
-async function guardar() { await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda); }
+async function guardar() { await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda); programarNube(); }
+
+/* ---------- mis colores (0.73): colorimetría ligera de la primera versión, sin foto ---------- */
+// Decidido por las dos (18/10, «el punto 3 sí»): colorimetría ligera en la 1.0. Cuatro preguntas y una de las cuatro estaciones clásicas;
+// es una orientación, no un diagnóstico (R6): se cambia cuando quiera. Con foto (selfie) llegará en el Pro.
+const PREG_COLOR = [
+  ['venas', ['Las venas de tu muñeca, a la luz del día', 'The veins on your wrist, in daylight'], [['c', 'Verdosas', 'Greenish'], ['f', 'Azuladas o moradas', 'Bluish or purple'], ['n', 'No lo tengo claro', 'Not sure']]],
+  ['metal', ['¿Qué te queda mejor cerca de la cara?', 'What suits you best near your face?'], [['c', 'Oro', 'Gold'], ['f', 'Plata', 'Silver'], ['n', 'Los dos', 'Both']]],
+  ['tono', ['Tu piel y tu pelo, en conjunto', 'Your skin and hair, overall'], [['cl', 'Claros', 'Light'], ['me', 'Medios', 'Medium'], ['os', 'Oscuros', 'Deep']]],
+  ['contraste', ['Entre tu piel, tu pelo y tus ojos hay…', 'Between your skin, hair and eyes there is…'], [['al', 'Mucho contraste', 'High contrast'], ['ba', 'Poco contraste', 'Low contrast']]]];
+const EST_COLOR = {
+  primavera: { n: ['Primavera', 'Spring'], d: ['Cálida y luminosa: colores vivos y claros, con un punto dorado.', 'Warm and bright: clear, light colours with a golden touch.'], si: ['Camel', 'Beige', 'Amarillo', 'Naranja', 'Verde', 'Azul claro', 'Rosa'], no: ['Negro', 'Gris', 'Morado'], hex: ['#F2C9A0', '#F4A582', '#E8C547', '#8DBF6A', '#7FB8D6', '#F28C8C', '#C9A24B'] },
+  verano: { n: ['Verano', 'Summer'], d: ['Fría y suave: tonos empolvados, grises azulados y pasteles.', 'Cool and soft: dusty shades, blue greys and pastels.'], si: ['Rosa', 'Azul claro', 'Gris', 'Morado', 'Azul', 'Blanco'], no: ['Naranja', 'Amarillo', 'Camel'], hex: ['#D9A6B5', '#9DB4CF', '#A7A9B8', '#9C89B8', '#5F7FA8', '#E8E4EA', '#7A8C99'] },
+  otono: { n: ['Otoño', 'Autumn'], d: ['Cálida y profunda: tierras, mostaza, verde oliva y teja.', 'Warm and deep: earth tones, mustard, olive and rust.'], si: ['Camel', 'Marrón', 'Verde', 'Naranja', 'Beige', 'Amarillo', 'Rojo'], no: ['Rosa', 'Gris', 'Azul claro'], hex: ['#B98A4F', '#6B4A2B', '#6B7A3A', '#C2662D', '#D8C7A8', '#C9A227', '#9C3A2A'] },
+  invierno: { n: ['Invierno', 'Winter'], d: ['Fría e intensa: blanco y negro, colores puros y contraste.', 'Cool and intense: black and white, pure colours and contrast.'], si: ['Negro', 'Blanco', 'Rojo', 'Azul', 'Morado', 'Gris', 'Rosa'], no: ['Beige', 'Camel', 'Naranja', 'Marrón'], hex: ['#1B1B1B', '#F7F7F7', '#B4122E', '#1F3F8A', '#5B2A86', '#C2185B', '#8E8E8E'] } };
+function estacionColor(r) {
+  const temp = ['venas', 'metal'].reduce((a, k) => a + (r[k] === 'c' ? 1 : r[k] === 'f' ? -1 : 0), 0);
+  const fuerte = r.contraste === 'al' || r.tono === 'os', claro = r.tono === 'cl' || r.contraste === 'ba';
+  if (temp > 0) return fuerte && !claro ? 'otono' : r.tono === 'os' ? 'otono' : 'primavera';
+  if (temp < 0) return fuerte ? 'invierno' : 'verano';
+  return fuerte ? (r.tono === 'os' ? 'otono' : 'invierno') : 'verano';
+}
+// en Hoy: la prenda que va junto a la cara (arriba, vestido o abrigo) suma si es de tus colores y resta un poco si es de los de lejos de la cara
+function puntosColores(ps) {
+  const e = EST_COLOR[E.perfil?.colores?.est]; if (!e) return 0;
+  const cara = ps.find(p => p.tipo === 'Arriba') || ps.find(p => p.tipo === 'Vestidos') || ps.find(p => p.tipo === 'Abrigo'); if (!cara) return 0;
+  return e.si.includes(cara.color) ? .7 : e.no.includes(cara.color) ? -.5 : 0;
+}
+function pintarMisColores() {
+  const es = idioma() === 'en' ? 1 : 0, c = E.perfil?.colores || {}, r = c.r || {}, listo = PREG_COLOR.every(([k]) => r[k]);
+  const est = listo ? estacionColor(r) : null, e = EST_COLOR[est];
+  const mios = e ? [...new Set(E.prendas.filter(p => e.si.includes(p.color) && ['Arriba', 'Vestidos', 'Abrigo'].includes(p.tipo)).map(p => p.id))].slice(0, 6) : [];
+  $('co-raiz').innerHTML = `<p class="co-sub">${t('Cuatro preguntas para saber qué colores te favorecen cerca de la cara. Mírate a la luz del día, sin maquillaje fuerte.', 'Four questions to find the colours that suit you near your face. Look in daylight, without heavy make-up.')}</p>`
+    + PREG_COLOR.map(([k, q, ops]) => `<div class="co-preg"><b>${q[es]}</b><div class="co-ops">${ops.map(([v, a, b]) => `<button class="${r[k] === v ? 'on' : ''}" data-copreg="${k}" data-coval="${v}">${es ? b : a}</button>`).join('')}</div></div>`).join('')
+    + (e ? `<div class="co-res"><span class="mini-et">${t('Tu estación', 'Your season')}</span><h2>${e.n[es]}</h2><p>${e.d[es]}</p>
+      <div class="co-tela">${e.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>
+      <div class="co-dos"><div><span class="mini-et">${t('Te favorecen', 'Suit you')}</span><p>${e.si.map(x => colNom(x)).join(', ')}</p></div><div><span class="mini-et">${t('Mejor lejos de la cara', 'Better away from your face')}</span><p>${e.no.map(x => colNom(x)).join(', ')}</p></div></div>
+      ${mios.length ? `<span class="mini-et">${t('De tu clóset, para la cara', 'From your closet, for your face')}</span><div class="co-mias">${mios.map(id => `<button data-ficha="${id}"><img src="${urlFoto(P(id))}" alt=""></button>`).join('')}</div>` : ''}
+      <p class="co-nota">${t('Es una orientación, no una regla: si un color te hace feliz, póntelo. Hoy ya tiene en cuenta tus colores.', 'A guide, not a rule: if a colour makes you happy, wear it. Today already takes your colours into account.')}</p></div>` : '');
+}
+const colNom = c => idioma() === 'en' ? ({ Negro: 'black', Blanco: 'white', Gris: 'grey', Beige: 'beige', Camel: 'camel', Marrón: 'brown', Rojo: 'red', Rosa: 'pink', Naranja: 'orange', Amarillo: 'yellow', Verde: 'green', 'Azul claro': 'light blue', Azul: 'blue', Morado: 'purple' }[c] || c) : c.toLowerCase();
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-copreg]'); if (!b) return;
+  E.perfil = E.perfil || {}; const c = E.perfil.colores = E.perfil.colores || { r: {} }; c.r = c.r || {}; c.r[b.dataset.copreg] = b.dataset.coval;
+  c.est = PREG_COLOR.every(([k]) => c.r[k]) ? estacionColor(c.r) : null; E.propuestas = []; await guardar(); pintarMisColores();
+  if (c.est && b.dataset.copreg === 'contraste') $('p-colores').scrollTo({ top: 9999, behavior: 'smooth' });
+});
+
+/* ---------- cuenta y nube (0.73) ---------- */
+// Gabriela, 23/10: «crea la opción de las cuentas, para desde la mía empezar a subir mi ropa e ir haciendo pruebas reales».
+// Con cuenta, el clóset «Mi ropa» se guarda también en el servidor (Cloudflare) y se recupera en cualquier móvil; el de «Pruebas» no.
+// Las fotos de la selfie y del cuerpo no se suben nunca (R4): se quedan en el móvil.
+const API = (() => { try { const q = localStorage.getItem('tc_api'); if (q) return q; } catch (e) { } return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://localhost:8787' : 'https://tucloset-api.apptucloset.workers.dev'; })();
+// mientras el servidor no esté publicado, la web pública no enseña las cuentas (en local, sí, con el servidor de pruebas)
+const NUBE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || (() => { try { return !!localStorage.getItem('tc_api'); } catch (e) { return false; } })() || false;
+const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { } } };
+const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.parse(LS.get('tc_cuenta') || 'null'); } catch (e) { return null; } };
+async function api(ruta, op = {}) {
+  const c = cuenta(), h = { ...(op.headers || {}) }; if (c?.token) h.Authorization = 'Bearer ' + c.token;
+  if (op.json !== undefined) { h['Content-Type'] = 'application/json'; op.body = JSON.stringify(op.json); }
+  const r = await fetch(API + ruta, { method: op.method || 'GET', headers: h, body: op.body });
+  if (r.status === 401 && c && !/alta|entrar/.test(ruta)) { LS.set('tc_cuenta', null); toast(t('Tu sesión ha caducado: vuelve a entrar', 'Your session expired: sign in again')); }
+  return r;
+}
+const sinBlobs = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => !(v instanceof Blob)));
+const firma = b => b ? b.size + ':' + (b.type || '') : '';
+function docLocal() {
+  return { perfil: sinBlobs(E.perfil), conjuntos: E.conjuntos, agenda: E.agenda, borradas: JSON.parse(LS.get('tc_nube_borradas') || '[]'),
+    prendas: E.prendas.filter(p => !p.ejemplo).map(p => ({ ...sinBlobs(p), conFoto: !!p.foto, conOriginal: !!p.original })) };
+}
+E.nube = { estado: '', cuando: LS.get('tc_nube_cuando') || '' };
+let nubeT, nubeEnCurso = null;
+function programarNube() { if (!cuenta()) return; clearTimeout(nubeT); nubeT = setTimeout(() => subirNube().catch(() => { }), 2500); }
+async function subirNube(reintento) {
+  if (!cuenta()) return; if (nubeEnCurso) { await nubeEnCurso; return programarNube(); }
+  nubeEnCurso = (async () => {
+    E.nube.estado = 'subiendo'; pintarCuentaSiToca();
+    try {
+      // borradas desde la última subida: se apuntan para que los otros móviles también las quiten, y su foto se borra del servidor
+      const antes = JSON.parse(LS.get('tc_nube_ids') || '[]'), ahora = E.prendas.filter(p => !p.ejemplo).map(p => p.id);
+      const fuera = antes.filter(id => !ahora.includes(id)); if (fuera.length) { const b = new Set(JSON.parse(LS.get('tc_nube_borradas') || '[]')); fuera.forEach(id => b.add(id)); LS.set('tc_nube_borradas', JSON.stringify([...b].slice(-2000))); for (const id of fuera) { api('/api/foto/' + id, { method: 'DELETE' }).catch(() => { }); api('/api/foto/' + id + '-o', { method: 'DELETE' }).catch(() => { }); } }
+      let cambio = false;
+      for (const p of E.prendas) {
+        if (p.ejemplo) continue;
+        if (p.foto && p.nube !== firma(p.foto)) { const r = await api('/api/foto/' + p.id, { method: 'PUT', body: p.foto, headers: { 'Content-Type': p.foto.type || 'image/jpeg' } }); if (!r.ok) throw new Error('foto'); p.nube = firma(p.foto); cambio = true; }
+        if (p.original && p.nubeO !== firma(p.original)) { const r = await api('/api/foto/' + p.id + '-o', { method: 'PUT', body: p.original, headers: { 'Content-Type': p.original.type || 'image/jpeg' } }); if (r.ok) { p.nubeO = firma(p.original); cambio = true; } }
+      }
+      if (cambio) await BD.set('prendas', E.prendas);
+      const r = await api('/api/datos', { method: 'PUT', json: { doc: docLocal(), version: +(LS.get('tc_nube_ver') || 0) } });
+      if (r.status === 409 && !reintento) { await bajarNube(); nubeEnCurso = null; return subirNube(true); }
+      if (!r.ok) throw new Error('datos ' + r.status);
+      const d = await r.json(); LS.set('tc_nube_ver', d.version); LS.set('tc_nube_ids', JSON.stringify(ahora)); LS.set('tc_nube_cuando', d.actualizado); E.nube = { estado: 'ok', cuando: d.actualizado };
+    } catch (e) { E.nube.estado = 'error'; }
+    pintarCuentaSiToca();
+  })();
+  try { await nubeEnCurso; } finally { nubeEnCurso = null; }
+}
+// trae lo del servidor y lo junta con lo de este móvil: lo del servidor manda; lo que solo está aquí se queda (y se subirá)
+async function bajarNube() {
+  if (!cuenta()) return false;
+  const r = await api('/api/datos'); if (!r.ok) return false;
+  const { doc, version } = await r.json(); if (!doc) return false;
+  const borr = new Set(doc.borradas || []); LS.set('tc_nube_borradas', JSON.stringify(doc.borradas || []));
+  const locales = new Map(E.prendas.map(p => [p.id, p]));
+  const nuevas = [];
+  for (const q of doc.prendas || []) {
+    const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null }; delete p.conFoto; delete p.conOriginal;
+    if (q.conFoto && (!l?.foto || l.nube !== q.nube)) { try { const f = await api('/api/foto/' + q.id); if (f.ok) { p.foto = await f.blob(); p.nube = firma(p.foto); urls.delete(q.id); } } catch (e) { } }
+    if (q.conOriginal && !p.original) { try { const f = await api('/api/foto/' + q.id + '-o'); if (f.ok) { p.original = await f.blob(); p.nubeO = firma(p.original); } } catch (e) { } }
+    nuevas.push(p); locales.delete(q.id);
+  }
+  for (const [id, l] of locales) if (!borr.has(id)) nuevas.push(l);
+  E.prendas = nuevas;
+  const cj = new Map((doc.conjuntos || []).map(c => [c.id, c])); E.conjuntos.forEach(c => { if (!cj.has(c.id)) cj.set(c.id, c); }); E.conjuntos = [...cj.values()];
+  E.agenda = { ...E.agenda, ...(doc.agenda || {}) };
+  E.perfil = { ...(doc.perfil || {}), ...Object.fromEntries(Object.entries(E.perfil || {}).filter(([, v]) => v instanceof Blob)) };
+  LS.set('tc_nube_ver', version); LS.set('tc_nube_ids', JSON.stringify((doc.prendas || []).map(p => p.id)));
+  await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda);
+  E.propuestas = []; E.generados = []; return true;
+}
+const ERR_CUENTA = { correo: ['Escribe un correo válido', 'Enter a valid email'], clave_corta: ['La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'], ya_existe: ['Ese correo ya tiene cuenta: entra con él', 'That email already has an account: sign in'], credenciales: ['Correo o contraseña incorrectos', 'Wrong email or password'], frenado: ['Demasiados intentos: espera 15 minutos', 'Too many attempts: wait 15 minutes'] };
+async function abrirCuenta(modo, correo, clave, nombre) {
+  if (CLOSET_ACT) { toast(t('Las cuentas son para «Mi ropa»: cambia de clóset en Yo', 'Accounts are for «My clothes»: switch closet in Me')); return false; }
+  let r; try { r = await api('/api/' + modo, { method: 'POST', json: { correo, clave, nombre } }); } catch (e) { toast(t('Sin conexión con el servidor. Inténtalo en un momento.', 'Cannot reach the server. Try again shortly.')); return false; }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { const m = ERR_CUENTA[d.error]; toast(m ? t(m[0], m[1]) : t('No se ha podido. Inténtalo de nuevo.', 'It did not work. Try again.')); return false; }
+  LS.set('tc_cuenta', JSON.stringify({ token: d.token, correo: d.correo, nombre: d.nombre })); LS.set('tc_nube_ver', '0'); LS.set('tc_nube_ids', '[]');
+  if (modo === 'entrar') { E.nube.estado = 'bajando'; await bajarNube(); }
+  await subirNube(); return true;
+}
+async function cerrarSesion() {
+  if (!await confirmar(t('¿Cerrar sesión?', 'Sign out?'), t('Tu clóset sigue guardado en tu cuenta. En este móvil se queda lo que ya tienes.', 'Your closet stays saved in your account. This phone keeps what it has.'), t('Cerrar sesión', 'Sign out'))) return;
+  await subirNube().catch(() => { }); api('/api/salir', { method: 'POST' }).catch(() => { }); LS.set('tc_cuenta', null); pintarCuenta(); toast(t('Sesión cerrada', 'Signed out'));
+}
+async function borrarCuenta() {
+  if (!await confirmar(t('¿Borrar tu cuenta?', 'Delete your account?'), t('Se borran del servidor tu clóset, tus fotos y tus looks. En este móvil se queda una copia. No se puede deshacer.', 'Your closet, photos and looks are deleted from the server. This phone keeps a copy. Cannot be undone.'), t('Borrar cuenta', 'Delete account'))) return;
+  const r = await api('/api/cuenta', { method: 'DELETE' }).catch(() => null);
+  if (!r?.ok) return toast(t('No se ha podido borrar. Inténtalo de nuevo.', 'Could not delete. Try again.'));
+  ['tc_cuenta', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando'].forEach(k => LS.set(k, null)); E.prendas.forEach(p => { delete p.nube; delete p.nubeO; }); await BD.set('prendas', E.prendas); pintarCuenta(); toast(t('Cuenta borrada', 'Account deleted'));
+}
+const haceRato = iso => { if (!iso) return ''; const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? t('ahora mismo', 'just now') : m < 60 ? t(`hace ${m} min`, `${m} min ago`) : m < 1440 ? t(`hace ${Math.round(m / 60)} h`, `${Math.round(m / 60)} h ago`) : new Date(iso).toLocaleDateString(idioma()); };
+function estadoNube() { const e = E.nube.estado; return e === 'subiendo' ? t('Guardando…', 'Saving…') : e === 'bajando' ? t('Trayendo tu clóset…', 'Bringing your closet…') : e === 'error' ? t('Sin conexión: se guardará al volver', 'Offline: will save when back') : E.nube.cuando ? t(`Guardado ${haceRato(E.nube.cuando)}`, `Saved ${haceRato(E.nube.cuando)}`) : t('Pendiente de guardar', 'Not saved yet'); }
+function pintarCuentaSiToca() { if (E.pantalla === 'cuenta') pintarCuenta(); }
+function pintarCuenta() {
+  const c = cuenta(), r = $('cu-raiz'); if (!r) return;
+  if (CLOSET_ACT) { r.innerHTML = `<p class="cu-txt">${t('Estás en el clóset de pruebas. Las cuentas guardan «Mi ropa»: cámbialo en Yo → Clóset.', 'You are in the test closet. Accounts keep «My clothes»: switch in Me → Closet.')}</p>`; return; }
+  if (c) {
+    const n = E.prendas.filter(p => !p.ejemplo).length;
+    r.innerHTML = `<div class="cu-cab"><b>${c.nombre || E.perfil?.nombre || ''}</b><span>${c.correo}</span></div>
+      <div class="lista"><div class="item">${t('Tu clóset en la nube', 'Your closet in the cloud')}<span class="valor oro">${estadoNube()}</span></div>
+      <div class="item">${t('Prendas guardadas', 'Saved garments')}<span class="valor">${n}</span></div>
+      <button class="item" id="cu-ya">${t('Guardar ahora', 'Save now')}<span class="valor"></span></button>
+      <button class="item" id="cu-traer">${t('Traer lo de otros móviles', 'Bring from other phones')}<span class="valor"></span></button></div>
+      <p class="cu-txt">${t('Tu selfie y tu foto de cuerpo no se suben: se quedan en este móvil.', 'Your selfie and body photo are never uploaded: they stay on this phone.')}</p>
+      <div class="lista"><button class="item" id="cu-salir">${t('Cerrar sesión', 'Sign out')}<span class="valor"></span></button><button class="item rojo" id="cu-borrar">${t('Borrar mi cuenta', 'Delete my account')}<span class="valor"></span></button></div>`;
+    $('cu-ya').onclick = () => subirNube(); $('cu-traer').onclick = async () => { E.nube.estado = 'bajando'; pintarCuenta(); await bajarNube(); E.nube.estado = 'ok'; pintarCuenta(); toast(t('Clóset al día', 'Closet up to date')); };
+    $('cu-salir').onclick = cerrarSesion; $('cu-borrar').onclick = borrarCuenta;
+  } else {
+    r.innerHTML = `<p class="cu-txt">${t('Crea tu cuenta para guardar tu clóset y verlo en cualquier móvil.', 'Create your account to keep your closet and see it on any phone.')}</p>
+      <div class="ac-campos"><label class="ac-campo"><span class="mini-et">${t('Correo', 'Email')}</span><input type="email" id="cu-correo" autocomplete="email"></label>
+      <label class="ac-campo"><span class="mini-et">${t('Contraseña (mínimo 8)', 'Password (min. 8)')}</span><input type="password" id="cu-clave" autocomplete="new-password"></label></div>
+      <div class="cu-bts"><button class="boton" id="cu-crear">${t('Crear mi cuenta', 'Create my account')}</button><button class="boton linea" id="cu-entrar">${t('Ya tengo cuenta', 'I have an account')}</button></div>`;
+    const go = async modo => { const b = $(modo === 'alta' ? 'cu-crear' : 'cu-entrar'); b.disabled = true; const ok = await abrirCuenta(modo, $('cu-correo').value.trim(), $('cu-clave').value, E.perfil?.nombre); b.disabled = false; if (ok) { pintarCuenta(); toast(modo === 'alta' ? t('Cuenta creada: tu clóset ya se guarda', 'Account created: your closet is being saved') : t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); } };
+    $('cu-crear').onclick = () => go('alta'); $('cu-entrar').onclick = () => go('entrar');
+  }
+}
 
 // reduce la foto a 1200 px de lado mayor y la devuelve como Blob JPEG; también el color dominante
 function procesarFoto(file) {
@@ -470,6 +635,7 @@ function puntuar(ps) {
   if (tc === 'rectangulo') s += (ps.some(p => p.tipo === 'Abrigo') ? .4 : 0) + (falda ? .3 : 0) + (vest ? .3 : 0);
   if (tc === 'ovalo') s += (ar && ab && ar.color === ab.color ? .8 : 0) + (vest ? .4 : 0) - (fz(ab) ? .4 : 0);
   s += puntosEstilo(ps, fuertes, estamp);
+  s += puntosColores(ps);
   s += puntosGusto(ps);
   // que salga lo que menos te pones
   if (SIN_HISTORIAL) return s + .5; // para contar lo que da el clóset, sin premiar ni castigar lo que te has puesto
@@ -543,9 +709,11 @@ function ir(nombre, datos) {
   if (nombre === 'looks') pintarLooks();
   if (nombre === 'yo') pintarYo();
   if (nombre === 'diseno') pintarDiseno();
+  if (nombre === 'cuenta') pintarCuenta();
+  if (nombre === 'colores') pintarMisColores();
   E.pantalla = nombre;
   document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.id === 'p-' + nombre));
-  const tab = { ficha: 'closet', look: 'looks', diseno: 'yo' }[nombre] || nombre;
+  const tab = { ficha: 'closet', look: 'looks', diseno: 'yo', cuenta: 'yo', colores: 'yo' }[nombre] || nombre;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('activo', b.dataset.ir === tab));
   $('tabs').classList.toggle('oculta', SIN_TABS.includes(nombre));
   const el = $('p-' + nombre); if (el) el.scrollTop = 0;
@@ -1383,10 +1551,11 @@ function pintarYo() {
   const sil = pf.selfie && pf.cuerpo ? t('Fotos listas', 'Photos ready') : pf.selfie || pf.cuerpo ? t('Falta una foto', 'One photo missing') : t('Sin fotos', 'No photos');
   $('yo-lista').innerHTML = `<button class="item" data-ir="silueta">${t('Mi silueta', 'My figure')}<span class="valor ${pf.selfie && pf.cuerpo ? 'oro' : ''}">${sil}</span></button>
     <button class="item" data-ir="estilo">${t('Mi estilo', 'My style')}<span class="valor ${(pf.estilos || []).length ? 'oro' : ''}">${(pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[idioma() === 'en' ? 1 : 0]).filter(Boolean).join(' · ') || t('Sin elegir', 'Not set')}</span></button>
-    <button class="item" id="yo-colores">${t('Mis colores', 'My colours')}<span class="valor">${t('Próximamente', 'Coming soon')}</span></button>
+    <button class="item" id="yo-colores">${t('Mis colores', 'My colours')}<span class="valor ${E.perfil?.colores?.est ? 'oro' : ''}">${E.perfil?.colores?.est ? EST_COLOR[E.perfil.colores.est].n[idioma() === 'en' ? 1 : 0] : t('Descúbrelos', 'Find them')}</span></button>
     ${(() => { const r = resumenCloset(); return `<div class="item">${t('Tu clóset da para', 'Your closet makes')}<span class="valor oro">${r.looks === 1 ? t('1 look', '1 look') : t(`${r.looks} looks`, `${r.looks} looks`)} · ${r.dias === 1 ? t('1 día sin repetir', '1 day without repeats') : t(`${r.dias} días sin repetir`, `${r.dias} days without repeats`)}</span></div>`; })()}
     <button class="item" id="yo-top">${t('La que más te pones', 'Most worn')}<span class="valor">${top && (top.usos || []).length ? `${top.nombre} · ${top.usos.length}` : '—'}</span></button>`;
-  $('yo-ajustes').innerHTML = `<button class="item" id="yo-ayuda">${t('Ayuda', 'Help')}<span class="valor">${t('Preguntas frecuentes', 'FAQ')}</span></button>
+  $('yo-ajustes').innerHTML = `${NUBE ? '' : '<!--'}<button class="item" data-ir="cuenta">${t('Cuenta', 'Account')}<span class="valor ${cuenta() ? 'oro' : ''}">${cuenta() ? cuenta().correo : t('Crear o entrar', 'Create or sign in')}</span></button>${NUBE ? '' : '-->'}
+    <button class="item" id="yo-ayuda">${t('Ayuda', 'Help')}<span class="valor">${t('Preguntas frecuentes', 'FAQ')}</span></button>
     <button class="item" id="yo-idioma">${t('Idioma', 'Language')}<span class="valor">${idioma() === 'en' ? 'English' : 'Español'}</span></button>
     <button class="item" data-ir="diseno">${t('Diseño (para decidir)', 'Design (to decide)')}<span class="valor">${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}</span></button>
     <button class="item" id="yo-plan">${t('Plan (para enseñarlo)', 'Plan (demo)')}<span class="valor">${planDemo() === 'pro' ? t('Pro · tu avatar', 'Pro · your avatar') : t('Básico · maniquí', 'Basic · mannequin')}</span></button>
@@ -1408,7 +1577,7 @@ function pintarYo() {
   $('yo-importar').querySelector('input').onchange = e => e.target.files[0] && importar(e.target.files[0]);
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
   $('yo-borrar').onclick = async () => { if (await confirmar(t('¿Borrar todo?', 'Delete everything?'), t('Prendas, fotos, conjuntos y usos de este navegador. No se puede deshacer.', 'Garments, photos, outfits and uses in this browser. Cannot be undone.'), t('Borrar todo', 'Delete all'))) { for (const k of await BD.claves()) await BD.del(k); localStorage.removeItem('tc_tiempo'); location.reload(); } };
-  $('yo-colores').onclick = () => toast(t('Los colores que te favorecen llegan en la próxima versión', 'Your best colours arrive in the next version'));
+  $('yo-colores').onclick = () => ir('colores');
 }
 // 0.45 (Sheila, 22/10: «necesito seguir trabajando con mi misma base de datos… que cada vez que actualizas la versión guarde mi base de datos»):
 // recuperar la copia en otro navegador o móvil; se suma a lo que haya, sin duplicar (por id), y no toca lo que ya existe
@@ -1446,6 +1615,9 @@ async function quitarEjemplo() { E.prendas = E.prendas.filter(p => !p.ejemplo); 
 
 /* ---------- alta ---------- */
 async function guardarAlta() {
+  const co = $('a-correo').value.trim(), cl = $('a-clave').value;
+  if (co && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(co)) return toast(t('Escribe un correo válido', 'Enter a valid email'));
+  if (co && cl.length < 8) return toast(t('La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'));
   const pf = E.perfil || {}; E.perfil = Object.assign(pf, { nombre: $('a-nombre').value.trim() || pf.nombre || '', ciudad: $('a-ciudad').value.trim() || pf.ciudad || '', idioma: idioma(), alta: pf.alta || hoyISO() });
   await guardar(); cargarTiempo(true); ir('silueta');
 }
@@ -1482,7 +1654,7 @@ $('mc-grupos').onclick = e => { const b = e.target.closest('[data-fil]'); if (!b
 if ($('c-buscar')) $('c-buscar').onclick = () => { const c = $('busca-caja'); c.classList.toggle('oculto'); if (!c.classList.contains('oculto')) $('busca').focus(); else { E.busca = ''; $('busca').value = ''; pintarCloset(); } };
 $('a-seguir').onclick = guardarAlta;
 // «Ya tengo cuenta» (0.11): en esta versión el clóset vive en el móvil, así que entrar te lleva a él; las cuentas llegarán con la versión en la nube
-const entrarYa = async () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } ir('hoy'); };
+const entrarYa = async () => { if (!NUBE) { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } return ir('hoy'); } const b = $('e-entrar'); b.disabled = true; const ok = await abrirCuenta('entrar', $('e-correo').value.trim(), $('e-clave').value); b.disabled = false; if (!ok) return; if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } ir('hoy'); toast(t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); };
 $('e-entrar').onclick = entrarYa;
 // planes (0.12): se elige plan y periodo; el cobro irá por App Store y Google Play, aquí solo se guarda la elección
 E.pl = { plan: 'basico', per: 'mes' };
@@ -1497,9 +1669,9 @@ $('p-planes').addEventListener('click', e => {
   $('p-planes').classList.toggle('anual', E.pl.per === 'anual');
 });
 if (new URLSearchParams(location.search).get('planes') !== 'a') $('p-planes').classList.add('pl-b'); // diseño B por defecto desde la 0.16 (Gabriela: «me gusta la opción B»); ?planes=a, el de dos columnas
-$('pl-empezar').addEventListener('click', async () => { E.perfil = Object.assign(E.perfil || {}, { alta: E.perfil?.alta || hoyISO(), idioma: idioma(), planElegido: E.pl.plan, periodo: E.pl.per }); await guardar(); ir('hoy'); toast(t('Tu prueba de 7 días ha empezado', 'Your 7-day trial has started')); });
+$('pl-empezar').addEventListener('click', async () => { E.perfil = Object.assign(E.perfil || {}, { alta: E.perfil?.alta || hoyISO(), idioma: idioma(), planElegido: E.pl.plan, periodo: E.pl.per }); await guardar(); const co = $('a-correo').value.trim(), cl = $('a-clave').value; if (co && cl && !cuenta()) await abrirCuenta('alta', co, cl, E.perfil.nombre); ir('hoy'); toast(t('Tu prueba de 7 días ha empezado', 'Your 7-day trial has started')); });
 document.querySelectorAll('[data-social]').forEach(b => b.onclick = () => toast(t(`Entrar con ${b.dataset.social} llegará con las cuentas en la nube. Ahora tu clóset vive en este móvil.`, `${b.dataset.social} sign-in comes with cloud accounts. For now your closet lives on this phone.`)));
-$('e-olvido').onclick = () => toast(t('Llegará con las cuentas en la nube.', 'Coming with cloud accounts.'));
+$('e-olvido').onclick = () => toast(t('Escríbenos a app@tucloset.app desde tu correo y te ayudamos a entrar.', 'Write to app@tucloset.app from your email and we will help you in.'));
 $('a-ubicacion').onclick = () => { if (!navigator.geolocation) return toast(t('Tu navegador no da la ubicación', 'Your browser gives no location')); navigator.geolocation.getCurrentPosition(async p => { E.perfil = Object.assign(E.perfil || {}, { lat: p.coords.latitude, lon: p.coords.longitude, ciudad: '', lugar: '' }); $('a-ciudad').value = ''; await guardar(); await cargarTiempo(true); toast(E.tiempo ? `${E.tiempo.nombre || t('Ubicación', 'Location')} · ${E.tiempo.t}°` : t('Ubicación guardada', 'Location saved')); }, () => toast(t('Sin permiso de ubicación: escribe la ciudad', 'No location permission: type the city'))); };
 $('f-selfie').onchange = e => e.target.files[0] && guardarFotoPerfil('selfie', e.target.files[0]);
 $('f-cuerpo').onchange = e => e.target.files[0] && guardarFotoPerfil('cuerpo', e.target.files[0]);
@@ -1547,6 +1719,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (E.perfil?.estilos?.some(k => ESTILO_VIEJO[k])) E.perfil.estilos = [...new Set(E.perfil.estilos.map(k => ESTILO_VIEJO[k] || k))]; // 0.52: los 6 estilos viejos pasan a los 13 // 0.45: que el navegador no borre el clóset para hacer sitio
   let migra = false; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
   traducir(); pintarSilueta();
+  if (!NUBE) ['a-correo', 'a-clave'].forEach(id => $(id).closest('label').hidden = true);
   document.querySelector('#p-closet .mc-cab')?.insertAdjacentHTML('beforeend', `<div class="cl-cambio">${['', 'pruebas'].map(k => `<button class="${k === CLOSET_ACT ? 'on' : ''}" data-cambio="${k}">${k ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes')}</button>`).join('')}</div>`); // 0.54 botón provisional (Sheila, 22/10: «me puedes crear un botón provisional»)
   document.addEventListener('click', e => { const b = e.target.closest('[data-cambio]'); if (!b || b.dataset.cambio === CLOSET_ACT) return; try { localStorage.setItem('tc_closet', b.dataset.cambio); } catch (er) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; });
   { const l = +new URLSearchParams(location.search).get('lema'); const t = LEMAS[l - 1]; if (t) $('p-inicio').querySelector('.lema .t').textContent = t; bordar(); }
@@ -1563,6 +1736,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
   setTimeout(() => reconocerGuardadas().then(medirTodas), 1500);
+  if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); } await subirNube(); } catch (e) { } }, 800); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
