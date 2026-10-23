@@ -528,10 +528,12 @@ function pintarCalendario(raiz) {
   else if (futuro) {
     // 0.41 (Sheila, 22/10: «no algo para la noche»): si el clóset no tiene nada de esa ocasión, se dice y se enseña lo más cercano
     // (para Noche y Evento, lo más arreglado; para Deporte y Diario, lo más cómodo), en vez de sugerir un look cualquiera
-    const oc = planes[0]?.oc || 'Todos'; let ideas = generarLooks(6, oc), falta = false;
+    // 0.60 (Sheila, 23/10: «por qué me sugieres esto para un evento por la noche… no es elegante»): la idea sigue la ocasión que acaba de marcar,
+    // aunque aún no haya guardado el plan; antes, sin plan guardado, salía una idea cualquiera
+    const oc = planes[0]?.oc || (E.cal.ocSel ? E.cal.oc : 'Todos'); let ideas = generarLooks(6, oc), falta = false;
     if (!ideas.length) { falta = oc !== 'Todos'; const sube = ['Noche', 'Evento', 'Oficina'].includes(oc) ? 1 : -1, nv = l => { const ps = l.ids.map(P).filter(Boolean), z = ps.find(p => p.tipo === 'Calzado'); return nivelRopa(ps) + (z ? estilo(z) : 1) * .5; }; ideas = generarLooks(12, 'Todos').sort((x, y) => sube * (nv(y) - nv(x))).slice(0, 6); }
     const g = ideas[E.cal.idea % Math.max(1, ideas.length)];
-    look = g ? `<div class="cal-look">${falta ? `<p class="cal-falta">${t(`Aún no tienes nada de ${ocNombre(oc).toLowerCase()} en tu clóset. Te enseño lo que más se acerca; si subes algo de ${ocNombre(oc).toLowerCase()}, te lo propondré.`, `You have nothing for ${ocNombre(oc).toLowerCase()} in your closet yet. Here is the closest; upload something for ${ocNombre(oc).toLowerCase()} and I will suggest it.`)}</p>` : ''}<p class="mini-et">${falta ? t('Lo más cercano', 'The closest') : planes.length ? t(`Te sugiero para ${ocNombre(oc).toLowerCase()}`, `My pick for ${ocNombre(oc).toLowerCase()}`) : t('Una idea para este día', 'An idea for this day')}</p><div class="lk-fig">${figLook(g, true)}</div><div class="cal-bts"><button class="hz-bt" data-cguarda="${g.ids.join(',')}">${t('Guardar para este día', 'Save for this day')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button></div></div>` : '';
+    look = g ? `<div class="cal-look">${falta ? `<p class="cal-falta">${t(`Aún no tienes nada de ${ocNombre(oc).toLowerCase()} en tu clóset. Te enseño lo que más se acerca; si subes algo de ${ocNombre(oc).toLowerCase()}, te lo propondré.`, `You have nothing for ${ocNombre(oc).toLowerCase()} in your closet yet. Here is the closest; upload something for ${ocNombre(oc).toLowerCase()} and I will suggest it.`)}</p>` : ''}<p class="mini-et">${falta ? t('Lo más cercano', 'The closest') : oc !== 'Todos' ? t(`Te sugiero para ${ocNombre(oc).toLowerCase()}`, `My pick for ${ocNombre(oc).toLowerCase()}`) : t('Una idea para este día', 'An idea for this day')}</p><div class="lk-fig">${figLook(g, true)}</div><div class="cal-bts"><button class="hz-bt" data-cguarda="${g.ids.join(',')}">${t('Guardar para este día', 'Save for this day')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button></div></div>` : '';
   }
   const pasado = ps.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(ps, true)}</div></div>`
     : !futuro && E.conjuntos.length ? `<div class="cal-look"><p class="mini-et">${t('Apunta lo que te pusiste', 'Note what you wore')}</p><div class="cal-mios">${E.conjuntos.slice(0, 12).map(c => `<button data-cpuse="${c.id}"><div class="lk-fig">${maniqui(c.ids.map(P).filter(Boolean), true)}</div></button>`).join('')}</div></div>` : '';
@@ -548,9 +550,9 @@ function pintarCalendario(raiz) {
     const d = b.dataset, ag = () => (E.agenda[E.cal.dia] = E.agenda[E.cal.dia] || { planes: [] });
     if (d.lktab) { E.lkTab = d.lktab; E.lkI = 0; return pintarLooks(); }
     if (d.cmas !== undefined) E.cal.add = true;
-    else if (d.cdia) { E.cal.dia = d.cdia; E.cal.idea = 0; E.cal.add = false; }
+    else if (d.cdia) { E.cal.dia = d.cdia; E.cal.idea = 0; E.cal.add = false; E.cal.ocSel = false; }
     else if (d.cmes) E.cal.mes = new Date(E.cal.mes.getFullYear(), E.cal.mes.getMonth() + +d.cmes, 1);
-    else if (d.coc) { E.cal.oc = d.coc; e.preventDefault(); }
+    else if (d.coc) { E.cal.oc = d.coc; E.cal.ocSel = true; E.cal.idea = 0; e.preventDefault(); }
     else if (d.cfr) { E.cal.fr = d.cfr; e.preventDefault(); }
     else if (d.cadd !== undefined) {
       const hasta = $('cal-hasta').value || E.cal.dia; let n = 0;
