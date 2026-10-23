@@ -329,6 +329,8 @@ function sirvePara(ps, oc, plan) {
   const zap = ps.find(p => p.tipo === 'Calzado');
   if (plan === 'Noche') return !!zap && estilo(zap) === 3 && nivelRopa(ps) >= 1.5;
   if (plan === 'Evento') return oc === 'Oficina' && !!zap && estilo(zap) === 3;
+  // 0.66 (Sheila, 23/10, captura de Hoy con plan Viaje: «aún no tienes nada de viaje»): para viajar vale lo de diario sin tacones; no hace falta ropa «de viaje»
+  if (plan === 'Viaje') return oc === 'Diario' && (!zap || estilo(zap) < 3);
   return false;
 }
 function ocasionDe(ps) { // la ocasión la marca la ropa; el calzado solo la sube (tacones) o la baja (zapatillas)
@@ -500,6 +502,9 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   const oc = (c && c.ocasion) || pr.ocasion || ocasionDe(ps);
   const flechas = lista.length > 1 ? `<div class="hz-flechas"><button id="hoy-ant" aria-label="${t('Anterior', 'Previous')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><button id="hoy-sig" aria-label="${t('Otro', 'Next')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>` : '';
   pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}</div><button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button></div></div>`;
+  // 0.66 (Sheila, 23/10: «cuida que no sucedan estas cosas»: el aviso quedaba debajo del abrigo): la escena empieza donde acaba la cabecera
+  const cabH = pant.querySelector('.hz-cab'), escH = pant.querySelector('.hz-escena'), avH = cabH?.querySelector('.cal-falta');
+  if (escH && avH) escH.style.top = (118 + avH.offsetHeight + 8) + 'px';
   if ($('hoy-sig')) $('hoy-sig').onclick = () => { E.hoyIdx = (E.hoyIdx + 1) % lista.length; pintarHoy(); };
   if ($('hoy-ant')) $('hoy-ant').onclick = () => { E.hoyIdx = (E.hoyIdx + lista.length - 1) % lista.length; pintarHoy(); };
   $('hoy-pongo').onclick = async () => { await ponerse(pr.ids, c); };
