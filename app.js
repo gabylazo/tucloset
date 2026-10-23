@@ -304,6 +304,26 @@ const esFormal = p => estilo(p) >= 2;
 const ropaDe = ps => ps.filter(p => !['Bolsos', 'Calzado', 'Accesorios'].includes(p.tipo));
 const nivelRopa = ps => { const r = ropaDe(ps).map(estilo); return r.length ? r.reduce((a, b) => a + b, 0) / r.length : 1; };
 // un look sirve para un plan si es de esa ocasión o, para salir de noche, si es arreglado y lleva tacones (0.41)
+// 0.62 (Sheila, 23/10: «eso me gusta… que avise que no tienes una prenda para determinadas cosas… puedes incluir sugerencias»):
+// qué le falta al clóset para cada ocasión; se sugiere el tipo de prenda, nunca una tienda ni una compra concreta
+const NECESIDADES = {
+  Noche: [[p => p.tipo === 'Calzado' && estilo(p) === 3, 'unos tacones o unas sandalias de tacón', 'heels or heeled sandals'],
+    [p => !['Calzado', 'Bolsos', 'Accesorios'].includes(p.tipo) && estilo(p) === 3, 'una prenda de noche: un vestido negro, algo de satén o de lentejuelas', 'an evening piece: a black dress, something satin or sequinned'],
+    [p => p.tipo === 'Bolsos' && /cartera|clutch|de mano|pequeñ/i.test(p.nombre || ''), 'un bolso pequeño o de mano', 'a small bag or clutch']],
+  Evento: [[p => p.tipo === 'Vestidos' || /falda|vestir/i.test(p.nombre || ''), 'un vestido o una falda midi', 'a dress or a midi skirt'],
+    [p => p.tipo === 'Calzado' && (estilo(p) === 3 || /mocas|bailarin|zapatos/i.test(p.nombre || '')), 'unos tacones o unos zapatos de vestir', 'heels or dress shoes'],
+    [p => p.tipo === 'Bolsos' && !/mochila|backpack/i.test(p.nombre || ''), 'un bolso que no sea mochila', 'a bag that is not a backpack']],
+  Oficina: [[p => p.tipo === 'Arriba' && /camisa|blusa|shirt|blouse/i.test(p.nombre || ''), 'una camisa o una blusa', 'a shirt or blouse'],
+    [p => p.tipo === 'Abajo' && !/vaquero|jean|short|malla|legging|cargo/i.test(p.nombre || ''), 'un pantalón recto o una falda midi', 'straight trousers or a midi skirt'],
+    [p => /americana|blazer|gabardina|trench/i.test(p.nombre || ''), 'una americana', 'a blazer'],
+    [p => p.tipo === 'Calzado' && estilo(p) >= 1, 'unos zapatos, mocasines o botines', 'shoes, loafers or ankle boots']],
+  Deporte: [[p => p.tipo === 'Calzado' && estilo(p) === 0, 'unas zapatillas', 'trainers'],
+    [p => !['Calzado', 'Bolsos', 'Accesorios'].includes(p.tipo) && estilo(p) === 0, 'mallas, una sudadera o ropa deportiva', 'leggings, a hoodie or sportswear']]
+};
+function faltaPara(oc) { const act = activas(); return (NECESIDADES[oc] || []).filter(([f]) => !act.some(f)).map(n => t(n[1], n[2])); }
+const avisoFalta = (oc, hay) => { const f = faltaPara(oc); if (!f.length && hay) return ''; const o = ocNombre(oc).toLowerCase();
+  return `<p class="cal-falta">${hay ? '' : t(`Aún no tienes nada de ${o} en tu clóset; te enseño lo que más se acerca. `, `You have nothing for ${o} yet; here is the closest. `)}${f.length ? t(`Para ${o} te vendría bien tener ${lista(f)}.`, `For ${o} it would help to have ${lista(f)}.`) : ''}</p>`; };
+const lista = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + t(' y ', ' and ') + a[a.length - 1];
 function sirvePara(ps, oc, plan) {
   if (oc === plan) return true;
   const zap = ps.find(p => p.tipo === 'Calzado');
@@ -458,14 +478,14 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   const pant = $('p-hoy'); const w = E.tiempo; const l = idioma();
   // 0.40 (Sheila, 22/10: «si ella pone de lunes 23 a viernes 27 oficina en la mañana ya sabes que eso tienes que sugerirle»): el plan del calendario manda
   const planHoy = E.agenda[diaISO(new Date())]?.planes?.[0]?.oc;
-  if (!E.propuestas.length) { E.plan = planHoy || 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.plan = 'Todos'; proponer(); } }
+  if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy || 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); } }
   const lista = E.propuestas; const pr = lista[E.hoyIdx];
   const hoyD = new Date(); const dia = cap(hoyD.toLocaleDateString(l === 'en' ? 'en-GB' : 'es-ES', { weekday: 'long', day: 'numeric' }));
   const ico = k => ICO_T[k] || ICO_T.nube;
   const cieloAhora = w ? (w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(w.clave) ? 'nube' : w.clave) : null; // el icono del cielo: sol si hay sol, aunque haga frío
   const avisoLluvia = !w ? '' : ['lluvia', 'tormenta'].includes(w.clave) ? ` · ${ico('lluvia')}${t('ahora', 'now')}` : w.lluviaH != null ? ` · ${ico('lluvia')}${w.lluviaH}:00` : '';
   const cab = `<header class="hz-cab"><span class="marca"><svg viewBox="0 0 100 100"><use href="#i129"/></svg><span>Tu<span class="oro">Closet</span></span></span>
-    <div class="hz-dia mini-et">${dia}${w ? `${ico(cieloAhora)}${w.t}°${avisoLluvia}` : ''}</div>${preguntaHoy(planHoy)}</header>`;
+    <div class="hz-dia mini-et">${dia}${w ? `${ico(cieloAhora)}${w.t}°${avisoLluvia}` : ''}</div>${preguntaHoy(planHoy)}${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : ''}</header>`;
   if (!pr) {
     const hay = activas().length;
     const rechazos = E.perfil?.gustos?.fuera?.length || (E.perfil?.gustos?.hoy?.d === hoyISO() && E.perfil.gustos.hoy.k.length);
@@ -533,7 +553,7 @@ function pintarCalendario(raiz) {
     const oc = planes[0]?.oc || (E.cal.ocSel ? E.cal.oc : 'Todos'); let ideas = generarLooks(6, oc), falta = false;
     if (!ideas.length) { falta = oc !== 'Todos'; const sube = ['Noche', 'Evento', 'Oficina'].includes(oc) ? 1 : -1, nv = l => { const ps = l.ids.map(P).filter(Boolean), z = ps.find(p => p.tipo === 'Calzado'); return nivelRopa(ps) + (z ? estilo(z) : 1) * .5; }; ideas = generarLooks(12, 'Todos').sort((x, y) => sube * (nv(y) - nv(x))).slice(0, 6); }
     const g = ideas[E.cal.idea % Math.max(1, ideas.length)];
-    look = g ? `<div class="cal-look">${falta ? `<p class="cal-falta">${t(`Aún no tienes nada de ${ocNombre(oc).toLowerCase()} en tu clóset. Te enseño lo que más se acerca; si subes algo de ${ocNombre(oc).toLowerCase()}, te lo propondré.`, `You have nothing for ${ocNombre(oc).toLowerCase()} in your closet yet. Here is the closest; upload something for ${ocNombre(oc).toLowerCase()} and I will suggest it.`)}</p>` : ''}<p class="mini-et">${falta ? t('Lo más cercano', 'The closest') : oc !== 'Todos' ? t(`Te sugiero para ${ocNombre(oc).toLowerCase()}`, `My pick for ${ocNombre(oc).toLowerCase()}`) : t('Una idea para este día', 'An idea for this day')}</p><div class="lk-fig">${figLook(g, true)}</div><div class="cal-bts"><button class="hz-bt" data-cguarda="${g.ids.join(',')}">${t('Guardar para este día', 'Save for this day')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button></div></div>` : '';
+    look = g ? `<div class="cal-look">${oc !== 'Todos' ? avisoFalta(oc, !falta) : ''}<p class="mini-et">${falta ? t('Lo más cercano', 'The closest') : oc !== 'Todos' ? t(`Te sugiero para ${ocNombre(oc).toLowerCase()}`, `My pick for ${ocNombre(oc).toLowerCase()}`) : t('Una idea para este día', 'An idea for this day')}</p><div class="lk-fig">${figLook(g, true)}</div><div class="cal-bts"><button class="hz-bt" data-cguarda="${g.ids.join(',')}">${t('Guardar para este día', 'Save for this day')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button></div></div>` : '';
   }
   const pasado = ps.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(ps, true)}</div></div>`
     : !futuro && E.conjuntos.length ? `<div class="cal-look"><p class="mini-et">${t('Apunta lo que te pusiste', 'Note what you wore')}</p><div class="cal-mios">${E.conjuntos.slice(0, 12).map(c => `<button data-cpuse="${c.id}"><div class="lk-fig">${maniqui(c.ids.map(P).filter(Boolean), true)}</div></button>`).join('')}</div></div>` : '';
