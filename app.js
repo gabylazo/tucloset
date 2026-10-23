@@ -359,6 +359,8 @@ function ocasionDe(ps) { // la ocasión la marca la ropa; el calzado solo la sub
   if (m >= 1.5 && z >= 1) return 'Oficina';
   return 'Diario';
 }
+const claveLook = ids => [...ids].sort().join();
+const esFav = ids => !!E.perfil?.gustos?.fav?.includes(claveLook(ids));
 function puntuar(ps) {
   let s = 0; const col = ps.filter(p => p.tipo !== 'Bolsos' && p.tipo !== 'Calzado'), fuertes = [...new Set(col.filter(p => !NEUTROS.has(p.color) && p.color !== 'Estampado').map(p => p.color))];
   const estamp = col.filter(p => p.color === 'Estampado').length;
@@ -395,7 +397,9 @@ function puntuar(ps) {
   // 0.69 (Sheila, 23/10: «a mí como usuaria me interesa no repetir prendas»; regla 1 de Moda, aprobada por Gabriela): lo que te pusiste
   // en los últimos 6 días (sin contar hoy) baja mucho; zapatos, bolso, abrigo y accesorios se pueden repetir
   const hoy = hoyISO(), dias = d => (new Date(hoy) - new Date(d)) / 864e5;
-  for (const p of ps) if (!['Calzado', 'Bolsos', 'Accesorios', 'Abrigo'].includes(p.tipo) && (p.usos || []).some(d => dias(d) > 0 && dias(d) <= 6)) s -= 2.5;
+  // 0.70 (Sheila: «añade un botón de favorito por si le gustó mucho un look, lo puedo repetir el día que quiera y no se vaya tan abajo como el resto»)
+  const fav = esFav(ps.map(p => p.id)); if (fav) s += 1;
+  for (const p of ps) if (!['Calzado', 'Bolsos', 'Accesorios', 'Abrigo'].includes(p.tipo) && (p.usos || []).some(d => dias(d) > 0 && dias(d) <= 6)) s -= fav ? .5 : 2.5;
   return s + Math.random() * .6;
 }
 // 0.57 (Sheila, 23/10: «debería haber una opción para decir no me gusta o sí me gusta (que debe ser la de me lo pongo); esto permite saber más
@@ -479,7 +483,9 @@ function proponer() {
   // «No me gusta»: un look propuesto no vuelve; uno guardado por ella o el del calendario solo se aparta por hoy
   const g = E.perfil?.gustos, clave = ids => [...ids].sort().join();
   const fuera = x => x.tipo !== 'agenda' && (g?.fuera?.includes(clave(x.ids)) || (g?.hoy?.d === hoyISO() && g.hoy.k.includes(clave(x.ids))));
-  E.propuestas = props.filter(x => !fuera(x)); if (E.hoyIdx >= E.propuestas.length) E.hoyIdx = 0;
+  // 0.70: con la regla de no repetir, también los looks guardados se ordenan por puntos (lo puesto hace poco baja; los favoritos, mucho menos)
+  const nota = x => x.tipo === 'agenda' ? 99 : puntuar(x.ids.map(P).filter(Boolean)) + (x.tipo === 'conjunto' ? 1 : 0);
+  E.propuestas = props.filter(x => !fuera(x)).map(x => [nota(x), x]).sort((a, b) => b[0] - a[0]).map(e => e[1]); if (E.hoyIdx >= E.propuestas.length) E.hoyIdx = 0;
 }
 // 0.42 (Sheila, 22/10: «si no lo hace la usuaria, la asistente virtual le debe preguntar a dónde vamos hoy y sugerirle»):
 // sin plan en el calendario para hoy, Hoy pregunta «¿A dónde vas hoy?»; la respuesta se guarda como plan del día y los looks se rehacen
@@ -522,13 +528,21 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   const figura = avatar ? `<img src="${avatar}" alt="${t('Tú con el conjunto', 'You wearing the outfit')}">` : maniqui(ps);
   const oc = (c && c.ocasion) || pr.ocasion || ocasionDe(ps);
   const flechas = lista.length > 1 ? `<div class="hz-flechas"><button id="hoy-ant" aria-label="${t('Anterior', 'Previous')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><button id="hoy-sig" aria-label="${t('Otro', 'Next')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>` : '';
-  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}</div><button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button></div></div>`;
+  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}<button class="hz-fav${esFav(pr.ids) ? ' on' : ''}" id="hoy-fav" aria-label="${t('Favorito', 'Favourite')}" aria-pressed="${esFav(pr.ids)}"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div><button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button></div></div>`;
   // 0.66 (Sheila, 23/10: «cuida que no sucedan estas cosas»: el aviso quedaba debajo del abrigo): la escena empieza donde acaba la cabecera
   const cabH = pant.querySelector('.hz-cab'), escH = pant.querySelector('.hz-escena');
   if (escH && cabH) { const fija = () => { if (cabH.offsetHeight) escH.style.top = Math.max(118, cabH.offsetHeight + 12) + 'px'; }; fija(); setTimeout(fija, 300); new ResizeObserver(fija).observe(cabH); } // también cuando la pantalla se hace visible // 0.67 (Sheila: «se superpone la prenda a la letra»): siempre bajo la cabecera, mida lo que mida
   if ($('hoy-sig')) $('hoy-sig').onclick = () => { E.hoyIdx = (E.hoyIdx + 1) % lista.length; pintarHoy(); };
   if ($('hoy-ant')) $('hoy-ant').onclick = () => { E.hoyIdx = (E.hoyIdx + lista.length - 1) % lista.length; pintarHoy(); };
   $('hoy-pongo').onclick = async () => { await ponerse(pr.ids, c); };
+  $('hoy-fav').onclick = async () => {
+    if (!E.perfil) return; const g = E.perfil.gustos = E.perfil.gustos || { si: {}, no: {} }, k = claveLook(pr.ids); g.fav = g.fav || [];
+    const ya = g.fav.includes(k); g.fav = ya ? g.fav.filter(x => x !== k) : [...g.fav, k];
+    let cj = E.conjuntos.find(x => claveLook(x.ids) === k);
+    if (!ya && !cj) { cj = { id: uid(), nombre: t('Favorito', 'Favourite') + ' · ' + ocNombre(oc).toLowerCase(), ocasion: oc, ids: [...pr.ids], creada: hoyISO(), usos: [] }; E.conjuntos.unshift(cj); }
+    if (cj) cj.fav = !ya;
+    await guardar(); pintarHoy(); toast(ya ? t('Quitado de favoritos', 'Removed from favourites') : t('En favoritos: lo tienes en Looks y podrás repetirlo cuando quieras', 'Saved to favourites: find it in Looks and repeat it any time'));
+  };
   $('hoy-no').onclick = async () => {
     anotarGusto(pr.ids, 'no'); const g = E.perfil.gustos, k = [...pr.ids].sort().join();
     if (pr.tipo === 'propuesta') g.fuera = [...(g.fuera || []), k].slice(-300);
