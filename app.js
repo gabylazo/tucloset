@@ -1060,16 +1060,80 @@ function abrirFicha(id) {
   const conAvatar = planDemo() === 'pro' ? conj.find(c => c.img) : null; const primero = conj[0];
   $('f-asi').innerHTML = conAvatar ? `<div class="puesta"><img src="${conAvatar.img}" alt=""><div class="pie">${conAvatar.nombre}</div></div>` : primero ? `<div class="puesta">${maniqui(primero.ids.map(P).filter(Boolean))}<div class="pie">${primero.nombre}</div></div>` : `<div class="vacio">${t('Aún no está en ningún conjunto. Añádela a uno o pulsa «Hoy llevo esto».', 'Not in any outfit yet. Add it to one or tap “Wearing this today”.')}</div>`;
   const acc = [['conjunto', t('Añadir a un conjunto', 'Add to an outfit')], ['lavar', p.estado === 'lavar' ? t('Ya está limpia', 'Clean again') : t('Enviar a lavar', 'Send to wash')], ['guardada', p.estado === 'guardada' ? t('Volver a sacarla', 'Bring it back out') : t('Guardar hasta la próxima estación', 'Store until next season')], ['donar', p.estado === 'donar' ? t('Me la quedo', 'Keeping it') : t('Donar o vender', 'Donate or sell')]];
+  if (p.tipo !== 'Accesorios') acc.unshift(['partido', t('Sácale partido', 'Make the most of it')]);
   $('f-acciones').innerHTML = acc.map(([k, v]) => `<button class="item" data-accion="${k}">${v}<svg><use href="#ic-flecha"/></svg></button>`).join('');
   $('f-acciones').querySelectorAll('[data-accion]').forEach(b => b.onclick = async () => {
     const k = b.dataset.accion;
     if (k === 'conjunto') return ir('nuevo-look', [id]);
+    if (k === 'partido') return sacalePartido(p);
     p.estado = p.estado === k ? '' : k; await guardar(); E.propuestas = []; abrirFicha(id); toast(p.estado ? estadoTxt(p.estado) : t('De vuelta al clóset', 'Back in the closet'));
   });
   $('f-hoy').onclick = () => ponerse([id]).then(() => abrirFicha(id));
   $('f-editar').onclick = () => ir('anadir', id);
   $('f-nota').textContent = `${t('Añadida el', 'Added on')} ${fecha(p.creada)}${p.ejemplo ? ' · ' + t('prenda de ejemplo', 'sample garment') : ''}`;
   ir('ficha');
+}
+
+// 0.65 · «Sácale partido» (Sheila, 23/10: «hay prendas que simplemente sientes que no le sacas su máximo potencial con nada de lo que hay en tu closet…
+// una función muy objetiva y entrenada que te sugiera qué comprar para sacar un look top de esa prenda»; «Ok» a la propuesta):
+// 1) los mejores looks que ya puedes hacer con ella; 2) la pieza que falta: se prueba cada tipo del catálogo en cada color junto a tu ropa,
+// con las mismas reglas de colores, estilo y ocasión, y se cuenta cuántos looks buenos desbloquea. Solo el tipo de prenda, sin tiendas.
+const LOOK_BUENO = 1.5;
+const esBase = p => p.tipo === 'Vestidos' || (p.tipo === 'Arriba' && !esCapa(p)) || p.tipo === 'Abajo';
+function combosCon(forz, pool) { // todos los looks que llevan las prendas forzadas
+  const de = f => pool.filter(f), capas = forz.filter(x => x.tipo === 'Abrigo' || esCapa(x));
+  const vest = forz.find(x => x.tipo === 'Vestidos'), ar = forz.find(x => x.tipo === 'Arriba' && !esCapa(x)), ab = forz.find(x => x.tipo === 'Abajo');
+  let bases;
+  if (vest) bases = ar || ab ? [] : [[vest]];
+  else if (ar || ab) bases = (ar ? [ar] : de(x => x.tipo === 'Arriba' && !esCapa(x))).flatMap(a => (ab ? [ab] : de(x => x.tipo === 'Abajo')).map(b => [a, b]));
+  else bases = [...de(x => x.tipo === 'Vestidos').map(v => [v]), ...de(x => x.tipo === 'Arriba' && !esCapa(x)).flatMap(a => de(x => x.tipo === 'Abajo').map(b => [a, b]))];
+  const zf = forz.find(x => x.tipo === 'Calzado'), bf = forz.find(x => x.tipo === 'Bolsos');
+  const zs = zf ? [zf] : de(x => x.tipo === 'Calzado'), bs = bf ? [bf] : [null, ...de(x => x.tipo === 'Bolsos')];
+  const out = [];
+  for (const b of bases) for (const z of (zs.length ? zs : [null])) for (const bo of bs) { const ps = [...b, ...capas, z, bo].filter(Boolean); out.push({ ps, pts: puntuar(ps), base: b.map(x => x.id).sort().join() }); }
+  return out;
+}
+const COMPLEMENTA = { Arriba: ['Pantalones', 'Faldas', 'Zapatos', 'Bolsos', 'Abrigos'], Abajo: ['Tops', 'Zapatos', 'Bolsos', 'Abrigos'], Vestidos: ['Zapatos', 'Bolsos', 'Abrigos'],
+  Abrigo: ['Tops', 'Pantalones', 'Faldas', 'Vestidos', 'Zapatos'], Calzado: ['Tops', 'Pantalones', 'Faldas', 'Vestidos', 'Bolsos'], Bolsos: ['Tops', 'Pantalones', 'Faldas', 'Vestidos', 'Zapatos'] };
+// a igualdad de looks, el color que mejor casa con la prenda y con los colores que ya usas (el clóset dice lo que te gusta)
+function armonia(p, c) {
+  const usa = {}; E.prendas.forEach(x => { usa[x.color] = (usa[x.color] || 0) + 1 + (x.usos || []).length; });
+  const fav = Object.entries(usa).sort((a, b) => b[1] - a[1]).slice(0, 4).map(e => e[0]);
+  return (CASAN.has(par(p.color, c)) ? 1 : 0) - (CHOCAN.has(par(p.color, c)) ? 2 : 0) + (fav.includes(c) ? .6 : 0) + (NEUTROS.has(c) ? .3 : 0) - (c === p.color && !NEUTROS.has(c) ? .5 : 0);
+}
+function calcularPartido(p) {
+  const rnd = Math.random; Math.random = () => .5; // sin azar: el mismo clóset da siempre la misma respuesta
+  try {
+    const pool = activas().filter(x => x.id !== p.id);
+    const ya = combosCon([p], pool).sort((a, b) => b.pts - a.pts);
+    // «look nuevo» = una base (vestido, o arriba y abajo) que con la pieza pasa a ser buena y sin ella no lo era
+    const antes = {}; for (const l of ya) antes[l.base] = Math.max(antes[l.base] ?? -99, l.pts);
+    const tengo = (v, cat) => E.prendas.some(x => x.color === v.color && catDe(x) === cat && estilo(x) === estilo(v)), cand = [];
+    for (const cat of COMPLEMENTA[p.tipo === 'Arriba' && esCapa(p) ? 'Abrigo' : p.tipo] || []) for (const k of SUBCATS[cat] || []) for (const [c] of COLORES) {
+      if (c === 'Estampado' && cat === 'Zapatos') continue;
+      const v = { id: 'virtual', nombre: nombreReconocido(k, c), tipo: TIPO_DE_CAT[cat], color: c, usos: [], x: k }; if (tengo(v, cat) || Math.abs(estilo(v) - estilo(p)) >= (estilo(v) === 0 ? 2 : 3)) continue; // lo deportivo, solo con lo informal
+      const mejorBase = {}; for (const l of combosCon([p, v], pool)) if (!mejorBase[l.base] || l.pts > mejorBase[l.base].pts) mejorBase[l.base] = l;
+      const nuevos = Object.entries(mejorBase).filter(([b, l]) => l.pts >= LOOK_BUENO && (antes[b] ?? -99) < LOOK_BUENO).map(([, l]) => l).sort((a, b) => b.pts - a.pts);
+      if (nuevos.length) cand.push({ v, cat, k, n: nuevos.length, mejor: nuevos[0], pts: nuevos.reduce((a, l) => a + l.pts, 0) / nuevos.length + armonia(p, c) - .4 * Math.abs(estilo(v) - estilo(p)) });
+    }
+        const porCat = new Map(); for (const x of cand.sort((a, b) => b.n - a.n || b.pts - a.pts)) if (!porCat.has(x.cat)) porCat.set(x.cat, x); // una por categoría
+    const sug = [...porCat.values()].slice(0, 4);
+    return { ya: ya.filter(l => l.pts >= LOOK_BUENO).slice(0, 2), sug };
+  } finally { Math.random = rnd; }
+}
+function sacalePartido(p) {
+  const cap = document.createElement('div'); cap.className = 'ay-capa sp-capa';
+  cap.innerHTML = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button><h1>${t('Sácale partido', 'Make the most of it')}</h1><img class="sp-prenda" src="${urlFoto(p)}" alt=""><p class="sp-nombre">${p.nombre}</p><p class="ay-nada">${t('Probando combinaciones…', 'Trying combinations…')}</p>`;
+  document.body.appendChild(cap); cap.querySelector('.x').onclick = () => cap.remove();
+  setTimeout(() => {
+    const { ya, sug } = calcularPartido(p), mini = ps => ps.filter(x => x.id !== p.id && x.id !== 'virtual').map(x => `<img src="${urlFoto(x)}" alt="${x.nombre}" title="${x.nombre}">`).join('');
+    cap.querySelector('.ay-nada').outerHTML = `<p class="mini-et">${t('Ya puedes ponértela así', 'You can already wear it like this')}</p>
+      ${ya.length ? `<div class="sp-ya">${ya.map(l => `<div class="lk-fig">${maniqui(l.ps, true)}</div>`).join('')}</div>` : `<p class="sp-txt">${t('Con lo que tienes ahora no sale ningún look que me convenza. Mira abajo qué le falta.', 'Nothing in your closet makes a look I am happy with yet. See below what it needs.')}</p>`}
+      <p class="mini-et">${t('Lo que le falta', 'What it needs')}</p>
+      ${sug.length ? `<ol class="sp-sug">${sug.map(x => `<li><b>${x.v.nombre}</b><span>${x.n === 1 ? t('1 look nuevo', '1 new look') : t(`${x.n} looks nuevos`, `${x.n} new looks`)}</span>${mini(x.mejor.ps) ? `<div class="sp-con">${t('por ejemplo, con', 'for example, with')} ${mini(x.mejor.ps)}</div>` : ''}</li>`).join('')}</ol>
+        <p class="sp-txt">${t('Calculado con tus prendas y las reglas de la app: cada pieza se prueba en todos los colores y se cuenta cuántos looks buenos te abre. Solo te digo el tipo de prenda; dónde comprarla lo eliges tú.', 'Worked out from your garments and the app’s rules: each piece is tried in every colour and we count how many good looks it unlocks. Only the type of garment; where to buy it is up to you.')}</p>`
+        : `<p class="sp-txt">${t('No encuentro ninguna pieza que la mejore de verdad.', 'I could not find a piece that really improves it.')}</p>`}`;
+  }, 30);
 }
 
 /* ---------- CONJUNTOS ---------- */
