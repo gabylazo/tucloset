@@ -1661,6 +1661,8 @@ E.pl = { plan: 'basico', per: 'mes' };
 $('p-planes').addEventListener('click', e => {
   const b = e.target.closest('[data-pplan],[data-pper]'); if (!b) return;
   if (b.dataset.pplan) E.pl.plan = b.dataset.pplan; else E.pl.per = b.dataset.pper;
+  // 0.74 (Gabriela, 23/10): el marcador dorado solo en lo que eliges ahora; lo elegido antes se queda solo más oscuro
+  $('p-planes').classList.toggle('sel-plan', !!b.dataset.pplan); $('p-planes').classList.toggle('sel-per', !!b.dataset.pper);
   $('p-planes').querySelectorAll('[data-pplan]').forEach(x => x.classList.toggle('on', x.dataset.pplan === E.pl.plan));
   $('p-planes').querySelectorAll('[data-pper]').forEach(x => x.classList.toggle('on', x.dataset.pper === E.pl.per));
   $('p-planes').querySelectorAll('[data-pdet]').forEach(x => x.classList.toggle('on', x.dataset.pdet === E.pl.plan));

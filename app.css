@@ -1060,3 +1060,15 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 /* 0.74 · los 13 estilos a la vista */
 .es-tit{font-family:Bellefair,serif;font-weight:400;font-size:15px;letter-spacing:.06em;color:var(--sec);text-align:center;margin:30px 0 16px;border-top:1px solid var(--linea);padding-top:20px}
 .es-tit:first-child{margin-top:4px;border-top:0;padding-top:0}
+/* 0.74 · planes (Gabriela, 23/10: «darle más visibilidad al precio, más en negrita, y aprovechar los espacios»; «el seleccionador solo para lo que estés seleccionando en el momento») */
+#p-planes:not(.sel-per) .pl-periodo button.on::after,#p-planes:not(.sel-plan) .plb-noms button.on::after{content:none}
+#p-planes .plb-noms button{padding-bottom:16px}
+#p-planes .plb-pre{font-size:62px;-webkit-text-stroke:.9px currentColor;letter-spacing:-.01em;margin-top:6px}
+#p-planes .plb-det .pl-per{font-size:14px;color:var(--tinta)}
+#p-planes .plb-det .pl-ahorro{font-size:13px;font-weight:500}
+#p-planes .plb-lema{font-size:23px !important;margin-top:22px !important}
+#p-planes .plb-mas{font-size:24px !important;margin-top:18px !important}
+#p-planes .plb-rej{max-width:350px;gap:30px 16px;margin-top:30px}
+#p-planes .plb-rej li b{font-size:19px}
+#p-planes .plb-rej li span{font-size:13px}
+#p-planes .plb-det{margin-top:26px}
