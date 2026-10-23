@@ -1069,3 +1069,8 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 #p-planes .plb-rej{gap:28px 14px;margin-top:28px}
 #p-planes .plb-det{margin-top:24px}
 .ac-pista{font-size:10px;color:var(--ter);font-weight:300;letter-spacing:.02em} /* 0.78 (Gabriela: «mínimo 8 qué? y puede ir más pequeño») */
+/* 0.79 (Gabriela, 23/10: «sube un poco los plus a lo que dice Básico +… y pon un poco distintiva la letra de la frase de cada plan, quizás cursiva o dorada»):
+   la frase, en la cursiva fina de «Optimiza tu estilo» (la misma letra de la bienvenida), en nogal; «Básico +» se queda en dorado, pegado a la lista */
+#p-planes .plb-lema{font-family:'Cormorant Garamond',Georgia,serif !important;font-style:italic;font-weight:400;letter-spacing:.01em}
+#p-planes .plb-mas{margin-top:10px !important;margin-bottom:-14px}
+#p-planes [data-pdet=pro] .plb-rej{margin-top:4px}
