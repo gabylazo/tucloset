@@ -924,15 +924,57 @@ let fotoNueva = null, fotoOriginal = null;
 async function fotoActual() { const p = E.editando; if (fotoNueva) return fotoNueva; if (p?.foto) return p.foto; if (p?.src) return (await fetch(p.src)).blob(); return null; }
 function pintarHerr() {
   const h = $('an-herr'); if (!h) return; const hay = !!(fotoNueva || E.editando?.foto || E.editando?.src), orig = fotoOriginal || E.editando?.original;
-  h.innerHTML = hay ? `<button type="button" class="txt sub-l" id="an-recortar">${t('Recortar', 'Crop')}</button><button type="button" class="txt sub-l" id="an-fondo">${t('Quitar el fondo', 'Remove background')}</button>${orig ? `<button type="button" class="txt sub-l" id="an-orig">${t('Volver a la original', 'Back to original')}</button>` : ''}` : '';
+  h.innerHTML = hay ? `<button type="button" class="txt sub-l" id="an-recortar">${t('Recortar', 'Crop')}</button><button type="button" class="txt sub-l" id="an-enderezar">${t('Enderezar', 'Straighten')}</button><button type="button" class="txt sub-l" id="an-fondo">${t('Quitar el fondo', 'Remove background')}</button>${orig ? `<button type="button" class="txt sub-l" id="an-orig">${t('Volver a la original', 'Back to original')}</button>` : ''}` : '';
   if (!hay) return;
   $('an-recortar').onclick = async () => { const b = await fotoActual(); if (!b) return; const r = await recortarAMano(b); if (!r) return; if (!fotoOriginal && !E.editando?.original) fotoOriginal = b; fotoNueva = r; pintarPrevia(URL.createObjectURL(r)); };
+  $('an-enderezar').onclick = async () => { const b = await fotoActual(); if (!b) return; const r = await enderezar(b); if (!r) return; if (!fotoOriginal && !E.editando?.original) fotoOriginal = b; fotoNueva = r; pintarPrevia(URL.createObjectURL(r)); };
   $('an-fondo').onclick = async () => {
     const b = await fotoActual(); if (!b) return; const bt = $('an-fondo'); bt.disabled = true; bt.textContent = t('Quitando el fondo…', 'Removing background…');
     try { const r = await procesarPrenda(b); if (!fotoOriginal && !E.editando?.original) fotoOriginal = b; fotoNueva = r.blob; pintarPrevia(URL.createObjectURL(r.blob)); toast(t('Fondo quitado. Guarda para conservarlo', 'Background removed. Save to keep it')); }
     catch (e) { toast(t('No he podido quitar el fondo', 'Could not remove the background')); pintarHerr(); }
   };
   if ($('an-orig')) $('an-orig').onclick = () => { fotoNueva = orig; pintarPrevia(URL.createObjectURL(orig)); };
+}
+// 0.64 (Sheila, 23/10: «debería haber una función para enderezar prenda»): propone el giro solo (eje principal de la prenda sobre el fondo claro)
+// y se ajusta con una barra, de -45° a 45°, más «Girar 90°»; el resultado se recorta a la prenda sobre blanco
+function anguloPrenda(img) {
+  const S = 160, c = document.createElement('canvas'), e = S / Math.max(img.naturalWidth, img.naturalHeight); c.width = Math.round(img.naturalWidth * e); c.height = Math.round(img.naturalHeight * e);
+  const x = c.getContext('2d', { willReadFrequently: true }); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+  const d = x.getImageData(0, 0, c.width, c.height).data; let n = 0, mx = 0, my = 0; const pts = [];
+  for (let i = 0, k = 0; k < d.length; i++, k += 4) if (d[k] + d[k + 1] + d[k + 2] < 690) { const px = i % c.width, py = (i / c.width) | 0; pts.push(px, py); mx += px; my += py; n++; }
+  if (n < 50) return 0; mx /= n; my /= n; let sxx = 0, syy = 0, sxy = 0;
+  for (let i = 0; i < pts.length; i += 2) { const a = pts[i] - mx, b = pts[i + 1] - my; sxx += a * a; syy += b * b; sxy += a * b; }
+  const tr = sxx + syy, di = Math.sqrt((sxx - syy) ** 2 + 4 * sxy * sxy); if ((tr + di) / Math.max(1, tr - di) < 1.35) return 0; // casi cuadrada: no hay eje claro, mejor no adivinar
+  let ang = .5 * Math.atan2(2 * sxy, sxx - syy) * 180 / Math.PI; // eje principal respecto a la horizontal
+  ang = syy >= sxx ? ang - Math.sign(ang || 1) * 90 : ang;           // prenda alargada: se lleva a vertical; ancha: a horizontal
+  return Math.abs(ang) > 30 || Math.abs(ang) < 2 ? 0 : -ang;
+}
+function enderezar(blob) {
+  return new Promise(res => {
+    const u = URL.createObjectURL(blob), cap = document.createElement('div'); cap.className = 'rc-capa';
+    cap.innerHTML = `<p class="mini-et">${t('Gira hasta que la prenda quede recta', 'Rotate until the garment is straight')}</p><div class="rc-zona en-zona"><img src="${u}" alt=""><i class="en-guia"></i></div>
+      <div class="en-ctrl"><input type="range" min="-45" max="45" step="0.5" value="0" aria-label="${t('Giro', 'Rotation')}"><span class="en-grados">0°</span><button class="txt sub-l" data-en="90">${t('Girar 90°', 'Rotate 90°')}</button></div>
+      <div class="rc-bts"><button class="boton" data-en="ok">${t('Enderezar', 'Straighten')}</button><button class="txt sub-l" data-en="no">${t('Cancelar', 'Cancel')}</button></div>`;
+    document.body.appendChild(cap);
+    const img = cap.querySelector('img'), rg = cap.querySelector('input'), gr = cap.querySelector('.en-grados'); let base = 0;
+    const pinta = () => { img.style.transform = `rotate(${base + +rg.value}deg)`; gr.textContent = `${(+rg.value).toLocaleString()}°`; };
+    img.onload = () => { rg.value = anguloPrenda(img); pinta(); };
+    rg.oninput = pinta;
+    cap.onclick = e => {
+      const b = e.target.closest('[data-en]'); if (!b) return; const k = b.dataset.en;
+      if (k === '90') { base = (base + 90) % 360; return pinta(); }
+      if (k === 'no') { cap.remove(); URL.revokeObjectURL(u); return res(null); }
+      const a = (base + +rg.value) * Math.PI / 180, W = img.naturalWidth, H = img.naturalHeight, cw = Math.ceil(Math.abs(W * Math.cos(a)) + Math.abs(H * Math.sin(a))), ch = Math.ceil(Math.abs(W * Math.sin(a)) + Math.abs(H * Math.cos(a)));
+      const c = document.createElement('canvas'); c.width = cw; c.height = ch; const x = c.getContext('2d', { willReadFrequently: true });
+      x.fillStyle = '#fff'; x.fillRect(0, 0, cw, ch); x.translate(cw / 2, ch / 2); x.rotate(a); x.drawImage(img, -W / 2, -H / 2); x.setTransform(1, 0, 0, 1, 0, 0);
+      // se recorta a la prenda (lo que no es casi blanco) con un margen
+      const d = x.getImageData(0, 0, cw, ch).data; let x0 = cw, y0 = ch, x1 = 0, y1 = 0;
+      for (let i = 0, q = 0; q < d.length; i++, q += 4) if (d[q] + d[q + 1] + d[q + 2] < 735) { const px = i % cw, py = (i / cw) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
+      let o = c; if (x1 > x0 && y1 > y0) { const m = Math.round(Math.max(x1 - x0, y1 - y0) * .06); x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(cw - 1, x1 + m); y1 = Math.min(ch - 1, y1 + m);
+        o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1; const ox = o.getContext('2d'); ox.drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height); }
+      o.toBlob(bl => { cap.remove(); URL.revokeObjectURL(u); res(bl); }, 'image/jpeg', .9);
+    };
+  });
 }
 // marco con cuatro esquinas sobre la foto; devuelve el trozo elegido como JPEG
 function recortarAMano(blob) {

@@ -1008,3 +1008,9 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .ay-lista summary::-webkit-details-marker{display:none}
 .ay-lista details p{margin:0 2px 14px;font-size:13.5px;line-height:1.5;color:var(--sec)}
 .ay-nada{text-align:center;color:var(--sec);font-size:14px;margin-top:24px}
+.en-zona img{transition:transform .15s}
+.en-guia{position:absolute;left:50%;top:6%;bottom:6%;border-left:1px dashed var(--oro,#C9A24B);pointer-events:none}
+.en-ctrl{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;width:100%;max-width:320px}
+.en-ctrl input{width:100%;accent-color:var(--tinta)}
+.en-ctrl .en-grados{font-size:13px;color:var(--sec);min-width:44px;text-align:right}
+.en-ctrl button{grid-column:1/-1;justify-self:center}
