@@ -342,9 +342,14 @@ const LARGO_NOMBRE = [[/minifalda|falda corta|mini/, 40], [/falda (larga|maxi)|m
 const LARGO_TIPO = { Arriba: 62, Abrigo: 72, Abajo: 100, Vestidos: 100, Calzado: 26, Bolsos: 30, Accesorios: 20 };
 const largoDe = p => LARGO[p.x] || (LARGO_NOMBRE.find(([r]) => r.test((p.nombre || '').toLowerCase())) || [])[1] || LARGO_TIPO[p.tipo] || 40;
 const tamAntiguo = p => { const M = MEDIDA[p.tipo] || [40, 40]; if (!p.caja) return M; let w = M[0], h = w * p.caja[4]; const tope = M[1] * 1.25; if (h > tope) { h = tope; w = h / p.caja[4]; } return [w, h]; };
+// 0.87 (Gabriela, 24/10: «la escala de las prendas en el básico me sigue pareciendo desproporcionada»): tres maneras de escalar para que elijan.
+// real = medidas de verdad; revista = como los bodegones de moda (calzado y bolso más grandes, la parte de arriba algo menor); equilibrada = todo más parecido de tamaño
+const ESCALA = (() => { try { const q = new URLSearchParams(location.search).get('escala'); if (q) localStorage.setItem('tc_escala', q); return localStorage.getItem('tc_escala') || 'real'; } catch (e) { return 'real'; } })();
+const AJUSTE = { revista: { Calzado: 1.4, Bolsos: 1.3, Accesorios: 1.4, Arriba: .9, Abrigo: .92 } };
+function largoEsc(p) { const L = largoDe(p); if (ESCALA === 'equilibrada') return 45 + (L - 45) * .55; return L * ((AJUSTE[ESCALA] || {})[p.tipo] || 1); }
 function tam(p) {
   if (!p.caja) return tamAntiguo(p);
-  const L = largoDe(p), r = p.caja[4] || 1; // r = alto / ancho de la prenda en su foto
+  const L = largoEsc(p), r = p.caja[4] || 1; // r = alto / ancho de la prenda en su foto
   if (['Calzado', 'Bolsos', 'Accesorios'].includes(p.tipo)) return r >= 1 ? [L / r, L] : [L, L * r];
   return [L / r, L]; // sin deformar: el ancho sale de la foto (mangas abiertas = más ancho, como en la realidad)
 }
@@ -353,7 +358,7 @@ async function medirFoto(p) {
   const S = 140, k = S / Math.max(im.naturalWidth, im.naturalHeight), w = Math.round(im.naturalWidth * k), h = Math.round(im.naturalHeight * k);
   const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, w, h);
   const d = x.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1;
-  for (let i = 0, q = 0; i < d.length; i += 4, q++) { if (d[i + 3] < 30 || Math.min(d[i], d[i + 1], d[i + 2]) > 236) continue; const px = q % w, py = (q / w) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
+  for (let i = 0, q = 0; i < d.length; i += 4, q++) { if (d[i + 3] < 30 || Math.min(d[i], d[i + 1], d[i + 2]) > 248) continue; /* 0.87: antes 236 y las prendas blancas se medían recortadas */ const px = q % w, py = (q / w) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
   if (x1 < 0) return [0, 0, 1, 1, h / w];
   const c0 = [x0 / w, y0 / h, (x1 + 1) / w, (y1 + 1) / h]; return [...c0.map(v => +v.toFixed(4)), +(((c0[3] - c0[1]) * h) / ((c0[2] - c0[0]) * w)).toFixed(4)];
 }
@@ -361,8 +366,8 @@ let midiendo = null;
 function medirTodas() {
   if (midiendo) return midiendo;
   midiendo = (async () => {
-    const pend = E.prendas.filter(p => !p.caja && (p.foto || p.src)); let n = 0;
-    for (const p of pend) { try { p.caja = await medirFoto(p); n++; } catch (e) { p.caja = null; } }
+    const pend = E.prendas.filter(p => (!p.caja || p.cajaV !== 2) && (p.foto || p.src)); let n = 0;
+    for (const p of pend) { try { p.caja = await medirFoto(p); p.cajaV = 2; n++; } catch (e) { p.caja = null; } }
     if (n) { if (E.prendas.some(p => !p.src)) await guardar(); E.propuestas = []; if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); }
     midiendo = null;
   })();
@@ -464,7 +469,7 @@ function capas(ps) {
   return { out: out.map(([p, x, yy, w, h]) => [p, x - x0, yy - y0, w, h]), W, H };
 }
 function composicion(ps) {
-  if (ps.some(p => !p.caja && (p.foto || p.src))) setTimeout(medirTodas, 0);
+  if (ps.some(p => (!p.caja || p.cajaV !== 2) && (p.foto || p.src))) setTimeout(medirTodas, 0);
   if (COMP === 'capas') { const c = capas(ps); if (c) return c.out.map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   if (COMP === 'collage') { const c = collage(ps); if (c) return c.out.sort((a, b) => ['Bolsos', 'Calzado'].includes(a[0].tipo) - ['Bolsos', 'Calzado'].includes(b[0].tipo)).map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   const G = 5, m = tam, rol = r => ps.filter(p => r.includes(p.tipo));
