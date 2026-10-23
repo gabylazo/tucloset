@@ -194,7 +194,7 @@ async function bajarNube() {
   const nuevas = [];
   for (const q of doc.prendas || []) {
     const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null }; delete p.conFoto; delete p.conOriginal;
-    if (q.conFoto && (!l?.foto || l.nube !== q.nube)) { try { const f = await api('/api/foto/' + q.id); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; urls.delete(q.id); } } catch (e) { } }
+    if (q.conFoto && (!l?.foto || l.nube !== q.nube)) { try { const f = await api('/api/foto/' + q.id); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } }
     if (q.conOriginal && (!p.original || l?.nubeO !== q.nubeO)) { try { const f = await api('/api/foto/' + q.id + '-o'); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; } } catch (e) { } }
     nuevas.push(p); locales.delete(q.id);
   }
@@ -368,10 +368,42 @@ function medirTodas() {
   })();
   return midiendo;
 }
+// 0.86 (Gabriela, 24/10: «no se ve superpuesto como el estilo revista… se ve superpuesto transparente y queda feo»):
+// las fotos guardadas llevan fondo blanco y se pintaban en «multiply», así que al pisarse se transparentaban.
+// Se saca una versión con el fondo transparente (relleno desde los bordes de lo casi blanco) y esas piezas se pintan opacas, con sombra fina.
+const alfa = new Map(); let alfando = null;
+async function hacerAlfa(p) {
+  const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = urlFoto(p); });
+  const k = Math.min(1, 900 / Math.max(im.naturalWidth, im.naturalHeight)), W = Math.max(1, Math.round(im.naturalWidth * k)), H = Math.max(1, Math.round(im.naturalHeight * k));
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, W, H);
+  const d = x.getImageData(0, 0, W, H), px = d.data;
+  let transp = 0; for (let i = 0; i < W; i++) if (px[i * 4 + 3] < 20) transp++; if (transp > W * .3) return urlFoto(p); // ya trae transparencia
+  const claro = i => { const r = px[i * 4], g = px[i * 4 + 1], b = px[i * 4 + 2]; return Math.min(r, g, b) > 248 && Math.max(r, g, b) - Math.min(r, g, b) < 7; };
+  const fuera = new Uint8Array(W * H), pila = [];
+  const sem = i => { if (!fuera[i] && claro(i)) { fuera[i] = 1; pila.push(i); } };
+  for (let i = 0; i < W; i++) { sem(i); sem((H - 1) * W + i); } for (let j = 0; j < H; j++) { sem(j * W); sem(j * W + W - 1); }
+  while (pila.length) { const i = pila.pop(), cx = i % W; if (cx > 0) sem(i - 1); if (cx < W - 1) sem(i + 1); if (i >= W) sem(i - W); if (i < W * (H - 1)) sem(i + W); }
+  for (let i = 0; i < W * H; i++) {
+    if (fuera[i]) { px[i * 4 + 3] = 0; continue; }
+    const cx = i % W; const borde = (cx > 0 && fuera[i - 1]) || (cx < W - 1 && fuera[i + 1]) || (i >= W && fuera[i - W]) || (i < W * (H - 1) && fuera[i + W]);
+    if (borde) { const l = Math.min(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]); px[i * 4 + 3] = Math.max(60, Math.min(255, (255 - l) * 6)); } // borde suave
+  }
+  x.putImageData(d, 0, 0);
+  const bl = await new Promise(r => c.toBlob(r, 'image/png')); return URL.createObjectURL(bl);
+}
+function alfasTodas() {
+  if (alfando) return alfando;
+  alfando = (async () => {
+    let n = 0; for (const p of E.prendas) { if (alfa.has(p.id) || !(p.foto || p.src)) continue; try { alfa.set(p.id, await hacerAlfa(p)); n++; } catch (e) { alfa.set(p.id, null); } }
+    alfando = null; if (n) { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); else if (E.pantalla === 'look' && typeof repintarLook === 'function') repintarLook(); }
+  })();
+  return alfando;
+}
 const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:${y / H * 100}%;width:${w / W * 100}%;height:${h / H * 100}%`;
   if (!p.caja) return `<img src="${urlFoto(p)}" alt="" style="${pos}">`;
   const [a, b, c, d] = p.caja, cw = c - a, ch = d - b;
-  return `<i class="pz" style="${pos};background-image:url('${urlFoto(p)}');background-size:${100 / cw}% ${100 / ch}%;background-position:${cw < 1 ? a / (1 - cw) * 100 : 0}% ${ch < 1 ? b / (1 - ch) * 100 : 0}%"></i>`; };
+  const u = alfa.get(p.id); if (!alfa.has(p.id)) setTimeout(alfasTodas, 0);
+  return `<i class="pz${u ? ' op' : ''}" style="${pos};background-image:url('${u || urlFoto(p)}');background-size:${100 / cw}% ${100 / ch}%;background-position:${cw < 1 ? a / (1 - cw) * 100 : 0}% ${ch < 1 ? b / (1 - ch) * 100 : 0}%"></i>`; };
 // 0.32 · presentación «collage» (Sheila, 22/10: «inspírate en esto para presentar los looks», dos referencias tipo Pinterest):
 // el look en una columna (arriba tocando la pieza de abajo), y a un lado el bolso arriba, los accesorios en medio y el calzado abajo.
 // Se activa con ?comp=collage (queda guardado); la simétrica (Eje/Cruz, cerrada por Gabriela el 20/10) sigue por defecto hasta que ella decida.
@@ -1338,7 +1370,7 @@ async function guardarPrenda(otra) {
   if (!p && !fotoNueva) return toast(t('Falta la foto de la prenda', 'The garment photo is missing'));
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
-  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim() }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id); } }
+  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim() }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
   else E.prendas.unshift({ id: uid(), rec: 3, original: fotoOriginal || undefined, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   await guardar(); E.propuestas = [];
   toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'));
@@ -1557,11 +1589,18 @@ function pintarYo() {
   $('yo-sub').textContent = [CLOSET_ACT ? t('Clóset de pruebas', 'Test closet') : '', E.tiempo?.nombre || pf.ciudad || pf.lugar, estNombre(estacionDelDia()), `${E.prendas.length} ${t('prendas', 'garments')}`].filter(Boolean).join(' · ');
   $('yo-estad').innerHTML = `<div><b>${E.prendas.length}</b><span>${t('prendas', 'garments')}</span></div><div><b>${usosMes}</b><span>${t('usos este mes', 'uses this month')}</span></div><div><b>${E.conjuntos.length}</b><span>${t('conjuntos', 'outfits')}</span></div>`;
   const sil = pf.selfie && pf.cuerpo ? t('fotos listas', 'photos ready') : pf.selfie || pf.cuerpo ? t('falta una foto', 'one photo missing') : t('sin fotos', 'no photos');
-  // 0.84 (Gabriela, 24/10: «que diga yo arriba y abajo tu… y luego el diseño de esta parte»): todo en primera persona y con el dibujo de los planes
-  const est = (pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[idioma() === 'en' ? 1 : 0]).filter(Boolean).join(' · ');
-  const rc = resumenCloset(); const tile = (attr, tit, val, on) => `<button class="yo-t${on ? ' on' : ''}" ${attr}><b>${tit}</b><span>${val}</span></button>`;
-  $('yo-lista').innerHTML = `<div class="yo-da"><b>${rc.looks}</b><span>${rc.looks === 1 ? t('look posible', 'possible look') : t('looks posibles', 'possible looks')} · ${rc.dias === 1 ? t('1 día sin repetir', '1 day without repeats') : t(`${rc.dias} días sin repetir`, `${rc.dias} days without repeats`)}</span></div>
-    <div class="yo-rej">${tile('data-ir="silueta"', t('Mi silueta', 'My figure'), sil, pf.selfie && pf.cuerpo)}${tile('data-ir="estilo"', t('Mi estilo', 'My style'), est || t('sin elegir', 'not set'), est)}${tile('id="yo-colores"', t('Mis colores', 'My colours'), E.perfil?.colores?.est ? EST_COLOR[E.perfil.colores.est].n[idioma() === 'en' ? 1 : 0] : t('descúbrelos', 'find them'), E.perfil?.colores?.est)}${tile('id="yo-top"', t('La que más me pongo', 'Most worn'), top && (top.usos || []).length ? `${top.nombre} · ${top.usos.length}` : t('aún nada', 'nothing yet'), false)}</div>`;
+  // 0.86 (Gabriela, 24/10: «ese "yo" arriba queda súper feo… la distribución de tu estilo, tu tipo de cuerpo, tu colorimetría, está fea»):
+  // sin título; silueta, estilo y colores como tres medallones redondos con su imagen (foto, paleta del estilo, paleta de color); debajo las cifras
+  const es = idioma() === 'en' ? 1 : 0, estK = (pf.estilos || [])[0], estO = ESTILOS.find(x => x.k === estK), colO = E.perfil?.colores?.est ? EST_COLOR[E.perfil.colores.est] : null;
+  const rueda = cs => `background:conic-gradient(${cs.map((c, k) => `${c} ${k / cs.length * 100}% ${(k + 1) / cs.length * 100}%`).join(',')})`;
+  const med = (attr, dentro, tit, val, hecho) => `<button class="m${hecho ? ' on' : ''}" ${attr}><i>${dentro}</i><b>${tit}</b><span>${val}</span></button>`;
+  const fotoSil = pf.cuerpo ? `<img src="${URL.createObjectURL(pf.cuerpo)}" alt="">` : `<svg viewBox="0 0 24 24"><use href="#ic-cuerpo"/></svg>`;
+  $('yo-lista').innerHTML = med('data-ir="silueta"', fotoSil, t('Mi silueta', 'My figure'), sil, pf.selfie && pf.cuerpo)
+    + med('data-ir="estilo"', estO ? `<s style="${rueda(estO.c)}"></s>` : '<em>+</em>', t('Mi estilo', 'My style'), estO ? (pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).slice(0, 2).join(' · ') : t('elígelo', 'choose it'), estO)
+    + med('id="yo-colores"', colO ? `<s style="${rueda(colO.hex.slice(0, 6))}"></s>` : '<em>+</em>', t('Mis colores', 'My colours'), colO ? colO.n[es] : t('descúbrelos', 'find them'), colO);
+  const rc = resumenCloset();
+  $('yo-mas').innerHTML = `<p class="yo-da">${t(`Mi clóset da para ${rc.looks} ${rc.looks === 1 ? 'look' : 'looks'} y ${rc.dias} ${rc.dias === 1 ? 'día' : 'días'} sin repetir`, `My closet makes ${rc.looks} looks and ${rc.dias} days without repeats`)}</p>`
+    + (top && (top.usos || []).length ? `<button class="yo-fav" id="yo-top"><img src="${urlFoto(top)}" alt=""><span><small>${t('La que más me pongo', 'Most worn')}</small>${top.nombre} · ${top.usos.length} ${t('veces', 'times')}</span></button>` : '<span id="yo-top" hidden></span>');
   $('yo-ajustes').innerHTML = `${NUBE ? '' : '<!--'}<button class="item" data-ir="cuenta">${t('Cuenta', 'Account')}<span class="valor ${cuenta() ? 'oro' : ''}">${cuenta() ? cuenta().correo : t('Crear o entrar', 'Create or sign in')}</span></button>${NUBE ? '' : '-->'}
     <button class="item" id="yo-ayuda">${t('Ayuda', 'Help')}<span class="valor">${t('Preguntas frecuentes', 'FAQ')}</span></button>
     <button class="item" id="yo-idioma">${t('Idioma', 'Language')}<span class="valor">${idioma() === 'en' ? 'English' : 'Español'}</span></button>

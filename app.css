@@ -1114,3 +1114,27 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 #p-yo #yo-lista{border-top:0;margin-top:6px}
 /* 0.85 (Gabriela, 24/10: «lo sigo viendo muy grande… déjalo tal cual pero más pequeño») */
 .toast{font-size:14px;padding:8px 16px;max-width:calc(100% - 80px)}
+/* 0.86 · prendas opacas con sombra fina al superponerse (estilo revista) */
+.lienzo .pz.op{mix-blend-mode:normal;filter:drop-shadow(0 1px 1.5px rgba(74,53,38,.16)) drop-shadow(0 6px 12px rgba(74,53,38,.07))}
+/* 0.86 · Yo sin título, con medallones */
+#p-yo .yo{margin-top:34px}
+#p-yo .yo-med{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:30px 0 4px}
+#p-yo .yo-med .m{display:grid;justify-items:center;gap:5px;text-align:center}
+#p-yo .yo-med i{width:74px;height:74px;border-radius:50%;border:1px solid var(--oro);padding:4px;display:grid;place-items:center;overflow:hidden;margin-bottom:6px}
+#p-yo .yo-med i>*{width:100%;height:100%;border-radius:50%}
+#p-yo .yo-med i img{object-fit:cover;object-position:50% 15%}
+#p-yo .yo-med i svg{width:30px;height:30px;fill:none;stroke:var(--oro);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+#p-yo .yo-med i s{display:block}
+#p-yo .yo-med i em{font-style:normal;font-family:var(--f-marca);font-size:30px;line-height:66px;color:var(--oro);text-align:center}
+#p-yo .yo-med .m:not(.on) i{border-style:dashed}
+#p-yo .yo-med b{font-family:var(--f-marca);font-weight:400;font-size:18px;color:var(--tinta)}
+#p-yo .yo-med span{font-size:11.5px;font-weight:300;color:var(--sec);line-height:1.3}
+#p-yo .yo-med .m.on span{color:var(--oro-t)}
+#p-yo .estad{margin-top:30px}
+#p-yo .yo-da{text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:400;font-size:17px;color:var(--tinta);margin:18px 0 0}
+#p-yo .yo-fav{display:flex;align-items:center;justify-content:center;gap:12px;margin:18px auto 0;text-align:left}
+#p-yo .yo-fav img{width:46px;height:46px;object-fit:contain}
+#p-yo .yo-fav span{font-size:13px;font-weight:300;color:var(--tinta);line-height:1.35}
+#p-yo .yo-fav small{display:block;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--sec)}
+#p-yo .yo-sec{margin-top:34px}
+#p-yo .yo-med{margin-top:40px}
