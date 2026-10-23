@@ -747,7 +747,7 @@ function proponer() {
 // sin plan en el calendario para hoy, Hoy pregunta «¿A dónde vas hoy?»; la respuesta se guarda como plan del día y los looks se rehacen
 function preguntaHoy(planHoy) {
   if (planHoy) return `<button class="hz-plan" data-hzpreg>${t('Hoy', 'Today')}: ${ocNombre(planHoy).toLowerCase()}</button>${E.hzPreg ? opcionesHoy(planHoy) : ''}`;
-  return `<button class="hz-preg" data-hzpreg>${t('¿A dónde vas hoy?', 'Where are you going today?')}</button>${E.hzPreg ? opcionesHoy() : ''}`;
+  return `<button class="hz-preg" data-hzpreg>${t('¿Qué planes tienes hoy?', 'What are your plans today?')}</button>${E.hzPreg ? opcionesHoy() : ''}`;
 }
 const opcionesHoy = sel => `<div class="hz-ops">${OCASIONES.map(o => `<button class="${o === sel ? 'on' : ''}" data-hzoc="${o}">${ocNombre(o)}</button>`).join('')}</div>`;
 document.addEventListener('click', async e => {
@@ -1527,7 +1527,7 @@ const AYUDA = [
   ['Hoy y looks', 'Cómo elige la app el look de hoy', 'Mira el tiempo de tu ciudad, el plan del día, tus estilos y lo que menos te has puesto, y combina tus prendas para que casen colores y ocasión.'],
   ['Hoy y looks', 'No me gusta el look que me propone', 'Toca «No me gusta» bajo el look: te saldrá otro y la app aprende qué prendas no quieres juntas. Con las flechas puedes ver más propuestas.'],
   ['Hoy y looks', 'Para qué sirve «Me lo pongo»', 'Apunta que hoy llevas ese look: cuenta un uso de cada prenda, lo guarda en el calendario y la app aprende lo que te gusta.'],
-  ['Hoy y looks', 'Cómo le digo a dónde voy', 'En Hoy, toca «¿A dónde vas hoy?» y elige la ocasión. Para otros días, en Looks → Calendario, elige el día, marca la ocasión y la franja y guarda el plan.'],
+  ['Hoy y looks', 'Cómo le digo a dónde voy', 'En Hoy, toca «¿Qué planes tienes hoy?» y elige la ocasión. Para otros días, en Looks → Calendario, elige el día, marca la ocasión y la franja y guarda el plan.'],
   ['Hoy y looks', 'Me dice que me falta ropa para una ocasión', 'Cuando tu clóset no da para un plan (noche, evento, oficina, deporte), la app te enseña lo más cercano y te dice qué tipo de prenda te vendría bien. Al subirla, te la propondrá.'],
   ['Hoy y looks', 'Cómo creo y guardo un look', 'En Looks, toca + y elige las prendas. También puedes guardar las ideas que te propone la app en «Ideas para hoy».'],
   ['Mi estilo', 'Cómo cambio mi estilo', 'En Yo → Mi estilo, elige hasta tres estilos. Los looks que te propone la app se ordenan según ellos.'],
