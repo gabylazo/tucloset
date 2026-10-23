@@ -1104,6 +1104,37 @@ function pintarDiseno() {
 }
 
 /* ---------- YO ---------- */
+// 0.63 · Ayuda (Sheila, 22/10: «también podemos integrar un sistema de asistente virtual por si la usuaria tiene alguna duda»; Gabriela: «Sí»):
+// primera fase, preguntas frecuentes con buscador, sin servidor y sin red; el asistente con IA llegará con las cuentas
+const AYUDA = [
+  ['Subir y recortar', 'Cómo subo mi ropa', 'Toca Subir, en el centro de la barra. Puedes hacer una foto o elegir hasta 20 de la galería. La app quita el fondo y te propone nombre, categoría, tipo y color; revísalo y guarda.'],
+  ['Subir y recortar', 'Cómo hago una buena foto', 'Fondo liso que contraste con la prenda, una prenda por foto y entera, desde arriba o colgada de una puerta lisa, luz de día sin flash y que la prenda llene casi toda la foto. Tienes las seis reglas en Subir → «Cómo hacer una buena foto».'],
+  ['Subir y recortar', 'El recorte ha dejado restos del fondo', 'Abre la prenda, toca Editar y usa «Recortar» para ajustar el marco a la prenda; después, «Quitar el fondo». Si no te convence, «Volver a la original» recupera la foto sin tocar.'],
+  ['Subir y recortar', 'La app se ha equivocado de tipo o de color', 'En «Revisa tu prenda» o en Editar puedes cambiar la categoría y el tipo con los desplegables, y el color tocando su muestra. Lo que corrijas a mano la app ya no lo cambia.'],
+  ['Hoy y looks', 'Cómo elige la app el look de hoy', 'Mira el tiempo de tu ciudad, el plan del día, tus estilos y lo que menos te has puesto, y combina tus prendas para que casen colores y ocasión.'],
+  ['Hoy y looks', 'No me gusta el look que me propone', 'Toca «No me gusta» bajo el look: te saldrá otro y la app aprende qué prendas no quieres juntas. Con las flechas puedes ver más propuestas.'],
+  ['Hoy y looks', 'Para qué sirve «Me lo pongo»', 'Apunta que hoy llevas ese look: cuenta un uso de cada prenda, lo guarda en el calendario y la app aprende lo que te gusta.'],
+  ['Hoy y looks', 'Cómo le digo a dónde voy', 'En Hoy, toca «¿A dónde vas hoy?» y elige la ocasión. Para otros días, en Looks → Calendario, elige el día, marca la ocasión y la franja y guarda el plan.'],
+  ['Hoy y looks', 'Me dice que me falta ropa para una ocasión', 'Cuando tu clóset no da para un plan (noche, evento, oficina, deporte), la app te enseña lo más cercano y te dice qué tipo de prenda te vendría bien. Al subirla, te la propondrá.'],
+  ['Hoy y looks', 'Cómo creo y guardo un look', 'En Looks, toca + y elige las prendas. También puedes guardar las ideas que te propone la app en «Ideas para hoy».'],
+  ['Mi estilo', 'Cómo cambio mi estilo', 'En Yo → Mi estilo, elige hasta tres estilos. Los looks que te propone la app se ordenan según ellos.'],
+  ['Mi estilo', 'Cómo copio el estilo de una famosa', 'La función «Inspírate en…» está en camino. Mientras, elige en Mi estilo los estilos que más se le parecen.'],
+  ['Mi cuenta y datos', 'Dónde se guarda mi ropa', 'En este móvil, dentro del navegador. No se sube a ningún servidor. Si borras los datos del navegador, se borra también: guarda una copia en Yo → «Guardar una copia de mis datos».'],
+  ['Mi cuenta y datos', 'Cómo paso mi clóset a otro móvil', 'En Yo → «Guardar una copia de mis datos» se descarga un fichero. En el otro móvil, Yo → «Recuperar una copia» y elige ese fichero.'],
+  ['Mi cuenta y datos', 'Qué incluye cada plan', 'Básico (1,99 €/mes o 14,99 €/año): tu armario digital, looks, look del día, calendario, uso y estilo. Pro (4,99 €/mes o 39,99 €/año): todo lo del Básico y además colorimetría, morfología, probador virtual, estilismo por ocasión, «Inspírate en…» y Planning Travel.'],
+  ['Mi cuenta y datos', 'Cómo pongo la app en la pantalla de inicio', 'En Android, desde Chrome: menú ⋮ → «Añadir a pantalla de inicio». En iPhone, desde Safari: Compartir → «Añadir a pantalla de inicio».']
+];
+function abrirAyuda() {
+  const cap = document.createElement('div'); cap.className = 'ay-capa';
+  const pinta = q => { const n = x => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), b = n(q || '');
+    const hay = AYUDA.filter(([, p, r]) => !b || n(p + ' ' + r).includes(b)); let grupo = '';
+    cap.querySelector('.ay-lista').innerHTML = hay.length ? hay.map(([g, p, r]) => `${g !== grupo ? `<p class="mini-et">${(grupo = g)}</p>` : ''}<details><summary>${p}</summary><p>${r}</p></details>`).join('')
+      : `<p class="ay-nada">${t('No encuentro nada con esas palabras. Prueba con otras, o escríbenos.', 'Nothing found. Try other words, or write to us.')}</p>`; };
+  cap.innerHTML = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button><h1>${t('Ayuda', 'Help')}</h1><input class="ay-busca" type="search" placeholder="${t('Busca tu duda', 'Search your question')}"><div class="ay-lista"></div>`;
+  document.body.appendChild(cap); pinta('');
+  cap.querySelector('.ay-busca').oninput = e => pinta(e.target.value);
+  cap.querySelector('.x').onclick = () => cap.remove();
+}
 function pintarYo() {
   const pf = E.perfil || {}; const mes = hoyISO().slice(0, 7);
   const usosMes = E.prendas.reduce((n, p) => n + (p.usos || []).filter(u => u.startsWith(mes)).length, 0);
@@ -1117,7 +1148,8 @@ function pintarYo() {
     <button class="item" data-ir="estilo">${t('Mi estilo', 'My style')}<span class="valor ${(pf.estilos || []).length ? 'oro' : ''}">${(pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[idioma() === 'en' ? 1 : 0]).filter(Boolean).join(' · ') || t('Sin elegir', 'Not set')}</span></button>
     <button class="item" id="yo-colores">${t('Mis colores', 'My colours')}<span class="valor">${t('Próximamente', 'Coming soon')}</span></button>
     <button class="item" id="yo-top">${t('La que más te pones', 'Most worn')}<span class="valor">${top && (top.usos || []).length ? `${top.nombre} · ${top.usos.length}` : '—'}</span></button>`;
-  $('yo-ajustes').innerHTML = `<button class="item" id="yo-idioma">${t('Idioma', 'Language')}<span class="valor">${idioma() === 'en' ? 'English' : 'Español'}</span></button>
+  $('yo-ajustes').innerHTML = `<button class="item" id="yo-ayuda">${t('Ayuda', 'Help')}<span class="valor">${t('Preguntas frecuentes', 'FAQ')}</span></button>
+    <button class="item" id="yo-idioma">${t('Idioma', 'Language')}<span class="valor">${idioma() === 'en' ? 'English' : 'Español'}</span></button>
     <button class="item" data-ir="diseno">${t('Diseño (para decidir)', 'Design (to decide)')}<span class="valor">${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}</span></button>
     <button class="item" id="yo-plan">${t('Plan (para enseñarlo)', 'Plan (demo)')}<span class="valor">${planDemo() === 'pro' ? t('Pro · tu avatar', 'Pro · your avatar') : t('Básico · maniquí', 'Basic · mannequin')}</span></button>
     <button class="item" id="yo-ciudad">${t('Ciudad para el tiempo', 'City for the weather')}<span class="valor">${pf.ciudad || E.tiempo?.nombre || pf.lugar || t('tu ubicación', 'your location')}</span></button>
@@ -1133,6 +1165,7 @@ function pintarYo() {
     await guardar(); await cargarTiempo(true); E.propuestas = []; pintarYo(); };
   $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   $('yo-plan').onclick = () => { PLAN_URL = null; localStorage.setItem('tc_plan', planDemo() === 'pro' ? 'basico' : 'pro'); pintarYo(); toast(planDemo() === 'pro' ? t('Pro: tu avatar con el conjunto', 'Pro: your avatar') : t('Básico: el conjunto en el maniquí', 'Basic: the outfit on the mannequin')); };
+  $('yo-ayuda').onclick = abrirAyuda;
   $('yo-exportar').onclick = exportar;
   $('yo-importar').querySelector('input').onchange = e => e.target.files[0] && importar(e.target.files[0]);
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
