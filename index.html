@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="iconos/icono-129-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bellefair&family=Cormorant+Garamond:ital,wght@1,300;1,400&family=Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900&family=Inter:opsz,wght@14..32,400..700&family=Atkinson+Hyperlegible+Next:wght@400..800&family=Jost:wght@300..700&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=0.77">
+<link rel="stylesheet" href="app.css?v=0.78">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -55,9 +55,9 @@
   <div class="ac-campos">
     <label class="ac-campo"><span class="mini-et" data-t="ac_nombre">Tu nombre</span><input id="a-nombre" autocomplete="given-name"></label>
     <label class="ac-campo"><span class="mini-et" data-t="ac_ciudad">Tu ciudad</span><input id="a-ciudad" autocomplete="address-level2"></label>
-    <label class="ac-campo"><span class="mini-et" data-t="ac_correo">Correo</span><input type="email" id="a-correo" autocomplete="email"></label>
-    <label class="ac-campo"><span class="mini-et" data-t="ac_clave_nueva">Contraseña (mínimo 8)</span><input type="password" id="a-clave" autocomplete="new-password"></label>
     <button class="ac-enlace" id="a-ubicacion"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.2"/></svg><span data-t="ac_ubic">Usar mi ubicación</span></button>
+    <label class="ac-campo"><span class="mini-et" data-t="ac_correo">Correo</span><input type="email" id="a-correo" autocomplete="email"></label>
+    <label class="ac-campo"><span class="mini-et" data-t="ac_clave">Contraseña</span> <small class="ac-pista" data-t="ac_clave_pista">mínimo 8 caracteres</small><input type="password" id="a-clave" autocomplete="new-password"></label>
   </div>
   <div class="ac-pie">
     <button class="boton" id="a-seguir" data-t="seguir">Seguir</button>
@@ -234,16 +234,16 @@
   <div class="estad" id="yo-estad"></div>
   <div class="lista" id="yo-lista"></div>
   <div class="lista" id="yo-ajustes"></div>
-  <p class="nota" id="yo-version">TuCloset web 0.77 · 23 de octubre de 2026</p>
+  <p class="nota" id="yo-version">TuCloset web 0.78 · 23 de octubre de 2026</p>
 </main>
 
-<!-- MIS COLORES (0.77) -->
+<!-- MIS COLORES (0.78) -->
 <main class="pantalla con-margen" id="p-colores">
   <div class="cab"><button data-ir="yo" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et">Mis colores</span><span></span></div>
   <div id="co-raiz"></div>
 </main>
 
-<!-- CUENTA (0.77) -->
+<!-- CUENTA (0.78) -->
 <main class="pantalla con-margen" id="p-cuenta">
   <div class="cab"><button data-ir="yo" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et">Cuenta</span><span></span></div>
   <div id="cu-raiz"></div>
@@ -261,6 +261,6 @@
 <dialog id="dlg"><h2 id="dlg-t"></h2><p id="dlg-p"></p><div class="botones"><button class="boton" id="dlg-si"></button><button class="boton linea" id="dlg-no"></button></div></dialog>
 </div>
 <script>window.TC_PUBLICA=true</script>
-<script src="app.js?v=0.77"></script>
+<script src="app.js?v=0.78"></script>
 </body>
 </html>

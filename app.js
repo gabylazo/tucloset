@@ -33,7 +33,7 @@ const COLORES = [['Negro', '#1B1B1B'], ['Blanco', '#F4F4F4'], ['Gris', '#8E8E8E'
 /* ---------- idioma ---------- */
 const T = {
   ac_crear: ['Crea tu clóset', 'Create your closet'], ac_nombre: ['Tu nombre', 'Your name'], ac_ciudad: ['Tu ciudad', 'Your city'], ac_ubic: ['Usar mi ubicación', 'Use my location'],
-  ac_nota: ['La ciudad es solo para el tiempo. Con correo, tu clóset se guarda en tu cuenta; tu selfie y tu foto de cuerpo, nunca.', 'The city is only for the weather. With an email your closet is saved to your account; your selfie and body photo, never.'], ac_clave_nueva: ['Contraseña (mínimo 8)', 'Password (min. 8)'],
+  ac_nota: ['La ciudad es solo para el tiempo. Con correo, tu clóset se guarda en tu cuenta; tu selfie y tu foto de cuerpo, nunca.', 'The city is only for the weather. With an email your closet is saved to your account; your selfie and body photo, never.'], ac_clave_pista: ['mínimo 8 caracteres', 'at least 8 characters'],
   ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Dos fotos para verte con tu ropa puesta, conocer tu tipo de cuerpo y tus colores.', 'Two photos to see yourself in your clothes and learn your body type and colours.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_estilo: ['Tu estilo', 'Your style'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
   ac_entrar: ['Hola de nuevo', 'Welcome back'], ac_correo: ['Correo', 'Email'], ac_clave: ['Contraseña', 'Password'], ac_olvido: ['¿La has olvidado?', 'Forgot it?'], ac_entrar_bt: ['Entrar', 'Sign in'], ac_o: ['o', 'or'],
   ac_apple: ['Continuar con Apple', 'Continue with Apple'], ac_google: ['Continuar con Google', 'Continue with Google'], ac_no_tengo: ['¿Aún no tienes cuenta? Crea tu clóset', 'No account yet? Create your closet'],
@@ -247,7 +247,7 @@ function pintarCuenta() {
   } else {
     r.innerHTML = `<p class="cu-txt">${t('Crea tu cuenta para guardar tu clóset y verlo en cualquier móvil.', 'Create your account to keep your closet and see it on any phone.')}</p>
       <div class="ac-campos"><label class="ac-campo"><span class="mini-et">${t('Correo', 'Email')}</span><input type="email" id="cu-correo" autocomplete="email"></label>
-      <label class="ac-campo"><span class="mini-et">${t('Contraseña (mínimo 8)', 'Password (min. 8)')}</span><input type="password" id="cu-clave" autocomplete="new-password"></label></div>
+      <label class="ac-campo"><span class="mini-et">${t('Contraseña', 'Password')}</span> <small class="ac-pista">${t('mínimo 8 caracteres', 'at least 8 characters')}</small><input type="password" id="cu-clave" autocomplete="new-password"></label></div>
       <div class="cu-bts"><button class="boton" id="cu-crear">${t('Crear mi cuenta', 'Create my account')}</button><button class="boton linea" id="cu-entrar">${t('Ya tengo cuenta', 'I have an account')}</button></div>`;
     const go = async modo => { const b = $(modo === 'alta' ? 'cu-crear' : 'cu-entrar'); b.disabled = true; const ok = await abrirCuenta(modo, $('cu-correo').value.trim(), $('cu-clave').value, E.perfil?.nombre); b.disabled = false; if (ok) { pintarCuenta(); toast(modo === 'alta' ? t('Cuenta creada: tu clóset ya se guarda', 'Account created: your closet is being saved') : t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); } };
     $('cu-crear').onclick = () => go('alta'); $('cu-entrar').onclick = () => go('entrar');

@@ -1068,3 +1068,4 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 #p-planes .plb-det .pl-per{color:var(--tinta)}
 #p-planes .plb-rej{gap:28px 14px;margin-top:28px}
 #p-planes .plb-det{margin-top:24px}
+.ac-pista{font-size:10px;color:var(--ter);font-weight:300;letter-spacing:.02em} /* 0.78 (Gabriela: «mínimo 8 qué? y puede ir más pequeño») */
