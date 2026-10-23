@@ -152,7 +152,29 @@ const BUSTO = '<svg class="busto" viewBox="0 0 100 200" aria-hidden="true"><circ
 const MEDIDA = { Arriba: [60, 58], Abrigo: [72, 88], Abajo: [58, 100], Vestidos: [72, 100], Calzado: [34, 30], Bolsos: [36, 36], Accesorios: [22, 22] };
 // 0.31 (Sheila, 22/10: «este resultado también es bastante feo»): cada foto se mide una vez (dónde está la prenda dentro de su foto blanca) y el
 // conjunto se compone con la silueta real de cada prenda, recortada a su caja: sin huecos blancos entre piezas, más junto y más grande.
-const tam = p => { const M = MEDIDA[p.tipo] || [40, 40]; if (!p.caja) return M; let w = M[0], h = w * p.caja[4]; const tope = M[1] * 1.25; if (h > tope) { h = tope; w = h / p.caja[4]; } return [w, h]; };
+// 0.72 (Gabriela, 23/10: «se desperdician muchos espacios… es importante el problema de las escalas, que tengan sentido lógico»):
+// cada prenda a su tamaño real en cm. Ropa: por su largo (el ancho cambia según cómo se extiendan las mangas); calzado, bolsos y
+// accesorios: por su lado mayor. El largo sale del tipo (desplegable) o, si no hay, del nombre; sin foto medida, las medidas de antes.
+const LARGO = { 'a t-shirt': 66, 'a blouse': 64, 'a shirt': 72, 'a polo shirt': 66, 'a crop top': 42, 'a tank top': 58, 'a sleeveless top': 58, 'a halter bodysuit': 62, 'a peplum top': 60, 'a sweater': 64, 'a hoodie': 68, 'a cardigan': 66, 'a knitted vest': 56,
+  trousers: 102, jeans: 102, 'wide leg pants': 104, shorts: 38, leggings: 92,
+  'a skirt': 62, 'a mini skirt': 40, 'a midi skirt': 78, 'a long skirt': 95, 'a pleated skirt': 70, 'a flared skirt': 62, 'a lace skirt': 62,
+  'a dress': 95, 'a mini dress': 80, 'a midi dress': 112, 'a long dress': 140, 'a wrap dress': 105, 'a jumpsuit': 140,
+  'a coat': 100, 'a trench coat': 105, 'a puffer jacket': 68, 'a parka': 85, 'a jacket': 68, 'a denim jacket': 60, 'a bomber jacket': 60, 'a blazer': 72,
+  'a pair of shoes': 26, 'a pair of sneakers': 28, 'a pair of boots': 32, 'a pair of knee high boots': 46, 'a pair of ankle boots': 27, 'a pair of high heels': 25, 'a pair of sandals': 25, 'a pair of ballet flats': 24, 'a pair of loafers': 26,
+  'a handbag': 28, 'a shoulder bag': 30, 'a crossbody bag': 24, 'a tote bag': 42, 'a clutch bag': 25, 'a backpack': 42,
+  'a belt': 30, 'a scarf': 40, 'a hat': 36, 'a cap': 26, 'a sunglasses': 15, sunglasses: 15, 'a necklace': 22, earrings: 9, 'a bracelet': 10, 'a watch': 10, gloves: 22 };
+const LARGO_NOMBRE = [[/minifalda|falda corta|mini/, 40], [/falda (larga|maxi)|maxifalda/, 95], [/falda midi|midi/, 78], [/falda/, 62], [/short|bermuda/, 38], [/malla|legging/, 92], [/pantal|vaquer|jean|jogger/, 102],
+  [/vestido largo|mono/, 140], [/vestido/, 100], [/abrigo|gabardina|trench/, 102], [/parka/, 85], [/americana|blazer/, 72], [/chaqueta|cazadora|plumas/, 66],
+  [/top corto|crop/, 42], [/camisa/, 72], [/sudadera/, 68], [/bota alta|mosquetera/, 46], [/bota/, 32], [/bot[ií]n/, 27], [/tote|shopper|mochila/, 42], [/cartera|clutch|de mano/, 25], [/bandolera/, 24]];
+const LARGO_TIPO = { Arriba: 62, Abrigo: 72, Abajo: 100, Vestidos: 100, Calzado: 26, Bolsos: 30, Accesorios: 20 };
+const largoDe = p => LARGO[p.x] || (LARGO_NOMBRE.find(([r]) => r.test((p.nombre || '').toLowerCase())) || [])[1] || LARGO_TIPO[p.tipo] || 40;
+const tamAntiguo = p => { const M = MEDIDA[p.tipo] || [40, 40]; if (!p.caja) return M; let w = M[0], h = w * p.caja[4]; const tope = M[1] * 1.25; if (h > tope) { h = tope; w = h / p.caja[4]; } return [w, h]; };
+function tam(p) {
+  if (!p.caja) return tamAntiguo(p);
+  const L = largoDe(p), r = p.caja[4] || 1; // r = alto / ancho de la prenda en su foto
+  if (['Calzado', 'Bolsos', 'Accesorios'].includes(p.tipo)) return r >= 1 ? [L / r, L] : [L, L * r];
+  return [L / r, L]; // sin deformar: el ancho sale de la foto (mangas abiertas = más ancho, como en la realidad)
+}
 async function medirFoto(p) {
   const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = urlFoto(p); });
   const S = 140, k = S / Math.max(im.naturalWidth, im.naturalHeight), w = Math.round(im.naturalWidth * k), h = Math.round(im.naturalHeight * k);
@@ -180,7 +202,7 @@ const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:$
 // 0.32 · presentación «collage» (Sheila, 22/10: «inspírate en esto para presentar los looks», dos referencias tipo Pinterest):
 // el look en una columna (arriba tocando la pieza de abajo), y a un lado el bolso arriba, los accesorios en medio y el calzado abajo.
 // Se activa con ?comp=collage (queda guardado); la simétrica (Eje/Cruz, cerrada por Gabriela el 20/10) sigue por defecto hasta que ella decida.
-const COMP = (() => { try { const q = new URLSearchParams(location.search).get('comp'); if (q) localStorage.setItem('tc_comp', q); return localStorage.getItem('tc_comp') || 'sim'; } catch (e) { return 'sim'; } })();
+const COMP = (() => { try { const q = new URLSearchParams(location.search).get('comp'); if (q) localStorage.setItem('tc_comp', q); return localStorage.getItem('tc_comp') || 'capas'; } catch (e) { return 'capas'; } })();
 function collage(ps) {
   const m = tam, rol = r => ps.filter(p => r.includes(p.tipo)), G = 6;
   const arriba = rol(['Arriba', 'Abrigo']).slice(0, 2), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0], acc = rol(['Accesorios']).slice(0, 3);
@@ -199,8 +221,46 @@ function collage(ps) {
   const Ht = Math.max(H + (calzado ? szZ[1] * .15 : 0), ly - G);
   return { out, W, H: Ht };
 }
+// 0.72 · presentación «capas» (Gabriela, 23/10: «se desperdician muchos espacios… las escalas, que tengan sentido lógico»): todo a su
+// tamaño real y junto, como un flat lay: la chaqueta asoma por detrás de la parte de arriba, que pisa la cintura de la de abajo; el
+// calzado, al pie, como puesto; el bolso a la altura de la cadera y los accesorios junto a los hombros. El marco se ajusta al conjunto.
+function capas(ps) {
+  const m = tam, rol = r => ps.filter(p => r.includes(p.tipo));
+  const tops = rol(['Arriba']), abrigos = rol(['Abrigo']);
+  const top = tops[0], capa = abrigos[0] || tops[1], grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0], acc = rol(['Accesorios']).slice(0, 2);
+  const out = []; // [p, x, y, w, h] con x centrado en 0 para la columna
+  let y = 0, cIzq = 0, cDer = 0;
+  const arriba = top || (grande ? null : capa); const conCapa = capa && capa !== arriba;
+  if (arriba || conCapa) {
+    const [tw, th] = arriba ? m(arriba) : [0, 0], [cw, ch] = conCapa ? m(capa) : [0, 0];
+    if (arriba && conCapa) { // la capa detrás, a la izquierda; la de arriba delante, pisándola
+      const ancho = cw * .55 + tw, x0 = -ancho / 2;
+      out.push([capa, x0, 0, cw, ch]); out.push([arriba, x0 + cw * .55, Math.max(0, (ch - th) * .15), tw, th]);
+      cIzq = x0; cDer = x0 + ancho; y = Math.max(ch * .8, th * .82);
+    } else if (arriba) { out.push([arriba, -tw / 2, 0, tw, th]); cIzq = -tw / 2; cDer = tw / 2; y = th * .82; }
+    else { out.push([capa, -cw / 2, 0, cw, ch]); cIzq = -cw / 2; cDer = cw / 2; y = ch * .8; }
+  }
+  let yG = y, gIzq = cIzq, gDer = cDer, fin = y;
+  if (grande) {
+    const [gw, gh] = m(grande);
+    if (!out.length) yG = 0;
+    out.unshift([grande, -gw / 2, yG, gw, gh]); // debajo de la parte de arriba
+    gIzq = -gw / 2; gDer = gw / 2; fin = yG + gh;
+  } else if (out.length) fin = Math.max(...out.map(o => o[2] + o[4]));
+  // con vestido y capa sin parte de arriba: la capa detrás del vestido, a la izquierda
+  if (grande && conCapa && !top) { const [cw, ch] = m(capa); out.unshift([capa, gIzq - cw * .45, 0, cw, ch]); }
+  if (calzado) { const [w, h] = m(calzado), pisa = grande?.tipo === 'Abajo' && !/falda|skirt|short/i.test((grande.nombre || '') + (grande.x || '')) ? h * .3 : -h * .08; out.push([calzado, -w / 2, fin - pisa, w, h]); fin += h - pisa; } // con pantalón, al pie como puesto; con falda o vestido, un poco por debajo
+  if (bolso) { const [w, h] = m(bolso); const yb = grande ? yG + m(grande)[1] * .12 : fin * .45; out.push([bolso, Math.max(gDer, cDer * .6) - w * .2, yb, w, h]); }
+  let ya = 0; acc.forEach(p => { const [w, h] = m(p); out.push([p, Math.min(cIzq, gIzq) - w * .7, ya, w, h]); ya += h + 3; });
+  if (!out.length) return null;
+  const x0 = Math.min(...out.map(o => o[1])), x1 = Math.max(...out.map(o => o[1] + o[3])), y0 = Math.min(...out.map(o => o[2])), y1 = Math.max(...out.map(o => o[2] + o[4]));
+  // el marco se ciñe al conjunto entero y se centra en pantalla: sin franjas vacías a los lados
+  const W = x1 - x0, H = y1 - y0;
+  return { out: out.map(([p, x, yy, w, h]) => [p, x - x0, yy - y0, w, h]), W, H };
+}
 function composicion(ps) {
   if (ps.some(p => !p.caja && (p.foto || p.src))) setTimeout(medirTodas, 0);
+  if (COMP === 'capas') { const c = capas(ps); if (c) return c.out.map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   if (COMP === 'collage') { const c = collage(ps); if (c) return c.out.sort((a, b) => ['Bolsos', 'Calzado'].includes(a[0].tipo) - ['Bolsos', 'Calzado'].includes(b[0].tipo)).map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   const G = 5, m = tam, rol = r => ps.filter(p => r.includes(p.tipo));
   const arriba = rol(['Arriba', 'Abrigo']).slice(0, 3), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0];
