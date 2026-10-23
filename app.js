@@ -321,8 +321,24 @@ const NECESIDADES = {
     [p => !['Calzado', 'Bolsos', 'Accesorios'].includes(p.tipo) && estilo(p) === 0, 'mallas, una sudadera o ropa deportiva', 'leggings, a hoodie or sportswear']]
 };
 function faltaPara(oc) { const act = activas(); return (NECESIDADES[oc] || []).filter(([f]) => !act.some(f)).map(n => t(n[1], n[2])); }
+// 0.68 (Sheila, 23/10: «creo que el texto es largo y agobiante»): una línea corta; lo que falta, plegado
 const avisoFalta = (oc, hay) => { const f = faltaPara(oc); if (!f.length && hay) return ''; const o = ocNombre(oc).toLowerCase();
-  return `<p class="cal-falta">${hay ? '' : t(`Aún no tienes nada de ${o} en tu clóset; te enseño lo que más se acerca. `, `You have nothing for ${o} yet; here is the closest. `)}${f.length ? t(`Para ${o} te vendría bien tener ${lista(f)}.`, `For ${o} it would help to have ${lista(f)}.`) : ''}</p>`; };
+  return `<div class="cal-falta">${hay ? '' : `<p>${t(`Sin ropa de ${o}: te enseño lo más parecido.`, `Nothing for ${o}: here is the closest.`)}</p>`}${f.length ? `<details><summary>${t('Qué te vendría bien', 'What would help')}</summary><p>${cap(lista(f))}.</p></details>` : ''}</div>`; };
+// 0.68 (Sheila, 23/10: «cuando pongo deporte me dice que no hay nada… puedes al menos poner las zapatillas»): sin ropa de esa ocasión,
+// lo más parecido: lo más arreglado para noche, evento y oficina; lo más cómodo para el resto; y para deporte, con zapatillas y sin bolso
+function masCercanos(oc, lista) {
+  const sube = ['Noche', 'Evento', 'Oficina'].includes(oc) ? 1 : -1, act = activas();
+  const zapas = act.filter(p => p.tipo === 'Calzado' && estilo(p) === 0).sort((a, b) => (a.usos || []).length - (b.usos || []).length);
+  const vistos = new Set(), out = [];
+  for (const l of lista) {
+    let ids = l.ids;
+    if (oc === 'Deporte') { const ps = ids.map(P).filter(Boolean).filter(p => p.tipo !== 'Bolsos' && !(p.tipo === 'Calzado' && zapas.length)); if (zapas.length) ps.push(zapas[0]); ids = ps.map(p => p.id); }
+    const k = [...ids].sort().join(); if (vistos.has(k)) continue; vistos.add(k);
+    out.push(ids === l.ids ? l : { tipo: 'propuesta', ids, ocasion: ocasionDe(ids.map(P).filter(Boolean)) });
+  }
+  const nv = l => { const ps = l.ids.map(P).filter(Boolean), z = ps.find(p => p.tipo === 'Calzado'); return nivelRopa(ps) + (z ? estilo(z) : 1) * .5; };
+  return out.sort((x, y) => sube * (nv(y) - nv(x)));
+}
 const lista = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + t(' y ', ' and ') + a[a.length - 1];
 function sirvePara(ps, oc, plan) {
   if (oc === plan) return true;
@@ -480,7 +496,7 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   const pant = $('p-hoy'); const w = E.tiempo; const l = idioma();
   // 0.40 (Sheila, 22/10: «si ella pone de lunes 23 a viernes 27 oficina en la mañana ya sabes que eso tienes que sugerirle»): el plan del calendario manda
   const planHoy = E.agenda[diaISO(new Date())]?.planes?.[0]?.oc;
-  if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy || 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); } }
+  if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy || 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); E.propuestas = masCercanos(E.hoyFalta, E.propuestas); } }
   const lista = E.propuestas; const pr = lista[E.hoyIdx];
   const hoyD = new Date(); const dia = cap(hoyD.toLocaleDateString(l === 'en' ? 'en-GB' : 'es-ES', { weekday: 'long', day: 'numeric' }));
   const ico = k => ICO_T[k] || ICO_T.nube;
@@ -556,7 +572,7 @@ function pintarCalendario(raiz) {
     // 0.60 (Sheila, 23/10: «por qué me sugieres esto para un evento por la noche… no es elegante»): la idea sigue la ocasión que acaba de marcar,
     // aunque aún no haya guardado el plan; antes, sin plan guardado, salía una idea cualquiera
     const oc = planes[0]?.oc || (E.cal.ocSel ? E.cal.oc : 'Todos'); let ideas = generarLooks(6, oc), falta = false;
-    if (!ideas.length) { falta = oc !== 'Todos'; const sube = ['Noche', 'Evento', 'Oficina'].includes(oc) ? 1 : -1, nv = l => { const ps = l.ids.map(P).filter(Boolean), z = ps.find(p => p.tipo === 'Calzado'); return nivelRopa(ps) + (z ? estilo(z) : 1) * .5; }; ideas = generarLooks(12, 'Todos').sort((x, y) => sube * (nv(y) - nv(x))).slice(0, 6); }
+    if (!ideas.length) { falta = oc !== 'Todos'; const sube = ['Noche', 'Evento', 'Oficina'].includes(oc) ? 1 : -1, nv = l => { const ps = l.ids.map(P).filter(Boolean), z = ps.find(p => p.tipo === 'Calzado'); return nivelRopa(ps) + (z ? estilo(z) : 1) * .5; }; ideas = masCercanos(oc, generarLooks(12, 'Todos')).slice(0, 6); }
     const g = ideas[E.cal.idea % Math.max(1, ideas.length)];
     look = g ? `<div class="cal-look">${oc !== 'Todos' ? avisoFalta(oc, !falta) : ''}<p class="mini-et">${falta ? t('Lo más cercano', 'The closest') : oc !== 'Todos' ? t(`Te sugiero para ${ocNombre(oc).toLowerCase()}`, `My pick for ${ocNombre(oc).toLowerCase()}`) : t('Una idea para este día', 'An idea for this day')}</p><div class="lk-fig">${figLook(g, true)}</div><div class="cal-bts"><button class="hz-bt" data-cguarda="${g.ids.join(',')}">${t('Guardar para este día', 'Save for this day')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button></div></div>` : '';
   }

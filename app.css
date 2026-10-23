@@ -1026,3 +1026,8 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .sp-con{grid-column:1/-1;font-size:12px;color:var(--sec);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .sp-con img{width:34px;height:42px;object-fit:contain;background:#fff;border:1px solid var(--linea2)}
 .sp-txt{max-width:380px;margin:12px auto 0;font-size:12.5px;line-height:1.5;color:var(--sec)}
+.cal-falta p{margin:0}
+.cal-falta details{margin-top:2px}
+.cal-falta summary{list-style:none;display:inline;font-size:12px;color:var(--tinta);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.cal-falta summary::-webkit-details-marker{display:none}
+.cal-falta details p{margin-top:4px}
