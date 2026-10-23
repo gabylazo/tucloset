@@ -344,7 +344,7 @@ const largoDe = p => LARGO[p.x] || (LARGO_NOMBRE.find(([r]) => r.test((p.nombre 
 const tamAntiguo = p => { const M = MEDIDA[p.tipo] || [40, 40]; if (!p.caja) return M; let w = M[0], h = w * p.caja[4]; const tope = M[1] * 1.25; if (h > tope) { h = tope; w = h / p.caja[4]; } return [w, h]; };
 // 0.87 (Gabriela, 24/10: «la escala de las prendas en el básico me sigue pareciendo desproporcionada»): tres maneras de escalar para que elijan.
 // real = medidas de verdad; revista = como los bodegones de moda (calzado y bolso más grandes, la parte de arriba algo menor); equilibrada = todo más parecido de tamaño
-const ESCALA = (() => { try { const q = new URLSearchParams(location.search).get('escala'); if (q) localStorage.setItem('tc_escala', q); return localStorage.getItem('tc_escala') || 'real'; } catch (e) { return 'real'; } })();
+const ESCALA = (() => { try { const q = new URLSearchParams(location.search).get('escala'); if (q) localStorage.setItem('tc_escala', q); return localStorage.getItem('tc_escala') || 'revista'; } catch (e) { return 'revista'; } })();
 const AJUSTE = { revista: { Calzado: 1.4, Bolsos: 1.3, Accesorios: 1.4, Arriba: .9, Abrigo: .92 } };
 function largoEsc(p) { const L = largoDe(p); if (ESCALA === 'equilibrada') return 45 + (L - 45) * .55; return L * ((AJUSTE[ESCALA] || {})[p.tipo] || 1); }
 function tam(p) {
