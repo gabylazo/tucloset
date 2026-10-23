@@ -1098,3 +1098,7 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 #p-planes .plb-pre,#p-planes .pl-pre{color:var(--oro)}
 /* 0.82 (Gabriela, 24/10: «mínimo 8 caracteres, ponlo debajo de contraseña») */
 .ac-campo .ac-pista{display:block;margin-top:6px;text-align:center}
+/* 0.83 (Gabriela, 24/10: «el cartel de ha empezado la prueba de 7 días… ponlo igual que el resto, hay que mantener esa misma simetría»): avisos en blanco, centrados, Bellefair, filo fino y dos rayitas doradas */
+.toast{left:16px;right:16px;transform:none;max-width:none;background:#fff;color:var(--tinta);border-top:1px solid var(--oro);border-bottom:1px solid var(--oro);padding:16px 18px;font-family:var(--f-marca);font-weight:400;font-size:19px;line-height:1.25;letter-spacing:.01em;box-shadow:0 10px 30px rgba(74,53,38,.10)}
+.toast{left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:calc(100% - 48px);padding:11px 22px;font-size:17px;bottom:calc(var(--tabs) + 18px)}
+.toast{bottom:calc(var(--tabs) + 8px)}
