@@ -191,13 +191,18 @@ async function bajarNube() {
   const { doc, version } = await r.json(); if (!doc) return false;
   const borr = new Set(doc.borradas || []); LS.set('tc_nube_borradas', JSON.stringify(doc.borradas || []));
   const locales = new Map(E.prendas.map(p => [p.id, p]));
-  const nuevas = [];
+  // 0.94 (Gabriela, 24/10: «se demora mucho y no me deja entrar»): las fotos bajaban de una en una (50 con las originales) antes de dejarte entrar;
+  // ahora bajan 6 a la vez, solo las recortadas antes de entrar, y las originales después, por detrás
+  const nuevas = [], fotos = [], originales = [];
   for (const q of doc.prendas || []) {
     const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null }; delete p.conFoto; delete p.conOriginal;
-    if (q.conFoto && (!l?.foto || l.nube !== q.nube)) { try { const f = await api('/api/foto/' + q.id); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } }
-    if (q.conOriginal && (!p.original || l?.nubeO !== q.nubeO)) { try { const f = await api('/api/foto/' + q.id + '-o'); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; } } catch (e) { } }
+    if (q.conFoto && (!l?.foto || l.nube !== q.nube)) fotos.push(async () => { try { const f = await api('/api/foto/' + q.id); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } });
+    if (q.conOriginal && (!p.original || l?.nubeO !== q.nubeO)) originales.push(async () => { try { const f = await api('/api/foto/' + q.id + '-o'); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; } } catch (e) { } });
     nuevas.push(p); locales.delete(q.id);
   }
+  const aLaVez = async (tareas, n) => { let i = 0; await Promise.all(Array.from({ length: Math.min(n, tareas.length) }, async () => { while (i < tareas.length) await tareas[i++](); })); };
+  await aLaVez(fotos, 6);
+  if (originales.length) setTimeout(async () => { await aLaVez(originales, 3); await BD.set('prendas', E.prendas).catch(() => { }); }, 2000);
   for (const [id, l] of locales) if (!borr.has(id)) nuevas.push(l);
   E.prendas = nuevas;
   const cj = new Map((doc.conjuntos || []).map(c => [c.id, c])); E.conjuntos.forEach(c => { if (!cj.has(c.id)) cj.set(c.id, c); }); E.conjuntos = [...cj.values()];
@@ -250,6 +255,7 @@ function pintarCuenta() {
       <div class="ac-campos"><label class="ac-campo"><span class="mini-et">${t('Correo', 'Email')}</span><input type="email" id="cu-correo" autocomplete="email"></label>
       <label class="ac-campo"><span class="mini-et">${t('Contraseña', 'Password')}</span> <small class="ac-pista">${t('mínimo 8 caracteres', 'at least 8 characters')}</small><input type="password" id="cu-clave" autocomplete="new-password"></label></div>
       <div class="cu-bts"><button class="boton" id="cu-crear">${t('Crear mi cuenta', 'Create my account')}</button><button class="boton linea" id="cu-entrar">${t('Ya tengo cuenta', 'I have an account')}</button></div>`;
+    ojos();
     const go = async modo => { const b = $(modo === 'alta' ? 'cu-crear' : 'cu-entrar'); b.disabled = true; const ok = await abrirCuenta(modo, $('cu-correo').value.trim(), $('cu-clave').value, E.perfil?.nombre); b.disabled = false; if (ok) { pintarCuenta(); toast(modo === 'alta' ? t('Cuenta creada: tu clóset ya se guarda', 'Account created: your closet is being saved') : t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); } };
     $('cu-crear').onclick = () => go('alta'); $('cu-entrar').onclick = () => go('entrar');
   }
@@ -1765,8 +1771,11 @@ $('mc-grupos').onclick = e => { const b = e.target.closest('[data-fil]'); if (!b
 if ($('c-buscar')) $('c-buscar').onclick = () => { const c = $('busca-caja'); c.classList.toggle('oculto'); if (!c.classList.contains('oculto')) $('busca').focus(); else { E.busca = ''; $('busca').value = ''; pintarCloset(); } };
 $('a-seguir').onclick = guardarAlta;
 // «Ya tengo cuenta» (0.11): en esta versión el clóset vive en el móvil, así que entrar te lleva a él; las cuentas llegarán con la versión en la nube
-const entrarYa = async () => { if (!NUBE) { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } return ir('hoy'); } const b = $('e-entrar'); b.disabled = true; const ok = await abrirCuenta('entrar', $('e-correo').value.trim(), $('e-clave').value); b.disabled = false; if (!ok) return; if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } ir('hoy'); toast(t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); };
+const entrarYa = async () => { if (!NUBE) { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } return ir('hoy'); } const b = $('e-entrar'), txt = b.textContent; b.disabled = true; b.textContent = t('Entrando y trayendo tu clóset…', 'Signing in and fetching your closet…'); const ok = await abrirCuenta('entrar', $('e-correo').value.trim(), $('e-clave').value); b.disabled = false; b.textContent = txt; if (!ok) return; if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } ir('hoy'); toast(t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); };
 $('e-entrar').onclick = entrarYa;
+// 0.94 (Gabriela, 24/10: «pon visible como opción la contraseña»): botón para ver u ocultar lo escrito
+function ojos() { document.querySelectorAll('input[type=password]:not([data-ojo])').forEach(i => { i.dataset.ojo = 1; const b = document.createElement('button'); b.type = 'button'; b.className = 'ac-ver'; const pinta = () => { const v = i.type === 'text'; b.textContent = v ? t('Ocultar', 'Hide') : t('Ver', 'Show'); b.setAttribute('aria-label', v ? t('Ocultar contraseña', 'Hide password') : t('Ver contraseña', 'Show password')); }; pinta(); b.onclick = e => { e.preventDefault(); i.type = i.type === 'password' ? 'text' : 'password'; pinta(); i.focus(); }; const caja = document.createElement('span'); caja.className = 'ac-clave'; i.replaceWith(caja); caja.append(i, b); }); }
+ojos();
 // planes (0.12): se elige plan y periodo; el cobro irá por App Store y Google Play, aquí solo se guarda la elección
 E.pl = { plan: 'basico', per: 'mes' };
 $('p-planes').addEventListener('click', e => {
