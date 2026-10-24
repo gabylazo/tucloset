@@ -1175,3 +1175,32 @@ img{-webkit-user-drag:none}
 #p-yo #yo-tecnico .item{font-size:14px;min-height:44px;color:var(--sec)}
 #p-yo #yo-tecnico #yo-borrar{color:#8E3B2E}
 #p-yo #yo-lista .item .valor{font-family:var(--f);font-size:13px}
+/* 0.100 · Calendario (Gabriela, 24/10: «el calendario está horrible»): sin rejilla de rayas, días en círculos finos (hoy en dorado, el elegido con filo nogal),
+   un punto dorado donde hay look o algo puesto, el plan plegado tras «Añadir un plan», la repetición sin el campo de fecha del sistema y los looks más pequeños */
+.cal{padding:0 22px 34px}
+.cal-mes{margin:2px 0 14px}
+.cal-mes h2{font-size:23px}
+.cal-sem span{font-size:10px;letter-spacing:.14em;color:var(--ter);padding-bottom:8px}
+.cal-rej{row-gap:2px}
+.cal-rej button,.cal-rej button.on{height:50px;border-top:0;padding-top:2px;background:none}
+.cal-rej b{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;font-size:14.5px;font-weight:300;border:1px solid transparent}
+.cal-rej .pasado b{color:var(--ter)}
+.cal-rej .hoy b{color:var(--oro-t);font-weight:500}
+.cal-rej .on b{border-color:var(--tinta);color:var(--tinta)}
+.cal-rej small{font-size:8px;margin-top:1px;color:var(--sec);letter-spacing:.03em}
+.cal-rej em{top:4px;bottom:auto;left:calc(50% + 12px);margin-left:0;width:4px;height:4px}
+.cal-dia{margin-top:22px;padding-top:24px;border-top:1px solid var(--linea)}
+.cal-dia h3{font-size:23px;margin-bottom:8px}
+.cal-mas-plan{display:inline-flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;font-weight:300;color:var(--tinta)}
+.cal-mas-plan svg{width:11px;height:11px;fill:none;stroke:var(--oro);stroke-width:1.4}
+.cal-add{margin-top:18px;gap:16px}
+.cal-add .mini-et{color:var(--sec)}
+.cal-hasta{position:relative;justify-self:center;font-size:13px;font-weight:300;color:var(--tinta);border-bottom:1px solid var(--linea);padding:4px 2px}
+.cal-hasta input{position:absolute;inset:0;width:100%;height:100%;margin:0;border:0;opacity:0}
+.cal-add .hz-bt{justify-self:center}
+.cal-look{margin-top:30px}
+.cal-look .lk-fig{width:min(210px,56vw)}
+.cal-mios button{background:none;border:1px solid var(--linea)}
+.cal-planes li{justify-content:center;gap:10px}
+.cal-planes small{flex:none}
+.cal-planes button{margin-left:6px}
