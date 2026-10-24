@@ -1076,6 +1076,7 @@ async function revisarGuardadas() {
   const pend = E.prendas.filter(p => !p.src && !p.ejemplo && p.original && (p.rev || 0) < 1); if (!pend.length) return;
   let giradas = 0, corregidas = 0;
   for (const p of pend) {
+    await new Promise(r => (window.requestIdleCallback || setTimeout)(r, { timeout: 800 })); // una prenda cada vez, dejando respirar al móvil
     try {
       const r = await procesarPrenda(p.original), usaOrig = p.foto && p.foto.size === p.original.size;
       if (r.giro) { p.original = r.original; p.foto = usaOrig ? r.original : r.blob; urls.delete(p.id); alfa.delete(p.id); p.caja = null; giradas++; }
