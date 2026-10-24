@@ -375,10 +375,14 @@ let midiendo = null;
 function medirTodas() {
   if (midiendo) return midiendo;
   midiendo = (async () => {
-    const pend = E.prendas.filter(p => (!p.caja || p.cajaV !== 2) && (p.foto || p.src)); let n = 0;
-    for (const p of pend) { try { p.caja = await medirFoto(p); p.cajaV = 2; n++; } catch (e) { p.caja = null; } }
-    if (n) { if (E.prendas.some(p => !p.src)) await guardar(); E.propuestas = []; if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); }
-    midiendo = null;
+    await 0; // 0.97: sin esto, cuando no había nada que medir, la función acababa antes de guardarse la promesa y «midiendo» no volvía a null nunca: ya no se medía nada más en toda la sesión
+    // 0.97 (Gabriela, 24/10: «las combinaciones están horrendas en cuanto a la distribución espacial»): si algo fallaba aquí una vez, la medición
+    // se quedaba bloqueada toda la sesión y las prendas salían sin recortar a su silueta (pequeñas y separadas). Ahora siempre se libera.
+    try {
+      const pend = E.prendas.filter(p => (!p.caja || p.cajaV !== 2) && (p.foto || p.src)); let n = 0;
+      for (const p of pend) { try { p.caja = await medirFoto(p); p.cajaV = 2; n++; } catch (e) { p.caja = null; } }
+      if (n) { if (E.prendas.some(p => !p.src)) await Promise.race([guardar(), new Promise(r => setTimeout(r, 3000))]).catch(() => { }); E.propuestas = []; try { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); } catch (e) { } }
+    } finally { midiendo = null; }
   })();
   return midiendo;
 }
@@ -408,6 +412,7 @@ async function hacerAlfa(p) {
 function alfasTodas() {
   if (alfando) return alfando;
   alfando = (async () => {
+    await 0; // 0.97: el mismo fallo que en medirTodas (con nada pendiente, «alfando» se quedaba ocupado para siempre)
     let n = 0; for (const p of E.prendas) { if (alfa.has(p.id) || !(p.foto || p.src)) continue; try { alfa.set(p.id, await hacerAlfa(p)); n++; } catch (e) { alfa.set(p.id, null); } }
     alfando = null; if (n) { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); else if (E.pantalla === 'look' && typeof repintarLook === 'function') repintarLook(); }
   })();
@@ -421,7 +426,7 @@ const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:$
 // 0.32 · presentación «collage» (Sheila, 22/10: «inspírate en esto para presentar los looks», dos referencias tipo Pinterest):
 // el look en una columna (arriba tocando la pieza de abajo), y a un lado el bolso arriba, los accesorios en medio y el calzado abajo.
 // Se activa con ?comp=collage (queda guardado); la simétrica (Eje/Cruz, cerrada por Gabriela el 20/10) sigue por defecto hasta que ella decida.
-const COMP = (() => { try { const q = new URLSearchParams(location.search).get('comp'); if (q) localStorage.setItem('tc_comp', q); return localStorage.getItem('tc_comp') || 'capas'; } catch (e) { return 'capas'; } })();
+const COMP = (() => { try { const q = new URLSearchParams(location.search).get('comp'); if (q) localStorage.setItem('tc_comp', q); return localStorage.getItem('tc_comp') || 'abierto'; } catch (e) { return 'abierto'; } })(); // 0.98: «abierto» por defecto (Sheila y Gabriela, 24/10: «mira qué mal la distribución», «la distribución espacial… horrenda»)
 function collage(ps) {
   const m = tam, rol = r => ps.filter(p => r.includes(p.tipo)), G = 6;
   const arriba = rol(['Arriba', 'Abrigo']).slice(0, 2), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0], acc = rol(['Accesorios']).slice(0, 3);
