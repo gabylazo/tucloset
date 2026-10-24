@@ -1829,7 +1829,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
       if (!pant && n++ < 60) return setTimeout(decide, 25);
       if (pant && pant.id === 'p-inicio') { el.remove(); pant.classList.add('aparece', 'dibuja'); return; } // la bienvenida lo hace todo: arco, armario, nombre y botones a la vez; la frase al final
       el.innerHTML = dibujoB; el.classList.add('con-nombre'); // en el resto: arco, armario y nombre a la vez, y se desvanece dejando ver la app
-      if (q.get('fin') !== '0') setTimeout(() => { el.classList.add('suave'); setTimeout(() => el.remove(), 750); }, 3600);
+      if (q.get('fin') !== '0') setTimeout(() => { el.classList.add('suave'); setTimeout(() => el.remove(), 400); }, 1300); // 0.96: el logo, 1,3 s (antes 3,6 s)
     };
     decide();
   } else if (q.get('fin') !== '0') setTimeout(() => { el.remove(); if ($('p-inicio').classList.contains('activa')) $('p-inicio').classList.add('aparece'); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2250);
@@ -1851,10 +1851,11 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (['pro', 'basico'].includes(q.get('plan'))) PLAN_URL = q.get('plan');
   aplicarDiseno();
   if (q.get('ejemplo') && !E.prendas.length && !PUBLICA) await cargarEjemplo();
-  const REPASO = q.get('repaso') !== '0'; // 0.48 (Gabriela, 22/10: «cada vez que abra la app, salgan todos los pasos con posibilidad de siguiente página»): mientras diseñamos, se entra siempre por la bienvenida y los pasos del alta; ?repaso=0 vuelve a lo de una usuaria real (directo a Hoy)
+  // 0.96 (Gabriela, 24/10: «se sigue demorando en abrir la app»): con sesión o con prendas se entra directa en Hoy; el repaso de la bienvenida, solo con ?repaso=1
+  const REPASO = q.get('repaso') === '1' || (q.get('repaso') !== '0' && !cuenta() && !E.prendas.length); // 0.48 (Gabriela, 22/10: «cada vez que abra la app, salgan todos los pasos con posibilidad de siguiente página»): mientras diseñamos, se entra siempre por la bienvenida y los pasos del alta; ?repaso=0 vuelve a lo de una usuaria real (directo a Hoy)
   const destino = q.get('pantalla') || (REPASO || !(E.perfil?.alta || E.prendas.length) ? 'inicio' : 'hoy');
   if (E.perfil) { if (E.perfil.nombre) $('a-nombre').value = E.perfil.nombre; if (E.perfil.ciudad) $('a-ciudad').value = E.perfil.ciudad; } // en el repaso no se pierde lo ya puesto
-  if (destino !== 'inicio') await Promise.race([cargarTiempo(), new Promise(r => setTimeout(r, 4000))]);
+  if (destino !== 'inicio') { const tc = cargarTiempo(); await Promise.race([tc, new Promise(r => setTimeout(r, 1200))]); tc.then(() => { if (E.pantalla === 'hoy') pintarHoy(); }).catch(() => { }); } // 0.96: no se espera al tiempo más de 1,2 s; cuando llega, se repinta Hoy
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
