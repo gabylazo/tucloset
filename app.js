@@ -220,7 +220,7 @@ async function abrirCuenta(modo, correo, clave, nombre) {
   const d = await r.json().catch(() => ({}));
   if (!r.ok) { const m = ERR_CUENTA[d.error]; toast(m ? t(m[0], m[1]) : t('No se ha podido. Inténtalo de nuevo.', 'It did not work. Try again.')); return false; }
   LS.set('tc_cuenta', JSON.stringify({ token: d.token, correo: d.correo, nombre: d.nombre })); LS.set('tc_nube_ver', '0'); LS.set('tc_nube_ids', '[]');
-  if (modo === 'entrar') { E.nube.estado = 'bajando'; await bajarNube(); setTimeout(() => reconocerGuardadas().then(revisarGuardadas).then(medirTodas), 1500); } // 0.92: las prendas traídas de la cuenta también se enderezan
+  if (modo === 'entrar') { E.nube.estado = 'bajando'; await bajarNube(); setTimeout(medirTodas, 1500); } // 0.95 (Gabriela, 24/10: «se demora demasiado»): al entrar ya no se repasan las prendas con el reconocedor (45 MB y varios minutos en el móvil)
   await subirNube(); return true;
 }
 async function cerrarSesion() {
@@ -1857,7 +1857,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (destino !== 'inicio') await Promise.race([cargarTiempo(), new Promise(r => setTimeout(r, 4000))]);
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
-  setTimeout(() => reconocerGuardadas().then(revisarGuardadas).then(medirTodas), 1500);
+  setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); } await subirNube(); } catch (e) { } }, 800); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
