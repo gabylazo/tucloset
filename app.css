@@ -1153,3 +1153,25 @@ img{-webkit-user-drag:none}
 
 /* 0.97 · aviso de que faltan zapatos */
 .hz-zap{display:block;margin:10px auto 0;background:none;border:0;font:inherit;font-size:13px;font-weight:300;color:var(--oro);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+/* 0.99 · Yo sobrio (Gabriela, 24/10: «rediseña el perfil de yo, muy cargado y poco estético»):
+   nombre y una línea, una frase, tres filas de lo mío, los ajustes de diario y lo técnico plegado; sin cifras, medallones ni etiquetas */
+#p-yo .yo{margin-top:46px;gap:12px}
+#p-yo .yo .cara{width:62px;height:62px}
+#p-yo .yo .cara:empty{display:none}
+#p-yo .yo b{font-size:34px}
+#p-yo .yo span{font-size:12.5px;color:var(--sec);margin-top:8px}
+#p-yo #yo-mas .yo-da{margin:22px 0 0;font-size:18px}
+#p-yo #yo-lista{margin-top:38px;border-top:1px solid var(--linea)}
+#p-yo #yo-lista .item{font-family:var(--f-marca);font-size:19px;min-height:56px}
+#p-yo #yo-ajustes{margin-top:34px}
+#p-yo .lista .item .valor{display:inline-flex;align-items:center;gap:10px;min-width:0}
+#p-yo .lista .item .valor svg{width:9px;height:9px;stroke:var(--oro);stroke-width:1.5}
+#p-yo .yo-plegado{margin-top:22px}
+#p-yo .yo-plegado summary{list-style:none;text-align:center;font-size:12.5px;font-weight:300;color:var(--sec);padding:12px;cursor:pointer}
+#p-yo .yo-plegado summary::-webkit-details-marker{display:none}
+#p-yo .yo-plegado summary::after{content:'';display:inline-block;width:5px;height:5px;border-right:1px solid var(--oro);border-bottom:1px solid var(--oro);transform:rotate(45deg);margin:0 0 3px 9px;transition:transform .2s}
+#p-yo .yo-plegado[open] summary::after{transform:rotate(225deg);margin-bottom:-1px}
+#p-yo #yo-tecnico{margin-top:2px}
+#p-yo #yo-tecnico .item{font-size:14px;min-height:44px;color:var(--sec)}
+#p-yo #yo-tecnico #yo-borrar{color:#8E3B2E}
+#p-yo #yo-lista .item .valor{font-family:var(--f);font-size:13px}
