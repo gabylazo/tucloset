@@ -16,7 +16,7 @@ const BD = (() => {
     r.onerror = () => rej(r.error);
   });
   const op = (modo, f) => abrir().then(d => new Promise((res, rej) => { const tx = d.transaction('kv', modo); const q = f(tx.objectStore('kv')); tx.oncomplete = () => res(q.result); tx.onerror = () => rej(tx.error); }));
-  return { get: k => op('readonly', s => s.get(k)), set: (k, v) => op('readwrite', s => s.put(v, k)), del: k => op('readwrite', s => s.delete(k)), claves: () => op('readonly', s => s.getAllKeys()) };
+  return { cerrar: () => { if (db) db.close(); db = null; }, get: k => op('readonly', s => s.get(k)), set: (k, v) => op('readwrite', s => s.put(v, k)), del: k => op('readwrite', s => s.delete(k)), claves: () => op('readonly', s => s.getAllKeys()) };
 })();
 
 /* ---------- estado ---------- */
@@ -209,7 +209,8 @@ async function bajarNube() {
 }
 const ERR_CUENTA = { correo: ['Escribe un correo válido', 'Enter a valid email'], clave_corta: ['La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'], ya_existe: ['Ese correo ya tiene cuenta: entra con él', 'That email already has an account: sign in'], credenciales: ['Correo o contraseña incorrectos', 'Wrong email or password'], frenado: ['Demasiados intentos: espera 15 minutos', 'Too many attempts: wait 15 minutes'] };
 async function abrirCuenta(modo, correo, clave, nombre) {
-  if (CLOSET_ACT) { toast(t('Las cuentas son para «Mi ropa»: cambia de clóset en Yo', 'Accounts are for «My clothes»: switch closet in Me')); return false; }
+  // 0.93 (Sheila, 24/10: «tengo mucho problema para entrar a mi cuenta»: con el clóset de pruebas abierto, entrar se bloqueaba): se pasa sola a «Mi ropa»
+  if (CLOSET_ACT) { CLOSET_ACT = ''; try { localStorage.setItem('tc_closet', ''); } catch (e) { } BD.cerrar(); E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {}; E.propuestas = []; E.generados = []; urls.clear(); alfa.clear(); }
   let r; try { r = await api('/api/' + modo, { method: 'POST', json: { correo, clave, nombre } }); } catch (e) { toast(t('Sin conexión con el servidor. Inténtalo en un momento.', 'Cannot reach the server. Try again shortly.')); return false; }
   const d = await r.json().catch(() => ({}));
   if (!r.ok) { const m = ERR_CUENTA[d.error]; toast(m ? t(m[0], m[1]) : t('No se ha podido. Inténtalo de nuevo.', 'It did not work. Try again.')); return false; }
