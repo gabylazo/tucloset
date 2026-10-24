@@ -1150,3 +1150,6 @@ img{-webkit-user-drag:none}
 .ac-clave{position:relative;display:block}
 .ac-ver{position:absolute;right:0;top:50%;transform:translateY(-50%);background:none;border:0;padding:6px 2px;font:inherit;font-size:12px;letter-spacing:.06em;color:var(--oro);cursor:pointer}
 .ac-clave input{padding:0 64px}
+
+/* 0.97 · aviso de que faltan zapatos */
+.hz-zap{display:block;margin:10px auto 0;background:none;border:0;font:inherit;font-size:13px;font-weight:300;color:var(--oro);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
