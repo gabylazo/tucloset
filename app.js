@@ -214,7 +214,7 @@ async function abrirCuenta(modo, correo, clave, nombre) {
   const d = await r.json().catch(() => ({}));
   if (!r.ok) { const m = ERR_CUENTA[d.error]; toast(m ? t(m[0], m[1]) : t('No se ha podido. Inténtalo de nuevo.', 'It did not work. Try again.')); return false; }
   LS.set('tc_cuenta', JSON.stringify({ token: d.token, correo: d.correo, nombre: d.nombre })); LS.set('tc_nube_ver', '0'); LS.set('tc_nube_ids', '[]');
-  if (modo === 'entrar') { E.nube.estado = 'bajando'; await bajarNube(); }
+  if (modo === 'entrar') { E.nube.estado = 'bajando'; await bajarNube(); setTimeout(() => reconocerGuardadas().then(revisarGuardadas).then(medirTodas), 1500); } // 0.92: las prendas traídas de la cuenta también se enderezan
   await subirNube(); return true;
 }
 async function cerrarSesion() {
