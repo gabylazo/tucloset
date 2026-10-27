@@ -910,7 +910,7 @@ function pintarCalendario(raiz) {
   const frs = FRANJAS.map(([es, i]) => `<button class="${es === E.cal.fr ? 'on' : ''}" data-cfr="${es}">${en ? i : es}</button>`).join('');
   let look = '';
   if (a.look?.length && a.look.every(P)) look = `<div class="cal-look"><p class="mini-et">${t('Tu look para este día', 'Your look for this day')}</p><div class="lk-fig">${figLook({ ids: a.look }, true)}</div><button class="txt sub-l" data-cquitalook>${t('Quitar el look', 'Remove the look')}</button></div>`;
-  else if (futuro) {
+  else if (futuro && !(E.cal.dia === hoy && ps.length)) { // 0.102 (revisión del calendario, 27/10): si hoy ya te has puesto algo, no se propone otra idea encima de «Te pusiste»
     // 0.41 (Sheila, 22/10: «no algo para la noche»): si el clóset no tiene nada de esa ocasión, se dice y se enseña lo más cercano
     // (para Noche y Evento, lo más arreglado; para Deporte y Diario, lo más cómodo), en vez de sugerir un look cualquiera
     // 0.60 (Sheila, 23/10: «por qué me sugieres esto para un evento por la noche… no es elegante»): la idea sigue la ocasión que acaba de marcar,
