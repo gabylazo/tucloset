@@ -1204,3 +1204,7 @@ img{-webkit-user-drag:none}
 .cal-planes li{justify-content:center;gap:10px}
 .cal-planes small{flex:none}
 .cal-planes button{margin-left:6px}
+
+/* 0.103 · zapato sugerido por el estilista (sin zapatos subidos) */
+.hz-zapato{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:17px;color:var(--oro-t);text-align:center;margin:2px 0 10px}
+.lk-zap{display:block;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14.5px;color:var(--oro-t);text-align:center;margin:-2px 0 4px}

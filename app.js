@@ -739,6 +739,64 @@ function estacionPorPrenda(p) {
 }
 function estacionesAuto() { let n = 0; for (const p of E.prendas) if (!p.estAuto && !p.ejemplo) { if (p.estacion === 'Todo el año' || !p.estacion) { const e = estacionPorPrenda(p); if (e !== p.estacion) n++; p.estacion = e; } p.estAuto = 1; } return n; }
 const esCapa = p => p.tipo === 'Arriba' && /chaqueta|c[aá]rdigan|americana|blazer|cazadora|jacket|cardigan/i.test(p.nombre || '');
+/* ---------- estilista (0.103, Gabriela, 27/10: «necesito que quien confeccione los outfit sea un experto en moda… combinaciones con sentido,
+   y sea siempre zapatos, pantalón y algo para arriba»). Reglas de la Dirección de Moda (equipo/moda/estilista/reglas-estilista.md): cada prenda lleva
+   su ficha de estilista (p.est: tiro, largo, ajuste, corte, estampado, formalidad, grosor, temperaturas); si no la tiene, se deduce del nombre.
+   Aquí van los vetos duros (G1 dos estampados, B1/G2 dos volúmenes, G12 tiro bajo con top corto, E1–E3 temperatura, G11 formalidad, A5 chaleco solo)
+   y los puntos de proporción (B2–B11); el zapato sugerido (F10) cuando no hay calzado subido. ---------- */
+const VOL_ARR = { 'ceñido': 0, regular: 1, holgado: 2, oversize: 3 }, VOL_AB = { pitillo: 0, recto: 1, acampanado: 1, ancho: 2, barril: 3, palazzo: 2 };
+function estDe(p) {
+  if (p.est) return p.est;
+  const n = (p.nombre || '').toLowerCase(), x = (p.x || '').toLowerCase(), sm = sinMangas(p);
+  const e = { estampado: p.color === 'Estampado' || /raya|cuadro|flor|estampad|diplom|lunar/.test(n) ? 'estampado' : 'liso', grosor: /grueso|cuello alto/.test(n) && /jersey/.test(n) ? 'grueso' : sm ? 'fino' : 'medio' };
+  if (p.tipo === 'Abajo') {
+    e.corte = /barril|barrel/.test(n) ? 'barril' : /palazzo/.test(n) ? 'palazzo' : /acampanad|campana|flare/.test(n + x) ? 'acampanado' : /ancho|wide|pinzas/.test(n + x) ? 'ancho' : /pitillo|skinny|ceñid/.test(n + x) ? 'pitillo' : 'recto';
+    e.tiro = /tiro bajo/.test(n) ? 'bajo' : /tiro alto|pinzas|paperbag/.test(n) ? 'alto' : 'medio';
+    e.form = /pinzas|vestir|traje|sastre/.test(n) ? 4 : /vaquer|jean|chándal|chandal|jogger/.test(n + x) ? 2 : 3;
+    e.tmin = /corto|short|bermuda/.test(n) ? 20 : 6; e.tmax = /lana|pana/.test(n) ? 20 : 30;
+  } else {
+    e.largo = /corto|crop|top\b/.test(n) && !/manga corta/.test(n) ? 'crop' : /largo|túnica|tunica/.test(n) ? 'largo' : /jersey|sudadera|henley|camisa/.test(n) ? 'cadera' : 'cintura';
+    e.ajuste = /oversize|ancho|amplio/.test(n) ? 'oversize' : /holgad|grueso/.test(n) ? 'holgado' : /ceñid|ajustad|canal|tirantes|body|sin mangas/.test(n) ? 'ceñido' : 'regular';
+    e.form = /chaleco de traje|americana|blazer|blusa|camisa/.test(n) ? 4 : /camiseta|sudadera|tirantes/.test(n) ? 2 : 3;
+    e.rol = /chaleco de traje|americana|blazer|c[aá]rdigan/.test(n) ? 'capa_ligera' : 'base';
+    e.tmin = sm ? 20 : /manga corta/.test(n) ? 18 : e.grosor === 'grueso' ? 6 : 10; e.tmax = e.grosor === 'grueso' ? 16 : /jersey|sudadera/.test(n) ? 20 : sm ? 34 : 26;
+  }
+  return e;
+}
+// devuelve null si el look vale, o el motivo del veto; y los puntos de proporción en .puntos
+function estilista(ps, T) {
+  const arr = ps.filter(p => p.tipo === 'Arriba'), ab = ps.find(p => p.tipo === 'Abajo'), base = arr.find(p => estDe(p).rol !== 'capa_ligera'), capa = ps.some(p => p.tipo === 'Abrigo' || (p.tipo === 'Arriba' && estDe(p).rol === 'capa_ligera' && !/chaleco/i.test(p.nombre)));
+  const r = { veto: null, puntos: 0 }, ropa = ps.filter(p => !['Calzado', 'Bolsos', 'Accesorios'].includes(p.tipo));
+  if (arr.length && !base) return (r.veto = 'Necesita algo debajo', r);                                              // A5 / G3
+  if (ropa.filter(p => estDe(p).estampado !== 'liso').length > 1) return (r.veto = 'Dos estampados juntos', r);       // G1
+  const forms = ropa.map(p => estDe(p).form || 3); if (Math.max(...forms) - Math.min(...forms) >= 3) return (r.veto = 'No son del mismo plan', r); // G11
+  if (T != null) for (const p of ropa) {                                                                              // E1–E3
+    const e = estDe(p), tmin = (e.tmin ?? -50) - (capa ? 6 : 0), tmax = e.tmax ?? 50;
+    if (T < tmin - 2 || T > tmax + 2) return (r.veto = T < tmin ? 'Hace fresco para esa prenda' : 'Con este calor abriga de más', r);
+    if (T < tmin || T > tmax) r.puntos -= 1;
+    if (e.grosor === 'grueso' && T >= 18) return (r.veto = 'Con este calor abriga de más', r);
+  }
+  if (base && ab) {
+    const t = estDe(base), b = estDe(ab), vt = VOL_ARR[t.ajuste] ?? 1, vb = VOL_AB[b.corte] ?? 1;
+    if (vt >= 2 && vb >= 2) return (r.veto = 'Dos volúmenes', r);                                                    // B1 / G2
+    if ((vt >= 2 && vb <= 1) || (vt <= 1 && vb >= 2)) r.puntos += vt === 3 ? .8 : .6;                                 // B2
+    const tiro = b.tiro || 'medio', largo = t.largo || 'cintura', body = /body/i.test(base.nombre);
+    if (tiro === 'bajo' && largo === 'crop' && !body && !E.perfil?.cintura) return (r.veto = 'Deja la cintura al aire', r); // G12 (blando: lo quita «me gusta enseñar la cintura»)
+    r.puntos += ({ alto: { crop: 1, cintura: .8, cadera: vt <= 1 ? .4 : 0, largo: -1 }, medio: { crop: .4, cintura: .6, cadera: .4, largo: -.6 }, bajo: { crop: 0, cintura: -1.5, cadera: .8, largo: .8 } }[tiro] || {})[largo] || 0; // B3–B10
+    if (b.corte === 'acampanado' && vt <= 1) r.puntos += .4;                                                          // B11
+  }
+  return r;
+}
+// F10: zapato sugerido (solo tipo y color, sin tiendas) mientras no haya calzado subido
+function zapatoSugerido(ps, T) {
+  const ab = ps.find(p => p.tipo === 'Abajo'), b = ab ? estDe(ab) : {}, f = Math.max(...ps.map(p => estDe(p).form || 2)), en = idioma() === 'en';
+  const oscuro = ps.some(p => /Negro|Gris|Azul/.test(p.color || '')) || f >= 3, vaquero = /vaquer|jean/i.test(ab?.nombre || '');
+  let k = b.corte === 'acampanado' ? 'botines_tacon' : T != null && T <= 14 ? 'botines' : f >= 3 ? 'mocasines' : 'zapatillas';
+  if (T != null && T >= 26 && k === 'botines') k = 'mocasines';
+  const col = k === 'zapatillas' ? (vaquero && f <= 2 ? ['blancas', 'white'] : oscuro ? ['negras', 'black'] : ['blancas', 'white']) : oscuro ? ['negros', 'black'] : ['marrones', 'brown'];
+  const nom = { botines_tacon: ['botines de tacón', 'heeled ankle boots'], botines: ['botines de tacón bajo', 'low-heeled ankle boots'], mocasines: ['mocasines', 'loafers'], zapatillas: ['zapatillas', 'trainers'] }[k];
+  return en ? `${col[1]} ${nom[1]}` : `${nom[0]} ${col[0]}`.replace('botines de tacón bajo negros', 'botines negros de tacón bajo').replace('botines de tacón negros', 'botines negros de tacón');
+}
 function generarLooks(n, plan) {
   const aptas = estacionesAptas(); const act = activas().filter(p => aptas.includes(p.estacion));
   const de = tp => act.filter(p => p.tipo === tp);
@@ -747,14 +805,15 @@ function generarLooks(n, plan) {
   // pide una capa encima (abrigo, chaqueta, americana o chaqueta de punto); si no hay ninguna, ese look baja al final
   const temp = E.tiempo?.t ?? 18, frio = temp <= 14, fresco = temp <= 19;
   const capas = [...abrigos, ...arriba.filter(esCapa)];
-  const bases = [...vestidos.map(v => [v]), ...arriba.filter(a => !esCapa(a)).flatMap(a => abajo.map(b => [a, b]))];
+  const bases = [...vestidos.map(v => [v]), ...arriba.filter(a => !esCapa(a) && estDe(a).rol !== 'capa_ligera').flatMap(a => abajo.map(b => [a, b]))];
   const cands = bases.map(base => {
     let ps = [...base]; const desc = fresco && base.some(sinMangas);
     const ab = frio || desc ? mejorAcompanante(capas.filter(c => !base.includes(c)), ps) : null; if (ab) ps.push(ab);
     const zap = mejorAcompanante(calzado, ps); if (zap) ps.push(zap);
     const bol = ocasionDe(ps) !== 'Deporte' ? mejorAcompanante(bolsos, ps) : null; if (bol) ps.push(bol);
-    return { ps, puntos: puntuar(ps) - (desc && !ab ? 3 : 0) };
-  }).sort((a, b) => b.puntos - a.puntos);
+    const est = estilista(ps, E.tiempo?.t);
+    return { ps, veto: est.veto, puntos: puntuar(ps) + est.puntos - (desc && !ab ? 3 : 0) };
+  }).filter(c => !c.veto).sort((a, b) => b.puntos - a.puntos);
   // 0.101 (Gabriela, 27/10: «sí, arregla las dos»): primero, cada idea con una prenda de arriba distinta (y la de abajo, como mucho dos veces);
   // solo si no salen bastantes se repite la de arriba, como mucho dos veces, y nunca en dos ideas seguidas
   const vistos = new Set(), usados = new Map(), usadosAb = new Map(), lista = [];
@@ -853,7 +912,7 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   const figura = avatar ? `<img src="${avatar}" alt="${t('Tú con el conjunto', 'You wearing the outfit')}">` : maniqui(ps);
   const oc = (c && c.ocasion) || pr.ocasion || ocasionDe(ps);
   const flechas = lista.length > 1 ? `<div class="hz-flechas"><button id="hoy-ant" aria-label="${t('Anterior', 'Previous')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><button id="hoy-sig" aria-label="${t('Otro', 'Next')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>` : '';
-  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}<button class="hz-fav${esFav(pr.ids) ? ' on' : ''}" id="hoy-fav" aria-label="${t('Favorito', 'Favourite')}" aria-pressed="${esFav(pr.ids)}"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div><button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button>${activas().some(p => p.tipo === 'Calzado') ? '' : `<button class="hz-zap" data-ir="subir">${t('Sube tus zapatos y los añadiré a tus looks', 'Upload your shoes and I’ll add them to your looks')}</button>`}</div></div>`; // 0.97 (Gabriela, 24/10: «no ha recomendado zapatos»: no tenía ninguno subido)
+  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}<button class="hz-fav${esFav(pr.ids) ? ' on' : ''}" id="hoy-fav" aria-label="${t('Favorito', 'Favourite')}" aria-pressed="${esFav(pr.ids)}"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div><button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button>${pr.ids.map(P).some(p => p?.tipo === 'Calzado') ? '' : `<p class="hz-zapato">${t('Con', 'With')} ${zapatoSugerido(pr.ids.map(P).filter(Boolean), E.tiempo?.t)}</p>`}${activas().some(p => p.tipo === 'Calzado') ? '' : `<button class="hz-zap" data-ir="subir">${t('Sube tus zapatos para verlos aquí', 'Upload your shoes to see them here')}</button>`}</div></div>`; // 0.103: siempre zapatos (sugeridos si no hay) // 0.97 (Gabriela, 24/10: «no ha recomendado zapatos»: no tenía ninguno subido)
   // 0.66 (Sheila, 23/10: «cuida que no sucedan estas cosas»: el aviso quedaba debajo del abrigo): la escena empieza donde acaba la cabecera
   const cabH = pant.querySelector('.hz-cab'), escH = pant.querySelector('.hz-escena');
   if (escH && cabH) { const fija = () => { if (cabH.offsetHeight) escH.style.top = Math.max(118, cabH.offsetHeight + 12) + 'px'; }; fija(); setTimeout(fija, 300); new ResizeObserver(fija).observe(cabH); } // también cuando la pantalla se hace visible // 0.67 (Sheila: «se superpone la prenda a la letra»): siempre bajo la cabecera, mida lo que mida
@@ -1586,7 +1645,8 @@ function pintarLooks() {
   const cab = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
     <div class="mc-cats lk-tabs"><button class="${ideas || E.lkTab === 'cal' ? '' : 'activo'}" data-lktab="mios">${t('Mis looks', 'My looks')}</button><button class="${ideas ? 'activo' : ''}" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="${E.lkTab === 'cal' ? 'activo' : ''}" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>
     ${ideas || ocs.length < 3 ? '' : `<div class="lk-ocs">${ocs.map(o => `<button class="${o === E.lkOc ? 'on' : ''}" data-lkoc="${o}">${o === 'Todo' ? t('Todo', 'All') : ocNombre(o)}</button>`).join('')}</div>`}`;
-  const pie = c => ideas ? `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span><span class="lk-acc"><button data-gguardar="${c.i}">${t('Guardar', 'Save')}</button><button data-ghoy="${c.i}">${t('Me lo pongo', 'Wear it')}</button></span>`
+  const zap = c => c.ids.map(P).some(p => p?.tipo === 'Calzado') ? '' : `<span class="lk-zap">${t('con', 'with')} ${zapatoSugerido(c.ids.map(P).filter(Boolean), E.tiempo?.t)}</span>`; // 0.103
+  const pie = c => ideas ? `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span>${zap(c)}<span class="lk-acc"><button data-gguardar="${c.i}">${t('Guardar', 'Save')}</button><button data-ghoy="${c.i}">${t('Me lo pongo', 'Wear it')}</button></span>`
     : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span><span class="lk-us">${usosTxt(c)}</span>`;
   const abre = c => ideas ? '' : ` data-look="${c.id}"`;
   let cuerpo;
