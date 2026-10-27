@@ -210,6 +210,7 @@ async function bajarNube() {
   E.perfil = { ...(doc.perfil || {}), ...Object.fromEntries(Object.entries(E.perfil || {}).filter(([, v]) => v instanceof Blob)) };
   LS.set('tc_nube_ver', version); LS.set('tc_nube_ids', JSON.stringify((doc.prendas || []).map(p => p.id)));
   await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda);
+  if (estacionesAuto()) await guardar(); // 0.101: estación por tipo, también para lo que llega de otros móviles
   E.propuestas = []; E.generados = []; return true;
 }
 const ERR_CUENTA = { correo: ['Escribe un correo válido', 'Enter a valid email'], clave_corta: ['La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'], ya_existe: ['Ese correo ya tiene cuenta: entra con él', 'That email already has an account: sign in'], credenciales: ['Correo o contraseña incorrectos', 'Wrong email or password'], frenado: ['Demasiados intentos: espera 15 minutos', 'Too many attempts: wait 15 minutes'] };
@@ -726,6 +727,17 @@ function mejorAcompanante(lista, base) { // calzado o bolso que mejor puntúa co
   return mejor;
 }
 const sinMangas = p => (p.tipo === 'Arriba' || p.tipo === 'Vestidos') && /^top\b|chaleco|tirantes|body|sin mangas|halter|crop|tank|vest\b|bodysuit/i.test(p.nombre || '');
+// 0.101 (Gabriela, 27/10: «sí, arregla las dos»): la estación sale del tipo de prenda (tirantes y manga corta, verano; jerseys y botas, fuera del verano;
+// plumíferos, invierno); se pone una vez por prenda y lo que ella cambie en la ficha («Editar») ya no se toca
+function estacionPorPrenda(p) {
+  const n = (p.nombre || '').toLowerCase(), x = (p.x || '').toLowerCase();
+  if (/chaleco|americana|blazer|camisa\b/.test(n)) return 'Todo el año';
+  if (p.tipo === 'Abrigo') return /plum[ií]fero|parka|anorak|borreg/.test(n) ? 'Invierno' : 'Entretiempo';
+  if (sinMangas(p) || /manga corta|\bshorts?\b|bermuda|sandalia|chancla|bikini|ba[nñ]ador/.test(n) || /tank|camisole|shorts|sandal/.test(x)) return 'Verano';
+  if (/jersey|su[eé]ter|sudadera|cuello alto|forro polar|\bbota/.test(n) || /sweater|hoodie|sweatshirt|boot/.test(x)) return 'Entretiempo';
+  return 'Todo el año';
+}
+function estacionesAuto() { let n = 0; for (const p of E.prendas) if (!p.estAuto && !p.ejemplo) { if (p.estacion === 'Todo el año' || !p.estacion) { const e = estacionPorPrenda(p); if (e !== p.estacion) n++; p.estacion = e; } p.estAuto = 1; } return n; }
 const esCapa = p => p.tipo === 'Arriba' && /chaqueta|c[aá]rdigan|americana|blazer|cazadora|jacket|cardigan/i.test(p.nombre || '');
 function generarLooks(n, plan) {
   const aptas = estacionesAptas(); const act = activas().filter(p => aptas.includes(p.estacion));
@@ -743,16 +755,20 @@ function generarLooks(n, plan) {
     const bol = ocasionDe(ps) !== 'Deporte' ? mejorAcompanante(bolsos, ps) : null; if (bol) ps.push(bol);
     return { ps, puntos: puntuar(ps) - (desc && !ab ? 3 : 0) };
   }).sort((a, b) => b.puntos - a.puntos);
-  const vistos = new Set(), usados = new Map(), out = [];
-  for (const c of cands) {
-    if (c.puntos < -1.5 && out.length) break;                                      // mejor menos ideas que ideas malas
+  // 0.101 (Gabriela, 27/10: «sí, arregla las dos»): primero, cada idea con una prenda de arriba distinta (y la de abajo, como mucho dos veces);
+  // solo si no salen bastantes se repite la de arriba, como mucho dos veces, y nunca en dos ideas seguidas
+  const vistos = new Set(), usados = new Map(), usadosAb = new Map(), lista = [];
+  for (const tope of [1, 2]) for (const c of cands) {
+    if (lista.length >= n) break;
+    if (c.puntos < -1.5 && lista.length) break;                                    // mejor menos ideas que ideas malas
     const clave = c.ps.map(p => p.id).sort().join(); if (vistos.has(clave)) continue;
-    const prin = c.ps[0]; if ((usados.get(prin.id) || 0) >= 2) continue;       // variedad: la misma prenda principal, como mucho dos veces
+    const prin = c.ps[0], ab = c.ps.find((p, i) => i && p.tipo === 'Abajo');
+    if ((usados.get(prin.id) || 0) >= tope || (tope === 1 && ab && (usadosAb.get(ab.id) || 0) >= 2)) continue;
     const oc = ocasionDe(c.ps); if (plan && plan !== 'Todos' && !sirvePara(c.ps, oc, plan)) continue;
-    vistos.add(clave); usados.set(prin.id, (usados.get(prin.id) || 0) + 1);
-    out.push({ ids: c.ps.map(p => p.id), ocasion: oc, nombre: `${ocNombre(oc)} ${t('con', 'with')} ${prin.nombre.charAt(0).toLowerCase() + prin.nombre.slice(1)}` });
-    if (out.length >= n) break;
+    vistos.add(clave); usados.set(prin.id, (usados.get(prin.id) || 0) + 1); if (ab) usadosAb.set(ab.id, (usadosAb.get(ab.id) || 0) + 1);
+    lista.push({ prin: prin.id, ids: c.ps.map(p => p.id), ocasion: oc, nombre: `${ocNombre(oc)} ${t('con', 'with')} ${prin.nombre.charAt(0).toLowerCase() + prin.nombre.slice(1)}` });
   }
+  const out = []; while (lista.length) { const i = Math.max(0, lista.findIndex(l => l.prin !== out[out.length - 1]?.prin)); out.push(lista.splice(i, 1)[0]); }
   return out;
 }
 
@@ -1306,14 +1322,14 @@ async function anadirFotos(files) {
   if (!nuevos.length) return toast(t('Como mucho 20 fotos cada vez', 'At most 20 photos at a time'));
   E.subida.push(...nuevos); pintarSubida();
   for (const it of nuevos) {
-    try { const r = await procesarPrenda(it.file); Object.assign(it, r, { estado: 'listo', estacion: 'Todo el año', url: URL.createObjectURL(r.blob), nombre: nombreReconocido(r.x, r.color) || (r.cat ? nombreSubida(r, r.cat) : nombreAuto(r.tipo, r.color)) }); delete it.file; }
+    try { const r = await procesarPrenda(it.file); Object.assign(it, r, { estado: 'listo', url: URL.createObjectURL(r.blob), nombre: nombreReconocido(r.x, r.color) || (r.cat ? nombreSubida(r, r.cat) : nombreAuto(r.tipo, r.color)) }); it.estacion = estacionPorPrenda(it); delete it.file; }
     catch (e) { E.subida = E.subida.filter(x => x !== it); toast(t('No he podido leer una de las fotos', 'Could not read one of the photos')); }
     pintarSubida();
   }
 }
 async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1 }));
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1 }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet');
 }
@@ -1443,8 +1459,8 @@ async function guardarPrenda(otra) {
   if (!p && !fotoNueva) return toast(t('Falta la foto de la prenda', 'The garment photo is missing'));
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
-  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim() }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
-  else E.prendas.unshift({ id: uid(), rec: 3, original: fotoOriginal || undefined, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
+  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim() }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
+  else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   await guardar(); E.propuestas = [];
   toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'));
   if (otra) prepararAnadir(null); else ir(p ? 'ficha' : 'closet', p?.id), p && abrirFicha(p.id);
@@ -1841,7 +1857,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {};
   try { navigator.storage?.persist?.(); } catch (e) { }
   if (E.perfil?.estilos?.some(k => ESTILO_VIEJO[k])) E.perfil.estilos = [...new Set(E.perfil.estilos.map(k => ESTILO_VIEJO[k] || k))]; // 0.52: los 6 estilos viejos pasan a los 13 // 0.45: que el navegador no borre el clóset para hacer sitio
-  let migra = false; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
+  let migra = estacionesAuto() > 0; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
   traducir(); pintarSilueta();
   if (!NUBE) ['a-correo', 'a-clave'].forEach(id => $(id).closest('label').hidden = true);
   document.querySelector('#p-closet .mc-cab')?.insertAdjacentHTML('beforeend', `<div class="cl-cambio">${['', 'pruebas'].map(k => `<button class="${k === CLOSET_ACT ? 'on' : ''}" data-cambio="${k}">${k ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes')}</button>`).join('')}</div>`); // 0.54 botón provisional (Sheila, 22/10: «me puedes crear un botón provisional»)
