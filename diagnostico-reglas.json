@@ -1,0 +1,975 @@
+{
+ "version": "1.0 · 28/10/2026",
+ "nota": "Especialistas de la Dirección (colorimetría, silueta y ropa que favorece). Copia legible en equipo/moda/especialistas/. Es una orientación que la usuaria puede corregir, nunca un juicio sobre su cuerpo (R4, R6).",
+ "colorimetria": {
+  "umbrales": {
+   "piel_h_neutro": 50,
+   "piel_h_escala": 7,
+   "valor_L_medio": 50,
+   "valor_L_escala": 18,
+   "contraste_medio": 35,
+   "contraste_escala": 20,
+   "ojo_C_medio": 12,
+   "ojo_C_escala": 10,
+   "pelo_C_neutro": 15,
+   "pelo_C_escala": 10,
+   "pelo_L_min": 15,
+   "pelo_peso": 0.4
+  },
+  "estaciones": {
+   "primavera_clara": {
+    "familia": "primavera",
+    "n": [
+     "Primavera clara",
+     "Light Spring"
+    ],
+    "d": [
+     "Clara y cálida: colores luminosos y suaves, como un amanecer.",
+     "Light and warm: soft, luminous colours."
+    ],
+    "hex": [
+     "#F6D1B1",
+     "#F5A88E",
+     "#F2D47B",
+     "#B9D98C",
+     "#8CD2C4",
+     "#A9C9E8",
+     "#F3E6CF",
+     "#D9B48A"
+    ],
+    "si": [
+     "Crema",
+     "Beige",
+     "Camel",
+     "Rosa",
+     "Azul claro",
+     "Amarillo",
+     "Verde",
+     "Naranja"
+    ],
+    "no": [
+     "Negro",
+     "Burdeos",
+     "Marrón",
+     "Morado",
+     "Gris"
+    ],
+    "metal": "oro claro",
+    "consejo": "Cambia el negro por azul marino claro o camel; los tonos melocotón y aguamarina iluminan la cara."
+   },
+   "primavera_calida": {
+    "familia": "primavera",
+    "n": [
+     "Primavera cálida",
+     "Warm Spring"
+    ],
+    "d": [
+     "Cálida y viva: colores dorados, claros y alegres.",
+     "Warm and lively: golden, clear colours."
+    ],
+    "hex": [
+     "#F4B183",
+     "#F08A5D",
+     "#E8B93A",
+     "#7DBB5B",
+     "#35A99A",
+     "#C9A27A",
+     "#F4E3C1",
+     "#E86F5A"
+    ],
+    "si": [
+     "Camel",
+     "Crema",
+     "Beige",
+     "Amarillo",
+     "Naranja",
+     "Verde",
+     "Azul claro",
+     "Rosa"
+    ],
+    "no": [
+     "Negro",
+     "Gris",
+     "Morado",
+     "Burdeos",
+     "Lila"
+    ],
+    "metal": "oro",
+    "consejo": "El coral, el turquesa cálido y el camel son tus aliados; el negro, mejor lejos de la cara."
+   },
+   "primavera_brillante": {
+    "familia": "primavera",
+    "n": [
+     "Primavera brillante",
+     "Bright Spring"
+    ],
+    "d": [
+     "Intensa y luminosa: colores puros y con chispa.",
+     "Bright and clear: pure, vivid colours."
+    ],
+    "hex": [
+     "#E8333B",
+     "#F25C9A",
+     "#1FB5AD",
+     "#14A44D",
+     "#F7D417",
+     "#2D5DD7",
+     "#FFFFFF",
+     "#1B1B1B"
+    ],
+    "si": [
+     "Rojo",
+     "Rosa",
+     "Azul",
+     "Verde",
+     "Amarillo",
+     "Blanco",
+     "Naranja",
+     "Azul claro"
+    ],
+    "no": [
+     "Beige",
+     "Caqui",
+     "Mostaza",
+     "Gris",
+     "Marrón",
+     "Burdeos"
+    ],
+    "metal": "oro y plata brillantes",
+    "consejo": "Necesitas contraste: un color vivo junto a la cara; los tonos apagados te restan luz."
+   },
+   "verano_claro": {
+    "familia": "verano",
+    "n": [
+     "Verano claro",
+     "Light Summer"
+    ],
+    "d": [
+     "Clara y fresca: pasteles fríos y grises suaves.",
+     "Light and cool: cool pastels and soft greys."
+    ],
+    "hex": [
+     "#F2C4CE",
+     "#C8B6E2",
+     "#A9CCE3",
+     "#B5E0D3",
+     "#D9DDE3",
+     "#7F9BBF",
+     "#F7F3F0",
+     "#B08CA8"
+    ],
+    "si": [
+     "Rosa",
+     "Lila",
+     "Azul claro",
+     "Gris",
+     "Blanco",
+     "Azul",
+     "Morado"
+    ],
+    "no": [
+     "Negro",
+     "Naranja",
+     "Mostaza",
+     "Camel",
+     "Marrón",
+     "Terracota"
+    ],
+    "metal": "plata",
+    "consejo": "Los pasteles fríos y el gris perla te favorecen; cambia el negro por gris o azul marino suave."
+   },
+   "verano_frio": {
+    "familia": "verano",
+    "n": [
+     "Verano frío",
+     "Cool Summer"
+    ],
+    "d": [
+     "Fría y elegante: azules, rosas frambuesa y grises azulados.",
+     "Cool and elegant: blues, raspberry pinks and blue greys."
+    ],
+    "hex": [
+     "#2E4A7D",
+     "#5C7EA8",
+     "#C24D7C",
+     "#8E6C9E",
+     "#7F8C99",
+     "#9FC1D9",
+     "#E9E6EE",
+     "#5E8C8A"
+    ],
+    "si": [
+     "Azul",
+     "Gris",
+     "Rosa",
+     "Morado",
+     "Lila",
+     "Azul claro",
+     "Blanco",
+     "Burdeos"
+    ],
+    "no": [
+     "Naranja",
+     "Amarillo",
+     "Mostaza",
+     "Camel",
+     "Terracota",
+     "Caqui"
+    ],
+    "metal": "plata",
+    "consejo": "El azul marino sustituye al negro; los rosas frambuesa y el gris azulado iluminan."
+   },
+   "verano_suave": {
+    "familia": "verano",
+    "n": [
+     "Verano suave",
+     "Soft Summer"
+    ],
+    "d": [
+     "Suave y empolvada: tonos apagados, fríos o neutros.",
+     "Soft and muted: dusty, cool-neutral shades."
+    ],
+    "hex": [
+     "#A48B91",
+     "#B7A3B8",
+     "#8296A6",
+     "#8FA393",
+     "#C9B8B0",
+     "#6E6A75",
+     "#D8C9C9",
+     "#5E6E7E"
+    ],
+    "si": [
+     "Gris",
+     "Rosa",
+     "Lila",
+     "Azul",
+     "Verde",
+     "Beige",
+     "Morado"
+    ],
+    "no": [
+     "Negro",
+     "Naranja",
+     "Amarillo",
+     "Blanco",
+     "Rojo"
+    ],
+    "metal": "plata mate u oro rosa",
+    "consejo": "Los tonos empolvados (malva, salvia, gris topo) te favorecen; los colores muy vivos te endurecen."
+   },
+   "otono_suave": {
+    "familia": "otono",
+    "n": [
+     "Otoño suave",
+     "Soft Autumn"
+    ],
+    "d": [
+     "Suave y cálida: tierras claras, salvia y camel.",
+     "Soft and warm: light earth tones, sage and camel."
+    ],
+    "hex": [
+     "#C9A27A",
+     "#B9B08A",
+     "#9DA886",
+     "#D9A88A",
+     "#8A7F5A",
+     "#A47E63",
+     "#EDE0C8",
+     "#C28E6E"
+    ],
+    "si": [
+     "Camel",
+     "Beige",
+     "Crema",
+     "Caqui",
+     "Verde",
+     "Marrón",
+     "Terracota",
+     "Mostaza"
+    ],
+    "no": [
+     "Negro",
+     "Blanco",
+     "Rosa",
+     "Azul",
+     "Morado",
+     "Lila"
+    ],
+    "metal": "oro mate",
+    "consejo": "Las tierras suaves y la salvia te sientan bien; el blanco puro y el negro, mejor con algo cálido cerca de la cara."
+   },
+   "otono_calido": {
+    "familia": "otono",
+    "n": [
+     "Otoño cálido",
+     "Warm Autumn"
+    ],
+    "d": [
+     "Cálida y rica: mostaza, teja, oliva y chocolate.",
+     "Warm and rich: mustard, rust, olive and chocolate."
+    ],
+    "hex": [
+     "#C9962B",
+     "#B8603F",
+     "#6B7A3A",
+     "#D97B3A",
+     "#6B4A2B",
+     "#B98A4F",
+     "#F1E3C6",
+     "#8A8358"
+    ],
+    "si": [
+     "Mostaza",
+     "Terracota",
+     "Naranja",
+     "Caqui",
+     "Verde",
+     "Marrón",
+     "Camel",
+     "Crema",
+     "Amarillo"
+    ],
+    "no": [
+     "Rosa",
+     "Lila",
+     "Azul claro",
+     "Gris",
+     "Negro",
+     "Blanco"
+    ],
+    "metal": "oro",
+    "consejo": "La mostaza, la teja y el verde oliva te dan luz; el gris y los pasteles fríos te apagan."
+   },
+   "otono_profundo": {
+    "familia": "otono",
+    "n": [
+     "Otoño profundo",
+     "Deep Autumn"
+    ],
+    "d": [
+     "Profunda y cálida: chocolate, burdeos, verde bosque.",
+     "Deep and warm: chocolate, burgundy, forest green."
+    ],
+    "hex": [
+     "#4A2E22",
+     "#6E1F2B",
+     "#2F5D47",
+     "#8E3B26",
+     "#A5761E",
+     "#5A4A2E",
+     "#1F4E5A",
+     "#EAD9BC"
+    ],
+    "si": [
+     "Marrón",
+     "Burdeos",
+     "Verde",
+     "Terracota",
+     "Mostaza",
+     "Caqui",
+     "Camel",
+     "Rojo",
+     "Negro"
+    ],
+    "no": [
+     "Rosa",
+     "Lila",
+     "Azul claro",
+     "Gris",
+     "Blanco"
+    ],
+    "metal": "oro y bronce",
+    "consejo": "Los colores profundos y cálidos te favorecen; el blanco óptico, mejor marfil."
+   },
+   "invierno_profundo": {
+    "familia": "invierno",
+    "n": [
+     "Invierno profundo",
+     "Deep Winter"
+    ],
+    "d": [
+     "Profunda y fría: negro, blanco, rojo intenso, esmeralda.",
+     "Deep and cool: black, white, deep red, emerald."
+    ],
+    "hex": [
+     "#1B1B1B",
+     "#FFFFFF",
+     "#9E1B32",
+     "#0F6B4A",
+     "#1E2A5A",
+     "#5B2A86",
+     "#6E1F2B",
+     "#3A3A3A"
+    ],
+    "si": [
+     "Negro",
+     "Blanco",
+     "Rojo",
+     "Burdeos",
+     "Azul",
+     "Verde",
+     "Morado",
+     "Gris"
+    ],
+    "no": [
+     "Beige",
+     "Camel",
+     "Mostaza",
+     "Naranja",
+     "Caqui",
+     "Crema"
+    ],
+    "metal": "plata",
+    "consejo": "El negro y los colores joya te sientan muy bien; los tonos tierra claros te apagan."
+   },
+   "invierno_frio": {
+    "familia": "invierno",
+    "n": [
+     "Invierno frío",
+     "Cool Winter"
+    ],
+    "d": [
+     "Fría y nítida: blanco óptico, azul real, fucsia.",
+     "Cool and crisp: optic white, royal blue, fuchsia."
+    ],
+    "hex": [
+     "#FFFFFF",
+     "#1B1B1B",
+     "#1F3F8A",
+     "#C2185B",
+     "#B4122E",
+     "#6A3D9A",
+     "#8E8E8E",
+     "#C8B6E2"
+    ],
+    "si": [
+     "Negro",
+     "Blanco",
+     "Azul",
+     "Rosa",
+     "Rojo",
+     "Morado",
+     "Gris",
+     "Lila"
+    ],
+    "no": [
+     "Beige",
+     "Camel",
+     "Naranja",
+     "Mostaza",
+     "Terracota",
+     "Caqui",
+     "Marrón",
+     "Crema"
+    ],
+    "metal": "plata",
+    "consejo": "Contraste y colores fríos: blanco con azul real o fucsia; nada de tierras."
+   },
+   "invierno_brillante": {
+    "familia": "invierno",
+    "n": [
+     "Invierno brillante",
+     "Bright Winter"
+    ],
+    "d": [
+     "Brillante y fría: colores puros y saturados con negro y blanco.",
+     "Bright and cool: pure, saturated colours with black and white."
+    ],
+    "hex": [
+     "#E4007C",
+     "#0057B8",
+     "#00965E",
+     "#E10600",
+     "#F4E500",
+     "#1B1B1B",
+     "#FFFFFF",
+     "#7A1FA2"
+    ],
+    "si": [
+     "Negro",
+     "Blanco",
+     "Rojo",
+     "Rosa",
+     "Azul",
+     "Verde",
+     "Morado",
+     "Amarillo"
+    ],
+    "no": [
+     "Beige",
+     "Camel",
+     "Caqui",
+     "Mostaza",
+     "Marrón",
+     "Terracota",
+     "Gris"
+    ],
+    "metal": "plata brillante",
+    "consejo": "Te favorece el contraste fuerte y los colores puros; los apagados te restan."
+   }
+  }
+ },
+ "silueta": {
+  "umbrales": {
+   "ovalo_wh": 0.92,
+   "ovalo_ws": 0.92,
+   "invertido_sh": 1.08,
+   "triangulo_sh": 0.92,
+   "reloj_wh": 0.75,
+   "pierna_larga": 0.5,
+   "pierna_corta": 0.44
+  },
+  "tipos": {
+   "reloj": {
+    "n": [
+     "Reloj de arena",
+     "Hourglass"
+    ],
+    "d": [
+     "Hombros y cadera parejos, cintura marcada.",
+     "Balanced shoulders and hips, defined waist."
+    ],
+    "favorece": [
+     [
+      "Marcar la cintura: prendas por dentro y cinturones",
+      "Pantalón de tiro alto",
+      "Tejidos que caen",
+      "Escotes en V y cruzados"
+     ],
+     [
+      "Defined waist: tucked in and belts",
+      "High-waisted trousers",
+      "Fluid fabrics",
+      "V and wrap necklines"
+     ]
+    ],
+    "evitar": [
+     [
+      "Prendas muy anchas que esconden la cintura"
+     ],
+     [
+      "Very boxy pieces that hide the waist"
+     ]
+    ],
+    "puntos": [
+     {
+      "donde": "abajo",
+      "campo": "tiro",
+      "valor": "alto",
+      "p": 0.5
+     },
+     {
+      "donde": "look",
+      "campo": "como",
+      "valor": "por dentro",
+      "p": 0.4
+     },
+     {
+      "donde": "arriba",
+      "campo": "ajuste",
+      "valor": "oversize",
+      "p": -0.5
+     },
+     {
+      "donde": "arriba",
+      "campo": "ajuste",
+      "valor": "ceñido",
+      "p": 0.3
+     }
+    ]
+   },
+   "triangulo": {
+    "n": [
+     "Triángulo",
+     "Pear"
+    ],
+    "d": [
+     "La cadera es lo más ancho.",
+     "Hips are the widest part."
+    ],
+    "favorece": [
+     [
+      "Color, estampado y detalles arriba",
+      "Escote barco o cuadrado",
+      "Pantalón recto, ancho o acampanado",
+      "Abajo, colores lisos y oscuros"
+     ],
+     [
+      "Colour, print and detail on top",
+      "Boat or square necklines",
+      "Straight, wide or flared trousers",
+      "Plain, dark colours below"
+     ]
+    ],
+    "evitar": [
+     [
+      "Pitillo con prenda corta arriba",
+      "Estampados grandes en la parte de abajo"
+     ],
+     [
+      "Skinny trousers with short tops",
+      "Large prints below"
+     ]
+    ],
+    "puntos": [
+     {
+      "donde": "abajo",
+      "campo": "corte",
+      "valor": [
+       "recto",
+       "ancho",
+       "acampanado",
+       "palazzo"
+      ],
+      "p": 0.4
+     },
+     {
+      "donde": "abajo",
+      "campo": "corte",
+      "valor": "pitillo",
+      "p": -0.4
+     },
+     {
+      "donde": "abajo",
+      "campo": "estampado",
+      "valor": "no_liso",
+      "p": -0.4
+     },
+     {
+      "donde": "arriba",
+      "campo": "estampado",
+      "valor": "no_liso",
+      "p": 0.3
+     }
+    ]
+   },
+   "invertido": {
+    "n": [
+     "Triángulo invertido",
+     "Inverted triangle"
+    ],
+    "d": [
+     "Los hombros son lo más ancho.",
+     "Shoulders are the widest part."
+    ],
+    "favorece": [
+     [
+      "Escote en V",
+      "Volumen y color abajo",
+      "Pantalón ancho, palazzo o acampanado",
+      "Arriba, prendas sencillas y lisas"
+     ],
+     [
+      "V-neck",
+      "Volume and colour below",
+      "Wide, palazzo or flared trousers",
+      "Simple, plain tops"
+     ]
+    ],
+    "evitar": [
+     [
+      "Hombreras y mangas abullonadas",
+      "Mucho volumen arriba con pitillo"
+     ],
+     [
+      "Shoulder pads and puffed sleeves",
+      "Lots of volume on top with skinny trousers"
+     ]
+    ],
+    "puntos": [
+     {
+      "donde": "abajo",
+      "campo": "corte",
+      "valor": [
+       "ancho",
+       "acampanado",
+       "palazzo",
+       "barril"
+      ],
+      "p": 0.6
+     },
+     {
+      "donde": "arriba",
+      "campo": "ajuste",
+      "valor": [
+       "holgado",
+       "oversize"
+      ],
+      "p": -0.4
+     },
+     {
+      "donde": "abajo",
+      "campo": "estampado",
+      "valor": "no_liso",
+      "p": 0.2
+     }
+    ]
+   },
+   "rectangulo": {
+    "n": [
+     "Rectángulo",
+     "Rectangle"
+    ],
+    "d": [
+     "Hombros, cintura y cadera en línea.",
+     "Shoulders, waist and hips in line."
+    ],
+    "favorece": [
+     [
+      "Crear cintura: por dentro y cinturón",
+      "Capas y prendas con estructura",
+      "Pantalón de tiro alto con pierna ancha",
+      "Chaquetas abiertas"
+     ],
+     [
+      "Create a waist: tuck in and belt",
+      "Layers and structured pieces",
+      "High-waisted wide trousers",
+      "Open jackets"
+     ]
+    ],
+    "evitar": [
+     [
+      "Prendas rectas de arriba abajo sin forma"
+     ],
+     [
+      "Straight, shapeless head-to-toe pieces"
+     ]
+    ],
+    "puntos": [
+     {
+      "donde": "look",
+      "campo": "como",
+      "valor": "por dentro",
+      "p": 0.4
+     },
+     {
+      "donde": "abajo",
+      "campo": "tiro",
+      "valor": "alto",
+      "p": 0.3
+     },
+     {
+      "donde": "look",
+      "campo": "capa",
+      "valor": true,
+      "p": 0.3
+     }
+    ]
+   },
+   "ovalo": {
+    "n": [
+     "Óvalo",
+     "Round"
+    ],
+    "d": [
+     "El volumen está en el centro.",
+     "Volume sits in the middle."
+    ],
+    "favorece": [
+     [
+      "Escote en V",
+      "Líneas verticales y un solo color",
+      "Prendas que caen, por fuera, hasta la cadera",
+      "Chaquetas abiertas y largas"
+     ],
+     [
+      "V-neck",
+      "Vertical lines and one colour",
+      "Fluid pieces worn out, to the hip",
+      "Long open jackets"
+     ]
+    ],
+    "evitar": [
+     [
+      "Prendas cortas a la cintura",
+      "Ceñido en el centro"
+     ],
+     [
+      "Cropped pieces at the waist",
+      "Tight through the middle"
+     ]
+    ],
+    "puntos": [
+     {
+      "donde": "arriba",
+      "campo": "largo",
+      "valor": [
+       "cadera",
+       "largo"
+      ],
+      "p": 0.5
+     },
+     {
+      "donde": "arriba",
+      "campo": "largo",
+      "valor": "crop",
+      "p": -0.6
+     },
+     {
+      "donde": "arriba",
+      "campo": "ajuste",
+      "valor": "ceñido",
+      "p": -0.3
+     },
+     {
+      "donde": "look",
+      "campo": "mismo_color",
+      "valor": true,
+      "p": 0.5
+     }
+    ]
+   }
+  },
+  "proporciones": {
+   "piernas_largas": {
+    "n": [
+     "Piernas largas",
+     "Long legs"
+    ],
+    "d": [
+     "Tus piernas son largas para tu altura: te sientan bien tiros medios y prendas por fuera.",
+     "Your legs are long for your height: mid-rise and untucked pieces work well."
+    ],
+    "puntos": [
+     {
+      "donde": "abajo",
+      "campo": "tiro",
+      "valor": "medio",
+      "p": 0.2
+     }
+    ]
+   },
+   "torso_largo": {
+    "n": [
+     "Torso largo",
+     "Long torso"
+    ],
+    "d": [
+     "Tu torso es largo: el tiro alto y las prendas por dentro equilibran.",
+     "Your torso is long: high rise and tucked-in pieces balance it."
+    ],
+    "puntos": [
+     {
+      "donde": "abajo",
+      "campo": "tiro",
+      "valor": "alto",
+      "p": 0.4
+     },
+     {
+      "donde": "abajo",
+      "campo": "tiro",
+      "valor": "bajo",
+      "p": -0.4
+     }
+    ]
+   },
+   "equilibrada": {
+    "n": [
+     "Proporción equilibrada",
+     "Balanced proportions"
+    ],
+    "d": [
+     "Torso y piernas en equilibrio: te sienta bien casi cualquier tiro.",
+     "Torso and legs in balance: almost any rise works."
+    ],
+    "puntos": []
+   }
+  }
+ },
+ "problemas": {
+  "sin_color": [
+   "La foto está en blanco y negro o con filtro: hace falta una en color y sin filtros.",
+   "The photo is black and white or filtered: use a colour photo without filters."
+  ],
+  "sin_cara": [
+   "No encuentro tu cara: hazte la foto de frente y más cerca.",
+   "I can’t find your face: take it facing the camera, closer."
+  ],
+  "varias_caras": [
+   "Sale más de una persona: hace falta una foto solo tuya.",
+   "There’s more than one person: use a photo of just you."
+  ],
+  "cara_lejos": [
+   "Tu cara sale pequeña: acércate un poco más.",
+   "Your face is small: get a bit closer."
+  ],
+  "cara_de_lado": [
+   "Mira de frente a la cámara.",
+   "Face the camera."
+  ],
+  "inclinada": [
+   "Pon la cabeza recta.",
+   "Keep your head straight."
+  ],
+  "sin_piel": [
+   "No veo bien la piel de tu cara: aparta el pelo y busca luz de frente.",
+   "I can’t see your skin well: move your hair away and face the light."
+  ],
+  "mucha_luz": [
+   "Hay demasiada luz directa: busca luz natural sin sol directo.",
+   "Too much direct light: use daylight without direct sun."
+  ],
+  "luz_lateral": [
+   "La luz te da de un lado: ponte de frente a una ventana.",
+   "The light comes from one side: face a window."
+  ],
+  "poca_luz": [
+   "Hay poca luz: acércate a una ventana.",
+   "Too dark: move closer to a window."
+  ],
+  "pelo_no_visible": [
+   "No veo tu pelo: cuenta menos en el resultado.",
+   "I can’t see your hair: it counts less in the result."
+  ],
+  "ojos_no_visibles": [
+   "No veo bien tus ojos: si llevas gafas, quítatelas.",
+   "I can’t see your eyes well: take off your glasses if you wear them."
+  ],
+  "sin_cuerpo": [
+   "No encuentro tu cuerpo en la foto.",
+   "I can’t find your body in the photo."
+  ],
+  "varias_personas": [
+   "Sale más de una persona: hace falta una foto solo tuya.",
+   "There’s more than one person: use a photo of just you."
+  ],
+  "sin_tronco": [
+   "Tienen que verse los hombros y las caderas.",
+   "Shoulders and hips must be visible."
+  ],
+  "sin_pies": [
+   "Tiene que verse el cuerpo entero, hasta los pies.",
+   "Your whole body must be visible, down to your feet."
+  ],
+  "cuerpo_lejos": [
+   "Sales muy pequeña: acércate un poco, sin que se corte nada.",
+   "You look very small: get closer without cropping."
+  ],
+  "hombros_torcidos": [
+   "Ponte recta, con los hombros a la misma altura.",
+   "Stand straight with level shoulders."
+  ],
+  "cuerpo_de_lado": [
+   "Ponte de frente a la cámara.",
+   "Face the camera."
+  ],
+  "brazos_arriba": [
+   "Deja los brazos abajo.",
+   "Keep your arms down."
+  ],
+  "brazos_pegados": [
+   "Separa un poco los brazos del cuerpo para medir bien la cintura.",
+   "Hold your arms slightly away from your body to measure your waist."
+  ],
+  "sin_silueta": [
+   "No distingo tu silueta del fondo: busca un fondo liso.",
+   "I can’t separate you from the background: use a plain one."
+  ],
+  "error": [
+   "No he podido analizar esta foto: prueba con otra.",
+   "I couldn’t analyse this photo: try another."
+  ]
+ }
+}
