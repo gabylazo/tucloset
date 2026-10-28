@@ -1153,6 +1153,7 @@ img{-webkit-user-drag:none}
 
 /* 0.97 · aviso de que faltan zapatos */
 .hz-zap{display:block;margin:10px auto 0;background:none;border:0;font:inherit;font-size:13px;font-weight:300;color:var(--oro);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.hz-zap{text-align:center;max-width:300px;line-height:1.45;padding:0 8px} /* 0.112: el aviso de la chaqueta ocupa dos líneas: centrado, como todo */
 /* 0.99 · Yo sobrio (Gabriela, 24/10: «rediseña el perfil de yo, muy cargado y poco estético»):
    nombre y una línea, una frase, tres filas de lo mío, los ajustes de diario y lo técnico plegado; sin cifras, medallones ni etiquetas */
 #p-yo .yo{margin-top:46px;gap:12px}

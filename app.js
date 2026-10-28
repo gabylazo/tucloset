@@ -195,7 +195,7 @@ async function bajarNube() {
   // ahora bajan 6 a la vez, solo las recortadas antes de entrar, y las originales después, por detrás
   const nuevas = [], fotos = [], originales = [];
   for (const q of doc.prendas || []) {
-    const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null }; delete p.conFoto; delete p.conOriginal;
+    const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null }; if (l?.fotoTorcida) p.fotoTorcida = l.fotoTorcida; delete p.conFoto; delete p.conOriginal;
     if (q.conFoto && (!l?.foto || l.nube !== q.nube)) fotos.push(async () => { try { const f = await api('/api/foto/' + q.id + '?v=' + (q.nube || '')); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } });
     if (q.conOriginal && (!p.original || l?.nubeO !== q.nubeO)) originales.push(async () => { try { const f = await api('/api/foto/' + q.id + '-o?v=' + (q.nubeO || '')); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; } } catch (e) { } });
     nuevas.push(p); locales.delete(q.id);
@@ -378,6 +378,39 @@ async function medirFoto(p) {
   const cen = [...fi.values()].map(([a, b]) => (a + b + 1) / 2).sort((a, b) => a - b), ejeX = cen[cen.length >> 1];
   const c0 = [x0 / w, y0 / h, (x1 + 1) / w, (y1 + 1) / h]; return [...c0.map(v => +v.toFixed(4)), +(((c0[3] - c0[1]) * h) / ((c0[2] - c0[0]) * w)).toFixed(4), +((ejeX - x0) / (x1 + 1 - x0)).toFixed(4)];
 }
+// 0.112 (Gabriela, 28/10: «las fotos, por ejemplo las del pantalón, salen como con un ángulo inclinado, hay que ponerlas en un plano recto…
+// hacerlo homogéneo para todas las prendas»): cada prenda se endereza sola una vez (p.recta = el giro aplicado) al giro de ±8° que la deja más
+// simétrica respecto a un eje vertical. Probado con sus 25 fotos: endereza las que estaban torcidas (pantalón ancho, tirantes, manga larga roja)
+// y no toca las rectas. (Antes se probó el giro que deja la caja más pequeña: torcía los tops rectos.) Una pierna más abierta que la otra
+// no se arregla girando. La foto de antes se queda en el móvil (fotoTorcida); la nueva sube a la cuenta como cualquier cambio de foto
+const SE_ENDEREZA = ['Arriba', 'Abajo', 'Vestidos', 'Abrigo'];
+const cajaClara = (x, w, h) => { const d = x.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1; for (let i = 0, q = 0; q < d.length; i++, q += 4) if (d[q] + d[q + 1] + d[q + 2] < 735) { const px = i % w, py = (i / w) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; } return x1 < 0 ? null : [x0, y0, x1, y1]; };
+async function anguloRecto(b) {
+  const bm = await createImageBitmap(b), S = 120, k = S / Math.max(bm.width, bm.height), w = Math.round(bm.width * k), h = Math.round(bm.height * k), L = Math.ceil(Math.hypot(w, h)) + 2;
+  const c = document.createElement('canvas'); c.width = c.height = L; const x = c.getContext('2d', { willReadFrequently: true });
+  const masc = g => { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#fff'; x.fillRect(0, 0, L, L); x.translate(L / 2, L / 2); x.rotate(g * Math.PI / 180); x.drawImage(bm, -w / 2, -h / 2, w, h);
+    const d = x.getImageData(0, 0, L, L).data, m = new Uint8Array(L * L); for (let i = 0, q = 0; i < d.length; i += 4, q++) m[q] = Math.min(d[i], d[i + 1], d[i + 2]) <= 246 ? 1 : 0; return m; };
+  // parecido entre la prenda y su reflejo (intersección / unión), con el eje en su centro de masas, desplazado hasta ±2 px
+  const sim = m => { let n = 0, sx = 0; for (let q = 0; q < m.length; q++) if (m[q]) { n++; sx += q % L; } if (!n) return 0; const cx = sx / n; let best = 0;
+    for (let dd = -2; dd <= 2; dd += .5) { const e = Math.round(2 * (cx + dd)); let ni = 0, nu = 0;
+      for (let y = 0; y < L; y++) { const r = y * L; for (let xx = 0; xx < L; xx++) { const a = m[r + xx], j = e - xx, bb = j >= 0 && j < L ? m[r + j] : 0; ni += a & bb; nu += a | bb; } }
+      if (nu && ni / nu > best) best = ni / nu; } return best; };
+  const s0 = sim(masc(0)); let g0 = 0, s1 = s0;
+  for (let g = -8; g <= 8; g += 1) { const v = sim(masc(g)); if (v > s1) { s1 = v; g0 = g; } }
+  for (const g of [g0 - .5, g0 + .5]) { const v = sim(masc(g)); if (v > s1) { s1 = v; g0 = g; } }
+  return Math.abs(g0) >= 1 && s1 - s0 >= .01 ? g0 : 0;
+}
+// la foto girada, del mismo tamaño que la original y con la prenda centrada; solo se reduce si girada no cabe
+async function fotoRecta(b, g) {
+  const bm = await createImageBitmap(b), W = bm.width, H = bm.height, a = g * Math.PI / 180, cw = Math.ceil(Math.abs(W * Math.cos(a)) + Math.abs(H * Math.sin(a))), ch = Math.ceil(Math.abs(W * Math.sin(a)) + Math.abs(H * Math.cos(a)));
+  const c = document.createElement('canvas'); c.width = cw; c.height = ch; const x = c.getContext('2d', { willReadFrequently: true });
+  x.fillStyle = '#fff'; x.fillRect(0, 0, cw, ch); x.translate(cw / 2, ch / 2); x.rotate(a); x.drawImage(bm, -W / 2, -H / 2); x.setTransform(1, 0, 0, 1, 0, 0);
+  const q = cajaClara(x, cw, ch); if (!q) return null;
+  const m = Math.round(Math.min(W, H) * .04), bw = q[2] - q[0] + 1, bh = q[3] - q[1] + 1, s = Math.min(1, (W - 2 * m) / bw, (H - 2 * m) / bh);
+  const o = document.createElement('canvas'); o.width = W; o.height = H; const ox = o.getContext('2d'); ox.fillStyle = '#fff'; ox.fillRect(0, 0, W, H);
+  ox.drawImage(c, q[0], q[1], bw, bh, (W - bw * s) / 2, (H - bh * s) / 2, bw * s, bh * s);
+  return new Promise(r => o.toBlob(r, 'image/jpeg', .9));
+}
 let midiendo = null;
 function medirTodas() {
   if (midiendo) return midiendo;
@@ -386,7 +419,11 @@ function medirTodas() {
     // 0.97 (Gabriela, 24/10: «las combinaciones están horrendas en cuanto a la distribución espacial»): si algo fallaba aquí una vez, la medición
     // se quedaba bloqueada toda la sesión y las prendas salían sin recortar a su silueta (pequeñas y separadas). Ahora siempre se libera.
     try {
-      const pend = E.prendas.filter(p => (!p.caja || p.cajaV !== 3) && (p.foto || p.src)); let n = 0;
+      let rectas = 0;
+      for (const p of E.prendas.filter(p => p.foto && !p.src && !p.ejemplo && p.recta == null && SE_ENDEREZA.includes(p.tipo))) {
+        try { const g = await anguloRecto(p.foto); if (g) { const b = await fotoRecta(p.foto, g); if (b) { p.fotoTorcida = p.foto; p.foto = b; urls.delete(p.id); alfa.delete(p.id); p.caja = null; } } p.recta = g; rectas++; } catch (e) { p.recta = 0; }
+      }
+      const pend = E.prendas.filter(p => (!p.caja || p.cajaV !== 3) && (p.foto || p.src)); let n = rectas;
       for (const p of pend) { try { p.caja = await medirFoto(p); p.cajaV = 3; n++; } catch (e) { p.caja = null; } }
       if (n) { if (E.prendas.some(p => !p.src)) await Promise.race([guardar(), new Promise(r => setTimeout(r, 3000))]).catch(() => { }); E.propuestas = []; try { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); } catch (e) { } }
     } finally { midiendo = null; }
@@ -881,8 +918,10 @@ function claveMuestra(ps, spec) {
 function conZapato(ps, spec, como) {
   let r = ps;
   if (ps.length && !ps.some(p => p.tipo === 'Calzado') && ps.some(p => ['Abajo', 'Vestidos'].includes(p.tipo))) {
-    const k = claveMuestra(ps, spec), z = ZAP_MUESTRA[k];
-    if (z) { const id = 'zm-' + k, src = `zapatos/${k}.webp`; if (!alfa.has(id)) alfa.set(id, src); r = [...ps, { id, tipo: 'Calzado', nombre: z[0], src, caja: [0, 0, 1, 1, z[2], .5], cajaV: 3, est: { pal: [z[1]] }, muestra: k }]; }
+    // 0.112 (Gabriela, 28/10: «no sé de dónde sacas esos zapatos, míos no son»): si tiene zapatos subidos, siempre uno suyo; los de muestra, solo sin ninguno
+    const suyo = zapatoPara(spec || {}, ps), k = suyo ? null : claveMuestra(ps, spec), z = k && ZAP_MUESTRA[k];
+    if (suyo) r = [...ps, suyo];
+    else if (z) { const id = 'zm-' + k, src = `zapatos/${k}.webp`; if (!alfa.has(id)) alfa.set(id, src); r = [...ps, { id, tipo: 'Calzado', nombre: z[0], src, caja: [0, 0, 1, 1, z[2], .5], cajaV: 3, est: { pal: [z[1]] }, muestra: k }]; }
   }
   if (como) { r = r === ps ? [...ps] : r; r.como = como; }
   return r;
@@ -916,7 +955,7 @@ function pieLook(ps) {
 // «que haya ciencia detrás de cada outfit»). Los diseña la Dirección de Moda para cada clóset (perfil.estilista.looks: arriba, capa, abajo, zapato,
 // temperatura, ocasión y el porqué) y salen primero; el generador automático solo rellena lo que falte
 function zapatoPara(spec, ps) {
-  if (!spec) return null; let mejor = null, mp = 0;
+  if (!spec) return null; let mejor = null, mp = -Infinity; // 0.112: con zapatos subidos siempre devuelve uno suyo, aunque ninguno sea del tipo pedido
   for (const z of activas().filter(p => p.tipo === 'Calzado')) {
     const n = `${z.nombre || ''} ${z.x || ''}`.toLowerCase(), tipo = (spec.tipo || '').toLowerCase().replace(/s$/, '').replace(/e$/, '');
     let s = (tipo && n.includes(tipo.slice(0, 5)) ? 1.2 : 0) + (spec.color && (z.color || '').toLowerCase().startsWith(spec.color.slice(0, 4)) ? .5 : 0) + afinZapato(z, ps, E.tiempo?.t) * .3;
@@ -948,11 +987,13 @@ function generarLooksAuto(n, plan) {
   // 0.43 (Sheila, 22/10: «demasiado descubierta para 17 grados»): con 19° o menos, lo que no tiene mangas (chaleco, top, body, tirantes)
   // pide una capa encima (abrigo, chaqueta, americana o chaqueta de punto); si no hay ninguna, ese look baja al final
   const temp = E.tiempo?.t ?? 18, frio = temp <= 14, fresco = temp <= 19;
+  // 0.112 (Gabriela, 28/10: «¿me pones un outfit sin chaqueta ni nada de frío con una temperatura de 17 grados?»): con mañana fresca (12° o menos), también capa
+  const manana = fresco && (E.tiempo?.min ?? temp) <= 12;
   const capas = [...abrigos, ...arriba.filter(esCapa)];
   const bases = [...vestidos.map(v => [v]), ...arriba.filter(a => !esCapa(a) && estDe(a).rol !== 'capa_ligera').flatMap(a => abajo.map(b => [a, b]))];
   const cands = bases.map(base => {
     let ps = [...base]; const desc = fresco && base.some(sinMangas);
-    const ab = frio || desc ? mejorAcompanante(capas.filter(c => !base.includes(c)), ps) : null; if (ab) ps.push(ab);
+    const ab = frio || desc || manana ? mejorAcompanante(capas.filter(c => !base.includes(c)), ps) : null; if (ab) ps.push(ab);
     const zap = mejorAcompanante(calzado, ps, z => afinZapato(z, ps, E.tiempo?.t)); if (zap) ps.push(zap);
     const bol = ocasionDe(ps) !== 'Deporte' ? mejorAcompanante(bolsos, ps) : null; if (bol) ps.push(bol);
     const est = estilista(ps, E.tiempo?.t);
@@ -1055,10 +1096,12 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   const ps = pr.ids.map(P).filter(Boolean); const c = pr.c;
   const avatar = planDemo() === 'pro' ? c?.img : null;
   const psZ = conZapato(ps, pr.zspec, pr.como), muestra = psZ.some(p => p.muestra);
+  // 0.112: si a primera hora hace fresco y el conjunto no lleva nada encima porque no hay chaquetas subidas, se dice
+  const minimo = w ? (w.min ?? w.t) : null, sinCapa = w && w.t <= 19 && minimo <= 12 && !ps.some(p => p.tipo === 'Abrigo' || esCapa(p)) && !activas().some(p => p.tipo === 'Abrigo' || esCapa(p));
   const figura = avatar ? `<img src="${avatar}" alt="${t('Tú con el conjunto', 'You wearing the outfit')}">` : maniqui(psZ);
   const oc = (c && c.ocasion) || pr.ocasion || ocasionDe(ps);
   const flechas = lista.length > 1 ? `<div class="hz-flechas"><button id="hoy-ant" aria-label="${t('Anterior', 'Previous')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><button id="hoy-sig" aria-label="${t('Otro', 'Next')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>` : '';
-  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}<button class="hz-fav${esFav(pr.ids) ? ' on' : ''}" id="hoy-fav" aria-label="${t('Favorito', 'Favourite')}" aria-pressed="${esFav(pr.ids)}"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>${pieLook(psZ)}<button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button>${muestra && !avatar ? `<button class="hz-zap" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: upload yours')}</button>` : ''}</div></div>`; // 0.103: siempre zapatos (sugeridos si no hay) // 0.97 (Gabriela, 24/10: «no ha recomendado zapatos»: no tenía ninguno subido)
+  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}<button class="hz-fav${esFav(pr.ids) ? ' on' : ''}" id="hoy-fav" aria-label="${t('Favorito', 'Favourite')}" aria-pressed="${esFav(pr.ids)}"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>${pieLook(psZ)}<button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button>${sinCapa ? `<button class="hz-zap" data-ir="subir">${t(`A primera hora, ${minimo}°: llévate una chaqueta. Sube las tuyas y te las combino`, `Early on, ${minimo}°: take a jacket. Upload yours and I’ll match them`)}</button>` : ''}${muestra && !avatar ? `<button class="hz-zap" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: upload yours')}</button>` : ''}</div></div>`; // 0.103: siempre zapatos (sugeridos si no hay) // 0.97 (Gabriela, 24/10: «no ha recomendado zapatos»: no tenía ninguno subido)
   // 0.66 (Sheila, 23/10: «cuida que no sucedan estas cosas»: el aviso quedaba debajo del abrigo): la escena empieza donde acaba la cabecera
   const cabH = pant.querySelector('.hz-cab'), escH = pant.querySelector('.hz-escena');
   if (escH && cabH) { const fija = () => { if (cabH.offsetHeight) escH.style.top = Math.max(118, cabH.offsetHeight + 12) + 'px'; }; fija(); setTimeout(fija, 300); new ResizeObserver(fija).observe(cabH); } // también cuando la pantalla se hace visible // 0.67 (Sheila: «se superpone la prenda a la letra»): siempre bajo la cabecera, mida lo que mida
