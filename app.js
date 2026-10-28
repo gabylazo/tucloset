@@ -226,7 +226,7 @@ async function bajarNube() {
   LS.set('tc_nube_ver', version); LS.set('tc_nube_ids', JSON.stringify((doc.prendas || []).map(p => p.id)));
   await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda);
   if (estacionesAuto()) await guardar(); // 0.101: estación por tipo, también para lo que llega de otros móviles
-  E.propuestas = []; E.generados = []; return true;
+  E.propuestas = []; E.generados = []; E.nubeBajada = true; return true;
 }
 const ERR_CUENTA = { correo: ['Escribe un correo válido', 'Enter a valid email'], clave_corta: ['La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'], ya_existe: ['Ese correo ya tiene cuenta: entra con él', 'That email already has an account: sign in'], credenciales: ['Correo o contraseña incorrectos', 'Wrong email or password'], frenado: ['Demasiados intentos: espera 15 minutos', 'Too many attempts: wait 15 minutes'] };
 async function abrirCuenta(modo, correo, clave, nombre) {
@@ -257,13 +257,15 @@ function pintarCuenta() {
   if (CLOSET_ACT) { r.innerHTML = `<p class="cu-txt">${t('Estás en el clóset de pruebas. Las cuentas guardan «Mi ropa»: cámbialo en Yo → Clóset.', 'You are in the test closet. Accounts keep «My clothes»: switch in Me → Closet.')}</p>`; return; }
   if (c) {
     const n = E.prendas.filter(p => !p.ejemplo).length;
-    r.innerHTML = `<div class="cu-cab"><b>${c.nombre || E.perfil?.nombre || ''}</b><span>${c.correo}</span></div>
-      <div class="lista"><div class="item">${t('Tu clóset en la nube', 'Your closet in the cloud')}<span class="valor oro">${estadoNube()}</span></div>
-      <div class="item">${t('Prendas guardadas', 'Saved garments')}<span class="valor">${n}</span></div>
-      <button class="item" id="cu-ya">${t('Guardar ahora', 'Save now')}<span class="valor"></span></button>
-      <button class="item" id="cu-traer">${t('Traer lo de otros móviles', 'Bring from other phones')}<span class="valor"></span></button></div>
-      <p class="cu-txt">${t('Tu selfie y tu foto de cuerpo no se suben: se quedan en este móvil.', 'Your selfie and body photo are never uploaded: they stay on this phone.')}</p>
-      <div class="lista"><button class="item" id="cu-salir">${t('Cerrar sesión', 'Sign out')}<span class="valor"></span></button><button class="item rojo" id="cu-borrar">${t('Borrar mi cuenta', 'Delete my account')}<span class="valor"></span></button></div>`;
+    const nomC = c.nombre || E.perfil?.nombre || '', nomV = nomC && nomC === nomC.toUpperCase() ? nomC.charAt(0) + nomC.slice(1).toLowerCase() : nomC;
+    // 0.114: con el panel de Yo (iconos, grupos, letra más oscura)
+    r.innerHTML = `<div class="cu-cab"><i class="cu-ini">${(nomV || c.correo || '?').charAt(0).toUpperCase()}</i><b>${nomV}</b><span>${c.correo}</span></div>`
+      + grupoP(t('Tu clóset en la nube', 'Your closet in the cloud'), filaP({ tag: 'div', ic: 'nube', tit: t('Estado', 'Status'), val: estadoNube(), oro: true, flecha: false })
+        + filaP({ tag: 'div', ic: 'percha', tit: t('Prendas guardadas', 'Saved garments'), val: String(n), flecha: false })
+        + filaP({ id: 'cu-ya', ic: 'subir', tit: t('Guardar ahora', 'Save now'), flecha: false })
+        + filaP({ id: 'cu-traer', ic: 'bajar', tit: t('Traer lo de otros móviles', 'Bring from other phones'), flecha: false }),
+        t('Tu selfie y tu foto de cuerpo no se suben: se quedan en este móvil.', 'Your selfie and body photo are never uploaded: they stay on this phone.'))
+      + grupoP('', filaP({ id: 'cu-salir', ic: 'salir', tit: t('Cerrar sesión', 'Sign out'), flecha: false }) + filaP({ id: 'cu-borrar', ic: 'borrar', tit: t('Borrar mi cuenta', 'Delete my account'), rojo: true, flecha: false }));
     $('cu-ya').onclick = () => subirNube(); $('cu-traer').onclick = async () => { E.nube.estado = 'bajando'; pintarCuenta(); await bajarNube(); E.nube.estado = 'ok'; pintarCuenta(); toast(t('Clóset al día', 'Closet up to date')); };
     $('cu-salir').onclick = cerrarSesion; $('cu-borrar').onclick = borrarCuenta;
   } else {
@@ -400,20 +402,37 @@ async function medirFoto(p) {
 // no se arregla girando. La foto de antes se queda en el móvil (fotoTorcida); la nueva sube a la cuenta como cualquier cambio de foto
 const SE_ENDEREZA = ['Arriba', 'Abajo', 'Vestidos', 'Abrigo'];
 const cajaClara = (x, w, h) => { const d = x.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1; for (let i = 0, q = 0; q < d.length; i++, q += 4) if (d[q] + d[q + 1] + d[q + 2] < 735) { const px = i % w, py = (i / w) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; } return x1 < 0 ? null : [x0, y0, x1, y1]; };
-async function anguloRecto(b) {
-  const bm = await createImageBitmap(b), S = 120, k = S / Math.max(bm.width, bm.height), w = Math.round(bm.width * k), h = Math.round(bm.height * k), L = Math.ceil(Math.hypot(w, h)) + 2;
+async function anguloRecto(b) { // 0.114 (Gabriela, 28/10: «la app en el móvil sigue teniendo problemas para abrir… se demora una eternidad»): 4 veces más ligero
+  const bm = await createImageBitmap(b), S = 80, k = S / Math.max(bm.width, bm.height), w = Math.round(bm.width * k), h = Math.round(bm.height * k), L = Math.ceil(Math.hypot(w, h)) + 2;
   const c = document.createElement('canvas'); c.width = c.height = L; const x = c.getContext('2d', { willReadFrequently: true });
   const masc = g => { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#fff'; x.fillRect(0, 0, L, L); x.translate(L / 2, L / 2); x.rotate(g * Math.PI / 180); x.drawImage(bm, -w / 2, -h / 2, w, h);
     const d = x.getImageData(0, 0, L, L).data, m = new Uint8Array(L * L); for (let i = 0, q = 0; i < d.length; i += 4, q++) m[q] = Math.min(d[i], d[i + 1], d[i + 2]) <= 246 ? 1 : 0; return m; };
   // parecido entre la prenda y su reflejo (intersección / unión), con el eje en su centro de masas, desplazado hasta ±2 px
   const sim = m => { let n = 0, sx = 0; for (let q = 0; q < m.length; q++) if (m[q]) { n++; sx += q % L; } if (!n) return 0; const cx = sx / n; let best = 0;
-    for (let dd = -2; dd <= 2; dd += .5) { const e = Math.round(2 * (cx + dd)); let ni = 0, nu = 0;
+    for (let dd = -2; dd <= 2; dd++) { const e = Math.round(2 * cx) + dd; let ni = 0, nu = 0;
       for (let y = 0; y < L; y++) { const r = y * L; for (let xx = 0; xx < L; xx++) { const a = m[r + xx], j = e - xx, bb = j >= 0 && j < L ? m[r + j] : 0; ni += a & bb; nu += a | bb; } }
       if (nu && ni / nu > best) best = ni / nu; } return best; };
   const s0 = sim(masc(0)); let g0 = 0, s1 = s0;
-  for (let g = -8; g <= 8; g += 1) { const v = sim(masc(g)); if (v > s1) { s1 = v; g0 = g; } }
-  for (const g of [g0 - .5, g0 + .5]) { const v = sim(masc(g)); if (v > s1) { s1 = v; g0 = g; } }
+  for (let g = -8; g <= 8; g += 2) { if (!g) continue; const v = sim(masc(g)); if (v > s1) { s1 = v; g0 = g; } }
+  for (const paso of [1, .5]) { const c0 = g0; for (const g of [c0 - paso, c0 + paso]) { const v = sim(masc(g)); if (v > s1) { s1 = v; g0 = g; } } }
   return Math.abs(g0) >= 1 && s1 - s0 >= .01 ? g0 : 0;
+}
+// se endereza en segundo plano: una prenda cada vez, dejando respirar al móvil, y nunca mientras trae el clóset de la cuenta
+// (si no, enderezaba las copias viejas antes de recibir las que ya llegaban rectas de otro móvil)
+let enderezando = null;
+function enderezarTodas() {
+  if (enderezando || E.nube.estado === 'bajando' || (cuenta() && !E.nubeBajada)) return enderezando;
+  enderezando = (async () => {
+    try {
+      let n = 0;
+      for (const p of E.prendas.filter(p => p.foto && !p.src && !p.ejemplo && p.recta == null && SE_ENDEREZA.includes(p.tipo))) {
+        await new Promise(r => setTimeout(r, 120)); if (E.nube.estado === 'bajando') return;
+        try { const g = await anguloRecto(p.foto); if (g) { const b = await fotoRecta(p.foto, g); if (b) { p.fotoTorcida = p.foto; p.foto = b; urls.delete(p.id); alfa.delete(p.id); p.caja = null; n++; } } p.recta = g; } catch (e) { p.recta = 0; }
+      }
+      await guardar(); if (n) { E.propuestas = []; medirTodas(); }
+    } finally { enderezando = null; }
+  })();
+  return enderezando;
 }
 // la foto girada, del mismo tamaño que la original y con la prenda centrada; solo se reduce si girada no cabe
 async function fotoRecta(b, g) {
@@ -434,11 +453,7 @@ function medirTodas() {
     // 0.97 (Gabriela, 24/10: «las combinaciones están horrendas en cuanto a la distribución espacial»): si algo fallaba aquí una vez, la medición
     // se quedaba bloqueada toda la sesión y las prendas salían sin recortar a su silueta (pequeñas y separadas). Ahora siempre se libera.
     try {
-      let rectas = 0;
-      for (const p of E.prendas.filter(p => p.foto && !p.src && !p.ejemplo && p.recta == null && SE_ENDEREZA.includes(p.tipo))) {
-        try { const g = await anguloRecto(p.foto); if (g) { const b = await fotoRecta(p.foto, g); if (b) { p.fotoTorcida = p.foto; p.foto = b; urls.delete(p.id); alfa.delete(p.id); p.caja = null; } } p.recta = g; rectas++; } catch (e) { p.recta = 0; }
-      }
-      const pend = E.prendas.filter(p => (!p.caja || p.cajaV !== 3) && (p.foto || p.src)); let n = rectas;
+      const pend = E.prendas.filter(p => (!p.caja || p.cajaV !== 3) && (p.foto || p.src)); let n = 0;
       for (const p of pend) { try { p.caja = await medirFoto(p); p.cajaV = 3; n++; } catch (e) { p.caja = null; } }
       if (n) { if (E.prendas.some(p => !p.src)) await Promise.race([guardar(), new Promise(r => setTimeout(r, 3000))]).catch(() => { }); E.propuestas = []; try { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); } catch (e) { } }
     } finally { midiendo = null; }
@@ -1701,7 +1716,7 @@ async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
   listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1 }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
-  toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet');
+  toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet'); setTimeout(enderezarTodas, 2500);
 }
 
 /* ---------- AÑADIR / EDITAR ---------- */
@@ -2054,16 +2069,121 @@ const AYUDA = [
   ['Mi cuenta y datos', 'Qué incluye cada plan', 'Básico (1,99 €/mes o 14,99 €/año): tu armario digital, looks, look del día, calendario, uso y estilo. Pro (4,99 €/mes o 39,99 €/año): todo lo del Básico y además colorimetría, morfología, probador virtual, estilismo por ocasión, «Inspírate en…» y Planning Travel.'],
   ['Mi cuenta y datos', 'Cómo pongo la app en la pantalla de inicio', 'En Android, desde Chrome: menú ⋮ → «Añadir a pantalla de inicio». En iPhone, desde Safari: Compartir → «Añadir a pantalla de inicio».']
 ];
-function abrirAyuda() {
-  const cap = document.createElement('div'); cap.className = 'ay-capa';
-  const pinta = q => { const n = x => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), b = n(q || '');
-    const hay = AYUDA.filter(([, p, r]) => !b || n(p + ' ' + r).includes(b)); let grupo = '';
-    cap.querySelector('.ay-lista').innerHTML = hay.length ? hay.map(([g, p, r]) => `${g !== grupo ? `<p class="mini-et">${(grupo = g)}</p>` : ''}<details><summary>${p}</summary><p>${r}</p></details>`).join('')
-      : `<p class="ay-nada">${t('No encuentro nada con esas palabras. Prueba con otras, o escríbenos.', 'Nothing found. Try other words, or write to us.')}</p>`; };
-  cap.innerHTML = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button><h1>${t('Ayuda', 'Help')}</h1><input class="ay-busca" type="search" placeholder="${t('Busca tu duda', 'Search your question')}"><div class="ay-lista"></div>`;
-  document.body.appendChild(cap); pinta('');
-  cap.querySelector('.ay-busca').oninput = e => pinta(e.target.value);
-  cap.querySelector('.x').onclick = () => cap.remove();
+function abrirAyuda() { // 0.114: con el panel de Yo; cada grupo en su bloque y, al final, «Escríbenos»
+  abrirPanel(t('Ayuda', 'Help'), `<label class="pn-busca">${icY('ayuda')}<input type="search" placeholder="${t('Busca tu duda', 'Search your question')}"></label><div class="ay-lista"></div>`
+    + grupoP('', filaP({ tag: 'a', attr: 'href="mailto:app@tucloset.app"', ic: 'correo', tit: t('¿No lo encuentras? Escríbenos', 'Can’t find it? Write to us'), val: 'app@tucloset.app', flecha: false })), cap => {
+    const n = x => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const pinta = q => { const b = n(q || ''), hay = AYUDA.filter(([, p, r]) => !b || n(p + ' ' + r).includes(b)), grupos = [...new Set(hay.map(h => h[0]))];
+      cap.querySelector('.ay-lista').innerHTML = hay.length ? grupos.map(g => grupoP(g, hay.filter(h => h[0] === g).map(([, p, r]) => `<details class="pn-d"><summary>${p}<svg class="pn-fl" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><p>${r}</p></details>`).join(''))).join('')
+        : `<p class="ay-nada">${t('No encuentro nada con esas palabras. Prueba con otras, o escríbenos.', 'Nothing found. Try other words, or write to us.')}</p>`; };
+    pinta(''); cap.querySelector('.pn-busca input').oninput = e => pinta(e.target.value);
+  });
+}
+// 0.114 · Panel de opciones (Gabriela, 28/10: «sigo sin ver la opción de ajustes, básico en cualquier app… ubícate en un panel de opciones:
+// letra un poco más oscura, iconos, intuitivo, sin redundancias; las de ayuda, cuenta, más opciones tienen el mismo diseño soso, plano, cámbialos todo»).
+// Grupos con iconos: Tu cuenta, Ajustes, Privacidad y datos, Ayuda; lo que solo usamos para probar, plegado al final. Cuenta, Ayuda, Privacidad,
+// Idioma y Ciudad se abren con el mismo panel
+const IC_Y = {
+  cuenta: '<circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c1.2-3.6 3.8-5.4 7-5.4s5.8 1.8 7 5.4"/>',
+  plan: '<path d="M12 3.8l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.6l-5 2.6.9-5.6-4-3.9 5.6-.8z"/>',
+  ciudad: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  idioma: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5s1.2-6.1 3.6-8.5z"/>',
+  avisos: '<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  privacidad: '<rect x="5.5" y="10.5" width="13" height="9.5" rx="1"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+  ayuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.6"/><circle cx="12" cy="16.8" r=".7"/>',
+  correo: '<rect x="3.5" y="6" width="17" height="12" rx="1"/><path d="m4 7 8 6 8-6"/>',
+  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r=".7"/>',
+  nube: '<path d="M7 18h10a4 4 0 0 0 .6-8A5.5 5.5 0 0 0 7 9.5 4.3 4.3 0 0 0 7 18z"/>',
+  percha: '<path d="M12 7.5a1.8 1.8 0 1 1 1.8-1.8c0 1-.8 1.4-1.8 2.3v1.2L3.8 15.8a1 1 0 0 0 .6 1.7h15.2a1 1 0 0 0 .6-1.7L12 9.2"/>',
+  subir: '<path d="M12 15V4.5M7.5 9 12 4.5 16.5 9"/><path d="M5 15.5V19h14v-3.5"/>',
+  bajar: '<path d="M12 4.5V15M7.5 10.5 12 15l4.5-4.5"/><path d="M5 15.5V19h14v-3.5"/>',
+  salir: '<path d="M14 5H6v14h8"/><path d="M10.5 12H20M16.5 8.5 20 12l-3.5 3.5"/>',
+  borrar: '<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7"/>',
+  camara: '<path d="M4 8h3.5l1.5-2h6l1.5 2H20v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  probar: '<path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+  ok: '<path d="m5 12.5 4.5 4.5L19 7.5"/>'
+};
+const icY = k => `<svg class="pn-ic" viewBox="0 0 24 24" aria-hidden="true">${IC_Y[k] || ''}</svg>`;
+const filaP = ({ id, attr = '', ic, tit, val = '', rojo, flecha = true, apagada, oro, tag = 'button' }) => `<${tag} class="pn-f${rojo ? ' rojo' : ''}${apagada ? ' apagada' : ''}"${id ? ` id="${id}"` : ''} ${attr}>${ic ? icY(ic) : ''}<span class="pn-t">${tit}</span>${val !== '' ? `<span class="pn-v${oro ? ' oro' : ''}">${val}</span>` : ''}${flecha ? '<svg class="pn-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>' : ''}</${tag}>`;
+const grupoP = (tit, filas, nota) => `<section class="pn-g">${tit ? `<h2 class="pn-gt">${tit}</h2>` : ''}<div class="pn-c">${filas}</div>${nota ? `<p class="pn-nota">${nota}</p>` : ''}</section>`;
+function abrirPanel(tit, html, enlazar) {
+  document.querySelectorAll('.pn-capa').forEach(c => c.remove());
+  const cap = document.createElement('div'); cap.className = 'pn-capa';
+  cap.innerHTML = `<header class="pn-cab"><button class="pn-volver" aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h1>${tit}</h1><span></span></header><div class="pn-cuerpo">${html}</div>`;
+  document.body.appendChild(cap); cap.querySelector('.pn-volver').onclick = () => cap.remove();
+  if (enlazar) enlazar(cap); return cap;
+}
+function pintarPanelYo() {
+  const pf = E.perfil || {}, c = cuenta(), es = idioma() === 'en';
+  const ciudad = pf.ciudad || E.tiempo?.nombre || pf.lugar || t('tu ubicación', 'your location');
+  $('yo-panel').innerHTML =
+    grupoP(t('Tu cuenta', 'Your account'),
+      (NUBE ? filaP({ attr: 'data-ir="cuenta"', ic: 'cuenta', tit: t('Cuenta', 'Account'), val: c ? (c.correo || '') : t('Entrar o crear', 'Sign in or create') }) : '')
+      + filaP({ id: 'yo-plan-info', ic: 'plan', tit: t('Plan', 'Plan'), val: t('Prueba gratis', 'Free trial'), oro: true }))
+    + grupoP(t('Ajustes', 'Settings'),
+      filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
+      + filaP({ id: 'yo-idioma', ic: 'idioma', tit: t('Idioma', 'Language'), val: es ? 'English' : 'Español' })
+      + filaP({ id: 'yo-avisos', ic: 'avisos', tit: t('Notificaciones', 'Notifications'), val: t('Pronto', 'Soon'), flecha: false, apagada: true }))
+    + grupoP(t('Privacidad y datos', 'Privacy and data'),
+      filaP({ id: 'yo-privacidad', ic: 'privacidad', tit: t('Tus datos y permisos', 'Your data and permissions') }))
+    + grupoP(t('Ayuda', 'Help'),
+      filaP({ id: 'yo-ayuda', ic: 'ayuda', tit: t('Preguntas frecuentes', 'FAQ') })
+      + filaP({ tag: 'a', attr: 'href="mailto:app@tucloset.app"', ic: 'correo', tit: t('Escríbenos', 'Write to us'), val: 'app@tucloset.app', flecha: false })
+      + filaP({ ic: 'info', tit: t('Versión', 'Version'), val: ($('yo-version')?.textContent || '').split(' · ')[0].replace('TuCloset web ', ''), flecha: false, tag: 'div' }))
+    + `<details class="pn-pruebas"><summary>${t('Herramientas de prueba', 'Test tools')}</summary><div class="pn-c">`
+      + filaP({ attr: 'data-ir="diseno"', ic: 'probar', tit: t('Diseño (para decidir)', 'Design (to decide)'), val: `${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}` })
+      + filaP({ id: 'yo-plan', ic: 'probar', tit: t('Ver como', 'View as'), val: planDemo() === 'pro' ? 'Pro' : t('Básico', 'Basic'), flecha: false })
+      + filaP({ id: 'yo-closet', ic: 'probar', tit: t('Clóset', 'Closet'), val: CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes'), flecha: false })
+      + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))
+      + `</div></details>`;
+  $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
+  $('yo-avisos').onclick = () => toast(t('Las notificaciones llegarán con la app del móvil', 'Notifications will come with the mobile app'));
+  $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
+  $('yo-plan').onclick = () => { PLAN_URL = null; localStorage.setItem('tc_plan', planDemo() === 'pro' ? 'basico' : 'pro'); pintarYo(); toast(planDemo() === 'pro' ? t('Viendo la app como Pro', 'Viewing the app as Pro') : t('Viendo la app como Básico', 'Viewing the app as Basic')); };
+  if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
+}
+function panelIdioma() {
+  const op = (k, n) => filaP({ attr: `data-lng="${k}"`, tit: n, val: idioma() === k ? icY('ok') : '', flecha: false });
+  abrirPanel(t('Idioma', 'Language'), grupoP('', op('es', 'Español') + op('en', 'English')), cap => cap.onclick = async e => {
+    const b = e.target.closest('[data-lng]'); if (!b) return; E.perfil = E.perfil || {}; E.perfil.idioma = b.dataset.lng; try { localStorage.setItem('tc_idioma', b.dataset.lng); } catch (x) { }
+    await guardar(); traducir(); pintarYo(); cap.remove(); });
+}
+function panelCiudad() {
+  const pf = E.perfil || {};
+  abrirPanel(t('Ciudad para el tiempo', 'City for the weather'), `<label class="pn-campo"><span>${t('Ciudad', 'City')}</span><input id="pn-ciudad" type="text" autocomplete="address-level2" value="${(pf.ciudad || '').replace(/"/g, '&quot;')}" placeholder="${t('Por ejemplo, Madrid', 'For example, Madrid')}"></label>
+    <button class="boton" id="pn-ciudad-ok">${t('Guardar ciudad', 'Save city')}</button>${grupoP('', filaP({ id: 'pn-ubic', ic: 'ciudad', tit: t('Usar mi ubicación', 'Use my location'), flecha: false }), t('El tiempo de tu ciudad elige la ropa de cada día.', 'Your city’s weather picks each day’s clothes.'))}`, cap => {
+    const fin = async () => { await guardar(); await cargarTiempo(true); E.propuestas = []; pintarYo(); cap.remove(); };
+    cap.querySelector('#pn-ciudad-ok').onclick = async () => { const v = cap.querySelector('#pn-ciudad').value.trim(); if (!v) return toast(t('Escribe una ciudad', 'Type a city')); E.perfil = E.perfil || {}; Object.assign(E.perfil, { ciudad: v, lat: null, lon: null, lugar: '' }); await fin(); };
+    cap.querySelector('#pn-ubic').onclick = async () => { const g = await ubicacionMovil(true); if (!g) return toast(t('Sin permiso de ubicación: escribe la ciudad', 'No location permission: type the city')); E.perfil = E.perfil || {}; Object.assign(E.perfil, { ciudad: '' }, g); await fin(); };
+  });
+}
+function panelPlan() {
+  abrirPanel(t('Plan', 'Plan'), `<p class="pn-lema">${t('Estás en la prueba gratis de 7 días.', 'You are on the 7-day free trial.')}</p>`
+    + grupoP('', filaP({ tag: 'div', tit: t('Básico', 'Basic'), val: t('1,99 € al mes', '€1.99 a month'), flecha: false }) + `<p class="pn-txt">${t('Tu armario en orden, el look de cada día, los looks de la estilista, el calendario y el análisis de uso.', 'Your closet in order, the daily look, the stylist’s looks, the calendar and usage insights.')}</p>`)
+    + grupoP('', filaP({ tag: 'div', tit: 'Pro', val: t('4,99 € al mes', '€4.99 a month'), oro: true, flecha: false }) + `<p class="pn-txt">${t('Además, tu asesora de imagen: tus colores, tu silueta y la ropa que te favorece a partir de tus fotos, los looks puestos en ti y «Sácale partido».', 'Plus your image adviser: your colours, your figure and the clothes that suit you from your photos, looks on you and “Make the most of it”.')}</p>`)
+    + `<p class="pn-nota">${t('El pago llegará con la app del móvil. Mientras tanto, todo está abierto.', 'Payment will come with the mobile app. Until then, everything is open.')}</p>`);
+}
+async function panelPrivacidad() {
+  let ubic = t('Sin pedir', 'Not asked');
+  try { const r = await navigator.permissions.query({ name: 'geolocation' }); ubic = r.state === 'granted' ? t('Permitida', 'Allowed') : r.state === 'denied' ? t('Denegada', 'Denied') : ubic; } catch (e) { }
+  const c = cuenta();
+  abrirPanel(t('Tus datos y permisos', 'Your data and permissions'),
+    grupoP(t('Qué se guarda', 'What is kept'), `<ul class="pn-lista">
+      <li>${icY('nube')}<span>${c ? t('Tus prendas, sus fotos, tus looks y tu calendario se guardan en tu cuenta para verlos en cualquier móvil.', 'Your garments, their photos, your looks and your calendar are kept in your account so you can see them on any phone.') : t('Sin cuenta, todo se queda en este móvil.', 'Without an account, everything stays on this phone.')}</span></li>
+      <li>${icY('camara')}<span>${t('Tu selfie y tu foto de cuerpo no salen nunca de este móvil. El fondo de las fotos se quita aquí mismo.', 'Your selfie and body photo never leave this phone. Photo backgrounds are removed right here.')}</span></li>
+      <li>${icY('ciudad')}<span>${t('Tu ciudad o tu ubicación solo se usan para darte el tiempo.', 'Your city or location is only used for the weather.')}</span></li></ul>`)
+    + grupoP(t('Permisos', 'Permissions'), filaP({ tag: 'div', ic: 'ciudad', tit: t('Ubicación', 'Location'), val: ubic, flecha: false }) + filaP({ tag: 'div', ic: 'camara', tit: t('Cámara', 'Camera'), val: t('Solo al subir fotos', 'Only when uploading'), flecha: false }),
+      t('Los permisos se cambian en los ajustes del navegador o del móvil.', 'Permissions are changed in your browser or phone settings.'))
+    + grupoP(t('Tus datos', 'Your data'), filaP({ id: 'pv-exportar', ic: 'bajar', tit: t('Descargar una copia', 'Download a copy'), flecha: false })
+      + filaP({ tag: 'label', ic: 'subir', tit: t('Recuperar una copia', 'Restore a copy'), flecha: false, attr: 'id="pv-importar"' }).replace('</label>', '<input type="file" accept="application/json,.json" hidden></label>')
+      + filaP({ id: 'pv-borrar', ic: 'borrar', tit: t('Borrar todo de este móvil', 'Delete everything from this phone'), rojo: true, flecha: false })
+      + (c ? filaP({ id: 'pv-cuenta', ic: 'borrar', tit: t('Borrar mi cuenta', 'Delete my account'), rojo: true, flecha: false }) : '')),
+    cap => {
+      cap.querySelector('#pv-exportar').onclick = exportar;
+      cap.querySelector('#pv-importar input').onchange = e => e.target.files[0] && importar(e.target.files[0]);
+      cap.querySelector('#pv-borrar').onclick = async () => { if (await confirmar(t('¿Borrar todo?', 'Delete everything?'), t('Prendas, fotos, conjuntos y usos de este móvil. Lo que esté en tu cuenta no se borra.', 'Garments, photos, outfits and uses on this phone. What is in your account is not deleted.'), t('Borrar todo', 'Delete all'))) { for (const k of await BD.claves()) await BD.del(k); localStorage.removeItem('tc_tiempo'); location.reload(); } };
+      if (cap.querySelector('#pv-cuenta')) cap.querySelector('#pv-cuenta').onclick = async () => { await borrarCuenta(); cap.remove(); pintarYo(); };
+    });
 }
 // 0.99 (Gabriela, 24/10: «rediseña el perfil de yo, muy cargado y poco estético»): nombre y una línea, una frase sobre el clóset,
 // tres filas de lo mío (silueta, estilo, colores), los ajustes de diario y lo técnico plegado en «Más opciones»
@@ -2088,27 +2208,7 @@ function pintarYo() {
   $('yo-lista').innerHTML = ent('data-ir="silueta"', t('Mi silueta', 'My figure'), sil)
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? ests.map(min).join(t(' y ', ' and ')) : t('elígelo', 'choose it'))
     + ent('id="yo-colores"', t('Mis colores', 'My colours'), colO ? min(colO.n[es]) : t('por descubrir', 'to discover'));
-  $('yo-ajustes').innerHTML = (NUBE ? `<button data-ir="cuenta">${t('Cuenta', 'Account')}</button>` : '')
-    + `<button id="yo-ciudad">${t('Ciudad', 'City')}</button><button id="yo-idioma">${idioma() === 'en' ? 'Español' : 'English'}</button><button id="yo-ayuda">${t('Ayuda', 'Help')}</button>`;
-  $('yo-mas-t').textContent = t('Más opciones', 'More options');
-  $('yo-tecnico').innerHTML = `<div class="item">${t('Suscripción', 'Subscription')}<span class="valor">${t('Prueba · versión web', 'Trial · web version')}</span></div>` + fila('id="yo-ciudad2"', t('Ciudad para el tiempo', 'City for the weather'), pf.ciudad || E.tiempo?.nombre || pf.lugar || t('tu ubicación', 'your location'), false, false) + fila('data-ir="diseno"', t('Diseño (para decidir)', 'Design (to decide)'), `${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}`)
-    + fila('id="yo-plan"', t('Plan (para enseñarlo)', 'Plan (demo)'), planDemo() === 'pro' ? t('Pro · tu avatar', 'Pro · your avatar') : t('Básico', 'Basic'), false, false)
-    + fila('id="yo-closet"', t('Clóset', 'Closet'), `${CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes')} · ${t('cambiar', 'switch')}`, false, false)
-    + fila('id="yo-exportar"', t('Guardar una copia de mis datos', 'Save a copy of my data'), '', false, false)
-    + `<label class="item" id="yo-importar">${t('Recuperar una copia', 'Restore a copy')}<span class="valor"></span><input type="file" accept="application/json,.json" hidden></label>`
-    + (PUBLICA ? '' : fila('id="yo-ejemplo"', E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), '', false, false))
-    + fila('id="yo-borrar"', t('Borrar todo de este móvil', 'Delete everything from this phone'), '', false, false);
-  $('yo-idioma').onclick = async () => { E.perfil = E.perfil || {}; E.perfil.idioma = idioma() === 'en' ? 'es' : 'en'; localStorage.setItem('tc_idioma', E.perfil.idioma); await guardar(); traducir(); pintarYo(); };
-  $('yo-ciudad').onclick = async () => { const c = prompt(t('Ciudad para el tiempo (déjalo vacío para usar tu ubicación)', 'City for the weather (leave empty to use your location)'), pf.ciudad || ''); if (c === null) return; E.perfil = E.perfil || {}; E.perfil.ciudad = c.trim(); E.perfil.lat = E.perfil.lon = null; E.perfil.lugar = '';
-    if (!E.perfil.ciudad) { const g = await ubicacionMovil(true); if (g) Object.assign(E.perfil, g); else toast(t('Sin permiso de ubicación: escribe la ciudad', 'No location permission: type the city')); }
-    await guardar(); await cargarTiempo(true); E.propuestas = []; pintarYo(); };
-  $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
-  $('yo-plan').onclick = () => { PLAN_URL = null; localStorage.setItem('tc_plan', planDemo() === 'pro' ? 'basico' : 'pro'); pintarYo(); toast(planDemo() === 'pro' ? t('Pro: tu avatar con el conjunto', 'Pro: your avatar') : t('Básico: el conjunto en el maniquí', 'Basic: the outfit on the mannequin')); };
-  $('yo-ayuda').onclick = abrirAyuda; $('yo-ciudad2').onclick = () => $('yo-ciudad').click();
-  $('yo-exportar').onclick = exportar;
-  $('yo-importar').querySelector('input').onchange = e => e.target.files[0] && importar(e.target.files[0]);
-  if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
-  $('yo-borrar').onclick = async () => { if (await confirmar(t('¿Borrar todo?', 'Delete everything?'), t('Prendas, fotos, conjuntos y usos de este navegador. No se puede deshacer.', 'Garments, photos, outfits and uses in this browser. Cannot be undone.'), t('Borrar todo', 'Delete all'))) { for (const k of await BD.claves()) await BD.del(k); localStorage.removeItem('tc_tiempo'); location.reload(); } };
+  pintarPanelYo();
   $('yo-colores').onclick = () => ir('colores');
 }
 // 0.45 (Sheila, 22/10: «necesito seguir trabajando con mi misma base de datos… que cada vez que actualizas la versión guarde mi base de datos»):
@@ -2274,7 +2374,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
-  if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); } await subirNube(); } catch (e) { } }, 800); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
+  if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); } await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();

@@ -1322,3 +1322,71 @@ img{-webkit-user-drag:none}
 .ag .ag-dia{margin-top:14px;padding-top:14px;border-top:1px solid var(--linea);border-bottom:0}
 .ag .ag-dia h3{justify-content:center;text-align:center;font-size:21px;margin-bottom:6px}
 .ag-rep button{font-size:12.5px}
+
+/* ===== 0.114 (Gabriela, 28/10) ===== */
+/* «la letra de selección no se nota la diferencia cuando seleccionas algo, sigue estando muy claro, sobre todo en la barra de abajo»: grises más oscuros y lo elegido marcado */
+:root{--sec:#57473B;--ter:#76665A;--suave2:#8E7F74}
+.tabs button{color:#8E7F74;position:relative}
+.tabs button span:not(.ic){font-size:9px!important;letter-spacing:.12em}
+.tabs button.activo{color:var(--tinta)}
+.tabs button.activo span:not(.ic){font-weight:600}
+.tabs button.activo svg{stroke-width:1.9}
+.tabs button.activo::before{content:'';position:absolute;top:-8px;left:50%;width:26px;height:2px;margin-left:-13px;background:var(--oro)}
+.hz-ops button{color:var(--sec);font-weight:400}
+.hz-ops button.on,.lk-ocs button.on,.mc-cats button.activo{color:var(--tinta);font-weight:600;text-decoration:underline;text-decoration-color:var(--oro);text-decoration-thickness:1.5px;text-underline-offset:5px}
+.mc-cats button,.lk-ocs button{color:var(--sec)}
+/* panel de opciones (Yo, Cuenta, Ayuda, Privacidad, Idioma, Ciudad, Plan) */
+#p-yo .y3-aj,#p-yo .yo-plegado{display:none}
+.pn-g{margin-top:26px;text-align:left}
+.pn-gt{font-family:var(--f);font-size:10.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--sec);margin:0 4px 8px}
+.pn-c{border:1px solid var(--linea);background:#fff}
+.pn-f{display:flex;align-items:center;gap:14px;width:100%;min-height:54px;padding:12px 14px;background:none;border:0;border-top:1px solid var(--linea);font:inherit;color:var(--tinta);text-align:left;text-decoration:none;cursor:pointer}
+.pn-c>.pn-f:first-child,.pn-c>:first-child.pn-f{border-top:0}
+.pn-f:active{background:#FAF7F3}
+.pn-ic{width:21px;height:21px;flex:none;fill:none;stroke:var(--tinta);stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.pn-ic circle[r=".7"]{fill:var(--tinta)}
+.pn-t{flex:1;min-width:0;font-size:15.5px;font-weight:400;color:var(--tinta)}
+.pn-v{font-size:13.5px;font-weight:400;color:var(--sec);max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-flex;align-items:center}
+.pn-v.oro{color:var(--oro-t)}
+.pn-v .pn-ic{stroke:var(--oro);stroke-width:2}
+.pn-fl{width:15px;height:15px;flex:none;fill:none;stroke:var(--oro);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.pn-f.rojo,.pn-f.rojo .pn-t{color:#8E3B2E}.pn-f.rojo .pn-ic{stroke:#8E3B2E}
+.pn-f.apagada .pn-t,.pn-f.apagada .pn-ic{opacity:.55}
+.pn-nota{font-size:12.5px;color:var(--sec);line-height:1.5;margin:8px 4px 0}
+.pn-txt{font-size:14px;color:var(--sec);line-height:1.5;padding:0 14px 14px 14px;margin:0}
+.pn-lema{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:19px;text-align:center;color:var(--tinta);margin:6px 0 0}
+.pn-lista{list-style:none;margin:0;padding:6px 14px}
+.pn-lista li{display:flex;gap:14px;align-items:flex-start;padding:10px 0;font-size:14px;line-height:1.5;color:var(--tinta)}
+.pn-lista li+li{border-top:1px solid var(--linea)}
+.pn-lista .pn-ic{margin-top:1px}
+.pn-pruebas{margin-top:30px}
+.pn-pruebas summary{list-style:none;text-align:center;font-size:12.5px;color:var(--sec);padding:10px;cursor:pointer}
+.pn-pruebas summary::-webkit-details-marker{display:none}
+.pn-pruebas .pn-t{font-size:14px;color:var(--sec)}.pn-pruebas .pn-ic{stroke:var(--sec)}
+#p-yo #yo-panel{margin-top:30px;padding-top:4px;border-top:1px solid var(--linea)}
+#p-yo .nota{color:var(--sec)}
+.pn-capa{position:fixed;inset:0;z-index:90;background:#fff;overflow-y:auto;padding:0 18px calc(30px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+@media (min-width:700px){.pn-capa{left:50%;width:390px;margin-left:-195px;top:50%;height:820px;max-height:calc(100vh - 48px);transform:translateY(-50%)}}
+.pn-cab{position:sticky;top:0;z-index:2;background:#fff;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;padding:calc(14px + env(safe-area-inset-top)) 0 10px;border-bottom:1px solid var(--linea)}
+.pn-cab h1{font-family:var(--f-marca);font-weight:400;font-size:24px;text-align:center;color:var(--tinta);margin:0}
+.pn-volver{width:44px;height:44px;display:grid;place-items:center;background:none;border:0;cursor:pointer}
+.pn-volver svg{width:22px;height:22px;fill:none;stroke:var(--tinta);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.pn-cuerpo{max-width:420px;margin:0 auto;padding-bottom:20px}
+.pn-cuerpo>.boton{margin-top:14px}
+.pn-campo{display:block;margin-top:24px}.pn-campo span{display:block;font-size:12px;font-weight:500;color:var(--sec);margin-bottom:6px}
+.pn-campo input{width:100%;height:50px;border:1px solid var(--linea2);border-radius:0;padding:0 14px;font:400 16px var(--f);color:var(--tinta);-webkit-appearance:none}
+.pn-busca{display:flex;align-items:center;gap:10px;margin-top:20px;padding:0 14px;height:48px;border:1px solid var(--linea2)}
+.pn-busca input{flex:1;border:0;outline:0;font:400 16px var(--f);color:var(--tinta);background:none;-webkit-appearance:none}
+.pn-d{border-top:1px solid var(--linea)}.pn-c>.pn-d:first-child{border-top:0}
+.pn-d summary{list-style:none;display:flex;align-items:center;gap:12px;padding:14px;font-size:15px;font-weight:400;color:var(--tinta);cursor:pointer}
+.pn-d summary::-webkit-details-marker{display:none}
+.pn-d summary .pn-fl{margin-left:auto;transition:transform .2s}.pn-d[open] summary .pn-fl{transform:rotate(90deg)}
+.pn-d p{margin:0;padding:0 14px 16px;font-size:14px;line-height:1.55;color:var(--sec)}
+.ay-nada{text-align:center;color:var(--sec);font-size:14px;margin-top:24px}
+/* Cuenta y Mis colores: la cabecera, como el panel */
+#p-cuenta .cab .et,#p-colores .cab .et{font-family:var(--f-marca);font-size:24px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--tinta)}
+.cu-cab{display:grid;justify-items:center;gap:4px;margin:26px 0 4px}
+.cu-ini{width:64px;height:64px;border-radius:50%;border:1px solid var(--oro);display:grid;place-items:center;font-family:var(--f-marca);font-style:normal;font-size:30px;color:var(--oro-t);margin-bottom:8px}
+.cu-cab b{font-family:var(--f-marca);font-weight:400;font-size:26px;color:var(--tinta)}
+.cu-cab span{font-size:14px;color:var(--sec)}
+.ay-lista{max-width:none;margin:0}.ay-lista .pn-d,.pn-c .pn-d{margin:0;border-bottom:0}.ay-lista .pn-g:first-child{margin-top:22px}
