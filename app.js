@@ -147,12 +147,26 @@ async function api(ruta, op = {}) {
 const sinBlobs = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => !(v instanceof Blob)));
 const firma = b => b ? b.size + ':' + (b.type || '') : '';
 // el servidor admite fotos de hasta 1,9 MB: las más grandes se rehacen en WebP (conserva el fondo transparente)
+// 0.113 (Gabriela, 28/10: en su iPhone tenía 29 prendas y en la cuenta 25; el iPhone entraba en la cuenta pero no subía nada): Safari no siempre
+// abre con createImageBitmap las fotos de la cámara y no sabe hacer WebP (devuelve PNG, más pesado); ahora se abre también con <img> y,
+// si el WebP no sale, se hace JPEG sobre blanco
+async function abrirImagen(b) {
+  try { return await createImageBitmap(b); } catch (e) { }
+  const u = URL.createObjectURL(b); try { const im = new Image(); im.src = u; await im.decode(); return im; } finally { setTimeout(() => URL.revokeObjectURL(u), 1000); }
+}
 async function aptaNube(b) {
   if (b.size <= 1.8e6) return b;
-  const bm = await createImageBitmap(b); let k = Math.min(1, 1400 / Math.max(bm.width, bm.height)), out = b;
-  for (let i = 0; i < 4 && out.size > 1.8e6; i++, k *= .8) { const c = document.createElement('canvas'); c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k); c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height); out = await new Promise(r => c.toBlob(r, 'image/webp', .85)); }
+  const bm = await abrirImagen(b), W = bm.naturalWidth || bm.width, H = bm.naturalHeight || bm.height; let k = Math.min(1, 1400 / Math.max(W, H)), out = b;
+  for (let i = 0; i < 5 && out.size > 1.8e6; i++, k *= .8) {
+    const c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k); const x = c.getContext('2d');
+    x.drawImage(bm, 0, 0, c.width, c.height); let o = await new Promise(r => c.toBlob(r, 'image/webp', .85));
+    if (!o || o.type !== 'image/webp') { x.globalCompositeOperation = 'destination-over'; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); o = await new Promise(r => c.toBlob(r, 'image/jpeg', .85)); }
+    if (o) out = o;
+  }
   return out;
 }
+// si algo falla al guardar en la nube, se avisa al servidor con el paso y el error (sin datos de la prenda), para poder arreglarlo
+const avisarFallo = (paso, e, b) => { try { fetch(API + '/api/aviso?d=' + encodeURIComponent(`${paso}|${String(e?.message || e).slice(0, 160)}|${b ? (b.type || '?') + ':' + b.size : ''}`)).catch(() => { }); } catch (x) { } };
 function docLocal() {
   return { perfil: sinBlobs(E.perfil), conjuntos: E.conjuntos, agenda: E.agenda, borradas: JSON.parse(LS.get('tc_nube_borradas') || '[]'),
     prendas: E.prendas.filter(p => !p.ejemplo).map(p => ({ ...sinBlobs(p), conFoto: !!p.foto, conOriginal: !!p.original })) };
@@ -168,18 +182,19 @@ async function subirNube(reintento) {
       // borradas desde la última subida: se apuntan para que los otros móviles también las quiten, y su foto se borra del servidor
       const antes = JSON.parse(LS.get('tc_nube_ids') || '[]'), ahora = E.prendas.filter(p => !p.ejemplo).map(p => p.id);
       const fuera = antes.filter(id => !ahora.includes(id)); if (fuera.length) { const b = new Set(JSON.parse(LS.get('tc_nube_borradas') || '[]')); fuera.forEach(id => b.add(id)); LS.set('tc_nube_borradas', JSON.stringify([...b].slice(-2000))); for (const id of fuera) { api('/api/foto/' + id, { method: 'DELETE' }).catch(() => { }); api('/api/foto/' + id + '-o', { method: 'DELETE' }).catch(() => { }); } }
-      let cambio = false;
+      let cambio = false, fallos = 0;
       for (const p of E.prendas) {
         if (p.ejemplo) continue;
-        if (p.foto && p.fotoSub !== firma(p.foto)) { const fb = await aptaNube(p.foto); const r = await api('/api/foto/' + p.id, { method: 'PUT', body: fb, headers: { 'Content-Type': fb.type || 'image/jpeg' } }); if (!r.ok) throw new Error('foto'); p.fotoSub = firma(p.foto); p.nube = Date.now().toString(36); cambio = true; } // nube = marca de la versión subida; fotoSub = qué foto local se subió
-        if (p.original && p.fotoSubO !== firma(p.original)) { const ob = await aptaNube(p.original); const r = await api('/api/foto/' + p.id + '-o', { method: 'PUT', body: ob, headers: { 'Content-Type': ob.type || 'image/jpeg' } }); if (r.ok) { p.fotoSubO = firma(p.original); p.nubeO = Date.now().toString(36); cambio = true; } }
+        // 0.113: una foto que no sube ya no frena las demás ni los datos; se reintenta en la próxima subida
+        if (p.foto && p.fotoSub !== firma(p.foto)) { try { const fb = await aptaNube(p.foto); const r = await api('/api/foto/' + p.id, { method: 'PUT', body: fb, headers: { 'Content-Type': fb.type || 'image/jpeg' } }); if (!r.ok) throw new Error('foto ' + r.status); p.fotoSub = firma(p.foto); p.nube = Date.now().toString(36); cambio = true; } catch (e) { fallos++; avisarFallo('foto', e, p.foto); } } // nube = marca de la versión subida; fotoSub = qué foto local se subió
+        if (p.original && p.fotoSubO !== firma(p.original)) { try { const ob = await aptaNube(p.original); const r = await api('/api/foto/' + p.id + '-o', { method: 'PUT', body: ob, headers: { 'Content-Type': ob.type || 'image/jpeg' } }); if (!r.ok) throw new Error('original ' + r.status); p.fotoSubO = firma(p.original); p.nubeO = Date.now().toString(36); cambio = true; } catch (e) { avisarFallo('original', e, p.original); } }
       }
       if (cambio) await BD.set('prendas', E.prendas);
       const r = await api('/api/datos', { method: 'PUT', json: { doc: docLocal(), version: +(LS.get('tc_nube_ver') || 0) } });
       if (r.status === 409 && !reintento) { await bajarNube(); nubeEnCurso = null; return subirNube(true); }
       if (!r.ok) throw new Error('datos ' + r.status);
-      const d = await r.json(); LS.set('tc_nube_ver', d.version); LS.set('tc_nube_ids', JSON.stringify(ahora)); LS.set('tc_nube_cuando', d.actualizado); E.nube = { estado: 'ok', cuando: d.actualizado };
-    } catch (e) { E.nube.estado = 'error'; }
+      const d = await r.json(); LS.set('tc_nube_ver', d.version); LS.set('tc_nube_ids', JSON.stringify(ahora)); LS.set('tc_nube_cuando', d.actualizado); E.nube = { estado: fallos ? 'error' : 'ok', cuando: d.actualizado };
+    } catch (e) { E.nube.estado = 'error'; avisarFallo('datos', e); }
     pintarCuentaSiToca();
   })();
   try { await nubeEnCurso; } finally { nubeEnCurso = null; }
