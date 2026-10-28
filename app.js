@@ -455,7 +455,7 @@ function medirTodas() {
     try {
       const pend = E.prendas.filter(p => (!p.caja || p.cajaV !== 3) && (p.foto || p.src)); let n = 0;
       for (const p of pend) { try { p.caja = await medirFoto(p); p.cajaV = 3; n++; } catch (e) { p.caja = null; } }
-      if (n) { if (E.prendas.some(p => !p.src)) await Promise.race([guardar(), new Promise(r => setTimeout(r, 3000))]).catch(() => { }); E.propuestas = []; try { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); } catch (e) { } }
+      if (n) { if (E.prendas.some(p => !p.src)) await Promise.race([guardar(), new Promise(r => setTimeout(r, 3000))]).catch(() => { }); E.propuestas = []; cuandoQuieto(() => { try { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); } catch (e) { } }); }
     } finally { midiendo = null; }
   })();
   return midiendo;
@@ -467,6 +467,12 @@ function medirTodas() {
 // medido con la CPU 6 veces más lenta, esto se rehacía con las 25 fotos en cada apertura (más de 8 s de cálculo). Ahora se guarda en el móvil
 // (almacén «alfas»: id → firma de la foto y resultado, aparte de las prendas, que se rehacen al juntarlas con la nube) y solo se rehace si cambia
 // la foto; primero las piezas que hay en pantalla y dejando respirar entre una y otra
+// 0.117 (Gabriela, 28/10: «no sé si le di a un botón o no»): un repintado que llega solo (tiempo, nube, medidas) mientras el dedo está
+// apoyado cambiaba el botón bajo el dedo y el toque se perdía; ahora espera a que termine el toque (como mucho 1,5 s)
+let dedo = 0;
+addEventListener('pointerdown', () => { dedo = Date.now(); }, true);
+for (const ev of ['click', 'pointercancel']) addEventListener(ev, () => setTimeout(() => { dedo = 0; }, 0));
+const cuandoQuieto = f => { if (!dedo || Date.now() - dedo > 1500) return f(); setTimeout(() => cuandoQuieto(f), 80); };
 const alfa = new Map(), alfaPide = new Set(); let alfando = null, alfaSucio = false, alfaCache = null;
 async function hacerAlfa(p) {
   const f = p.foto ? firma(p.foto) : '', g = f && alfaCache?.get(p.id);
@@ -489,21 +495,25 @@ async function hacerAlfa(p) {
   x.putImageData(d, 0, 0);
   const bl = await new Promise(r => c.toBlob(r, 'image/png')); if (f && bl && alfaCache) { alfaCache.set(p.id, { f, b: bl }); alfaSucio = true; } return URL.createObjectURL(bl);
 }
+async function guardarAlfas() { alfaSucio = false; const vivas = new Set(E.prendas.map(p => p.id)); await BD.set('alfas', Object.fromEntries([...alfaCache].filter(([id]) => vivas.has(id)))).catch(() => { }); }
 function alfasTodas() {
   if (alfando) return alfando;
   alfando = (async () => {
     await 0; // 0.97: el mismo fallo que en medirTodas (con nada pendiente, «alfando» se quedaba ocupado para siempre)
-    const repinta = () => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); else if (E.pantalla === 'look' && typeof repintarLook === 'function') repintarLook(); };
+    // 0.117 (Gabriela, 28/10: «no sé si le di a un botón o no»): antes se redibujaba la pantalla entera y, si coincidía con un toque, el toque se perdía;
+    // ahora solo se cambia la foto de cada pieza que ya está en pantalla
+    const repinta = () => { for (const el of document.querySelectorAll('.pz[data-pz]:not(.op)')) { const u = alfa.get(el.dataset.pz); if (u) { el.style.backgroundImage = `url('${u}')`; el.classList.add('op'); } } };
     try {
       if (!alfaCache) { let o = null; try { o = await BD.get('alfas'); } catch (e) { } alfaCache = new Map(Object.entries(o || {})); }
       const pend = E.prendas.filter(p => !alfa.has(p.id) && (p.foto || p.src)).sort((a, b) => alfaPide.has(b.id) - alfaPide.has(a.id));
       let n = 0, pintado = false;
       for (const p of pend) {
         try { alfa.set(p.id, await hacerAlfa(p)); n++; } catch (e) { alfa.set(p.id, null); }
-        alfaPide.delete(p.id); if (n && !pintado && !alfaPide.size) { pintado = true; repinta(); }
+        alfaPide.delete(p.id); repinta(); pintado = true;
+        if (alfaSucio && n % 4 === 0) await guardarAlfas(); // por el camino: si se cierra la app a medias, lo hecho no se pierde
         await new Promise(r => setTimeout(r, 0));
       }
-      if (alfaSucio) { alfaSucio = false; const vivas = new Set(E.prendas.map(p => p.id)); await BD.set('alfas', Object.fromEntries([...alfaCache].filter(([id]) => vivas.has(id)))).catch(() => { }); }
+      if (alfaSucio) await guardarAlfas();
       if (n && !pintado) repinta();
     } finally { alfando = null; }
   })();
@@ -513,7 +523,7 @@ const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:$
   if (!p.caja) return `<img src="${urlFoto(p)}" alt="" style="${pos}">`;
   const [a, b, c, d] = p.caja, cw = c - a, ch = d - b;
   const u = alfa.get(p.id); if (!alfa.has(p.id)) { alfaPide.add(p.id); setTimeout(alfasTodas, 0); }
-  return `<i class="pz${u ? ' op' : ''}" style="${pos};background-image:url('${u || urlFoto(p)}');background-size:${100 / cw}% ${100 / ch}%;background-position:${cw < 1 ? a / (1 - cw) * 100 : 0}% ${ch < 1 ? b / (1 - ch) * 100 : 0}%"></i>`; };
+  return `<i class="pz${u ? ' op' : ''}" data-pz="${p.id}" style="${pos};background-image:url('${u || urlFoto(p)}');background-size:${100 / cw}% ${100 / ch}%;background-position:${cw < 1 ? a / (1 - cw) * 100 : 0}% ${ch < 1 ? b / (1 - ch) * 100 : 0}%"></i>`; };
 // 0.32 · presentación «collage» (Sheila, 22/10: «inspírate en esto para presentar los looks», dos referencias tipo Pinterest):
 // el look en una columna (arriba tocando la pieza de abajo), y a un lado el bolso arriba, los accesorios en medio y el calzado abajo.
 // Se activa con ?comp=collage (queda guardado); la simétrica (Eje/Cruz, cerrada por Gabriela el 20/10) sigue por defecto hasta que ella decida.
@@ -889,7 +899,8 @@ function estilista(ps, T) {
   const arr = ps.filter(p => p.tipo === 'Arriba'), ab = ps.find(p => p.tipo === 'Abajo'), base = arr.find(p => estDe(p).rol !== 'capa_ligera'), capa = ps.some(p => p.tipo === 'Abrigo' || (p.tipo === 'Arriba' && estDe(p).rol === 'capa_ligera' && !/chaleco/i.test(p.nombre)));
   const r = { veto: null, puntos: 0 }, ropa = ps.filter(p => !['Calzado', 'Bolsos', 'Accesorios'].includes(p.tipo));
   if (arr.length && !base) return (r.veto = 'Necesita algo debajo', r);                                              // A5 / G3
-  if (ropa.filter(p => estDe(p).estampado !== 'liso').length > 1) return (r.veto = 'Dos estampados juntos', r);       // G1
+  const estp = ropa.filter(p => estDe(p).estampado !== 'liso'); // 0.117 (Gabriela, 28/10: «1. a»): un conjunto del mismo tejido cuenta como uno
+  if (estp.length > 1 && !(estp.length === 2 && estDe(estp[0]).conjunto === estp[1].id)) return (r.veto = 'Dos estampados juntos', r);       // G1
   const forms = ropa.map(p => estDe(p).form || 3); if (Math.max(...forms) - Math.min(...forms) >= 3) return (r.veto = 'No son del mismo plan', r); // G11
   if (T != null) for (const p of ropa) {                                                                              // E1–E3
     const e = estDe(p), tmin = (e.tmin ?? -50) - (capa ? 6 : 0), tmax = e.tmax ?? 50;
@@ -902,7 +913,7 @@ function estilista(ps, T) {
     if (vt >= 2 && vb >= 2) return (r.veto = 'Dos volúmenes', r);                                                    // B1 / G2
     if ((vt >= 2 && vb <= 1) || (vt <= 1 && vb >= 2)) r.puntos += vt === 3 ? .8 : .6;                                 // B2
     const tiro = b.tiro || 'medio', largo = t.largo || 'cintura', body = /body/i.test(base.nombre);
-    if (tiro === 'bajo' && largo === 'crop' && !body && cinturaPref() !== '1') return (r.veto = 'Deja la cintura al aire', r); // G12 (blando: lo quita «me gusta enseñar la cintura»)
+    if (largo === 'crop' && !body && (tiro === 'bajo' && cinturaPref() !== '1' || tiro === 'medio' && cinturaPref() === '0')) return (r.veto = 'Deja la cintura al aire', r); // G12 (blando: lo quita «me gusta enseñar la cintura»)
     r.puntos += ({ alto: { crop: 1, cintura: .8, cadera: vt <= 1 ? .4 : 0, largo: -1 }, medio: { crop: .4, cintura: .6, cadera: .4, largo: -.6 }, bajo: { crop: 0, cintura: -1.5, cadera: .8, largo: .8 } }[tiro] || {})[largo] || 0; // B3–B10
     if (b.corte === 'acampanado' && vt <= 1) r.puntos += .4;                                                          // B11
   }
@@ -912,7 +923,7 @@ function estilista(ps, T) {
 function zapatoIdeal(ps, T) {
   const ab = ps.find(p => p.tipo === 'Abajo'), b = ab ? estDe(ab) : {}, f = Math.max(...ps.map(p => estDe(p).form || 2));
   const oscuro = ps.some(p => /Negro|Gris|Azul/.test(p.color || '')) || f >= 3, vaquero = /vaquer|jean/i.test(ab?.nombre || '');
-  let k = b.corte === 'acampanado' ? 'botines_tacon' : T != null && T <= 14 ? 'botines' : f >= 3 ? 'mocasines' : 'zapatillas';
+  let k = b.corte === 'acampanado' ? (taconBajo() ? 'botines' : 'botines_tacon') : T != null && T <= 14 ? 'botines' : f >= 3 ? 'mocasines' : 'zapatillas';
   if (T != null && T >= 26 && k === 'botines') k = 'mocasines';
   const col = k === 'zapatillas' ? (vaquero && f <= 2 ? ['blancas', 'white'] : oscuro ? ['negras', 'black'] : ['blancas', 'white']) : oscuro ? ['negros', 'black'] : ['marrones', 'brown'];
   return { k, col };
@@ -929,6 +940,7 @@ function afinZapato(z, ps, T) {
   if ({ negros: /Negro/, negras: /Negro/, blancas: /Blanco|Crudo|Beige/, marrones: /Marr[oó]n|Camel|Beige/ }[col[0]]?.test(z.color || '')) s += .4;
   if (T != null && fam === 'sandalias' && T < 20) s -= 3;
   if (T != null && fam === 'botines' && T >= 26) s -= 2;
+  if (taconBajo() && /stiletto|tac[oó]n alto|high heel/.test(n)) s -= 2;
   return s;
 }
 function zapatoSugerido(ps, T) {
@@ -951,7 +963,7 @@ function claveMuestra(ps, spec) {
   if (spec?.tipo) {
     const c = (spec.color || '').toLowerCase(), tx = (spec.texto || '').toLowerCase(), ta = spec.tacon;
     if (spec.tipo === 'zapatillas') return /blanc/.test(c) ? 'zapatillas-blancas' : 'zapatillas-negras';
-    if (spec.tipo === 'botines') return /camel|marr/.test(c) ? 'botines-camel-plataforma' : /plataforma/.test(tx) ? 'botines-negros-plataforma' : ta === 'plano' ? 'botines-negros-planos' : 'botines-negros-tacon';
+    if (spec.tipo === 'botines') return /camel|marr/.test(c) ? 'botines-camel-plataforma' : /plataforma/.test(tx) ? 'botines-negros-plataforma' : ta === 'plano' || ta === 'bajo' || taconBajo() ? 'botines-negros-planos' : 'botines-negros-tacon';
     if (spec.tipo === 'mocasines') return 'mocasines-negros';
     if (spec.tipo === 'bailarinas') return 'bailarinas-negras';
     if (spec.tipo === 'sandalias') return /beige/.test(c) ? 'sandalias-beige-plataforma' : /marr/.test(c) ? 'sandalias-marrones-planas' : ['medio', 'alto'].includes(ta) && !/plataforma/.test(tx) ? 'sandalias-negras-tacon' : 'sandalias-negras-planas';
@@ -1085,7 +1097,7 @@ function ir(nombre, datos) {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('activo', b.dataset.ir === tab));
   $('tabs').classList.toggle('oculta', SIN_TABS.includes(nombre));
   const el = $('p-' + nombre); if (el) el.scrollTop = 0;
-  if (nombre === 'hoy' && !E.tiempo) cargarTiempo().then(() => E.pantalla === 'hoy' && pintarHoy());
+  if (nombre === 'hoy' && !E.tiempo) cargarTiempo().then(() => cuandoQuieto(() => E.pantalla === 'hoy' && pintarHoy()));
 }
 
 /* ---------- HOY ---------- */
@@ -1146,7 +1158,7 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   // 0.112: si a primera hora hace fresco y el conjunto no lleva nada encima porque no hay chaquetas subidas, se dice
   const minimo = w ? (w.min ?? w.t) : null, sinCapa = w && w.t <= 19 && minimo <= 12 && !ps.some(p => p.tipo === 'Abrigo' || esCapa(p)) && !activas().some(p => p.tipo === 'Abrigo' || esCapa(p));
   const figura = avatar ? `<img src="${avatar}" alt="${t('Tú con el conjunto', 'You wearing the outfit')}">` : maniqui(psZ);
-  const oc = (c && c.ocasion) || pr.ocasion || ocasionDe(ps);
+  const oc = planHoy && !E.hoyFalta && pr.tipo !== 'conjunto' ? planHoy : (c && c.ocasion) || pr.ocasion || ocasionDe(ps); // 0.117 (Gabriela, 28/10: «no me deja seleccionar ninguna más allá de diario»): manda el plan elegido
   const flechas = lista.length > 1 ? `<div class="hz-flechas"><button id="hoy-ant" aria-label="${t('Anterior', 'Previous')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><button id="hoy-sig" aria-label="${t('Otro', 'Next')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>` : '';
   pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}<button class="hz-fav${esFav(pr.ids) ? ' on' : ''}" id="hoy-fav" aria-label="${t('Favorito', 'Favourite')}" aria-pressed="${esFav(pr.ids)}"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>${pieLook(psZ)}<button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button>${sinCapa ? `<button class="hz-zap" data-ir="subir">${t(`A primera hora, ${minimo}°: llévate una chaqueta. Sube las tuyas y te las combino`, `Early on, ${minimo}°: take a jacket. Upload yours and I’ll match them`)}</button>` : ''}${muestra && !avatar ? `<button class="hz-zap" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: upload yours')}</button>` : ''}</div></div>`; // 0.103: siempre zapatos (sugeridos si no hay) // 0.97 (Gabriela, 24/10: «no ha recomendado zapatos»: no tenía ninguno subido)
   // 0.66 (Sheila, 23/10: «cuida que no sucedan estas cosas»: el aviso quedaba debajo del abrigo): la escena empieza donde acaba la cabecera
@@ -2387,11 +2399,11 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   const REPASO = q.get('repaso') === '1' || (q.get('repaso') !== '0' && !cuenta() && !E.prendas.length); // 0.48 (Gabriela, 22/10: «cada vez que abra la app, salgan todos los pasos con posibilidad de siguiente página»): mientras diseñamos, se entra siempre por la bienvenida y los pasos del alta; ?repaso=0 vuelve a lo de una usuaria real (directo a Hoy)
   const destino = q.get('pantalla') || (REPASO || !(E.perfil?.alta || E.prendas.length) ? 'inicio' : 'hoy');
   if (E.perfil) { if (E.perfil.nombre) $('a-nombre').value = E.perfil.nombre; if (E.perfil.ciudad) $('a-ciudad').value = E.perfil.ciudad; } // en el repaso no se pierde lo ya puesto
-  if (destino !== 'inicio') { const tc = cargarTiempo(); await Promise.race([tc, new Promise(r => setTimeout(r, 1200))]); tc.then(() => { if (E.pantalla === 'hoy') pintarHoy(); }).catch(() => { }); } // 0.96: no se espera al tiempo más de 1,2 s; cuando llega, se repinta Hoy
+  if (destino !== 'inicio') { const tc = cargarTiempo(); await Promise.race([tc, new Promise(r => setTimeout(r, 1200))]); tc.then(() => cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); })).catch(() => { }); } // 0.96: no se espera al tiempo más de 1,2 s; cuando llega, se repinta Hoy
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
-  if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); } await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
+  if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
@@ -2468,8 +2480,10 @@ function pintarEstilo() {
     // 0.108 · «Enseñar la cintura» (Gabriela, 28/10: «12. sí»): preferencia de estilo, saltable, guardada solo en este móvil
     + `<div class="es-cint"><h3 class="es-tit">${t('Un detalle más', 'One more thing')}</h3><p>${t('¿Te gusta enseñar la cintura?', 'Do you like showing your waist?')}</p><div>${[['1', t('Sí', 'Yes')], ['0', t('No', 'No')]].map(([v, n]) => `<button data-cintura="${v}" class="${cinturaPref() === v ? 'on' : ''}">${n}</button>`).join('')}</div><span class="es-d">${t('Así sabemos si proponerte tops cortos con pantalones de tiro bajo.', 'So we know whether to suggest crop tops with low-rise trousers.')}</span></div>`;
 }
-const cinturaPref = () => { try { return localStorage.getItem('tc_cintura') || ''; } catch (e) { return ''; } };
-document.addEventListener('click', e => { const b = e.target.closest('[data-cintura]'); if (!b) return; try { localStorage.setItem('tc_cintura', cinturaPref() === b.dataset.cintura ? '' : b.dataset.cintura); } catch (er) { } E.propuestas = []; pintarEstilo(); });
+// 0.117 (Gabriela, 28/10: «7. b»): la preferencia vive en el perfil (viaja con la cuenta); localStorage queda de reserva
+const cinturaPref = () => { const v = E.perfil?.cintura; if (v === '1' || v === '0') return v; try { return localStorage.getItem('tc_cintura') || ''; } catch (e) { return ''; } };
+const taconBajo = () => E.perfil?.tacon === 'bajo'; // 0.117 (Gabriela, 28/10: «6. a y b»: plano o hasta 3 cm)
+document.addEventListener('click', e => { const b = e.target.closest('[data-cintura]'); if (!b) return; const v = cinturaPref() === b.dataset.cintura ? '' : b.dataset.cintura; E.perfil.cintura = v; try { localStorage.setItem('tc_cintura', v); } catch (er) { } guardar(); E.propuestas = []; pintarEstilo(); });
 document.addEventListener('click', e => { const b = e.target.closest('[data-esfam]'); if (!b) return; E.esFam = +b.dataset.esfam; pintarEstilo(); });
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-estilo]'); if (!b) return;
