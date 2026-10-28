@@ -28,7 +28,7 @@ const hoyISO = () => new Date().toISOString().slice(0, 10);
 const TIPOS = ['Arriba', 'Abajo', 'Vestidos', 'Abrigo', 'Calzado', 'Bolsos', 'Accesorios'];
 const ESTACIONES = ['Todo el año', 'Verano', 'Entretiempo', 'Invierno'];
 const OCASIONES = ['Diario', 'Oficina', 'Noche', 'Deporte', 'Evento', 'Viaje'];
-const COLORES = [['Negro', '#1B1B1B'], ['Blanco', '#F4F4F4'], ['Gris', '#8E8E8E'], ['Beige', '#D8C7A8'], ['Camel', '#B98A4F'], ['Marrón', '#6B4A2B'], ['Rojo', '#B4332E'], ['Rosa', '#E6B4BC'], ['Naranja', '#D97B3A'], ['Amarillo', '#E1C04A'], ['Verde', '#4E7A4A'], ['Azul claro', '#8FB2CC'], ['Azul', '#2F4E7A'], ['Morado', '#6E4C86'], ['Estampado', 'repeating-linear-gradient(45deg,#C9A24B 0 6px,#fff 6px 12px)']];
+const COLORES = [['Negro', '#1B1B1B'], ['Blanco', '#F4F4F4'], ['Gris', '#8E8E8E'], ['Beige', '#D8C7A8'], ['Crema', '#F1E8D6'], ['Camel', '#B98A4F'], ['Marrón', '#6B4A2B'], ['Rojo', '#B4332E'], ['Burdeos', '#6E1F2B'], ['Rosa', '#E6B4BC'], ['Naranja', '#D97B3A'], ['Terracota', '#B8603F'], ['Amarillo', '#E1C04A'], ['Mostaza', '#C9962B'], ['Verde', '#4E7A4A'], ['Caqui', '#8A8358'], ['Azul claro', '#8FB2CC'], ['Azul', '#2F4E7A'], ['Morado', '#6E4C86'], ['Lila', '#B9A3CF'], ['Estampado', 'repeating-linear-gradient(45deg,#C9A24B 0 6px,#fff 6px 12px)']];
 
 /* ---------- idioma ---------- */
 const T = {
@@ -91,10 +91,10 @@ const PREG_COLOR = [
   ['tono', ['Tu piel y tu pelo, en conjunto', 'Your skin and hair, overall'], [['cl', 'Claros', 'Light'], ['me', 'Medios', 'Medium'], ['os', 'Oscuros', 'Deep']]],
   ['contraste', ['Entre tu piel, tu pelo y tus ojos hay…', 'Between your skin, hair and eyes there is…'], [['al', 'Mucho contraste', 'High contrast'], ['ba', 'Poco contraste', 'Low contrast']]]];
 const EST_COLOR = {
-  primavera: { n: ['Primavera', 'Spring'], d: ['Cálida y luminosa: colores vivos y claros, con un punto dorado.', 'Warm and bright: clear, light colours with a golden touch.'], si: ['Camel', 'Beige', 'Amarillo', 'Naranja', 'Verde', 'Azul claro', 'Rosa'], no: ['Negro', 'Gris', 'Morado'], hex: ['#F2C9A0', '#F4A582', '#E8C547', '#8DBF6A', '#7FB8D6', '#F28C8C', '#C9A24B'] },
-  verano: { n: ['Verano', 'Summer'], d: ['Fría y suave: tonos empolvados, grises azulados y pasteles.', 'Cool and soft: dusty shades, blue greys and pastels.'], si: ['Rosa', 'Azul claro', 'Gris', 'Morado', 'Azul', 'Blanco'], no: ['Naranja', 'Amarillo', 'Camel'], hex: ['#D9A6B5', '#9DB4CF', '#A7A9B8', '#9C89B8', '#5F7FA8', '#E8E4EA', '#7A8C99'] },
-  otono: { n: ['Otoño', 'Autumn'], d: ['Cálida y profunda: tierras, mostaza, verde oliva y teja.', 'Warm and deep: earth tones, mustard, olive and rust.'], si: ['Camel', 'Marrón', 'Verde', 'Naranja', 'Beige', 'Amarillo', 'Rojo'], no: ['Rosa', 'Gris', 'Azul claro'], hex: ['#B98A4F', '#6B4A2B', '#6B7A3A', '#C2662D', '#D8C7A8', '#C9A227', '#9C3A2A'] },
-  invierno: { n: ['Invierno', 'Winter'], d: ['Fría e intensa: blanco y negro, colores puros y contraste.', 'Cool and intense: black and white, pure colours and contrast.'], si: ['Negro', 'Blanco', 'Rojo', 'Azul', 'Morado', 'Gris', 'Rosa'], no: ['Beige', 'Camel', 'Naranja', 'Marrón'], hex: ['#1B1B1B', '#F7F7F7', '#B4122E', '#1F3F8A', '#5B2A86', '#C2185B', '#8E8E8E'] } };
+  primavera: { n: ['Primavera', 'Spring'], d: ['Cálida y luminosa: colores vivos y claros, con un punto dorado.', 'Warm and bright: clear, light colours with a golden touch.'], si: ['Camel', 'Beige', 'Crema', 'Amarillo', 'Naranja', 'Verde', 'Azul claro', 'Rosa'], no: ['Negro', 'Gris', 'Morado', 'Burdeos'], hex: ['#F2C9A0', '#F4A582', '#E8C547', '#8DBF6A', '#7FB8D6', '#F28C8C', '#C9A24B'] },
+  verano: { n: ['Verano', 'Summer'], d: ['Fría y suave: tonos empolvados, grises azulados y pasteles.', 'Cool and soft: dusty shades, blue greys and pastels.'], si: ['Rosa', 'Azul claro', 'Gris', 'Morado', 'Lila', 'Azul', 'Blanco'], no: ['Naranja', 'Amarillo', 'Mostaza', 'Terracota', 'Camel'], hex: ['#D9A6B5', '#9DB4CF', '#A7A9B8', '#9C89B8', '#5F7FA8', '#E8E4EA', '#7A8C99'] },
+  otono: { n: ['Otoño', 'Autumn'], d: ['Cálida y profunda: tierras, mostaza, verde oliva y teja.', 'Warm and deep: earth tones, mustard, olive and rust.'], si: ['Camel', 'Marrón', 'Verde', 'Caqui', 'Naranja', 'Terracota', 'Mostaza', 'Burdeos', 'Beige', 'Crema', 'Amarillo', 'Rojo'], no: ['Rosa', 'Gris', 'Azul claro', 'Lila'], hex: ['#B98A4F', '#6B4A2B', '#6B7A3A', '#C2662D', '#D8C7A8', '#C9A227', '#9C3A2A'] },
+  invierno: { n: ['Invierno', 'Winter'], d: ['Fría e intensa: blanco y negro, colores puros y contraste.', 'Cool and intense: black and white, pure colours and contrast.'], si: ['Negro', 'Blanco', 'Rojo', 'Burdeos', 'Azul', 'Morado', 'Gris', 'Rosa'], no: ['Beige', 'Crema', 'Camel', 'Naranja', 'Terracota', 'Mostaza', 'Caqui', 'Marrón'], hex: ['#1B1B1B', '#F7F7F7', '#B4122E', '#1F3F8A', '#5B2A86', '#C2185B', '#8E8E8E'] } };
 function estacionColor(r) {
   const temp = ['venas', 'metal'].reduce((a, k) => a + (r[k] === 'c' ? 1 : r[k] === 'f' ? -1 : 0), 0);
   const fuerte = r.contraste === 'al' || r.tono === 'os', claro = r.tono === 'cl' || r.contraste === 'ba';
@@ -286,13 +286,16 @@ function colorCercano(r, g, b) { // nombre del color por tono, saturación y luz
   if (l < .28 && sat < .4) return 'Negro';
   if (sat < .13 || (l > .86 && sat < .3)) return l < .45 ? 'Gris' : 'Blanco';
   // 0.89: con sus fotos, un rojo granate muy saturado salía marrón, un rosa empolvado salía rojo y un mostaza salía marrón
-  if (h < 15 || h >= 335) return l > .62 || (sat < .35 && l > .35) ? 'Rosa' : l < .3 && sat < .6 ? 'Marrón' : 'Rojo';
-  if (h >= 30 && h < 42 && sat > .75 && l > .18 && l < .6) return 'Amarillo';
+  // 0.108 (Gabriela, 28/10: «13. sí sí claro»): seis colores más del estilista: burdeos, terracota, mostaza, crema, caqui y lila
+  if (l > .84 && sat >= .13 && h >= 25 && h < 65) return 'Crema';
+  if (h >= 8 && h < 28 && sat > .35 && sat < .75 && l >= .3 && l < .52) return 'Terracota';
+  if (h < 15 || h >= 335) return l > .62 || (sat < .35 && l > .35) ? 'Rosa' : l < .3 && sat < .6 ? 'Marrón' : l < .36 ? 'Burdeos' : 'Rojo';
+  if (h >= 30 && h < 42 && sat > .75 && l > .18 && l < .6) return l < .5 ? 'Mostaza' : 'Amarillo';
   if (h < 42) return sat > .55 && l > .35 && l < .7 ? 'Naranja' : l < .32 ? 'Marrón' : l > .6 ? 'Beige' : 'Camel';
-  if (h < 68) return sat > .45 && l < .8 ? 'Amarillo' : 'Beige';
-  if (h < 170) return 'Verde';
+  if (h < 68) return sat > .45 && l < .8 ? (l < .47 ? 'Mostaza' : 'Amarillo') : l < .5 ? 'Caqui' : 'Beige';
+  if (h < 170) return h < 110 && sat < .35 && l < .55 ? 'Caqui' : 'Verde';
   if (h < 255) return l > .55 || sat < .35 ? 'Azul claro' : 'Azul';
-  return l < .6 ? 'Morado' : 'Rosa';
+  return l < .55 ? 'Morado' : h < 300 ? 'Lila' : 'Rosa';
 }
 
 /* ---------- estilo de la app, plan de demostración, color del conjunto y maniquí ---------- */
@@ -576,7 +579,7 @@ const estacionesAptas = () => { const tmp = E.tiempo?.t; if (tmp == null) return
    (2) estilo: no mezclar deportivo con noche (zapatillas con vestido de fiesta); (3) el calzado y el bolso se eligen para cada conjunto
    (neutros, del mismo tono o del color del conjunto); (4) abrigo si hace frío; (5) que salga lo que menos te pones;
    (6) en el Pro, con tu tipo de cuerpo, se ordenan primero los que te favorecen. */
-const NEUTROS = new Set(['Negro', 'Blanco', 'Gris', 'Beige', 'Camel', 'Marrón', 'Azul claro', 'Azul']);
+const NEUTROS = new Set(['Negro', 'Blanco', 'Gris', 'Beige', 'Crema', 'Camel', 'Marrón', 'Caqui', 'Azul claro', 'Azul']);
 const CASAN = new Set(['Rosa|Azul claro', 'Rosa|Gris', 'Rojo|Azul', 'Rojo|Azul claro', 'Amarillo|Azul', 'Amarillo|Azul claro', 'Naranja|Azul', 'Verde|Camel', 'Verde|Beige', 'Morado|Gris', 'Rosa|Rojo', 'Verde|Azul claro', 'Rosa|Verde']);
 const CHOCAN = new Set(['Rojo|Naranja', 'Rojo|Verde', 'Morado|Amarillo', 'Morado|Naranja', 'Naranja|Rosa', 'Amarillo|Rosa', 'Rojo|Morado', 'Naranja|Verde']);
 const par = (a, b) => [a, b].sort().join('|');
@@ -782,7 +785,7 @@ function estilista(ps, T) {
     if (vt >= 2 && vb >= 2) return (r.veto = 'Dos volúmenes', r);                                                    // B1 / G2
     if ((vt >= 2 && vb <= 1) || (vt <= 1 && vb >= 2)) r.puntos += vt === 3 ? .8 : .6;                                 // B2
     const tiro = b.tiro || 'medio', largo = t.largo || 'cintura', body = /body/i.test(base.nombre);
-    if (tiro === 'bajo' && largo === 'crop' && !body && !E.perfil?.cintura) return (r.veto = 'Deja la cintura al aire', r); // G12 (blando: lo quita «me gusta enseñar la cintura»)
+    if (tiro === 'bajo' && largo === 'crop' && !body && cinturaPref() !== '1') return (r.veto = 'Deja la cintura al aire', r); // G12 (blando: lo quita «me gusta enseñar la cintura»)
     r.puntos += ({ alto: { crop: 1, cintura: .8, cadera: vt <= 1 ? .4 : 0, largo: -1 }, medio: { crop: .4, cintura: .6, cadera: .4, largo: -.6 }, bajo: { crop: 0, cintura: -1.5, cadera: .8, largo: .8 } }[tiro] || {})[largo] || 0; // B3–B10
     if (b.corte === 'acampanado' && vt <= 1) r.puntos += .4;                                                          // B11
   }
@@ -816,7 +819,36 @@ function zapatoSugerido(ps, T) {
   const nom = { botines_tacon: ['botines de tacón', 'heeled ankle boots'], botines: ['botines de tacón bajo', 'low-heeled ankle boots'], mocasines: ['mocasines', 'loafers'], zapatillas: ['zapatillas', 'trainers'] }[k];
   return en ? `${col[1]} ${nom[1]}` : `${nom[0]} ${col[0]}`.replace('botines de tacón bajo negros', 'botines negros de tacón bajo').replace('botines de tacón negros', 'botines negros de tacón');
 }
+// 0.109 · Looks de la estilista (Gabriela, 28/10: «quiero a un agente experto experto experto en moda, que sea quien arme y diseñe los outfits»;
+// «que haya ciencia detrás de cada outfit»). Los diseña la Dirección de Moda para cada clóset (perfil.estilista.looks: arriba, capa, abajo, zapato,
+// temperatura, ocasión y el porqué) y salen primero; el generador automático solo rellena lo que falte
+function zapatoPara(spec, ps) {
+  if (!spec) return null; let mejor = null, mp = 0;
+  for (const z of activas().filter(p => p.tipo === 'Calzado')) {
+    const n = `${z.nombre || ''} ${z.x || ''}`.toLowerCase(), tipo = (spec.tipo || '').toLowerCase().replace(/s$/, '').replace(/e$/, '');
+    let s = (tipo && n.includes(tipo.slice(0, 5)) ? 1.2 : 0) + (spec.color && (z.color || '').toLowerCase().startsWith(spec.color.slice(0, 4)) ? .5 : 0) + afinZapato(z, ps, E.tiempo?.t) * .3;
+    if (s > mp) { mp = s; mejor = z; }
+  }
+  return mejor;
+}
+function looksEstilista(n, plan) {
+  const L = E.perfil?.estilista?.looks || [], T = E.tiempo?.t, act = new Set(activas().map(p => p.id)), usados = new Map(), out = [];
+  const cands = L.filter(l => !l.duda && [l.arriba, l.capa, l.abajo].filter(Boolean).every(id => act.has(id)) && (T == null || (T >= l.tmin - 1 && T <= l.tmax + 1)))
+    .map(l => { const ps = [l.arriba, l.capa, l.abajo].filter(Boolean).map(P); const z = zapatoPara(l.zapato, ps); if (z) ps.push(z); return { l, ps, nota: puntuar(ps) - Math.random() * .8 }; })
+    .filter(c => !plan || plan === 'Todos' || c.l.ocasion === plan || sirvePara(c.ps, c.l.ocasion, plan)).sort((a, b) => b.nota - a.nota);
+  for (const tope of [1, 2]) for (const c of cands) {
+    if (out.length >= n) break; if (out.some(o => o.idE === c.l.id) || (usados.get(c.l.arriba) || 0) >= tope) continue;
+    usados.set(c.l.arriba, (usados.get(c.l.arriba) || 0) + 1);
+    out.push({ prin: c.l.arriba, ids: c.ps.map(p => p.id), ocasion: c.l.ocasion, nombre: `${ocNombre(c.l.ocasion)} ${t('con', 'with')} ${P(c.l.arriba).nombre.charAt(0).toLowerCase() + P(c.l.arriba).nombre.slice(1)}`, zapato: c.ps.some(p => p.tipo === 'Calzado') ? null : c.l.zapato?.texto, porque: c.l.porque, estilista: true, idE: c.l.id });
+  }
+  return out;
+}
 function generarLooks(n, plan) {
+  const est = looksEstilista(n, plan); if (est.length >= n) return est;
+  const claves = new Set(est.map(l => [...l.ids].sort().join()));
+  return [...est, ...generarLooksAuto(n, plan).filter(l => !claves.has([...l.ids].sort().join()))].slice(0, n);
+}
+function generarLooksAuto(n, plan) {
   const aptas = estacionesAptas(); const act = activas().filter(p => aptas.includes(p.estacion));
   const de = tp => act.filter(p => p.tipo === tp);
   const arriba = de('Arriba'), abajo = de('Abajo'), vestidos = de('Vestidos'), calzado = de('Calzado'), abrigos = de('Abrigo'), bolsos = de('Bolsos');
@@ -882,12 +914,12 @@ function proponer() {
   const conj = E.conjuntos.filter(c => c.ids.every(id => act.some(p => p.id === id)) && (E.plan === 'Todos' || (c.ocasion || 'Diario') === E.plan));
   const props = conj.map(c => ({ tipo: 'conjunto', c, ids: c.ids }));
   const dia = E.agenda[diaISO(new Date())]; if (dia?.look?.length && dia.look.every(P)) props.unshift({ tipo: 'agenda', ids: dia.look, ocasion: dia.planes?.[0]?.oc });
-  for (const g of generarLooks(4, E.plan)) if (!props.some(x => x.ids.join() === g.ids.join())) props.push({ tipo: 'propuesta', ids: g.ids, nombre: g.nombre, ocasion: g.ocasion });
+  for (const g of generarLooks(4, E.plan)) if (!props.some(x => x.ids.join() === g.ids.join())) props.push({ tipo: 'propuesta', ids: g.ids, nombre: g.nombre, ocasion: g.ocasion, zapato: g.zapato, porque: g.porque, est: g.estilista });
   // «No me gusta»: un look propuesto no vuelve; uno guardado por ella o el del calendario solo se aparta por hoy
   const g = E.perfil?.gustos, clave = ids => [...ids].sort().join();
   const fuera = x => x.tipo !== 'agenda' && (g?.fuera?.includes(clave(x.ids)) || (g?.hoy?.d === hoyISO() && g.hoy.k.includes(clave(x.ids))));
   // 0.70: con la regla de no repetir, también los looks guardados se ordenan por puntos (lo puesto hace poco baja; los favoritos, mucho menos)
-  const nota = x => x.tipo === 'agenda' ? 99 : puntuar(x.ids.map(P).filter(Boolean)) + (x.tipo === 'conjunto' ? 1 : 0);
+  const nota = x => x.tipo === 'agenda' ? 99 : puntuar(x.ids.map(P).filter(Boolean)) + (x.tipo === 'conjunto' ? 1 : 0) + (x.est ? 2 : 0);
   E.propuestas = props.filter(x => !fuera(x)).map(x => [nota(x), x]).sort((a, b) => b[0] - a[0]).map(e => e[1]); if (E.hoyIdx >= E.propuestas.length) E.hoyIdx = 0;
 }
 // 0.42 (Sheila, 22/10: «si no lo hace la usuaria, la asistente virtual le debe preguntar a dónde vamos hoy y sugerirle»):
@@ -931,7 +963,7 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   const figura = avatar ? `<img src="${avatar}" alt="${t('Tú con el conjunto', 'You wearing the outfit')}">` : maniqui(ps);
   const oc = (c && c.ocasion) || pr.ocasion || ocasionDe(ps);
   const flechas = lista.length > 1 ? `<div class="hz-flechas"><button id="hoy-ant" aria-label="${t('Anterior', 'Previous')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><button id="hoy-sig" aria-label="${t('Otro', 'Next')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>` : '';
-  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}<button class="hz-fav${esFav(pr.ids) ? ' on' : ''}" id="hoy-fav" aria-label="${t('Favorito', 'Favourite')}" aria-pressed="${esFav(pr.ids)}"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>${pr.ids.map(P).some(p => p?.tipo === 'Calzado') ? '' : `<p class="hz-zapato">${t('Con', 'With')} ${zapatoSugerido(pr.ids.map(P).filter(Boolean), E.tiempo?.t)}</p>`}<button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button>${activas().some(p => p.tipo === 'Calzado') ? '' : `<button class="hz-zap" data-ir="subir">${t('Sube tus zapatos para verlos aquí', 'Upload your shoes to see them here')}</button>`}</div></div>`; // 0.103: siempre zapatos (sugeridos si no hay) // 0.97 (Gabriela, 24/10: «no ha recomendado zapatos»: no tenía ninguno subido)
+  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}<button class="hz-fav${esFav(pr.ids) ? ' on' : ''}" id="hoy-fav" aria-label="${t('Favorito', 'Favourite')}" aria-pressed="${esFav(pr.ids)}"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>${pr.ids.map(P).some(p => p?.tipo === 'Calzado') ? '' : `<p class="hz-zapato">${t('Con', 'With')} ${pr.zapato || zapatoSugerido(pr.ids.map(P).filter(Boolean), E.tiempo?.t)}</p>`}${pr.porque ? `<p class="hz-porque">${pr.porque}</p>` : ''}<button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button>${activas().some(p => p.tipo === 'Calzado') ? '' : `<button class="hz-zap" data-ir="subir">${t('Sube tus zapatos para verlos aquí', 'Upload your shoes to see them here')}</button>`}</div></div>`; // 0.103: siempre zapatos (sugeridos si no hay) // 0.97 (Gabriela, 24/10: «no ha recomendado zapatos»: no tenía ninguno subido)
   // 0.66 (Sheila, 23/10: «cuida que no sucedan estas cosas»: el aviso quedaba debajo del abrigo): la escena empieza donde acaba la cabecera
   const cabH = pant.querySelector('.hz-cab'), escH = pant.querySelector('.hz-escena');
   if (escH && cabH) { const fija = () => { if (cabH.offsetHeight) escH.style.top = Math.max(118, cabH.offsetHeight + 12) + 'px'; }; fija(); setTimeout(fija, 300); new ResizeObserver(fija).observe(cabH); } // también cuando la pantalla se hace visible // 0.67 (Sheila: «se superpone la prenda a la letra»): siempre bajo la cabecera, mida lo que mida
@@ -1674,7 +1706,7 @@ function pintarLooks() {
   const cab = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
     <div class="mc-cats lk-tabs"><button class="${ideas || E.lkTab === 'cal' ? '' : 'activo'}" data-lktab="mios">${t('Mis looks', 'My looks')}</button><button class="${ideas ? 'activo' : ''}" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="${E.lkTab === 'cal' ? 'activo' : ''}" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>
     ${ideas || ocs.length < 3 ? '' : `<div class="lk-ocs">${ocs.map(o => `<button class="${o === E.lkOc ? 'on' : ''}" data-lkoc="${o}">${o === 'Todo' ? t('Todo', 'All') : ocNombre(o)}</button>`).join('')}</div>`}`;
-  const zap = c => c.ids.map(P).some(p => p?.tipo === 'Calzado') ? '' : `<span class="lk-zap">${t('con', 'with')} ${zapatoSugerido(c.ids.map(P).filter(Boolean), E.tiempo?.t)}</span>`; // 0.103
+  const zap = c => c.ids.map(P).some(p => p?.tipo === 'Calzado') ? '' : `<span class="lk-zap">${t('con', 'with')} ${c.zapato || zapatoSugerido(c.ids.map(P).filter(Boolean), E.tiempo?.t)}</span>${c.porque ? `<span class="lk-por">${c.porque}</span>` : ''}`; // 0.103; 0.109 con el zapato y el porqué de la estilista
   const pie = c => ideas ? `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span>${zap(c)}<span class="lk-acc"><button data-gguardar="${c.i}">${t('Guardar', 'Save')}</button><button data-ghoy="${c.i}">${t('Me lo pongo', 'Wear it')}</button></span>`
     : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span><span class="lk-us">${usosTxt(c)}</span>`;
   const abre = c => ideas ? '' : ` data-look="${c.id}"`;
@@ -2044,8 +2076,12 @@ function pintarEstilo() {
   $('es-sub').textContent = t('¿Con cuál te identificas? Elige uno o dos.', 'Which one feels like you? Pick one or two.');
   // 0.74 (Gabriela, 23/10: «hay 4 estilos solamente, ¿no debería haber más?»): los 13 a la vista, por familias, sin pestañas
   $('es-lista').innerHTML = FAMILIAS.map((f, i) => `<h3 class="es-tit">${f[es]}</h3><div class="es-rej">${ESTILOS.filter(x => x.f === i).map(x => `<button class="${el.includes(x.k) ? 'on' : ''}" data-estilo="${x.k}"><span class="es-tela">${x.c.map(c => `<i style="background:${c}"></i>`).join('')}</span><b>${x.n[es]}</b><span class="es-d">${x.d[es]}</span></button>`).join('')}</div>`).join('')
-    + `<p class="es-cuenta">${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(t(' y ', ' and ')) || '&nbsp;'}</p>`;
+    + `<p class="es-cuenta">${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(t(' y ', ' and ')) || '&nbsp;'}</p>`
+    // 0.108 · «Enseñar la cintura» (Gabriela, 28/10: «12. sí»): preferencia de estilo, saltable, guardada solo en este móvil
+    + `<div class="es-cint"><h3 class="es-tit">${t('Un detalle más', 'One more thing')}</h3><p>${t('¿Te gusta enseñar la cintura?', 'Do you like showing your waist?')}</p><div>${[['1', t('Sí', 'Yes')], ['0', t('No', 'No')]].map(([v, n]) => `<button data-cintura="${v}" class="${cinturaPref() === v ? 'on' : ''}">${n}</button>`).join('')}</div><span class="es-d">${t('Así sabemos si proponerte tops cortos con pantalones de tiro bajo.', 'So we know whether to suggest crop tops with low-rise trousers.')}</span></div>`;
 }
+const cinturaPref = () => { try { return localStorage.getItem('tc_cintura') || ''; } catch (e) { return ''; } };
+document.addEventListener('click', e => { const b = e.target.closest('[data-cintura]'); if (!b) return; try { localStorage.setItem('tc_cintura', cinturaPref() === b.dataset.cintura ? '' : b.dataset.cintura); } catch (er) { } E.propuestas = []; pintarEstilo(); });
 document.addEventListener('click', e => { const b = e.target.closest('[data-esfam]'); if (!b) return; E.esFam = +b.dataset.esfam; pintarEstilo(); });
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-estilo]'); if (!b) return;
