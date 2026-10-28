@@ -721,9 +721,9 @@ function anotarGusto(ids, clave) {
   if (!E.perfil) return; const g = E.perfil.gustos = E.perfil.gustos || { si: {}, no: {} }; g[clave] = g[clave] || {};
   parejas(ids.map(P).filter(Boolean)).forEach(k => { g[clave][k] = (g[clave][k] || 0) + 1; });
 }
-function mejorAcompanante(lista, base) { // calzado o bolso que mejor puntúa con la base
+function mejorAcompanante(lista, base, extra) { // calzado o bolso que mejor puntúa con la base
   let mejor = null, mp = -Infinity;
-  for (const x of lista) { const v = puntuar([...base, x]) - Math.random() * .6; if (v > mp) { mp = v; mejor = x; } }
+  for (const x of lista) { const v = puntuar([...base, x]) + (extra ? extra(x) : 0) - Math.random() * .6; if (v > mp) { mp = v; mejor = x; } }
   return mejor;
 }
 const sinMangas = p => (p.tipo === 'Arriba' || p.tipo === 'Vestidos') && /^top\b|chaleco|tirantes|body|sin mangas|halter|crop|tank|vest\b|bodysuit/i.test(p.nombre || '');
@@ -788,12 +788,30 @@ function estilista(ps, T) {
   return r;
 }
 // F10: zapato sugerido (solo tipo y color, sin tiendas) mientras no haya calzado subido
-function zapatoSugerido(ps, T) {
-  const ab = ps.find(p => p.tipo === 'Abajo'), b = ab ? estDe(ab) : {}, f = Math.max(...ps.map(p => estDe(p).form || 2)), en = idioma() === 'en';
+function zapatoIdeal(ps, T) {
+  const ab = ps.find(p => p.tipo === 'Abajo'), b = ab ? estDe(ab) : {}, f = Math.max(...ps.map(p => estDe(p).form || 2));
   const oscuro = ps.some(p => /Negro|Gris|Azul/.test(p.color || '')) || f >= 3, vaquero = /vaquer|jean/i.test(ab?.nombre || '');
   let k = b.corte === 'acampanado' ? 'botines_tacon' : T != null && T <= 14 ? 'botines' : f >= 3 ? 'mocasines' : 'zapatillas';
   if (T != null && T >= 26 && k === 'botines') k = 'mocasines';
   const col = k === 'zapatillas' ? (vaquero && f <= 2 ? ['blancas', 'white'] : oscuro ? ['negras', 'black'] : ['blancas', 'white']) : oscuro ? ['negros', 'black'] : ['marrones', 'brown'];
+  return { k, col };
+}
+// 0.106 (Gabriela, 28/10: «me ponen con letra los zapatos que debo llevar en lugar de los que ya tengo»): con zapatos subidos, el estilista
+// elige entre los suyos el que más se parece al ideal (familia, tacón y color) y nunca sandalias con frío ni botas con calor
+function afinZapato(z, ps, T) {
+  const { k, col } = zapatoIdeal(ps, T), n = `${z.nombre || ''} ${z.x || ''}`.toLowerCase();
+  const fam = /bot[ií]n|bota|boot/.test(n) ? 'botines' : /mocas|loafer|oxford|bailarin|ballet|derby|sal[oó]n|stiletto|pump/.test(n) ? 'mocasines' : /zapatilla|deportiv|sneaker|trainer|tenis/.test(n) ? 'zapatillas' : /sandal|chancl|flip|mule|zueco/.test(n) ? 'sandalias' : '';
+  let s = 0;
+  if (fam && fam === k.replace('_tacon', '')) s += 1.2;
+  if (k === 'botines_tacon' && /tac[oó]n|heel/.test(n)) s += .6;
+  if (k === 'botines_tacon' && /sal[oó]n|stiletto|pump|tac[oó]n/.test(n) && fam !== 'zapatillas') s += .8; // con acampanado vale cualquier zapato de tacón
+  if ({ negros: /Negro/, negras: /Negro/, blancas: /Blanco|Crudo|Beige/, marrones: /Marr[oó]n|Camel|Beige/ }[col[0]]?.test(z.color || '')) s += .4;
+  if (T != null && fam === 'sandalias' && T < 20) s -= 3;
+  if (T != null && fam === 'botines' && T >= 26) s -= 2;
+  return s;
+}
+function zapatoSugerido(ps, T) {
+  const en = idioma() === 'en', { k, col } = zapatoIdeal(ps, T);
   const nom = { botines_tacon: ['botines de tacón', 'heeled ankle boots'], botines: ['botines de tacón bajo', 'low-heeled ankle boots'], mocasines: ['mocasines', 'loafers'], zapatillas: ['zapatillas', 'trainers'] }[k];
   return en ? `${col[1]} ${nom[1]}` : `${nom[0]} ${col[0]}`.replace('botines de tacón bajo negros', 'botines negros de tacón bajo').replace('botines de tacón negros', 'botines negros de tacón');
 }
@@ -809,7 +827,7 @@ function generarLooks(n, plan) {
   const cands = bases.map(base => {
     let ps = [...base]; const desc = fresco && base.some(sinMangas);
     const ab = frio || desc ? mejorAcompanante(capas.filter(c => !base.includes(c)), ps) : null; if (ab) ps.push(ab);
-    const zap = mejorAcompanante(calzado, ps); if (zap) ps.push(zap);
+    const zap = mejorAcompanante(calzado, ps, z => afinZapato(z, ps, E.tiempo?.t)); if (zap) ps.push(zap);
     const bol = ocasionDe(ps) !== 'Deporte' ? mejorAcompanante(bolsos, ps) : null; if (bol) ps.push(bol);
     const est = estilista(ps, E.tiempo?.t);
     return { ps, veto: est.veto, puntos: puntuar(ps) + est.puntos - (desc && !ab ? 3 : 0) };
