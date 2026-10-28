@@ -1255,3 +1255,69 @@ img{-webkit-user-drag:none}
 .an-tiro-ay{display:block;font-size:12px;color:var(--ter);margin-top:6px;text-align:center}
 #an-tiro-c .an-tiro button span,#an-tiro-c .an-tiro-ay{font-weight:400}
 #an-tiro-c .an-tiro-ay{font-weight:300}
+/* 0.111 · conjunto, zapatos de muestra, paleta y estilo (Gabriela, 28/10: «no hay simetría, muchos espacios entre prendas»; «no tienes que describir las prendas… la paleta de colores o el estilo que representa») */
+.lk-fig .lienzo{max-width:90%;max-height:92%}
+.lk-rejilla .lk-fig .lienzo{max-width:88%;max-height:92%}
+.lk-rejilla .lk-t:last-child:nth-child(odd){grid-column:1/-1;width:calc(50% - 1px);justify-self:center}
+.lk-pal{display:flex;align-items:center;justify-content:center;gap:9px;margin:7px 0 3px;flex-wrap:wrap}
+.lk-pal .tela{display:inline-flex;outline:1px solid rgba(74,53,38,.18);outline-offset:0}
+.lk-pal .tela i{display:block;width:13px;height:13px}
+.lk-pal b{font-family:var(--f);font-weight:300;font-size:14px;letter-spacing:.02em;color:var(--tinta)}
+.hz-pie .lk-pal{margin:2px 0 14px}.hz-pie .lk-pal .tela i{width:15px;height:15px}.hz-pie .lk-pal b{font-size:15px}
+.hz-zapato,.hz-porque,.lk-zap,.lk-por{display:none}
+/* 0.111 · Agenda (Gabriela, 28/10: «tipo su agenda con eventos fijos e ir planificando los outfits») */
+.ag-vista{padding:0 0 14px}
+.ag-fijos{text-align:center;padding:4px 0 18px;border-bottom:1px solid var(--linea)}
+.ag-fijos>.mini-et{color:var(--sec);margin-bottom:8px}
+.ag-fijos ul{list-style:none;margin:0 auto;padding:0;max-width:340px;text-align:left}
+.ag-fijos li{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--linea)}
+.ag-fijos li button svg{width:14px;height:14px;fill:none;stroke:var(--sec);stroke-width:1.3}
+.ag-fijos .cal-vacio{max-width:300px;margin:0 auto;line-height:1.45}
+.ag-h{width:42px;flex:none;font-size:13px;color:var(--sec);font-variant-numeric:tabular-nums;font-weight:300}
+.ag-txt{flex:1;min-width:0;display:grid}
+.ag-txt b{font-weight:400;font-size:14.5px;color:var(--tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ag-txt small{font-size:11.5px;color:var(--sec);font-weight:300}
+.ag-mas{display:inline-flex;align-items:center;gap:8px;margin-top:12px;font-size:13.5px;font-weight:300;color:var(--tinta)}
+.ag-mas svg{width:11px;height:11px;fill:none;stroke:var(--oro);stroke-width:1.4}
+.ag-sem{margin-top:18px}
+.ag-sem h2{font-size:20px}
+.ag-dia{padding:14px 0 16px;border-bottom:1px solid var(--linea);text-align:center}
+.ag-dia h3{font-family:Bellefair,serif;font-weight:400;font-size:20px;color:var(--tinta);text-align:left;display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+.ag-dia h3 small{font-family:var(--f);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--oro-t)}
+.ag-dia.pasado h3{color:var(--sec)}
+.ag-ev{text-align:left}
+.ag-fila{display:flex;align-items:center;gap:12px;width:100%;padding:8px 0;text-align:left}
+.ag-mini{flex:none;width:46px;aspect-ratio:3/4;position:relative;background:var(--gris)}
+.ag-mini .lk-fig{position:absolute;inset:0;background:none}
+.ag-elegir{flex:none;font-size:12px;color:var(--oro-t);text-decoration:underline;text-underline-offset:3px;font-weight:300}
+.ag-ev.ab .ag-fila{border-bottom:0}
+.ag-panel{padding:6px 0 14px;text-align:center}
+.ag-panel>.lk-fig{width:min(230px,62vw);aspect-ratio:3/4;margin:4px auto 0;background:none;cursor:default}
+.ag-panel .cal-mios{margin-top:12px}
+.ag-quita{color:var(--sec)}
+.ag-form{margin:12px auto 4px;max-width:340px;display:grid;gap:14px;text-align:center}
+.ag-form>.mini-et{color:var(--sec)}
+.ag-form input[type=text]{font:inherit;font-size:16px;font-weight:300;color:var(--tinta);text-align:center;border:0;border-bottom:1px solid var(--linea2);padding:8px 4px;background:none;border-radius:0}
+.ag-form input[type=text]:focus{outline:0;border-bottom-color:var(--tinta)}
+.ag-hora{font-size:13px;color:var(--sec);font-weight:300}.ag-hora input{font:inherit;font-size:15px;color:var(--tinta);border:0;border-bottom:1px solid var(--linea2);margin-left:8px;background:none}
+.ag-dias{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--sec);font-weight:300}
+.ag-dias span{width:100%;margin-bottom:2px}
+.ag-dias button{width:34px;height:34px;border:1px solid var(--linea2);font-size:13px;color:var(--sec);font-weight:300}
+.ag-dias button.on{border-color:var(--tinta);background:var(--tinta);color:#fff}
+.ag-dias button{display:grid;place-items:center;padding:0;text-align:center}
+/* 0.111 · calendario pequeño, como Google Calendar (Gabriela, 28/10: «el calendario debe ser más pequeño, abarca mucho espacio») */
+.ag-mes{display:flex;align-items:center;justify-content:space-between;max-width:320px;margin:0 auto 4px}
+.ag-mes h2{font-family:Bellefair,serif;font-weight:400;font-size:18px;color:var(--tinta)}
+.ag-mes button{width:30px;height:30px;display:grid;place-items:center}.ag-mes svg{width:15px;height:15px;fill:none;stroke:var(--tinta);stroke-width:1.2}
+.ag-sem7,.ag-rej{display:grid;grid-template-columns:repeat(7,1fr);max-width:320px;margin:0 auto;text-align:center}
+.ag-sem7 span{font-size:9.5px;letter-spacing:.12em;color:var(--ter);padding:2px 0 4px}
+.ag-rej button{position:relative;height:36px;display:grid;place-items:center;padding:0}
+.ag-rej b{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;font-size:13px;font-weight:300;color:var(--tinta);border:1px solid transparent}
+.ag-rej .pasado b{color:var(--ter)}
+.ag-rej .hoy b{font-weight:600}
+.ag-rej .on b{border-color:var(--tinta)}
+.ag-rej em{position:absolute;bottom:1px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;border:1px solid var(--oro);box-sizing:border-box}
+.ag-rej em.lleno{background:var(--oro)}
+.ag .ag-dia{margin-top:14px;padding-top:14px;border-top:1px solid var(--linea);border-bottom:0}
+.ag .ag-dia h3{justify-content:center;text-align:center;font-size:21px;margin-bottom:6px}
+.ag-rep button{font-size:12.5px}

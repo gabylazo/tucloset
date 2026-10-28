@@ -370,10 +370,13 @@ async function medirFoto(p) {
   const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = urlFoto(p); });
   const S = 140, k = S / Math.max(im.naturalWidth, im.naturalHeight), w = Math.round(im.naturalWidth * k), h = Math.round(im.naturalHeight * k);
   const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, w, h);
-  const d = x.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1;
-  for (let i = 0, q = 0; i < d.length; i += 4, q++) { if (d[i + 3] < 30 || Math.min(d[i], d[i + 1], d[i + 2]) > 248) continue; /* 0.87: antes 236 y las prendas blancas se medían recortadas */ const px = q % w, py = (q / w) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
-  if (x1 < 0) return [0, 0, 1, 1, h / w];
-  const c0 = [x0 / w, y0 / h, (x1 + 1) / w, (y1 + 1) / h]; return [...c0.map(v => +v.toFixed(4)), +(((c0[3] - c0[1]) * h) / ((c0[2] - c0[0]) * w)).toFixed(4)];
+  const d = x.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1; const fi = new Map(); // fila → [izquierda, derecha]
+  for (let i = 0, q = 0; i < d.length; i += 4, q++) { if (d[i + 3] < 30 || Math.min(d[i], d[i + 1], d[i + 2]) > 248) continue; /* 0.87: antes 236 y las prendas blancas se medían recortadas */ const px = q % w, py = (q / w) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; const f = fi.get(py); if (!f) fi.set(py, [px, px]); else if (px > f[1]) f[1] = px; }
+  if (x1 < 0) return [0, 0, 1, 1, h / w, .5];
+  // 0.111 (Gabriela, 28/10: «no hay simetría»): el eje del cuerpo es la mediana de los centros de cada fila; con una manga más abierta que
+  // la otra, el centro de la caja se desplaza y la prenda salía torcida respecto a la de abajo
+  const cen = [...fi.values()].map(([a, b]) => (a + b + 1) / 2).sort((a, b) => a - b), ejeX = cen[cen.length >> 1];
+  const c0 = [x0 / w, y0 / h, (x1 + 1) / w, (y1 + 1) / h]; return [...c0.map(v => +v.toFixed(4)), +(((c0[3] - c0[1]) * h) / ((c0[2] - c0[0]) * w)).toFixed(4), +((ejeX - x0) / (x1 + 1 - x0)).toFixed(4)];
 }
 let midiendo = null;
 function medirTodas() {
@@ -383,8 +386,8 @@ function medirTodas() {
     // 0.97 (Gabriela, 24/10: «las combinaciones están horrendas en cuanto a la distribución espacial»): si algo fallaba aquí una vez, la medición
     // se quedaba bloqueada toda la sesión y las prendas salían sin recortar a su silueta (pequeñas y separadas). Ahora siempre se libera.
     try {
-      const pend = E.prendas.filter(p => (!p.caja || p.cajaV !== 2) && (p.foto || p.src)); let n = 0;
-      for (const p of pend) { try { p.caja = await medirFoto(p); p.cajaV = 2; n++; } catch (e) { p.caja = null; } }
+      const pend = E.prendas.filter(p => (!p.caja || p.cajaV !== 3) && (p.foto || p.src)); let n = 0;
+      for (const p of pend) { try { p.caja = await medirFoto(p); p.cajaV = 3; n++; } catch (e) { p.caja = null; } }
       if (n) { if (E.prendas.some(p => !p.src)) await Promise.race([guardar(), new Promise(r => setTimeout(r, 3000))]).catch(() => { }); E.propuestas = []; try { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); } catch (e) { } }
     } finally { midiendo = null; }
   })();
@@ -431,7 +434,8 @@ const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:$
 // el look en una columna (arriba tocando la pieza de abajo), y a un lado el bolso arriba, los accesorios en medio y el calzado abajo.
 // Se activa con ?comp=collage (queda guardado); la simétrica (Eje/Cruz, cerrada por Gabriela el 20/10) sigue por defecto hasta que ella decida.
 // 0.107 (Gabriela, 28/10: «5. me gustan simétrica y collage»): Hoy, el calendario y la ficha, simétrica; Looks, collage. ?comp= solo para pruebas
-const COMP = (() => { try { return new URLSearchParams(location.search).get('comp') || 'simetrica'; } catch (e) { return 'simetrica'; } })(); // 0.98: «abierto» por defecto (Sheila y Gabriela, 24/10: «mira qué mal la distribución», «la distribución espacial… horrenda»)
+// 0.111 (Gabriela, 28/10: «la confección de los outfits es horrible, no hay simetría, muchos espacios entre prendas»): «conjunto» en todas partes
+const COMP = (() => { try { return new URLSearchParams(location.search).get('comp') || 'conjunto'; } catch (e) { return 'conjunto'; } })(); // 0.98: «abierto» por defecto (Sheila y Gabriela, 24/10: «mira qué mal la distribución», «la distribución espacial… horrenda»)
 function collage(ps) {
   const m = tam, rol = r => ps.filter(p => r.includes(p.tipo)), G = 6;
   const arriba = rol(['Arriba', 'Abrigo']).slice(0, 2), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0], acc = rol(['Accesorios']).slice(0, 3);
@@ -489,8 +493,37 @@ function capas(ps, abierto) {
   const W = x1 - x0, H = y1 - y0;
   return { out: out.map(([p, x, yy, w, h]) => [p, x - x0, yy - y0, w, h]), W, H };
 }
+// 0.111 · «conjunto» (Gabriela, 28/10: «no hay simetría, muchos espacios entre prendas»): un flat lay de revista sobre un solo eje.
+// Cada prenda se centra por el eje de su cuerpo (caja[5]); la de arriba pisa la cinturilla (por dentro: la de abajo la pisa a ella);
+// la capa asoma por detrás; los zapatos, al pie, pisan el bajo del pantalón; bolso a la derecha y accesorios a la izquierda, a la
+// altura de la cadera y de los hombros. El marco es simétrico respecto al eje: el conjunto queda siempre en el centro y sin huecos.
+function conjunto(ps) {
+  const m = tam, rol = r => ps.filter(p => r.includes(p.tipo)), G = 3;
+  const tops = rol(['Arriba']), top = tops[0], capa = rol(['Abrigo'])[0] || tops[1], grande = rol(['Abajo', 'Vestidos'])[0];
+  const calzado = rol(['Calzado'])[0], bolso = rol(['Bolsos'])[0], acc = rol(['Accesorios']).slice(0, 2);
+  const pon = (p, y, centro) => { const [w, h] = m(p); return [p, -w * (centro ? .5 : (p.caja?.[5] ?? .5)), y, w, h]; };
+  const arriba = top || (grande ? null : capa), conCapa = capa && capa !== arriba;
+  let oCapa = null, oArr = null, oG = null, oZ = null, yA = 0;
+  if (conCapa && (arriba || grande)) { oCapa = pon(capa, 0); yA = oCapa[4] * .07; }
+  if (arriba) oArr = pon(arriba, yA);
+  let fin = oArr ? yA + oArr[4] : oCapa ? oCapa[4] : 0;
+  if (grande) { const yG = oArr ? yA + oArr[4] * (grande.tipo === 'Vestidos' ? .55 : .88) : 0; oG = pon(grande, yG); fin = yG + oG[4]; } // la de arriba pisa un 12 % la cinturilla
+  if (calzado) { const [w, h] = m(calzado), pantalon = grande?.tipo === 'Abajo' && !/falda|skirt|short|bermuda/i.test(`${grande.nombre || ''} ${grande.x || ''}`); const y = pantalon ? fin - h * .32 : fin + h * .08; oZ = [calzado, -w / 2, y, w, h]; fin = y + h; }
+  const cuerpo = [oCapa, oArr, oG].filter(Boolean); if (!cuerpo.length && !oZ) return null;
+  const der = Math.max(0, ...cuerpo.map(o => o[1] + o[3])), izq = Math.min(0, ...cuerpo.map(o => o[1]));
+  const extra = [];
+  if (bolso) { const [w, h] = m(bolso), y = oG ? oG[2] + oG[4] * .08 : fin * .45; extra.push([bolso, (oG ? oG[1] + oG[3] : der) + G, y, w, h]); }
+  let ya = oArr ? oArr[2] : 0; acc.forEach(p => { const [w, h] = m(p); extra.push([p, (oArr ? oArr[1] : izq) - w - G, ya, w, h]); ya += h + G; });
+  // orden de dibujo: la capa detrás; por dentro, la de abajo encima de la de arriba; los zapatos pisan el bajo
+  const dentro = ps.como === 'por dentro' && oArr && oG && grande.tipo === 'Abajo';
+  const out = [oCapa, ...(dentro ? [oArr, oG] : [oG, oArr]), oZ, ...extra].filter(Boolean);
+  const x0 = Math.min(...out.map(o => o[1])), x1 = Math.max(...out.map(o => o[1] + o[3])), R = Math.max(-x0, x1);
+  const y0 = Math.min(...out.map(o => o[2])), y1 = Math.max(...out.map(o => o[2] + o[4]));
+  return { out: out.map(([p, x, y, w, h]) => [p, x + R, y - y0, w, h]), W: 2 * R, H: y1 - y0 };
+}
 function composicion(ps, COMP) {
-  if (ps.some(p => (!p.caja || p.cajaV !== 2) && (p.foto || p.src))) setTimeout(medirTodas, 0);
+  if (ps.some(p => (!p.caja || p.cajaV !== 3) && (p.foto || p.src))) setTimeout(medirTodas, 0);
+  if (COMP === 'conjunto') { const c = conjunto(ps); if (c) return c.out.map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   if (COMP === 'capas' || COMP === 'abierto') { const c = capas(ps, COMP === 'abierto'); if (c) return c.out.map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   if (COMP === 'collage') { const c = collage(ps); if (c) return c.out.sort((a, b) => ['Bolsos', 'Calzado'].includes(a[0].tipo) - ['Bolsos', 'Calzado'].includes(b[0].tipo)).map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   const G = 5, m = tam, rol = r => ps.filter(p => r.includes(p.tipo));
@@ -819,6 +852,66 @@ function zapatoSugerido(ps, T) {
   const nom = { botines_tacon: ['botines de tacón', 'heeled ankle boots'], botines: ['botines de tacón bajo', 'low-heeled ankle boots'], mocasines: ['mocasines', 'loafers'], zapatillas: ['zapatillas', 'trainers'] }[k];
   return en ? `${col[1]} ${nom[1]}` : `${nom[0]} ${col[0]}`.replace('botines de tacón bajo negros', 'botines negros de tacón bajo').replace('botines de tacón negros', 'botines negros de tacón');
 }
+// 0.111 · zapatos de muestra (Gabriela, 28/10: «siguen sin poner zapatos y los pones con letras»): mientras no haya calzado subido, el
+// conjunto lleva al pie una foto de muestra del zapato que elige la estilista (tipo, tacón y color), como en una revista; no es suya y se dice
+// una vez debajo («Zapatos de muestra»). Fotos de producto generadas para TuCloset, sin marcas. [nombre, color, alto/ancho]
+const ZAP_MUESTRA = {
+  'zapatillas-blancas': ['Zapatillas blancas', '#F4F4F4', 0.445], 'zapatillas-negras': ['Zapatillas negras', '#1B1B1B', .452],
+  'botines-negros-tacon': ['Botines negros de tacón', '#1B1B1B', 0.809], 'botines-negros-planos': ['Botines negros planos', '#1B1B1B', 0.606],
+  'botines-negros-plataforma': ['Botines negros de plataforma', '#1B1B1B', 0.855], 'botines-camel-plataforma': ['Botines camel de plataforma', '#B98A4F', 0.734],
+  'mocasines-negros': ['Mocasines negros', '#1B1B1B', 0.422], 'bailarinas-negras': ['Bailarinas negras', '#1B1B1B', 0.339],
+  'sandalias-negras-tacon': ['Sandalias negras de tacón', '#1B1B1B', 0.633], 'sandalias-negras-planas': ['Sandalias negras planas', '#1B1B1B', 0.389],
+  'sandalias-beige-plataforma': ['Sandalias beige de plataforma', '#D8C7A8', 0.469], 'sandalias-marrones-planas': ['Sandalias marrones planas', '#6B4A2B', 0.383],
+};
+function claveMuestra(ps, spec) {
+  if (spec?.tipo) {
+    const c = (spec.color || '').toLowerCase(), tx = (spec.texto || '').toLowerCase(), ta = spec.tacon;
+    if (spec.tipo === 'zapatillas') return /blanc/.test(c) ? 'zapatillas-blancas' : 'zapatillas-negras';
+    if (spec.tipo === 'botines') return /camel|marr/.test(c) ? 'botines-camel-plataforma' : /plataforma/.test(tx) ? 'botines-negros-plataforma' : ta === 'plano' ? 'botines-negros-planos' : 'botines-negros-tacon';
+    if (spec.tipo === 'mocasines') return 'mocasines-negros';
+    if (spec.tipo === 'bailarinas') return 'bailarinas-negras';
+    if (spec.tipo === 'sandalias') return /beige/.test(c) ? 'sandalias-beige-plataforma' : /marr/.test(c) ? 'sandalias-marrones-planas' : ['medio', 'alto'].includes(ta) && !/plataforma/.test(tx) ? 'sandalias-negras-tacon' : 'sandalias-negras-planas';
+  }
+  const { k, col } = zapatoIdeal(ps, E.tiempo?.t);
+  if (k === 'zapatillas') return col[0] === 'blancas' ? 'zapatillas-blancas' : 'zapatillas-negras';
+  if (k === 'mocasines') return 'mocasines-negros';
+  if (col[0] === 'marrones') return 'botines-camel-plataforma';
+  return k === 'botines_tacon' ? 'botines-negros-tacon' : 'botines-negros-planos';
+}
+function conZapato(ps, spec, como) {
+  let r = ps;
+  if (ps.length && !ps.some(p => p.tipo === 'Calzado') && ps.some(p => ['Abajo', 'Vestidos'].includes(p.tipo))) {
+    const k = claveMuestra(ps, spec), z = ZAP_MUESTRA[k];
+    if (z) { const id = 'zm-' + k, src = `zapatos/${k}.webp`; if (!alfa.has(id)) alfa.set(id, src); r = [...ps, { id, tipo: 'Calzado', nombre: z[0], src, caja: [0, 0, 1, 1, z[2], .5], cajaV: 3, est: { pal: [z[1]] }, muestra: k }]; }
+  }
+  if (como) { r = r === ps ? [...ps] : r; r.como = como; }
+  return r;
+}
+// 0.111 (Gabriela, 28/10: «no tienes que describir las prendas, es crear un outfit y quizás poner la paleta de colores o el estilo que
+// representa»): debajo del conjunto, su paleta (los colores de cada prenda, sin repetir) y el estilo al que pertenece
+const hexA = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const distHex = (a, b) => { const x = hexA(a), y = hexA(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
+function paletaLook(ps) {
+  const out = [];
+  for (const p of ps) { const c = p.est?.pal || [COLORES.find(x => x[0] === p.color)?.[1]]; for (const h of c) if (h && h[0] === '#' && !out.some(o => distHex(o, h) < 34)) out.push(h); }
+  return out.slice(0, 5);
+}
+function estiloLook(ps) {
+  const ropa = ps.filter(p => !['Calzado', 'Bolsos', 'Accesorios'].includes(p.tipo)), s = {}, suma = (k, v) => s[k] = (s[k] || 0) + v;
+  ropa.forEach(p => (p.est?.estilos || []).forEach((k, j) => suma(k, j ? .7 : 1)));
+  const zn = ps.filter(p => p.tipo === 'Calzado').map(p => `${p.nombre || ''} ${p.muestra || ''}`).join(' ').toLowerCase();
+  if (Object.keys(s).length) { if (/zapatilla/.test(zn)) suma('casual', .6); if (/tac[oó]n/.test(zn)) suma('glam', .3); if (/mocas|bailarin/.test(zn)) suma('frances', .4); }
+  let k = Object.entries(s).sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!k) { // sin la ficha de la estilista: por formalidad, color y tejido
+    const nom = ropa.map(p => (p.nombre || '').toLowerCase()).join(' '), f = Math.max(0, ...ropa.map(p => estDe(p).form || 2));
+    k = ropa.some(p => p.tipo === 'Vestidos') && ropa.some(p => SUAVES.has(p.color)) ? 'romantico' : f >= 3 ? 'clasico' : /raya|stripe/.test(nom) ? 'frances' : /vaquer|jean/.test(nom) ? 'casual' : ropa.every(p => NEUTROS.has(p.color)) ? 'minimalista' : 'casual';
+  }
+  return ESTILOS.find(x => x.k === k) || null;
+}
+function pieLook(ps) {
+  const pal = paletaLook(ps), est = estiloLook(ps); if (!pal.length && !est) return '';
+  return `<span class="lk-pal">${pal.length ? `<span class="tela">${pal.map(c => `<i style="background:${c}"></i>`).join('')}</span>` : ''}${est ? `<b>${est.n[idioma() === 'en' ? 1 : 0]}</b>` : ''}</span>`;
+}
 // 0.109 · Looks de la estilista (Gabriela, 28/10: «quiero a un agente experto experto experto en moda, que sea quien arme y diseñe los outfits»;
 // «que haya ciencia detrás de cada outfit»). Los diseña la Dirección de Moda para cada clóset (perfil.estilista.looks: arriba, capa, abajo, zapato,
 // temperatura, ocasión y el porqué) y salen primero; el generador automático solo rellena lo que falte
@@ -833,13 +926,13 @@ function zapatoPara(spec, ps) {
 }
 function looksEstilista(n, plan) {
   const L = E.perfil?.estilista?.looks || [], T = E.tiempo?.t, act = new Set(activas().map(p => p.id)), usados = new Map(), out = [];
-  const cands = L.filter(l => !l.duda && [l.arriba, l.capa, l.abajo].filter(Boolean).every(id => act.has(id)) && (T == null || (T >= l.tmin - 1 && T <= l.tmax + 1)))
+  const cands = L.filter(l => !l.duda && !(l.ensena && cinturaPref() !== '1') && [l.arriba, l.capa, l.abajo].filter(Boolean).every(id => act.has(id)) && (T == null || (T >= l.tmin - 1 && T <= l.tmax + 1)))
     .map(l => { const ps = [l.arriba, l.capa, l.abajo].filter(Boolean).map(P); const z = zapatoPara(l.zapato, ps); if (z) ps.push(z); return { l, ps, nota: puntuar(ps) - Math.random() * .8 }; })
     .filter(c => !plan || plan === 'Todos' || c.l.ocasion === plan || sirvePara(c.ps, c.l.ocasion, plan)).sort((a, b) => b.nota - a.nota);
   for (const tope of [1, 2]) for (const c of cands) {
     if (out.length >= n) break; if (out.some(o => o.idE === c.l.id) || (usados.get(c.l.arriba) || 0) >= tope) continue;
     usados.set(c.l.arriba, (usados.get(c.l.arriba) || 0) + 1);
-    out.push({ prin: c.l.arriba, ids: c.ps.map(p => p.id), ocasion: c.l.ocasion, nombre: `${ocNombre(c.l.ocasion)} ${t('con', 'with')} ${P(c.l.arriba).nombre.charAt(0).toLowerCase() + P(c.l.arriba).nombre.slice(1)}`, zapato: c.ps.some(p => p.tipo === 'Calzado') ? null : c.l.zapato?.texto, porque: c.l.porque, estilista: true, idE: c.l.id });
+    out.push({ prin: c.l.arriba, ids: c.ps.map(p => p.id), ocasion: c.l.ocasion, nombre: `${ocNombre(c.l.ocasion)} ${t('con', 'with')} ${P(c.l.arriba).nombre.charAt(0).toLowerCase() + P(c.l.arriba).nombre.slice(1)}`, zapato: c.ps.some(p => p.tipo === 'Calzado') ? null : c.l.zapato?.texto, zspec: c.l.zapato, como: c.l.como, porque: c.l.porque, estilista: true, idE: c.l.id }); // 0.111: ensena = top corto con tiro bajo (cintura al aire), solo si le gusta
   }
   return out;
 }
@@ -913,8 +1006,9 @@ function proponer() {
   const aptas = estacionesAptas(); const act = activas().filter(p => aptas.includes(p.estacion));
   const conj = E.conjuntos.filter(c => c.ids.every(id => act.some(p => p.id === id)) && (E.plan === 'Todos' || (c.ocasion || 'Diario') === E.plan));
   const props = conj.map(c => ({ tipo: 'conjunto', c, ids: c.ids }));
-  const dia = E.agenda[diaISO(new Date())]; if (dia?.look?.length && dia.look.every(P)) props.unshift({ tipo: 'agenda', ids: dia.look, ocasion: dia.planes?.[0]?.oc });
-  for (const g of generarLooks(4, E.plan)) if (!props.some(x => x.ids.join() === g.ids.join())) props.push({ tipo: 'propuesta', ids: g.ids, nombre: g.nombre, ocasion: g.ocasion, zapato: g.zapato, porque: g.porque, est: g.estilista });
+  const dia = E.agenda[diaISO(new Date())], evA = eventoAhora(), lkA = evA ? lookDe(diaISO(new Date()), evA) : null; // 0.111: el look planificado para el evento que toca
+  if (lkA) props.unshift({ tipo: 'agenda', ids: lkA, ocasion: evA.oc }); else if (dia?.look?.length && dia.look.every(P)) props.unshift({ tipo: 'agenda', ids: dia.look, ocasion: dia.planes?.[0]?.oc });
+  for (const g of generarLooks(4, E.plan)) if (!props.some(x => x.ids.join() === g.ids.join())) props.push({ tipo: 'propuesta', ids: g.ids, nombre: g.nombre, ocasion: g.ocasion, zapato: g.zapato, zspec: g.zspec, como: g.como, porque: g.porque, est: g.estilista });
   // «No me gusta»: un look propuesto no vuelve; uno guardado por ella o el del calendario solo se aparta por hoy
   const g = E.perfil?.gustos, clave = ids => [...ids].sort().join();
   const fuera = x => x.tipo !== 'agenda' && (g?.fuera?.includes(clave(x.ids)) || (g?.hoy?.d === hoyISO() && g.hoy.k.includes(clave(x.ids))));
@@ -933,7 +1027,7 @@ document.addEventListener('click', async e => {
   const b = e.target.closest('#p-hoy [data-hzpreg],#p-hoy [data-hzoc]'); if (!b) return;
   if (b.dataset.hzoc) {
     const k = diaISO(new Date()), h = new Date().getHours(), fr = h < 14 ? 'Mañana' : h < 20 ? 'Tarde' : 'Noche';
-    E.agenda[k] = E.agenda[k] || { planes: [] }; E.agenda[k].planes = [{ oc: b.dataset.hzoc, fr }, ...E.agenda[k].planes.filter(p => p.oc !== b.dataset.hzoc)];
+    E.agenda[k] = E.agenda[k] || { planes: [] }; E.agenda[k].planes = [{ id: uid(), oc: b.dataset.hzoc, fr, deHoy: 1 }, ...E.agenda[k].planes.filter(p => p.oc !== b.dataset.hzoc)];
     E.hzPreg = false; E.propuestas = []; E.hoyIdx = 0; await guardar();
   } else E.hzPreg = !E.hzPreg;
   pintarHoy();
@@ -941,7 +1035,7 @@ document.addEventListener('click', async e => {
 function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin menú arriba, el tiempo una vez junto a la fecha, debajo solo la ocasión
   const pant = $('p-hoy'); const w = E.tiempo; const l = idioma();
   // 0.40 (Sheila, 22/10: «si ella pone de lunes 23 a viernes 27 oficina en la mañana ya sabes que eso tienes que sugerirle»): el plan del calendario manda
-  const planHoy = E.agenda[diaISO(new Date())]?.planes?.[0]?.oc;
+  const planHoy = eventoAhora()?.oc; // 0.111: el evento de la agenda que toca ahora (fijo o suelto)
   if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy || 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); E.propuestas = masCercanos(E.hoyFalta, E.propuestas); } }
   const lista = E.propuestas; const pr = lista[E.hoyIdx];
   const hoyD = new Date(); const dia = cap(hoyD.toLocaleDateString(l === 'en' ? 'en-GB' : 'es-ES', { weekday: 'long', day: 'numeric' }));
@@ -960,10 +1054,11 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   }
   const ps = pr.ids.map(P).filter(Boolean); const c = pr.c;
   const avatar = planDemo() === 'pro' ? c?.img : null;
-  const figura = avatar ? `<img src="${avatar}" alt="${t('Tú con el conjunto', 'You wearing the outfit')}">` : maniqui(ps);
+  const psZ = conZapato(ps, pr.zspec, pr.como), muestra = psZ.some(p => p.muestra);
+  const figura = avatar ? `<img src="${avatar}" alt="${t('Tú con el conjunto', 'You wearing the outfit')}">` : maniqui(psZ);
   const oc = (c && c.ocasion) || pr.ocasion || ocasionDe(ps);
   const flechas = lista.length > 1 ? `<div class="hz-flechas"><button id="hoy-ant" aria-label="${t('Anterior', 'Previous')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><button id="hoy-sig" aria-label="${t('Otro', 'Next')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>` : '';
-  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}<button class="hz-fav${esFav(pr.ids) ? ' on' : ''}" id="hoy-fav" aria-label="${t('Favorito', 'Favourite')}" aria-pressed="${esFav(pr.ids)}"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>${pr.ids.map(P).some(p => p?.tipo === 'Calzado') ? '' : `<p class="hz-zapato">${t('Con', 'With')} ${pr.zapato || zapatoSugerido(pr.ids.map(P).filter(Boolean), E.tiempo?.t)}</p>`}${pr.porque ? `<p class="hz-porque">${pr.porque}</p>` : ''}<button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button>${activas().some(p => p.tipo === 'Calzado') ? '' : `<button class="hz-zap" data-ir="subir">${t('Sube tus zapatos para verlos aquí', 'Upload your shoes to see them here')}</button>`}</div></div>`; // 0.103: siempre zapatos (sugeridos si no hay) // 0.97 (Gabriela, 24/10: «no ha recomendado zapatos»: no tenía ninguno subido)
+  pant.innerHTML = cab + `<div class="hz-escena"><div class="hz-fig">${figura}</div>${flechas}<div class="hz-pie"><div class="hz-oc mini-et">${ocNombre(oc)}<button class="hz-fav${esFav(pr.ids) ? ' on' : ''}" id="hoy-fav" aria-label="${t('Favorito', 'Favourite')}" aria-pressed="${esFav(pr.ids)}"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>${pieLook(psZ)}<button class="hz-bt" id="hoy-pongo">${t('Me lo pongo', 'I’ll wear it')}</button><button class="hz-no" id="hoy-no">${t('No me gusta', 'Not for me')}</button>${muestra && !avatar ? `<button class="hz-zap" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: upload yours')}</button>` : ''}</div></div>`; // 0.103: siempre zapatos (sugeridos si no hay) // 0.97 (Gabriela, 24/10: «no ha recomendado zapatos»: no tenía ninguno subido)
   // 0.66 (Sheila, 23/10: «cuida que no sucedan estas cosas»: el aviso quedaba debajo del abrigo): la escena empieza donde acaba la cabecera
   const cabH = pant.querySelector('.hz-cab'), escH = pant.querySelector('.hz-escena');
   if (escH && cabH) { const fija = () => { if (cabH.offsetHeight) escH.style.top = Math.max(118, cabH.offsetHeight + 12) + 'px'; }; fija(); setTimeout(fija, 300); new ResizeObserver(fija).observe(cabH); } // también cuando la pantalla se hace visible // 0.67 (Sheila: «se superpone la prenda a la letra»): siempre bajo la cabecera, mida lo que mida
@@ -1002,7 +1097,113 @@ async function ponerse(ids, conj) {
 const diaISO = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const FRANJAS = [['Mañana', 'Morning'], ['Tarde', 'Afternoon'], ['Noche', 'Evening']];
 E.cal = { mes: null, dia: null, oc: 'Oficina', fr: 'Mañana', idea: 0 };
-function pintarCalendario(raiz) {
+// 0.111 · Agenda (Gabriela, 28/10: «en el calendario pueden los usuarios poner tipo su agenda con eventos fijos e ir planificando los outfits»).
+// Eventos fijos (perfil.fijos: nombre, ocasión, hora y días de la semana) y sueltos (agenda[día].planes); cada evento lleva su look
+// (agenda[día].looks[id del evento]). La vista por defecto es la semana, como una agenda; el mes sirve para saltar a otra semana.
+const HORA_FR = { Mañana: '09:00', Tarde: '16:00', Noche: '21:00' };
+const frDe = h => !h ? 'Mañana' : h < '14:00' ? 'Mañana' : h < '20:00' ? 'Tarde' : 'Noche';
+const OC_POR_NOMBRE = [[/gym|gimnas|pilates|yoga|correr|running|p[aá]del|tenis|deporte|entren|crossfit|spinning|nata|piscina|baile/i, 'Deporte'], [/oficina|trabaj|reuni|clase|universidad|facultad|cliente|curro|cole/i, 'Oficina'], [/cena|copas|fiesta|discoteca|concierto|teatro|cine|noche/i, 'Noche'], [/boda|bautiz|comuni|graduaci|gala|evento|cumple/i, 'Evento'], [/viaje|vuelo|avi[oó]n|tren|escapada|aeropuerto/i, 'Viaje']];
+function eventosDe(d) {
+  const a = E.agenda[d] || {}, dow = new Date(d + 'T12:00').getDay(), sin = a.sin || [];
+  const fijos = (E.perfil?.fijos || []).filter(f => f.dias.includes(dow) && !sin.includes(f.id) && (!f.desde || d >= f.desde)).map(f => ({ id: f.id, nombre: f.nombre, oc: f.oc, hora: f.hora || '', fijo: true }));
+  const sueltos = (a.planes || []).map((p, i) => ({ id: p.id || 'p' + i, i, nombre: p.nombre || '', oc: p.oc, hora: p.hora || HORA_FR[p.fr] || '', deHoy: p.deHoy }));
+  return [...fijos, ...sueltos].sort((x, y) => (x.hora || '99').localeCompare(y.hora || '99'));
+}
+function lookDe(d, ev) { const a = E.agenda[d] || {}, ids = a.looks?.[ev.id] || (a.look && eventosDe(d)[0]?.id === ev.id ? a.look : null); return ids?.length && ids.every(P) ? ids : null; }
+function eventoAhora() { // el evento de hoy que toca: el próximo (o el que acaba de empezar); si ya pasaron todos, el último
+  const d = diaISO(new Date()), evs = eventosDe(d); if (!evs.length) return null;
+  const n = new Date(), ya = `${String(Math.max(0, n.getHours() - 1)).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+  return evs.find(e => e.deHoy) || evs.find(e => !e.hora || e.hora >= ya) || evs[evs.length - 1]; // lo que eligió en Hoy manda
+}
+const lunesDe = d => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return diaISO(x); };
+const nomEv = ev => ev.nombre || ocNombre(ev.oc);
+function diasTxt(ds) {
+  const o = [1, 2, 3, 4, 5, 6, 0].filter(x => ds.includes(x)), en = idioma() === 'en';
+  if (o.join() === '1,2,3,4,5') return t('de lunes a viernes', 'Monday to Friday'); if (o.length === 7) return t('todos los días', 'every day'); if (o.join() === '6,0') return t('los fines de semana', 'weekends');
+  return o.map(x => (en ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'])[x]).join(', ');
+}
+// el formulario, como el de Google Calendar: título, hora, ocasión (se deduce del título) y si se repite
+const REPITE = [['una', 'No se repite', 'Does not repeat'], ['semana', 'Cada semana', 'Weekly'], ['laborables', 'De lunes a viernes', 'Weekdays'], ['diario', 'Todos los días', 'Every day'], ['dias', 'Elegir días', 'Pick days']];
+function formEvento() {
+  const f = E.cal.form, en = idioma() === 'en', L = en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  return `<div class="ag-form"><input id="ag-nom" type="text" maxlength="40" placeholder="${t('Añade un título: oficina, pilates, cena…', 'Add a title: office, pilates, dinner…')}" value="${(f.nombre || '').replace(/"/g, '&quot;')}" autocomplete="off">
+    <label class="ag-hora">${t('Hora', 'Time')}<input id="ag-hora" type="time" value="${f.hora || ''}"></label>
+    <div class="cal-ops">${OCASIONES.map(o => `<button class="${o === f.oc ? 'on' : ''}" data-agoc="${o}">${ocNombre(o)}</button>`).join('')}</div>
+    <div class="cal-ops ag-rep">${REPITE.map(([k, es, i]) => `<button class="${k === f.rep ? 'on' : ''}" data-agrep="${k}">${k === 'semana' ? (en ? `Every ${new Date(f.dia + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long' })}` : `Cada ${new Date(f.dia + 'T12:00').toLocaleDateString('es-ES', { weekday: 'long' })}`) : en ? i : es}</button>`).join('')}</div>
+    ${f.rep === 'dias' ? `<div class="ag-dias">${[1, 2, 3, 4, 5, 6, 0].map((x, i) => `<button class="${f.dias.includes(x) ? 'on' : ''}" data-agdow="${x}" aria-label="${diasTxt([x])}">${L[i]}</button>`).join('')}</div>` : ''}
+    <div class="cal-bts"><button class="hz-bt" data-agguarda>${t('Guardar', 'Save')}</button><button class="txt sub-l" data-agcancela>${t('Cancelar', 'Cancel')}</button></div></div>`;
+}
+function panelEvento(d, ev, hoy) {
+  const lk = lookDe(d, ev), fut = d >= hoy;
+  if (lk && !E.cal.cambia) return `<div class="ag-panel"><div class="lk-fig">${figLook({ ids: lk }, true)}</div><div class="cal-bts">${fut ? `<button class="txt sub-l" data-agcambia>${t('Cambiar el look', 'Change the look')}</button>` : ''}<button class="txt sub-l" data-agquitalook>${t('Quitar el look', 'Remove the look')}</button>${quitarEv(ev)}</div></div>`;
+  if (!fut) return `<div class="ag-panel"><div class="cal-bts">${quitarEv(ev)}</div></div>`;
+  let ideas = generarLooks(6, ev.oc), falta = false; if (!ideas.length) { falta = true; ideas = masCercanos(ev.oc, generarLooks(12, 'Todos')).slice(0, 6); }
+  const g = ideas[E.cal.idea % Math.max(1, ideas.length)];
+  const mios = E.cal.mios && E.conjuntos.length ? `<div class="cal-mios">${E.conjuntos.slice(0, 12).map(c => `<button data-agmio="${c.id}"><div class="lk-fig">${figLook(c, true)}</div></button>`).join('')}</div>` : '';
+  return `<div class="ag-panel">${falta ? avisoFalta(ev.oc, false) : ''}${g ? `<div class="lk-fig">${figLook(g, true)}</div>${pieLook(conZapato(g.ids.map(P).filter(Boolean), g.zspec))}` : ''}
+    <div class="cal-bts">${g ? `<button class="hz-bt" data-agpon="${g.ids.join(',')}">${t('Guardar para este evento', 'Save for this event')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button>` : ''}${E.conjuntos.length ? `<button class="txt sub-l" data-agmios>${t('Elegir de mis looks', 'Pick from my looks')}</button>` : ''}${quitarEv(ev)}</div>${mios}</div>`;
+}
+const quitarEv = ev => `<button class="txt sub-l ag-quita" data-agquita>${ev.fijo ? t('Borrar solo este día', 'Delete this day only') : t('Borrar el evento', 'Delete the event')}</button>${ev.fijo ? `<button class="txt sub-l ag-quita" data-agbfijo="${ev.id}">${t('Borrar en todas las semanas', 'Delete from every week')}</button>` : ''}`;
+// 0.111 (Gabriela, 28/10, al ver la agenda por semanas: «quizás el calendario debe ser más pequeño, abarca mucho espacio, con la opción de
+// poner eventos en algún día como lo hace Google Calendar»): un mes pequeño arriba (un punto en los días con eventos) y, debajo, los eventos
+// del día elegido con su look; «Añadir evento» en ese día, con la opción de repetirlo
+function pintarAgenda(raiz) {
+  const en = idioma() === 'en', loc = en ? 'en-GB' : 'es-ES', hoy = diaISO(new Date());
+  if (!E.cal.dia) E.cal.dia = hoy;
+  const sel = new Date(E.cal.dia + 'T12:00'); if (!E.cal.mes) E.cal.mes = new Date(sel.getFullYear(), sel.getMonth(), 1);
+  const m = E.cal.mes, pri = (m.getDay() + 6) % 7, nd = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate(), f = E.cal.form, d = E.cal.dia;
+  let celdas = ''; for (let i = 0; i < pri; i++) celdas += '<i></i>';
+  for (let n = 1; n <= nd; n++) {
+    const k = diaISO(new Date(m.getFullYear(), m.getMonth(), n)), evs = eventosDe(k), conLook = evs.some(ev => lookDe(k, ev)) || E.prendas.some(p => (p.usos || []).includes(k));
+    celdas += `<button class="${k === d ? 'on' : ''}${k === hoy ? ' hoy' : ''}${k < hoy ? ' pasado' : ''}" data-agdia="${k}"><b>${n}</b>${evs.length ? `<em class="${conLook ? 'lleno' : ''}"></em>` : ''}</button>`;
+  }
+  const sem = (en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D']).map(x => `<span>${x}</span>`).join('');
+  const evs = eventosDe(d), fijos = E.perfil?.fijos || [];
+  const filas = evs.map(ev => { const k = `${d}|${ev.id}`, lk = lookDe(d, ev), ab = E.cal.ev === k;
+    return `<div class="ag-ev${ab ? ' ab' : ''}"><button class="ag-fila" data-agev="${k}"><span class="ag-h">${ev.hora || ''}</span><span class="ag-txt"><b>${nomEv(ev)}</b><small>${[ev.nombre && ev.nombre.toLowerCase() !== ocNombre(ev.oc).toLowerCase() ? ocNombre(ev.oc) : '', ev.fijo ? diasTxt((fijos.find(x => x.id === ev.id) || {}).dias || []) : ''].filter(Boolean).join(' · ')}</small></span>${lk ? `<span class="ag-mini"><span class="lk-fig">${figLook({ ids: lk }, true)}</span></span>` : d >= hoy ? `<span class="ag-elegir">${t('Elegir look', 'Pick a look')}</span>` : ''}</button>${ab ? panelEvento(d, ev, hoy) : ''}</div>`; }).join('');
+  const puesto = E.prendas.filter(p => (p.usos || []).includes(d));
+  raiz.innerHTML = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
+    <div class="mc-cats lk-tabs"><button data-lktab="mios">${t('Mis looks', 'My looks')}</button><button data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="activo" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>
+    <div class="cal ag"><div class="ag-mes"><button data-agmes="-1" aria-label="${t('Mes anterior', 'Previous month')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h2>${cap(m.toLocaleDateString(loc, { month: 'long', year: 'numeric' }))}</h2><button data-agmes="1" aria-label="${t('Mes siguiente', 'Next month')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
+    <div class="ag-sem7">${sem}</div><div class="ag-rej">${celdas}</div>
+    <section class="ag-dia"><h3>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>
+      ${filas || (f ? '' : `<p class="cal-vacio">${d >= hoy ? t('Nada apuntado este día.', 'Nothing planned this day.') : t('Sin eventos.', 'No events.')}</p>`)}
+      ${f ? formEvento() : d >= hoy ? `<button class="ag-mas" data-agnuevo><svg viewBox="0 0 12 12"><path d="M6 1v10M1 6h10"/></svg>${t('Añadir evento', 'Add event')}</button>` : ''}
+      ${puesto.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(puesto, true)}</div></div>` : ''}</section></div>`;
+  const nom = $('ag-nom'); if (nom) { nom.oninput = () => { f.nombre = nom.value; const o = OC_POR_NOMBRE.find(([r]) => r.test(nom.value)); if (o && !f.ocTocada && o[1] !== f.oc) { f.oc = o[1]; raiz.querySelectorAll('[data-agoc]').forEach(b => b.classList.toggle('on', b.dataset.agoc === f.oc)); } }; if (!f.nombre) nom.focus(); }
+  const hr = $('ag-hora'); if (hr) hr.onchange = () => { f.hora = hr.value; };
+  raiz.onclick = async e => {
+    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agoc],[data-agrep],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agquitalook],[data-agquita],[data-agbfijo]'); if (!b) return;
+    const q = b.dataset, [dia, evId] = (E.cal.ev || '|').split('|'), ag = k => (E.agenda[k] = E.agenda[k] || { planes: [] });
+    if (q.lktab) { E.lkTab = q.lktab; E.lkTocado = true; E.lkI = 0; return pintarLooks(); }
+    if (q.agmes) E.cal.mes = new Date(m.getFullYear(), m.getMonth() + +q.agmes, 1);
+    else if (q.agdia) { E.cal.dia = q.agdia; E.cal.ev = null; E.cal.form = null; E.cal.idea = 0; }
+    else if (q.agnuevo !== undefined) { E.cal.form = { dia: d, oc: 'Diario', hora: '', rep: 'una', dias: [sel.getDay()], nombre: '' }; E.cal.ev = null; }
+    else if (q.agoc) { f.oc = q.agoc; f.ocTocada = true; raiz.querySelectorAll('[data-agoc]').forEach(x => x.classList.toggle('on', x.dataset.agoc === f.oc)); return; }
+    else if (q.agrep) { f.nombre = $('ag-nom')?.value || f.nombre; f.hora = $('ag-hora')?.value || f.hora; f.rep = q.agrep; }
+    else if (q.agdow) { const x = +q.agdow; f.dias = f.dias.includes(x) ? f.dias.filter(y => y !== x) : [...f.dias, x]; b.classList.toggle('on'); return; }
+    else if (q.agcancela !== undefined) E.cal.form = null;
+    else if (q.agguarda !== undefined) {
+      const nombre = ($('ag-nom')?.value || '').trim(), hora = $('ag-hora')?.value || '';
+      const dias = { semana: [sel.getDay()], laborables: [1, 2, 3, 4, 5], diario: [0, 1, 2, 3, 4, 5, 6], dias: f.dias }[f.rep];
+      if (dias) { if (!dias.length) { toast(t('Marca los días en que se repite', 'Pick the days it repeats')); return; } E.perfil.fijos = [...(E.perfil.fijos || []), { id: uid(), nombre, oc: f.oc, hora, dias: [...dias].sort(), desde: d }]; }
+      else ag(d).planes.push({ id: uid(), nombre, oc: f.oc, hora, fr: frDe(hora) });
+      E.cal.form = null; await guardar(); E.propuestas = []; toast(dias ? t('Evento guardado: se repite ', 'Event saved: repeats ') + diasTxt(dias) : t('Evento guardado', 'Event saved'));
+    }
+    else if (q.agev) { E.cal.ev = E.cal.ev === q.agev ? null : q.agev; E.cal.idea = 0; E.cal.mios = false; E.cal.cambia = false; E.cal.form = null; }
+    else if (q.agpon) { const a = ag(dia); a.looks = { ...(a.looks || {}), [evId]: q.agpon.split(',') }; E.cal.cambia = false; await guardar(); E.propuestas = []; toast(t('Look guardado para este evento', 'Look saved for this event')); }
+    else if (q.agmio) { const c = E.conjuntos.find(x => x.id === q.agmio); if (c) { const a = ag(dia); a.looks = { ...(a.looks || {}), [evId]: [...c.ids] }; E.cal.mios = false; E.cal.cambia = false; await guardar(); E.propuestas = []; toast(t('Look guardado para este evento', 'Look saved for this event')); } }
+    else if (q.cotra !== undefined) E.cal.idea++;
+    else if (q.agmios !== undefined) E.cal.mios = !E.cal.mios;
+    else if (q.agcambia !== undefined) { E.cal.cambia = true; E.cal.idea = 0; }
+    else if (q.agquitalook !== undefined) { const a = ag(dia); if (a.looks) delete a.looks[evId]; if (a.look && eventosDe(dia)[0]?.id === evId) delete a.look; await guardar(); E.propuestas = []; }
+    else if (q.agquita !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) { const a = ag(dia); if (ev.fijo) a.sin = [...(a.sin || []), ev.id]; else a.planes.splice(ev.i, 1); if (a.looks) delete a.looks[ev.id]; E.cal.ev = null; await guardar(); E.propuestas = []; toast(ev.fijo ? t('Quitado de este día', 'Removed from this day') : t('Evento borrado', 'Event deleted')); } }
+    else if (q.agbfijo) { E.perfil.fijos = (E.perfil.fijos || []).filter(x => x.id !== q.agbfijo); E.cal.ev = null; await guardar(); E.propuestas = []; toast(t('Borrado en todas las semanas', 'Deleted from every week')); }
+    pintarAgenda(raiz);
+  };
+}
+function pintarCalendario(raiz) { // vista de mes de la 0.40–0.110; desde la 0.111 el calendario es la agenda (pintarAgenda) y esto queda de reserva
+  return pintarAgenda(raiz);
   const en = idioma() === 'en', loc = en ? 'en-GB' : 'es-ES', hoy = diaISO(new Date());
   if (!E.cal.dia) E.cal.dia = hoy;
   const sel = new Date(E.cal.dia + 'T12:00'); if (!E.cal.mes) E.cal.mes = new Date(sel.getFullYear(), sel.getMonth(), 1);
@@ -1010,9 +1211,9 @@ function pintarCalendario(raiz) {
   const puesto = d => E.prendas.filter(p => (p.usos || []).includes(d));
   let celdas = ''; for (let i = 0; i < pri; i++) celdas += '<i></i>';
   for (let n = 1; n <= dias; n++) {
-    const d = diaISO(new Date(m.getFullYear(), m.getMonth(), n)), a = E.agenda[d], pl = a?.planes?.[0];
-    const marca = a?.look?.length || puesto(d).length;
-    celdas += `<button class="${d === E.cal.dia ? 'on' : ''}${d === hoy ? ' hoy' : ''}${d < hoy ? ' pasado' : ''}" data-cdia="${d}"><b>${n}</b>${pl ? `<small>${ocNombre(pl.oc)}</small>` : ''}${marca ? '<em></em>' : ''}</button>`;
+    const d = diaISO(new Date(m.getFullYear(), m.getMonth(), n)), a = E.agenda[d], pl = eventosDe(d)[0];
+    const marca = a?.look?.length || Object.keys(a?.looks || {}).length || puesto(d).length;
+    celdas += `<button class="${d === E.cal.dia ? 'on' : ''}${d === hoy ? ' hoy' : ''}${d < hoy ? ' pasado' : ''}" data-cdia="${d}"><b>${n}</b>${pl ? `<small>${nomEv(pl)}</small>` : ''}${marca ? '<em></em>' : ''}</button>`;
   }
   const sem = (en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D']).map(x => `<span>${x}</span>`).join('');
   const a = E.agenda[E.cal.dia] || {}, planes = a.planes || [], futuro = E.cal.dia >= hoy, ps = puesto(E.cal.dia);
@@ -1034,7 +1235,7 @@ function pintarCalendario(raiz) {
     : !futuro && E.conjuntos.length ? `<div class="cal-look"><p class="mini-et">${t('Apunta lo que te pusiste', 'Note what you wore')}</p><div class="cal-mios">${E.conjuntos.slice(0, 12).map(c => `<button data-cpuse="${c.id}"><div class="lk-fig">${maniqui(c.ids.map(P).filter(Boolean), true)}</div></button>`).join('')}</div></div>` : '';
   raiz.innerHTML = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
     <div class="mc-cats lk-tabs"><button data-lktab="mios">${t('Mis looks', 'My looks')}</button><button data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="activo" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>
-    <div class="cal"><div class="cal-mes"><button data-cmes="-1" aria-label="${t('Mes anterior', 'Previous month')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h2>${cap(m.toLocaleDateString(loc, { month: 'long', year: 'numeric' }))}</h2><button data-cmes="1" aria-label="${t('Mes siguiente', 'Next month')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
+    <div class="cal"><div class="lk-ocs ag-vista"><button data-agvista="semana">${t('Semana', 'Week')}</button><button class="on" data-agvista="mes">${t('Mes', 'Month')}</button></div><div class="cal-mes"><button data-cmes="-1" aria-label="${t('Mes anterior', 'Previous month')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h2>${cap(m.toLocaleDateString(loc, { month: 'long', year: 'numeric' }))}</h2><button data-cmes="1" aria-label="${t('Mes siguiente', 'Next month')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
     <div class="cal-sem">${sem}</div><div class="cal-rej">${celdas}</div>
     <div class="cal-dia"><h3>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>
       ${planes.length ? `<ul class="cal-planes">${planes.map((p, i) => `<li><span>${ocNombre(p.oc)}</span><small>${en ? (FRANJAS.find(f => f[0] === p.fr) || [p.fr, p.fr])[1] : p.fr}</small><button data-cquita="${i}" aria-label="${t('Quitar', 'Remove')}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></li>`).join('')}</ul>` : futuro && E.cal.add ? '' : `<p class="cal-vacio">${futuro ? t('¿Qué tienes este día?', 'What do you have on this day?') : t('Sin planes apuntados.', 'No plans noted.')}</p>`}
@@ -1043,11 +1244,12 @@ function pintarCalendario(raiz) {
   const hz = $('cal-hasta'); if (hz) { hz.onclick = () => { try { hz.showPicker(); } catch (e) { } };
     hz.onchange = () => { $('cal-hasta-t').textContent = hz.value ? t('Hasta el ', 'Until ') + new Date(hz.value + 'T12:00').toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }) : t('Repetir hasta…', 'Repeat until…'); }; }
   raiz.onclick = async e => {
-    const b = e.target.closest('[data-lktab],[data-cmas],[data-cdia],[data-cmes],[data-coc],[data-cfr],[data-cadd],[data-cquita],[data-cguarda],[data-cotra],[data-cquitalook],[data-cpuse]'); if (!b) return;
+    const b = e.target.closest('[data-agvista],[data-lktab],[data-cmas],[data-cdia],[data-cmes],[data-coc],[data-cfr],[data-cadd],[data-cquita],[data-cguarda],[data-cotra],[data-cquitalook],[data-cpuse]'); if (!b) return;
     const d = b.dataset, ag = () => (E.agenda[E.cal.dia] = E.agenda[E.cal.dia] || { planes: [] });
     if (d.lktab) { E.lkTab = d.lktab; E.lkTocado = true; E.lkI = 0; return pintarLooks(); }
+    if (d.agvista) { E.cal.vista = d.agvista; return pintarCalendario(raiz); }
     if (d.cmas !== undefined) E.cal.add = true;
-    else if (d.cdia) { E.cal.dia = d.cdia; E.cal.idea = 0; E.cal.add = false; E.cal.ocSel = false; }
+    else if (d.cdia) { E.cal.vista = 'semana'; E.cal.ini = lunesDe(d.cdia); E.cal.foco = d.cdia; E.cal.ev = null; E.cal.form = null; return pintarAgenda(raiz); } // 0.111: el día abre su semana en la agenda
     else if (d.cmes) E.cal.mes = new Date(E.cal.mes.getFullYear(), E.cal.mes.getMonth() + +d.cmes, 1);
     else if (d.coc) { E.cal.oc = d.coc; E.cal.ocSel = true; E.cal.idea = 0; e.preventDefault(); }
     else if (d.cfr) { E.cal.fr = d.cfr; e.preventDefault(); }
@@ -1702,7 +1904,7 @@ function sacalePartido(p) {
 // filtro por ocasión y tres formas de verlos a prueba (?looks=1 rejilla de 2 · 2 uno a uno · 3 lista)
 E.lkTab = ({ ideas: 'ideas', cal: 'cal' })[new URLSearchParams(location.search).get('lk')] || 'mios'; E.lkOc = 'Todo'; E.lkI = 0;
 const lkVista = () => { const v = new URLSearchParams(location.search).get('looks') || localStorage.getItem('tc_looks'); return ['1', '2', '3', '4', '5'].includes(v) ? v : '1'; }; // 0.49 (Gabriela, 22/10: «aplica el mismo estilo a todas las nuevas… y corregimos sobre esa base»): rejilla como el Clóset cerrado; // 4 y 5 (21/10, «adapta la interfaz a mi estilo»): sobre blanco, sin cajas
-const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(c.ids.map(P).filter(Boolean), mini, COMP === 'simetrica' ? 'collage' : COMP);
+const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(conZapato(c.ids.map(P).filter(Boolean), c.zspec, c.como), mini);
 const usosTxt = c => c.usos?.length ? veces(c.usos.length) : t('sin estrenar', 'not worn yet');
 function pintarLooks() {
   // 0.89 (Gabriela, 24/10: «doy en looks y no me ha creado ningún look»): sin looks guardados, Looks abre en las ideas
@@ -1717,9 +1919,9 @@ function pintarLooks() {
   const cab = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
     <div class="mc-cats lk-tabs"><button class="${ideas || E.lkTab === 'cal' ? '' : 'activo'}" data-lktab="mios">${t('Mis looks', 'My looks')}</button><button class="${ideas ? 'activo' : ''}" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="${E.lkTab === 'cal' ? 'activo' : ''}" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>
     ${ideas || ocs.length < 3 ? '' : `<div class="lk-ocs">${ocs.map(o => `<button class="${o === E.lkOc ? 'on' : ''}" data-lkoc="${o}">${o === 'Todo' ? t('Todo', 'All') : ocNombre(o)}</button>`).join('')}</div>`}`;
-  const zap = c => c.ids.map(P).some(p => p?.tipo === 'Calzado') ? '' : `<span class="lk-zap">${t('con', 'with')} ${c.zapato || zapatoSugerido(c.ids.map(P).filter(Boolean), E.tiempo?.t)}</span>${c.porque ? `<span class="lk-por">${c.porque}</span>` : ''}`; // 0.103; 0.109 con el zapato y el porqué de la estilista
+  const zap = c => pieLook(conZapato(c.ids.map(P).filter(Boolean), c.zspec)); // 0.111: paleta y estilo en vez del zapato escrito y el porqué
   const pie = c => ideas ? `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span>${zap(c)}<span class="lk-acc"><button data-gguardar="${c.i}">${t('Guardar', 'Save')}</button><button data-ghoy="${c.i}">${t('Me lo pongo', 'Wear it')}</button></span>`
-    : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span><span class="lk-us">${usosTxt(c)}</span>`;
+    : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span>${zap(c)}<span class="lk-us">${usosTxt(c)}</span>`;
   const abre = c => ideas ? '' : ` data-look="${c.id}"`;
   let cuerpo;
   if (!lista.length) cuerpo = ideas ? `<div class="hz-vacio lk-vacio">${t('Para proponerte looks necesito más prendas de esta estación: por ejemplo, un top y un pantalón o una falda, o un vestido.', 'To suggest looks I need more garments for this season: for example a top and trousers or a skirt, or a dress.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button></div>`
@@ -1914,7 +2116,7 @@ document.addEventListener('click', e => {
   else if (b.dataset.oc) { $('nl-ocasiones').dataset.sel = b.dataset.oc; $('nl-ocasiones').querySelectorAll('.chip').forEach(c => c.classList.toggle('sel', c.dataset.oc === b.dataset.oc)); }
   else if (b.dataset.dis) { const [k, v] = b.dataset.dis.split('|'); delete DIS_URL[k]; localStorage.setItem('tc_' + k, v); aplicarDiseno(); pintarDiseno(); }
   else if (b.dataset.proto) { for (const [k, v] of Object.entries(PROTOS[b.dataset.proto])) { delete DIS_URL[k]; localStorage.setItem('tc_' + k, v); } aplicarDiseno(); pintarDiseno(); toast(`${b.dataset.proto}: ${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}`); }
-  else if (b.dataset.gguardar !== undefined) { const g = E.generados[+b.dataset.gguardar]; if (g) { E.conjuntos.unshift({ id: uid(), nombre: g.nombre, ocasion: g.ocasion, ids: g.ids, creada: hoyISO(), usos: [] }); E.generados.splice(+b.dataset.gguardar, 1); guardar(); E.propuestas = []; toast(t('Conjunto guardado', 'Outfit saved')); pintarLooks(); } }
+  else if (b.dataset.gguardar !== undefined) { const g = E.generados[+b.dataset.gguardar]; if (g) { E.conjuntos.unshift({ id: uid(), nombre: g.nombre, ocasion: g.ocasion, ids: g.ids, creada: hoyISO(), usos: [], ...(g.zspec ? { zspec: g.zspec } : {}), ...(g.como ? { como: g.como } : {}) }); E.generados.splice(+b.dataset.gguardar, 1); guardar(); E.propuestas = []; toast(t('Conjunto guardado', 'Outfit saved')); pintarLooks(); } }
   else if (b.dataset.ghoy !== undefined) { const g = E.generados[+b.dataset.ghoy]; if (g) ponerse(g.ids); }
   else if (b.dataset.plan) { E.plan = b.dataset.plan; E.hoyIdx = 0; E.propuestas = []; pintarHoy(); }
   else if (b.dataset.sel) { const id = b.dataset.sel; const i = E.preseleccion.indexOf(id); i >= 0 ? E.preseleccion.splice(i, 1) : E.preseleccion.push(id); b.classList.toggle('sel', i < 0); }
