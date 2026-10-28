@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="iconos/icono-129-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bellefair&family=Cormorant+Garamond:ital,wght@1,300;1,400&family=Playfair:ital,opsz,wght@0,5..1200,300..900;1,5..1200,300..900&family=Inter:opsz,wght@14..32,400..700&family=Atkinson+Hyperlegible+Next:wght@400..800&family=Jost:wght@300..700&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=0.109">
+<link rel="stylesheet" href="app.css?v=0.110">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -134,7 +134,7 @@
   </div>
   <div class="ac-pie">
     <button class="boton" id="e-entrar" data-t="ac_entrar_bt">Entrar</button>
-    <!-- 0.109: sin «Continuar con Apple» ni «Continuar con Google» hasta que funcionen (Gabriela, 28/10: «quita entonces lo de Google y Apple») -->
+    <!-- 0.110: sin «Continuar con Apple» ni «Continuar con Google» hasta que funcionen (Gabriela, 28/10: «quita entonces lo de Google y Apple») -->
     <button class="ac-enlace solo" data-ir="alta"><span data-t="ac_no_tengo">¿Aún no tienes cuenta? Crea tu clóset</span></button>
   </div>
 </main>
@@ -174,6 +174,7 @@
     <label class="campo"><span data-t="estacion">Estación</span><select id="an-estacion"></select></label>
     <label class="campo"><span data-t="precio">Precio (si quieres)</span><input id="an-precio" inputmode="decimal" placeholder="29,95 €"></label>
   </div>
+  <div class="campo oculto" id="an-tiro-c"><span data-t="tiro_q">¿Dónde te llega la cinturilla?</span><div class="an-tiro" id="an-tiro"></div><span class="an-tiro-ay" data-t="tiro_ay">El punto dorado es el ombligo. Si no lo sabes, déjalo sin marcar.</span></div>
   <div class="campo"><span data-t="color">Color</span><div class="colores" id="an-colores"></div></div>
   <label class="campo"><span data-t="notas">Notas (talla, tienda, cuidado…)</span><input id="an-notas" placeholder="Talla M · Zara · lavar en frío"></label>
   <button class="boton" style="margin-top:18px" id="an-guardar" data-t="guardar_closet">Guardar en mi clóset</button>
@@ -238,16 +239,16 @@
   <nav class="y3-nav" id="yo-lista"></nav>
   <div class="y3-aj" id="yo-ajustes"></div>
   <details class="yo-plegado"><summary id="yo-mas-t">Más opciones</summary><div class="lista" id="yo-tecnico"></div></details>
-  <p class="nota" id="yo-version">TuCloset web 0.109 · 28 de octubre de 2026</p>
+  <p class="nota" id="yo-version">TuCloset web 0.110 · 28 de octubre de 2026</p>
 </main>
 
-<!-- MIS COLORES (0.109) -->
+<!-- MIS COLORES (0.110) -->
 <main class="pantalla con-margen" id="p-colores">
   <div class="cab"><button data-ir="yo" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et">Mis colores</span><span></span></div>
   <div id="co-raiz"></div>
 </main>
 
-<!-- CUENTA (0.109) -->
+<!-- CUENTA (0.110) -->
 <main class="pantalla con-margen" id="p-cuenta">
   <div class="cab"><button data-ir="yo" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et">Cuenta</span><span></span></div>
   <div id="cu-raiz"></div>
@@ -265,6 +266,6 @@
 <dialog id="dlg"><h2 id="dlg-t"></h2><p id="dlg-p"></p><div class="botones"><button class="boton" id="dlg-si"></button><button class="boton linea" id="dlg-no"></button></div></dialog>
 </div>
 <script>window.TC_PUBLICA=true</script>
-<script src="app.js?v=0.109"></script>
+<script src="app.js?v=0.110"></script>
 </body>
 </html>

@@ -1245,3 +1245,13 @@ img{-webkit-user-drag:none}
 /* 0.109 · el porqué de la estilista, bajo el zapato */
 .hz-porque{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:400;font-size:15px;line-height:1.3;color:var(--sec);text-align:center;margin:-8px 18px 12px}
 .lk-por{display:block;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:13.5px;line-height:1.25;color:var(--sec);margin:2px 6px 4px;text-align:center}
+/* 0.110 · tiro con dibujos */
+.an-tiro{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+.an-tiro button{background:#fff;border:1px solid var(--linea);padding:6px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.an-tiro button svg{width:100%;max-width:92px;height:auto;display:block}
+.an-tiro button span{font-size:13px;color:var(--sec)}
+.an-tiro button.sel{border-color:var(--oro);box-shadow:inset 0 0 0 1px var(--oro)}
+.an-tiro button.sel span{color:var(--tinta)}
+.an-tiro-ay{display:block;font-size:12px;color:var(--ter);margin-top:6px;text-align:center}
+#an-tiro-c .an-tiro button span,#an-tiro-c .an-tiro-ay{font-weight:400}
+#an-tiro-c .an-tiro-ay{font-weight:300}

@@ -51,7 +51,7 @@ const T = {
   privado: ['Las fotos se quedan en tu móvil. Solo tu silueta, sin tu cara, se usará para probarte la ropa.', 'Photos stay on your phone. Only your figure, without your face, will be used to try clothes on.'],
   buscar: ['Buscar en mi clóset', 'Search my closet'], nueva: ['Nueva prenda', 'New garment'], editar_prenda: ['Editar prenda', 'Edit garment'], borrar: ['Borrar', 'Delete'],
   hacer_foto: ['Haz una foto o elige una de la galería', 'Take a photo or pick one from the gallery'], foto_et: ['sobre fondo liso, la prenda entera', 'plain background, whole garment'],
-  nombre_prenda: ['Nombre', 'Name'], tipo: ['Tipo', 'Type'], categoria: ['Categoría', 'Category'], estacion: ['Estación', 'Season'], precio: ['Precio (si quieres)', 'Price (optional)'], color: ['Color', 'Colour'], notas: ['Notas (talla, tienda, cuidado…)', 'Notes (size, shop, care…)'],
+  nombre_prenda: ['Nombre', 'Name'], tipo: ['Tipo', 'Type'], categoria: ['Categoría', 'Category'], estacion: ['Estación', 'Season'], tiro_q: ['¿Dónde te llega la cinturilla?', 'Where does the waistband sit?'], tiro_ay: ['El punto dorado es el ombligo. Si no lo sabes, déjalo sin marcar.', 'The gold dot is your navel. If unsure, leave it blank.'], precio: ['Precio (si quieres)', 'Price (optional)'], color: ['Color', 'Colour'], notas: ['Notas (talla, tienda, cuidado…)', 'Notes (size, shop, care…)'],
   guardar_closet: ['Guardar en mi clóset', 'Save to my closet'], guardar_otra: ['Guardar y añadir otra', 'Save and add another'], guardar_cambios: ['Guardar cambios', 'Save changes'],
   editar: ['Editar', 'Edit'], veces: ['veces puesta', 'times worn'], ultima: ['última vez', 'last worn'], conjuntos_min: ['conjuntos', 'outfits'], hoy_llevo: ['Hoy llevo esto', 'Wearing this today'],
   asi: ['Así te queda', 'How it looks on you'], ver_conjuntos: ['Ver conjuntos', 'See outfits'], conjuntos: ['Conjuntos', 'Outfits'], nuevo_conjunto: ['Nuevo conjunto', 'New outfit'],
@@ -750,7 +750,7 @@ const esCapa = p => p.tipo === 'Arriba' && /chaqueta|c[aá]rdigan|americana|blaz
    y los puntos de proporción (B2–B11); el zapato sugerido (F10) cuando no hay calzado subido. ---------- */
 const VOL_ARR = { 'ceñido': 0, regular: 1, holgado: 2, oversize: 3 }, VOL_AB = { pitillo: 0, recto: 1, acampanado: 1, ancho: 2, barril: 3, palazzo: 2 };
 function estDe(p) {
-  if (p.est) return p.est;
+  if (p.est && p.est.form != null) return p.est; // ficha completa de la estilista; si solo hay lo que contestó ella (el tiro), se completa abajo
   const n = (p.nombre || '').toLowerCase(), x = (p.x || '').toLowerCase(), sm = sinMangas(p);
   const e = { estampado: p.color === 'Estampado' || /raya|cuadro|flor|estampad|diplom|lunar/.test(n) ? 'estampado' : 'liso', grosor: /grueso|cuello alto/.test(n) && /jersey/.test(n) ? 'grueso' : sm ? 'fino' : 'medio' };
   if (p.tipo === 'Abajo') {
@@ -765,7 +765,7 @@ function estDe(p) {
     e.rol = /chaleco de traje|americana|blazer|c[aá]rdigan/.test(n) ? 'capa_ligera' : 'base';
     e.tmin = sm ? 20 : /manga corta/.test(n) ? 18 : e.grosor === 'grueso' ? 6 : 10; e.tmax = e.grosor === 'grueso' ? 16 : /jersey|sudadera/.test(n) ? 20 : sm ? 34 : 26;
   }
-  return e;
+  return p.est ? Object.assign(e, p.est) : e;
 }
 // devuelve null si el look vale, o el motivo del veto; y los puntos de proporción en .puntos
 function estilista(ps, T) {
@@ -1534,6 +1534,15 @@ function recortarAMano(blob) {
     };
   });
 }
+// 0.110 · Tiro con dibujos al subir o editar un pantalón o una falda (Gabriela, 28/10: «11. sí, pero un dibujo mejor, eso parece prehistórico»).
+// Saltable: si no se marca, la app lo deduce del nombre
+const TIRO_SVG = {"alto": "<svg viewBox=\"0 30 160 216\" role=\"img\" aria-label=\"Tiro alto\"> <path d=\"M47 10 C50 35 58 50 58 62 C58 82 41 100 41 120 C41 160 45 200 47 240 M113 10 C110 35 102 50 102 62 C102 82 119 100 119 120 C119 160 115 200 113 240\" fill=\"none\" stroke=\"#CDBFB0\" stroke-width=\"1\" stroke-linecap=\"round\"/> <path d=\"M55.6 58 C54.1 88.6 38.5 98.8 38.5 126 C38.5 165 41 205 42.5 240 L77.5 240 L80 152 L82.5 240 L117.5 240 C119 205 121.5 165 121.5 126 C121.5 98.8 105.9 88.6 104.4 58 Z\" fill=\"#FBF8F3\" stroke=\"#4A3526\" stroke-width=\"1.15\" stroke-linejoin=\"round\"/> <path d=\"M56.0 65 L104.0 65M64.6 58 V66.5M65.0 58 V66.5M95.0 58 V66.5M95.4 58 V66.5M80 65 V91 Q80 97 73.5 99M63.1 65 Q70.6 78 58.1 90 M96.9 65 Q89.4 78 101.9 90\" fill=\"none\" stroke=\"#4A3526\" stroke-width=\".85\" stroke-linecap=\"round\"/> <path d=\"M59.5 168 L60.5 238 M100.5 168 L99.5 238\" fill=\"none\" stroke=\"#4A3526\" stroke-width=\".5\" stroke-opacity=\".3\"/> <circle cx=\"80\" cy=\"61.5\" r=\"1.5\" fill=\"none\" stroke=\"#4A3526\" stroke-width=\".75\"/> <circle cx=\"80\" cy=\"68\" r=\"2.2\" fill=\"#C9A24B\"/> </svg>", "medio": "<svg viewBox=\"0 30 160 216\" role=\"img\" aria-label=\"Tiro medio\"> <path d=\"M47 10 C50 35 58 50 58 62 C58 82 41 100 41 120 C41 160 45 200 47 240 M113 10 C110 35 102 50 102 62 C102 82 119 100 119 120 C119 160 115 200 113 240\" fill=\"none\" stroke=\"#CDBFB0\" stroke-width=\"1\" stroke-linecap=\"round\"/> <path d=\"M51.5 80 C50.0 100.7 38.5 107.6 38.5 126 C38.5 165 41 205 42.5 240 L77.5 240 L80 152 L82.5 240 L117.5 240 C119 205 121.5 165 121.5 126 C121.5 107.6 110.0 100.7 108.5 80 Z\" fill=\"#FBF8F3\" stroke=\"#4A3526\" stroke-width=\"1.15\" stroke-linejoin=\"round\"/> <path d=\"M51.9 87 L108.1 87M60.5 80 V88.5M65.0 80 V88.5M95.0 80 V88.5M99.5 80 V88.5M80 87 V113 Q80 119 73.5 121M59.0 87 Q66.5 100 54.0 112 M101.0 87 Q93.5 100 106.0 112\" fill=\"none\" stroke=\"#4A3526\" stroke-width=\".85\" stroke-linecap=\"round\"/> <path d=\"M59.5 168 L60.5 238 M100.5 168 L99.5 238\" fill=\"none\" stroke=\"#4A3526\" stroke-width=\".5\" stroke-opacity=\".3\"/> <circle cx=\"80\" cy=\"83.5\" r=\"1.5\" fill=\"none\" stroke=\"#4A3526\" stroke-width=\".75\"/> <circle cx=\"80\" cy=\"68\" r=\"2.2\" fill=\"#C9A24B\"/> </svg>", "bajo": "<svg viewBox=\"0 30 160 216\" role=\"img\" aria-label=\"Tiro bajo\"> <path d=\"M47 10 C50 35 58 50 58 62 C58 82 41 100 41 120 C41 160 45 200 47 240 M113 10 C110 35 102 50 102 62 C102 82 119 100 119 120 C119 160 115 200 113 240\" fill=\"none\" stroke=\"#CDBFB0\" stroke-width=\"1\" stroke-linecap=\"round\"/> <path d=\"M43.5 100 C42.0 111.7 38.5 115.6 38.5 126 C38.5 165 41 205 42.5 240 L77.5 240 L80 152 L82.5 240 L117.5 240 C119 205 121.5 165 121.5 126 C121.5 115.6 118.0 111.7 116.5 100 Z\" fill=\"#FBF8F3\" stroke=\"#4A3526\" stroke-width=\"1.15\" stroke-linejoin=\"round\"/> <path d=\"M43.9 107 L116.1 107M52.5 100 V108.5M65.0 100 V108.5M95.0 100 V108.5M107.5 100 V108.5M80 107 V133 Q80 139 73.5 141M51.0 107 Q58.5 120 46.0 132 M109.0 107 Q101.5 120 114.0 132\" fill=\"none\" stroke=\"#4A3526\" stroke-width=\".85\" stroke-linecap=\"round\"/> <path d=\"M59.5 168 L60.5 238 M100.5 168 L99.5 238\" fill=\"none\" stroke=\"#4A3526\" stroke-width=\".5\" stroke-opacity=\".3\"/> <circle cx=\"80\" cy=\"103.5\" r=\"1.5\" fill=\"none\" stroke=\"#4A3526\" stroke-width=\".75\"/> <circle cx=\"80\" cy=\"68\" r=\"2.2\" fill=\"#C9A24B\"/> </svg>"};
+function pintarTiro(sel) {
+  const c = $('an-tiro'); c.dataset.sel = sel || '';
+  c.innerHTML = [['alto', t('Alto', 'High')], ['medio', t('Medio', 'Mid')], ['bajo', t('Bajo', 'Low')]].map(([k, n]) => `<button type="button" data-tiro="${k}" class="${k === sel ? 'sel' : ''}">${TIRO_SVG[k]}<span>${n}</span></button>`).join('');
+  $('an-tiro-c').classList.toggle('oculto', TIPO_DE_CAT[$('an-tipo').value] !== 'Abajo');
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-tiro]'); if (!b) return; pintarTiro($('an-tiro').dataset.sel === b.dataset.tiro ? '' : b.dataset.tiro); });
 function prepararAnadir(id) {
   E.editando = id ? P(id) : null; fotoNueva = null; fotoOriginal = null;
   const p = E.editando;
@@ -1542,12 +1551,13 @@ function prepararAnadir(id) {
   $('an-guardar').textContent = p ? t('Guardar cambios', 'Save changes') : t('Guardar en mi clóset', 'Save to my closet');
   $('an-otra').classList.toggle('oculto', !!p);
   const cat0 = p ? catDe(p) : 'Tops'; $('an-tipo').innerHTML = opsCat(cat0); $('an-sub').innerHTML = opsSub(cat0, p ? subDe(cat0, p.x, p.nombre) : '');
-  $('an-tipo').onchange = () => { $('an-sub').innerHTML = opsSub($('an-tipo').value, ''); };
+  $('an-tipo').onchange = () => { $('an-sub').innerHTML = opsSub($('an-tipo').value, ''); pintarTiro($('an-tiro').dataset.sel); };
   $('an-sub').onchange = () => { const k = $('an-sub').value, n = $('an-nombre').value.trim(); if (k && (!n || NOMBRE_AUTO.test(n))) $('an-nombre').value = nombreReconocido(k, $('an-colores').dataset.sel || 'Negro'); };
   $('an-estacion').innerHTML = ESTACIONES.map(x => `<option value="${x}">${estNombre(x)}</option>`).join('');
   $('an-nombre').value = p?.nombre || ''; $('an-estacion').value = p?.estacion || 'Todo el año'; $('an-notas').value = p?.notas || ''; $('an-precio').value = p?.precio ? dinero(p.precio) : '';
   pintarColores(p?.color || '');
   pintarPrevia(p ? urlFoto(p) : '');
+  pintarTiro(p?.est?.tiro || '');
 }
 function pintarColores(sel) {
   $('an-colores').innerHTML = COLORES.map(([n, c]) => `<button type="button" data-color="${n}" class="${n === sel ? 'sel' : ''}" title="${n}" style="background:${c}"></button>`).join('');
@@ -1571,6 +1581,7 @@ async function guardarPrenda(otra) {
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
   if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value) }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
   else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
+  const tiro = tipo === 'Abajo' && $('an-tiro').dataset.sel, pr = p || E.prendas[0]; if (tiro) pr.est = { ...(pr.est || {}), tiro };
   await guardar(); E.propuestas = [];
   toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'));
   if (otra) prepararAnadir(null); else ir(p ? 'ficha' : 'closet', p?.id), p && abrirFicha(p.id);
