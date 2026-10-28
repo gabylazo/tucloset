@@ -1208,3 +1208,4 @@ img{-webkit-user-drag:none}
 /* 0.103 · zapato sugerido por el estilista (sin zapatos subidos) */
 .hz-zapato{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:17px;color:var(--oro-t);text-align:center;margin:-4px 0 14px}
 .lk-zap{display:block;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14.5px;color:var(--oro-t);text-align:center;margin:-2px 0 4px}
+.f-coste{text-align:center;font-size:14px;color:var(--sec);margin-top:10px}
