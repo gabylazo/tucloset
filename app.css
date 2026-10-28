@@ -1390,3 +1390,86 @@ img{-webkit-user-drag:none}
 .cu-cab b{font-family:var(--f-marca);font-weight:400;font-size:26px;color:var(--tinta)}
 .cu-cab span{font-size:14px;color:var(--sec)}
 .ay-lista{max-width:none;margin:0}.ay-lista .pn-d,.pn-c .pn-d{margin:0;border-bottom:0}.ay-lista .pn-g:first-child{margin-top:22px}
+
+/* ---------- 0.12 · propuesta (?propuesta=012): tarjeta 4:5 sobre blanco, Hoy dentro de Looks, favoritos, barra de cuatro ---------- */
+/* composicion-looks.md §2.1 y §2.6: fondo blanco, línea fina cuadrada, solo sombra de contacto; sin beige ni «multiplicar» */
+.lienzo.tarjeta{background:#fff;outline:1px solid #E9E7E5;max-width:100%;max-height:100%;width:100%}
+.lienzo.tarjeta .pz{mix-blend-mode:multiply}
+.lienzo.tarjeta .pz.op{mix-blend-mode:normal;filter:drop-shadow(0 1px 1px rgba(74,53,38,.16))}
+.prop .lk-fig{background:#fff}
+.tabs.cuatro button{flex:1}
+/* Hoy en Looks (alternativa A, carrusel): tarjeta de 338 × 422 en un móvil de 390 y la siguiente asomando */
+.pr-tiempo{display:flex;justify-content:center;gap:14px;align-items:center;margin:2px 0 4px;color:var(--sec,#57473B)}
+.pr-tiempo span{display:inline-flex;align-items:center;gap:4px}
+.pr-tiempo svg{width:15px;height:15px}
+.pr-plan{text-align:center;margin-bottom:10px}
+.pr-carrusel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:16px;padding:0 16px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.pr-carrusel::-webkit-scrollbar{display:none}
+.pr-slide{flex:0 0 calc(100% - 60px);max-width:340px;scroll-snap-align:start;display:flex;flex-direction:column}
+.pr-card{position:relative;aspect-ratio:4/5;width:100%;cursor:pointer}
+.pr-card .lienzo{position:absolute;inset:0}
+.pr-slide .lienzo.tarjeta .pz.op{filter:drop-shadow(0 1px 1px rgba(74,53,38,.16)) drop-shadow(0 4px 8px rgba(74,53,38,.06))}
+.pr-pie{display:flex;align-items:center;justify-content:space-between;min-height:44px}
+.pr-oc{font-family:Jost,system-ui,sans-serif;font-size:13.5px;color:var(--nogal,#4A3526)}
+.pr-fav{width:44px;height:44px;display:grid;place-items:center;margin-right:-12px;background:none;border:0;color:var(--nogal,#4A3526)}
+.pr-fav svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.6;opacity:.7}
+.pr-fav.on svg{fill:currentColor;opacity:1}
+.pr-porque{font-size:13px;line-height:1.45;color:var(--sec,#57473B);margin:0 0 10px}
+.pr-zap{font-size:12px;color:var(--sec,#57473B);background:none;border:0;padding:0;margin:0 0 10px;text-align:left;text-decoration:underline;text-underline-offset:3px}
+.pr-acc{display:flex;align-items:center;gap:14px}
+.pr-acc .boton{flex:1}
+.pr-otra{display:inline-flex;align-items:center;gap:2px;background:none;border:0;font-size:14px;color:var(--nogal,#4A3526);min-height:44px;padding:0 4px}
+.pr-otra svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6}
+.pr-no{align-self:center;background:none;border:0;font-size:12.5px;color:var(--ter,#76665A);min-height:40px}
+.pr-puntos{display:flex;justify-content:center;gap:7px;margin:4px 0 18px}
+.pr-puntos i{width:6px;height:6px;border-radius:50%;background:#D9D2CA}
+.pr-puntos i.on{background:var(--nogal,#4A3526)}
+/* Mis looks: rejilla 2 × 4:5 con el corazón en el pie (nogal: el dorado sobre blanco no llega a 3:1) */
+.pr-rejilla{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 16px 24px}
+.prop #lk-raiz .lk-ocs{padding:0 16px}
+.pr-t .pr-pie{min-height:40px}
+.pr-t .pr-fav{width:40px;height:40px}
+.lk-ocs button svg{width:12px;height:12px;fill:currentColor;vertical-align:-1px;margin-right:4px}
+/* 0.12 · tu diagnóstico (Pro) en Yo y su panel */
+#yo-diag{margin:18px 0 6px}
+.dg-tarjeta{border:1px solid var(--nogal,#4A3526);padding:18px 18px 16px;background:#fff;text-align:left}
+.dg-tarjeta.hecho{cursor:pointer}
+.dg-cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.dg-cab h2{font-family:Bellefair,serif;font-weight:400;font-size:24px;color:var(--nogal,#4A3526);margin:0}
+.dg-pro{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#fff;background:var(--nogal,#4A3526);padding:4px 8px}
+.dg-tarjeta p{font-size:14px;line-height:1.5;color:var(--sec,#57473B);margin:0 0 14px}
+.dg-tarjeta .dg-res{font-family:Bellefair,serif;font-size:21px;color:var(--nogal,#4A3526);margin:12px 0 6px}
+.dg-ver{display:inline-flex;align-items:center;gap:2px;font-size:14px;color:var(--nogal,#4A3526)}
+.dg-ver svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6}
+.dg-fotos{display:flex;gap:10px;margin:4px 0 12px}
+.dg-mini{width:56px;height:70px;border:1px dashed #CFC5BA;display:grid;place-items:center;overflow:hidden}
+.dg-mini.hecha{border-style:solid}
+.dg-mini img{width:100%;height:100%;object-fit:cover}
+.dg-mini svg,.dg-hueco svg{width:24px;height:24px;fill:none;stroke:var(--ter,#76665A);stroke-width:1.4}
+.dg-tela{display:flex;height:22px}
+.dg-tela i{flex:1}
+.dg-tela.grande{height:44px;margin:4px 0 14px}
+.dg-huecos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.dg-hueco{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;border:1px dashed #CFC5BA;padding:14px 10px;text-align:center;cursor:pointer;min-height:220px}
+.dg-hueco.hecha{border-style:solid;border-color:var(--nogal,#4A3526)}
+.dg-hueco img{width:100%;height:130px;object-fit:cover}
+.dg-hueco b{font-weight:500;font-size:14px;color:var(--nogal,#4A3526)}
+.dg-hueco small{font-size:12px;line-height:1.4;color:var(--sec,#57473B)}
+.dg-hueco input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dg-estado{min-height:22px;font-size:13.5px;color:var(--sec,#57473B);margin:0 0 12px;text-align:center}
+.dg-mal{color:#8E3B26;margin:0 0 6px;text-align:left}
+.dg-sec{margin:0 0 26px}
+.dg-h{font-family:Bellefair,serif;font-weight:400;font-size:24px;color:var(--nogal,#4A3526);margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid #E9E7E5}
+.dg-nom{font-family:Bellefair,serif;font-weight:400;font-size:22px;color:var(--nogal,#4A3526);margin:0 0 4px}
+.dg-d{font-size:14px;line-height:1.55;color:var(--sec,#57473B);margin:0 0 10px}
+.dg-d b{font-weight:500;color:var(--nogal,#4A3526)}
+.dg-medido{display:flex;gap:16px;margin:4px 0 8px}
+.dg-medido span{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--sec,#57473B)}
+.dg-medido i{width:22px;height:22px;border-radius:50%;border:1px solid #E9E7E5}
+.dg-dos{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:8px 0 12px}
+.dg-dos h4,.dg-sec>h4{font-size:12px;font-weight:500;letter-spacing:.06em;color:var(--nogal,#4A3526);margin:0 0 6px}
+.dg-dos p,.dg-dos ul{font-size:13.5px;line-height:1.5;color:var(--sec,#57473B);margin:0;padding-left:0;list-style:none}
+.dg-dos li{margin-bottom:4px}
+.dg-sil{display:flex;gap:14px;align-items:flex-start;margin-bottom:6px}
+.dg-sil svg{width:64px;flex:0 0 64px;height:auto}
+.dg-avisos{font-size:13px;color:var(--sec,#57473B);padding-left:18px;margin:0 0 12px}

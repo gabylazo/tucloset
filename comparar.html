@@ -37,6 +37,7 @@ tr.grupo td{font-family:Bellefair,serif;font-size:19px;font-weight:400;padding-t
 </style></head><body>
 <h1>Básico y Pro, con tu clóset</h1>
 <p class="sub">Tu cuenta en las dos versiones. Toca una pestaña de arriba y cambian las dos pantallas.</p>
+<p class="sub" id="modo"><label><input type="checkbox" id="p012" checked> Con la propuesta 0.12 (Hoy dentro de Looks y tarjetas 4:5)</label></p>
 <nav id="nav"><button data-p="hoy" class="on">Hoy</button><button data-p="closet">Clóset</button><button data-p="looks">Looks</button><button data-p="cal">Calendario</button><button data-p="yo">Yo</button></nav>
 <div class="par">
   <figure><figcaption>Básico<span>1,99 € al mes · tu armario, en orden y a tu estilo</span></figcaption><iframe id="fb" title="Básico"></iframe></figure>
@@ -60,23 +61,24 @@ tr.grupo td{font-family:Bellefair,serif;font-size:19px;font-weight:400;padding-t
 <tr><td>Perfil de estilo</td><td class="si"></td><td class="si"></td><td>Yo › Mi estilo: los 13 estilos</td><td class="est"><b>Funciona</b></td></tr>
 <tr><td>Coste por puesta</td><td class="si"></td><td class="si"></td><td>Ficha de cada prenda, si pones el precio</td><td class="est"><b>Funciona</b> desde la 0.105</td></tr>
 <tr class="grupo"><td colspan="5">Solo en el Pro</td></tr>
-<tr><td>Colorimetría</td><td class="no"></td><td class="si"></td><td>Yo › Mis colores</td><td class="est falta"><b>A medias:</b> hoy son 4 preguntas, sin selfie, y salen también en el Básico. El análisis con selfie está por construir</td></tr>
-<tr><td>Morfología corporal</td><td class="no"></td><td class="si"></td><td>Yo › Mi silueta</td><td class="est falta"><b>A medias:</b> el tipo de cuerpo se elige en los dos planes; solo en el Pro ordena los looks</td></tr>
+<tr><td>Colorimetría</td><td class="no"></td><td class="si"></td><td>Yo › Tu diagnóstico</td><td class="est"><b>Funciona</b> desde la 0.118: la app analiza tu selfie en el móvil (piel, pelo, ojos y contraste) y te da tu estación de las 12. En el Básico quedan las 4 preguntas y la tarjeta del diagnóstico con la marca «Pro»</td></tr>
+<tr><td>Morfología corporal</td><td class="no"></td><td class="si"></td><td>Yo › Tu diagnóstico</td><td class="est"><b>Funciona</b> desde la 0.118: la app mide hombros, cintura, cadera y piernas en la foto de cuerpo entero y ordena los looks por lo que te favorece. En el Básico, la silueta se elige a mano</td></tr>
 <tr><td>Probador virtual</td><td class="no"></td><td class="si"></td><td>Hoy y Looks: el look puesto en tu avatar</td><td class="est falta"><b>Por construir:</b> solo existe en 4 looks de ejemplo; falta el generador del avatar</td></tr>
 <tr><td>Estilismo por ocasión</td><td class="no"></td><td class="si"></td><td>Hoy («¿Qué planes tienes hoy?») y Calendario</td><td class="est falta"><b>Funciona, pero en los dos planes:</b> hoy no hay diferencia</td></tr>
 <tr><td>Sácale partido</td><td class="no"></td><td class="si"></td><td>Ficha de cada prenda: lo que le falta para sacarle más looks</td><td class="est"><b>Funciona</b> desde la 0.107</td></tr>
 <tr><td>Inspírate en…</td><td class="no"></td><td class="si"></td><td>Yo › Mi estilo (previsto)</td><td class="est falta"><b>Por construir:</b> Moda tiene el estudio de 11 referencias</td></tr>
 <tr><td>Planning Travel</td><td class="no"></td><td class="si"></td><td>Looks › Calendario, en un evento de viaje (previsto)</td><td class="est falta"><b>Por construir</b></td></tr>
 </tbody></table>
-<p class="nota">Lo que hoy distingue de verdad al Pro es <b>Sácale partido</b> y que <b>Mi silueta</b> ordene los looks. Para que se note la diferencia, la Dirección recomienda que en el Básico las funciones del Pro se vean con una marca «Pro» que lleve a los planes, en vez de estar abiertas o escondidas. Queda pendiente de vuestro visto bueno.</p>
+<p class="nota">Desde la 0.118 lo que distingue al Pro es <b>Tu diagnóstico</b> (la app te escanea la cara y el cuerpo y ordena los looks por tus colores y tu silueta) y <b>Sácale partido</b>. <b>Qué ve el Básico en esos huecos</b> (vuestra pregunta 11): en Yo, la tarjeta «Tu diagnóstico» con la marca Pro y el botón «Ver el plan Pro»; Mis colores con las 4 preguntas a mano y Mi silueta elegida a mano, sin que ordenen los looks. Así cada plan se ve completo y la diferencia se nota. Con la casilla de arriba veis los dos planes con la propuesta 0.12.</p>
 <script>
 const base = new URL('index.html', location.href).href + '?repaso=0';
 const ir = p => {
-  const q = p === 'cal' ? 'pantalla=looks&lk=cal' : p === 'looks' ? 'pantalla=looks&lk=ideas' : 'pantalla=' + p;
+  const pr = document.getElementById('p012').checked, q = (pr ? 'ver=012&' : '') + (p === 'cal' ? 'pantalla=looks&lk=cal' : p === 'looks' ? 'pantalla=looks&lk=' + (pr ? 'mios' : 'ideas') : p === 'hoy' && pr ? 'pantalla=looks&lk=hoy' : 'pantalla=' + p);
   fb.src = base + '&plan=basico&' + q; fp.src = base + '&plan=pro&' + q;
   nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
 };
 nav.onclick = e => { const b = e.target.closest('button'); if (b) ir(b.dataset.p); };
+document.getElementById('p012').onchange = () => ir(nav.querySelector('.on')?.dataset.p || 'hoy');
 ir('hoy');
 </script>
 </body></html>

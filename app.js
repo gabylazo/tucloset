@@ -104,7 +104,7 @@ function estacionColor(r) {
 }
 // en Hoy: la prenda que va junto a la cara (arriba, vestido o abrigo) suma si es de tus colores y resta un poco si es de los de lejos de la cara
 function puntosColores(ps) {
-  const e = EST_COLOR[E.perfil?.colores?.est]; if (!e) return 0;
+  const dc = E.perfil?.diag?.color, e = dc?.si ? dc : EST_COLOR[E.perfil?.colores?.est]; if (!e) return 0; // 0.12: con diagnóstico, la paleta de su estación (de las 12)
   const cara = ps.find(p => p.tipo === 'Arriba') || ps.find(p => p.tipo === 'Vestidos') || ps.find(p => p.tipo === 'Abrigo'); if (!cara) return 0;
   return e.si.includes(cara.color) ? .7 : e.no.includes(cara.color) ? -.5 : 0;
 }
@@ -529,7 +529,11 @@ const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:$
 // Se activa con ?comp=collage (queda guardado); la simétrica (Eje/Cruz, cerrada por Gabriela el 20/10) sigue por defecto hasta que ella decida.
 // 0.107 (Gabriela, 28/10: «5. me gustan simétrica y collage»): Hoy, el calendario y la ficha, simétrica; Looks, collage. ?comp= solo para pruebas
 // 0.111 (Gabriela, 28/10: «la confección de los outfits es horrible, no hay simetría, muchos espacios entre prendas»): «conjunto» en todas partes
-const COMP = (() => { try { return new URLSearchParams(location.search).get('comp') || 'conjunto'; } catch (e) { return 'conjunto'; } })(); // 0.98: «abierto» por defecto (Sheila y Gabriela, 24/10: «mira qué mal la distribución», «la distribución espacial… horrenda»)
+// 0.12 · propuesta completa (Gabriela, 28/10: «cuando tengas una solución y una propuesta homogénea y general… me notificas»): con ?propuesta=012 se ve
+// la app nueva (tarjeta 4:5, Hoy dentro de Looks, barra de cuatro) con su propia ropa; ?propuesta=0 vuelve a la de siempre. Se aplica a todas con su sí
+const PROP = (() => { try { const u = new URLSearchParams(location.search), q = u.get('propuesta'); if (u.get('ver') === '012') return true; /* solo esta vez (la comparativa) */ if (q === '0') localStorage.removeItem('tc_prop'); else if (q) localStorage.setItem('tc_prop', '012'); return localStorage.getItem('tc_prop') === '012'; } catch (e) { return false; } })();
+const COMP = (() => { try { return new URLSearchParams(location.search).get('comp') || (PROP ? 'tarjeta' : 'conjunto'); } catch (e) { return 'conjunto'; } })();
+if (PROP) { const tb = document.getElementById('tabs'), lk = tb?.querySelector('[data-ir="looks"]'); if (lk) { tb.querySelector('[data-ir="hoy"]')?.remove(); tb.prepend(lk); tb.classList.add('cuatro'); document.documentElement.classList.add('prop'); } } // 0.98: «abierto» por defecto (Sheila y Gabriela, 24/10: «mira qué mal la distribución», «la distribución espacial… horrenda»)
 function collage(ps) {
   const m = tam, rol = r => ps.filter(p => r.includes(p.tipo)), G = 6;
   const arriba = rol(['Arriba', 'Abrigo']).slice(0, 2), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0], acc = rol(['Accesorios']).slice(0, 3);
@@ -615,9 +619,49 @@ function conjunto(ps) {
   const y0 = Math.min(...out.map(o => o[2])), y1 = Math.max(...out.map(o => o[2] + o[4]));
   return { out: out.map(([p, x, y, w, h]) => [p, x + R, y - y0, w, h]), W: 2 * R, H: y1 - y0 };
 }
+/* 0.12 · «tarjeta» (Dirección de Producto, 28/10, composicion-looks.md §2): lienzo fijo 100 × 125 (4:5), blanco, línea fina; cada pieza cabe en su
+   tope sin deformarse (no en centímetros); cuatro plantillas: arriba+abajo+calzado, con capa en dos columnas, vestido y flancos para bolso y
+   accesorios; solape 7 % arriba/abajo y 22 % del calzado sobre el pantalón; sin giros; el grupo se centra y, si no cabe en 84 × 109, se reduce entero */
+const TOPE = { Abrigo: [40, 40], Arriba: [40, 38], pantalon: [32, 58], falda: [36, 46], corta: [36, 26], vlargo: [40, 80], vcorto: [42, 60], Calzado: [28, 15], bota: [24, 26], Bolsos: [24, 24], Accesorios: [14, 14] };
+function tarjeta(ps) {
+  const rol = r => ps.filter(p => r.includes(p.tipo)), nom = p => `${p.nombre || ''} ${p.x || ''}`.toLowerCase();
+  const tops = rol(['Arriba']), capa = rol(['Abrigo'])[0] || (tops[1] && esCapa(tops[1]) ? tops[1] : tops[0] && esCapa(tops[0]) && tops[1] ? tops[0] : null);
+  const top = tops.find(p => p !== capa), grande = rol(['Abajo', 'Vestidos'])[0], zap = rol(['Calzado'])[0], bolso = rol(['Bolsos'])[0], acc = rol(['Accesorios']).slice(0, 2);
+  if (!top && !grande) return null;
+  const cabe = (p, [tw, th]) => { const r = p.caja?.[4] || 1; let w = tw, h = tw * r; if (h > th) { h = th; w = th / r; } return [w, h]; };
+  const tope = p => p.tipo === 'Abajo' ? (/falda|skirt/.test(nom(p)) ? (/mini|corta|short/.test(nom(p)) ? TOPE.corta : TOPE.falda) : /short|bermuda/.test(nom(p)) ? TOPE.corta : TOPE.pantalon)
+    : p.tipo === 'Vestidos' ? (/corto|mini/.test(nom(p)) ? TOPE.vcorto : TOPE.vlargo) : p.tipo === 'Calzado' && /bota alta|mosquetera|over the knee/.test(nom(p)) ? TOPE.bota : TOPE[p.tipo] || [30, 30];
+  const pantalon = grande?.tipo === 'Abajo' && !/falda|skirt|short|bermuda/.test(nom(grande));
+  const out = []; // [p, x, y, w, h, z]
+  const pon = (p, cx, y, t, z) => { const [w, h] = cabe(p, t); const e = p.caja?.[5] ?? .5; out.push([p, cx - w * e, y, w, h, z]); return out[out.length - 1]; };
+  const col = (cx, y0, piezas) => { let y = y0, ant = null; for (const [p, t, z] of piezas) { if (!p) continue;
+      let yy = y; if (ant && p.tipo === 'Abajo' && ant[0].tipo === 'Arriba') yy = ant[2] + ant[4] - ant[4] * .07; else if (ant && p.tipo === 'Calzado' && ant[0].tipo === 'Abajo' && pantalon) yy = ant[2] + ant[4] - cabe(p, t)[1] * .22; else if (ant && p.tipo === 'Calzado') yy = ant[2] + ant[4] + 3; else if (ant) yy = ant[2] + ant[4] + 5;
+      ant = pon(p, cx, yy, t, z); y = ant[2] + ant[4]; } };
+  const dentro = ps.como === 'por dentro';
+  if (capa) { // plantilla 2: capa, bolso, calzado y un accesorio a la izquierda; arriba y abajo (o vestido) a la derecha
+    col(28, 8, [[capa, TOPE.Abrigo, 1], [bolso, TOPE.Bolsos, 1], [zap, [Math.min(28, 30), 15], 1], [acc[0], TOPE.Accesorios, 1]]);
+    col(72, 8, [[top, [36, 34], dentro ? 1 : 2], [grande, grande?.tipo === 'Vestidos' ? tope(grande) : [28, 58], dentro ? 2 : 1]]);
+  } else { // plantillas 1 y 3, con los flancos de la 4
+    const anchoAb = grande ? cabe(grande, tope(grande))[0] : 28;
+    col(50, 8, [[top, TOPE.Arriba, dentro ? 1 : 2], [grande, tope(grande || {}), dentro ? 2 : 1], [zap, [Math.max(24, Math.min(30, anchoAb * 1.1)), 15], 3]]);
+    const oT = out.find(o => o[0] === top), oG = out.find(o => o[0] === grande);
+    if (bolso) { const [w, h] = cabe(bolso, TOPE.Bolsos), ref = oG || oT; out.push([bolso, ref[1] + ref[3] - 2, ref[2] + ref[4] * .12 - h / 2 + (oG ? 0 : ref[4] * .4), w, h, 3]); }
+    acc.forEach((p, i) => { const [w, h] = cabe(p, TOPE.Accesorios), ref = oT || oG; out.push([p, i ? ref[1] + ref[3] + 3 : ref[1] - 3 - w, ref[2] + 4, w, h, 3]); });
+  }
+  // cierre: si no cabe en la zona útil (84 × 109), se reduce todo; después se centra el grupo (en x, por su centro de masa, como mucho 6 u)
+  let x0 = Math.min(...out.map(o => o[1])), x1 = Math.max(...out.map(o => o[1] + o[3])), y0 = Math.min(...out.map(o => o[2])), y1 = Math.max(...out.map(o => o[2] + o[4]));
+  const k = Math.min(1, 84 / (x1 - x0), 109 / (y1 - y0)), ejeX = capa ? 50 : 50;
+  for (const o of out) { o[1] = ejeX + (o[1] - ejeX) * k; o[2] = y0 + (o[2] - y0) * k; o[3] *= k; o[4] *= k; }
+  x0 = Math.min(...out.map(o => o[1])); x1 = Math.max(...out.map(o => o[1] + o[3])); y0 = Math.min(...out.map(o => o[2])); y1 = Math.max(...out.map(o => o[2] + o[4]));
+  const masa = out.reduce((a, o) => a + (o[1] + o[3] / 2) * o[3] * o[4], 0) / out.reduce((a, o) => a + o[3] * o[4], 0);
+  let dx = capa ? 50 - (x0 + x1) / 2 : Math.max(-6, Math.min(6, 50 - masa)); dx = Math.max(8 - x0, Math.min(92 - x1, dx));
+  const dy = (8 + 117) / 2 - (y0 + y1) / 2;
+  return { out: out.sort((a, b) => a[5] - b[5]).map(([p, x, y, w, h]) => [p, x + dx, y + dy, w, h]), W: 100, H: 125 };
+}
 function composicion(ps, COMP) {
   if (ps.some(p => (!p.caja || p.cajaV !== 3) && (p.foto || p.src))) setTimeout(medirTodas, 0);
-  if (COMP === 'conjunto') { const c = conjunto(ps); if (c) return c.out.map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
+  if (COMP === 'tarjeta') { const c = tarjeta(ps); if (c) return c.out.map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
+  if (COMP === 'conjunto' || COMP === 'tarjeta') { const c = conjunto(ps); if (c) return c.out.map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   if (COMP === 'capas' || COMP === 'abierto') { const c = capas(ps, COMP === 'abierto'); if (c) return c.out.map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   if (COMP === 'collage') { const c = collage(ps); if (c) return c.out.sort((a, b) => ['Bolsos', 'Calzado'].includes(a[0].tipo) - ['Bolsos', 'Calzado'].includes(b[0].tipo)).map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   const G = 5, m = tam, rol = r => ps.filter(p => r.includes(p.tipo));
@@ -642,7 +686,7 @@ function composicion(ps, COMP) {
 }
 function maniqui(ps, mini, modo) { // nombre heredado: devuelve la composición (simétrica salvo que se pida otra)
   const html = composicion(ps, modo || COMP); const r = html.match(/<!--([\d.]+)x([\d.]+)-->/);
-  return `<div class="lienzo${mini ? ' mini' : ''}" style="aspect-ratio:${r ? r[1] + '/' + r[2] : '1/1'}">${html}</div>`;
+  return `<div class="lienzo${mini ? ' mini' : ''}${(modo || COMP) === 'tarjeta' ? ' tarjeta' : ''}" style="aspect-ratio:${(modo || COMP) === 'tarjeta' ? '4/5' : r ? r[1] + '/' + r[2] : '1/1'}">${html}</div>`;
 }
 const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
 /* ---------- tiempo (Open-Meteo) ---------- */
@@ -820,14 +864,14 @@ function puntuar(ps) {
   if (zap) s -= 1.2 * Math.max(0, Math.abs(estilo(zap) - nivelRopa(ps)) - .5);        // zapatillas con lo informal, tacones con lo arreglado
   if (zap && bol && zap.color === bol.color) s += .3;
   // tipo de cuerpo (Pro): primero lo que favorece
-  const tc = planDemo() === 'pro' && E.perfil?.tipoCuerpo, fz = p => p && (!NEUTROS.has(p.color) || p.color === 'Estampado');
+  const tc = planDemo() === 'pro' && !E.perfil?.diag?.cuerpo?.puntos && E.perfil?.tipoCuerpo, fz = p => p && (!NEUTROS.has(p.color) || p.color === 'Estampado');
   const vest = ps.some(p => p.tipo === 'Vestidos'), falda = ab && /falda|skirt/i.test(ab.nombre);
   if (tc === 'triangulo') s += (fz(ar) ? .8 : 0) - (fz(ab) ? .6 : 0) + (falda ? .3 : 0);
   if (tc === 'invertido') s += (fz(ab) ? .8 : 0) - (fz(ar) ? .6 : 0) + (falda ? .4 : 0);
   if (tc === 'reloj') s += (vest ? .7 : 0) + (falda ? .3 : 0);
   if (tc === 'rectangulo') s += (ps.some(p => p.tipo === 'Abrigo') ? .4 : 0) + (falda ? .3 : 0) + (vest ? .3 : 0);
   if (tc === 'ovalo') s += (ar && ab && ar.color === ab.color ? .8 : 0) + (vest ? .4 : 0) - (fz(ab) ? .4 : 0);
-  s += puntosEstilo(ps, fuertes, estamp);
+  s += puntosEstilo(ps, fuertes, estamp) + puntosDiag(ps);
   s += puntosColores(ps);
   s += puntosGusto(ps);
   // que salga lo que menos te pones
@@ -1078,6 +1122,7 @@ function generarLooksAuto(n, plan) {
 /* ---------- navegación ---------- */
 const SIN_TABS = ['inicio', 'alta', 'entrar', 'planes', 'silueta', 'cuerpo', 'estilo', 'anadir', 'nuevo-look', 'subir'];
 function ir(nombre, datos) {
+  if (PROP && nombre === 'hoy') { E.lkTab = 'hoy'; nombre = 'looks'; } // 0.12: Hoy vive dentro de Looks
   if (nombre === 'inicio' && !$('intro')) $('p-inicio').classList.add('aparece');
   if (nombre === 'anadir') prepararAnadir(datos);
   if (nombre === 'subir' && !datos) prepararSubir();
@@ -1124,13 +1169,13 @@ function preguntaHoy(planHoy) {
 }
 const opcionesHoy = sel => `<div class="hz-ops">${OCASIONES.map(o => `<button class="${o === sel ? 'on' : ''}" data-hzoc="${o}">${ocNombre(o)}</button>`).join('')}</div>`;
 document.addEventListener('click', async e => {
-  const b = e.target.closest('#p-hoy [data-hzpreg],#p-hoy [data-hzoc]'); if (!b) return;
+  const b = e.target.closest('#p-hoy [data-hzpreg],#p-hoy [data-hzoc],#p-looks [data-hzpreg],#p-looks [data-hzoc]'); if (!b) return;
   if (b.dataset.hzoc) {
     const k = diaISO(new Date()), h = new Date().getHours(), fr = h < 14 ? 'Mañana' : h < 20 ? 'Tarde' : 'Noche';
     E.agenda[k] = E.agenda[k] || { planes: [] }; E.agenda[k].planes = [{ id: uid(), oc: b.dataset.hzoc, fr, deHoy: 1 }, ...E.agenda[k].planes.filter(p => p.oc !== b.dataset.hzoc)];
     E.hzPreg = false; E.propuestas = []; E.hoyIdx = 0; await guardar();
   } else E.hzPreg = !E.hzPreg;
-  pintarHoy();
+  if (E.pantalla === 'looks') pintarLooks(); else pintarHoy();
 });
 function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin menú arriba, el tiempo una vez junto a la fecha, debajo solo la ocasión
   const pant = $('p-hoy'); const w = E.tiempo; const l = idioma();
@@ -1265,7 +1310,7 @@ function pintarAgenda(raiz) {
     return `<div class="ag-ev${ab ? ' ab' : ''}"><button class="ag-fila" data-agev="${k}"><span class="ag-h">${ev.hora || ''}</span><span class="ag-txt"><b>${nomEv(ev)}</b><small>${[ev.nombre && ev.nombre.toLowerCase() !== ocNombre(ev.oc).toLowerCase() ? ocNombre(ev.oc) : '', ev.fijo ? diasTxt((fijos.find(x => x.id === ev.id) || {}).dias || []) : ''].filter(Boolean).join(' · ')}</small></span>${lk ? `<span class="ag-mini"><span class="lk-fig">${figLook({ ids: lk }, true)}</span></span>` : d >= hoy ? `<span class="ag-elegir">${t('Elegir look', 'Pick a look')}</span>` : ''}</button>${ab ? panelEvento(d, ev, hoy) : ''}</div>`; }).join('');
   const puesto = E.prendas.filter(p => (p.usos || []).includes(d));
   raiz.innerHTML = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
-    <div class="mc-cats lk-tabs"><button data-lktab="mios">${t('Mis looks', 'My looks')}</button><button data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="activo" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>
+    ${lkTabs('cal')}
     <div class="cal ag"><div class="ag-mes"><button data-agmes="-1" aria-label="${t('Mes anterior', 'Previous month')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h2>${cap(m.toLocaleDateString(loc, { month: 'long', year: 'numeric' }))}</h2><button data-agmes="1" aria-label="${t('Mes siguiente', 'Next month')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
     <div class="ag-sem7">${sem}</div><div class="ag-rej">${celdas}</div>
     <section class="ag-dia"><h3>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>
@@ -1336,7 +1381,7 @@ function pintarCalendario(raiz) { // vista de mes de la 0.40–0.110; desde la 0
   const pasado = ps.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(ps, true)}</div></div>`
     : !futuro && E.conjuntos.length ? `<div class="cal-look"><p class="mini-et">${t('Apunta lo que te pusiste', 'Note what you wore')}</p><div class="cal-mios">${E.conjuntos.slice(0, 12).map(c => `<button data-cpuse="${c.id}"><div class="lk-fig">${maniqui(c.ids.map(P).filter(Boolean), true)}</div></button>`).join('')}</div></div>` : '';
   raiz.innerHTML = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
-    <div class="mc-cats lk-tabs"><button data-lktab="mios">${t('Mis looks', 'My looks')}</button><button data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="activo" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>
+    ${lkTabs('cal')}
     <div class="cal"><div class="lk-ocs ag-vista"><button data-agvista="semana">${t('Semana', 'Week')}</button><button class="on" data-agvista="mes">${t('Mes', 'Month')}</button></div><div class="cal-mes"><button data-cmes="-1" aria-label="${t('Mes anterior', 'Previous month')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h2>${cap(m.toLocaleDateString(loc, { month: 'long', year: 'numeric' }))}</h2><button data-cmes="1" aria-label="${t('Mes siguiente', 'Next month')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
     <div class="cal-sem">${sem}</div><div class="cal-rej">${celdas}</div>
     <div class="cal-dia"><h3>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>
@@ -2004,11 +2049,83 @@ function sacalePartido(p) {
 /* ---------- CONJUNTOS ---------- */
 // 0.10 · Looks con el diseño cerrado (21/10): título centrado, «Mis looks» e «Ideas para hoy» en letras con el botón de dos agujeros,
 // filtro por ocasión y tres formas de verlos a prueba (?looks=1 rejilla de 2 · 2 uno a uno · 3 lista)
-E.lkTab = ({ ideas: 'ideas', cal: 'cal' })[new URLSearchParams(location.search).get('lk')] || 'mios'; E.lkOc = 'Todo'; E.lkI = 0;
+E.lkTab = ({ ideas: 'ideas', cal: 'cal', hoy: 'hoy' })[new URLSearchParams(location.search).get('lk')] || (PROP ? 'hoy' : 'mios'); E.lkOc = 'Todo'; E.lkI = 0;
 const lkVista = () => { const v = new URLSearchParams(location.search).get('looks') || localStorage.getItem('tc_looks'); return ['1', '2', '3', '4', '5'].includes(v) ? v : '1'; }; // 0.49 (Gabriela, 22/10: «aplica el mismo estilo a todas las nuevas… y corregimos sobre esa base»): rejilla como el Clóset cerrado; // 4 y 5 (21/10, «adapta la interfaz a mi estilo»): sobre blanco, sin cajas
 const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(conZapato(c.ids.map(P).filter(Boolean), c.zspec, c.como), mini);
 const usosTxt = c => c.usos?.length ? veces(c.usos.length) : t('sin estrenar', 'not worn yet');
+// 0.12 · pestañas de Looks: en la propuesta, «Hoy · Mis looks · Calendario» («la opción de hoy puede ser una opción de looks»); «Ideas para hoy» desaparece
+const lkTabs = act => PROP ? `<div class="mc-cats lk-tabs">${[['hoy', t('Hoy', 'Today')], ['mios', t('Mis looks', 'My looks')], ['cal', t('Calendario', 'Calendar')]].map(([k, n]) => `<button class="${act === k ? 'activo' : ''}" data-lktab="${k}">${n}</button>`).join('')}</div>`
+  : `<div class="mc-cats lk-tabs"><button class="${act === 'mios' ? 'activo' : ''}" data-lktab="mios">${t('Mis looks', 'My looks')}</button><button class="${act === 'ideas' ? 'activo' : ''}" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="${act === 'cal' ? 'activo' : ''}" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>`;
+const CORAZON = '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
+async function alternarFav(ids, oc) { // el corazón guarda el look en Mis looks como favorito (no hace falta «Guardar» aparte)
+  if (!E.perfil) return; const g = E.perfil.gustos = E.perfil.gustos || { si: {}, no: {} }, k = claveLook(ids); g.fav = g.fav || [];
+  const ya = g.fav.includes(k); g.fav = ya ? g.fav.filter(x => x !== k) : [...g.fav, k];
+  let cj = E.conjuntos.find(x => claveLook(x.ids) === k);
+  if (!ya && !cj) { cj = { id: uid(), nombre: ocNombre(oc), ocasion: oc, ids: [...ids], creada: hoyISO(), usos: [] }; E.conjuntos.unshift(cj); }
+  if (cj) cj.fav = !ya;
+  await guardar(); toast(ya ? t('Quitado de favoritos', 'Removed from favourites') : t('En favoritos: lo tienes en Mis looks', 'Saved to favourites: find it in My looks'));
+}
+function lineaTiempo() { // fecha, cielo, mínima y máxima, y la lluvia con su hora: una sola línea
+  const w = E.tiempo, l = idioma(), d = new Date().toLocaleDateString(l === 'en' ? 'en-GB' : 'es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '');
+  if (!w) return `<span>${d}</span>`;
+  const ico = k => ICO_T[k] || ICO_T.nube, cielo = w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(w.clave) ? 'nube' : w.clave;
+  const lluvia = ['lluvia', 'tormenta'].includes(w.clave) ? `${ico('lluvia')}${t('ahora', 'now')}` : w.lluviaH != null ? `${ico('lluvia')}${w.lluviaH}:00` : '';
+  return `<span>${d}</span><span>${ico(cielo)}${w.min != null ? `${w.min}° / ${w.max}°` : `${w.t}°`}</span>${lluvia ? `<span>${lluvia}</span>` : ''}`;
+}
+function porqueHoy(pr, ps) { // una línea con el porqué: la de la estilista o la del tiempo
+  const w = E.tiempo, min = w ? (w.min ?? w.t) : null, capa = ps.some(p => p.tipo === 'Abrigo' || esCapa(p));
+  if (w && w.lluviaH != null && !capa) return t(`Lluvia a las ${w.lluviaH}:00: llévate algo por encima.`, `Rain at ${w.lluviaH}:00: take a layer.`);
+  if (w && w.t <= 19 && min <= 12 && !capa) return t(`A primera hora, ${min}°: llévate una chaqueta.`, `Early on, ${min}°: take a jacket.`);
+  return pr.porque || '';
+}
+function pintarLooksHoy(raiz, cab) {
+  const planHoy = eventoAhora()?.oc;
+  if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy || 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); E.propuestas = masCercanos(E.hoyFalta, E.propuestas); } }
+  const lista = E.propuestas.slice(0, 8), cabT = cab + `<div class="pr-tiempo mini-et">${lineaTiempo()}</div><div class="pr-plan">${preguntaHoy(planHoy)}</div>${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : ''}`;
+  if (!lista.length) { raiz.innerHTML = cabT + `<div class="hz-vacio lk-vacio">${activas().length ? t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.') : t('Tu look de hoy aparecerá aquí en cuanto tengas una prenda de arriba, una de abajo y unos zapatos.', 'Your look of the day will appear here once you have a top, a bottom and shoes.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button></div>`; return; }
+  const slide = (pr, i) => {
+    const ps = pr.ids.map(P).filter(Boolean), psZ = conZapato(ps, pr.zspec, pr.como), fav = esFav(pr.ids), porque = porqueHoy(pr, ps);
+    const oc = planHoy && !E.hoyFalta && pr.tipo !== 'conjunto' ? planHoy : (pr.c && pr.c.ocasion) || pr.ocasion || ocasionDe(ps);
+    pr.ocHoy = oc;
+    return `<article class="pr-slide"><div class="pr-card" data-prficha="${i}">${maniqui(psZ, false, 'tarjeta')}</div>
+      <div class="pr-pie"><span class="pr-oc">${ocNombre(oc)}</span><button class="pr-fav${fav ? ' on' : ''}" data-prfav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${CORAZON}</button></div>
+      ${porque ? `<p class="pr-porque">${porque}</p>` : ''}${psZ.some(p => p.muestra) ? `<button class="pr-zap" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: upload yours')}</button>` : ''}
+      <div class="pr-acc"><button class="boton" data-prpongo="${i}">${t('Me lo pongo', 'I’ll wear it')}</button><button class="pr-otra" data-protra="${i}">${t('Otra idea', 'Another idea')} <svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
+      <button class="pr-no" data-prno="${i}">${t('No me gusta', 'Not for me')}</button></article>`;
+  };
+  raiz.innerHTML = cabT + `<div class="pr-carrusel" id="pr-car">${lista.map(slide).join('')}</div><div class="pr-puntos">${lista.map((_, i) => `<i class="${i === (E.hoyIdx || 0) ? 'on' : ''}"></i>`).join('')}</div>`;
+  const car = $('pr-car'), puntos = raiz.querySelectorAll('.pr-puntos i');
+  const ancho = () => car.firstElementChild?.offsetWidth || 1;
+  if (E.hoyIdx) car.scrollLeft = E.hoyIdx * (ancho() + 12);
+  car.onscroll = () => { const i = Math.round(car.scrollLeft / (ancho() + 12)); if (i !== E.hoyIdx) { E.hoyIdx = i; puntos.forEach((p, k) => p.classList.toggle('on', k === i)); } };
+  car.onclick = async e => {
+    const b = e.target.closest('[data-prfav],[data-prpongo],[data-protra],[data-prno],[data-prficha]'); if (!b) return;
+    const i = +(b.dataset.prfav ?? b.dataset.prpongo ?? b.dataset.protra ?? b.dataset.prno ?? b.dataset.prficha), pr = lista[i]; if (!pr) return;
+    if (b.dataset.prfav != null) { await alternarFav(pr.ids, pr.ocHoy); b.classList.toggle('on', esFav(pr.ids)); b.setAttribute('aria-pressed', esFav(pr.ids)); }
+    else if (b.dataset.prpongo != null) await ponerse(pr.ids, pr.c);
+    else if (b.dataset.protra != null) car.scrollTo({ left: ((i + 1) % lista.length) * (ancho() + 12), behavior: 'smooth' });
+    else if (b.dataset.prficha != null) { const cj = E.conjuntos.find(x => claveLook(x.ids) === claveLook(pr.ids)); if (cj) ir('look', cj.id); else car.scrollTo({ left: ((i + 1) % lista.length) * (ancho() + 12), behavior: 'smooth' }); }
+    else { anotarGusto(pr.ids, 'no'); const g = E.perfil.gustos, k = [...pr.ids].sort().join(); if (pr.tipo === 'propuesta') g.fuera = [...(g.fuera || []), k].slice(-300); else { if (g.hoy?.d !== hoyISO()) g.hoy = { d: hoyISO(), k: [] }; g.hoy.k.push(k); } await guardar(); E.propuestas.splice(E.propuestas.indexOf(pr), 1); pintarLooks(); }
+  };
+}
+function pintarLooksProp() {
+  const raiz = $('lk-raiz'); document.documentElement.dataset.looks = 'p';
+  if (!['hoy', 'mios', 'cal'].includes(E.lkTab)) E.lkTab = 'hoy';
+  const cab = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>${lkTabs(E.lkTab)}`;
+  raiz.onclick = e => { const b = e.target.closest('.lk-tabs [data-lktab],[data-lkoc]'); if (!b) return; if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkTocado = true; } else E.lkOc = b.dataset.lkoc; pintarLooks(); };
+  if (E.lkTab === 'cal') return pintarCalendario(raiz);
+  if (E.lkTab === 'hoy') return pintarLooksHoy(raiz, cab);
+  // Mis looks: rejilla 2 × 4:5, corazón en el pie y filtro «♡ Favoritos» desde el primer favorito
+  const hayFav = E.conjuntos.some(c => c.fav || esFav(c.ids)), ocs = ['Todo', ...(hayFav ? ['Fav'] : []), ...OCASIONES.filter(o => E.conjuntos.some(c => (c.ocasion || 'Diario') === o))];
+  if (!ocs.includes(E.lkOc)) E.lkOc = 'Todo';
+  const lista = E.conjuntos.filter(c => E.lkOc === 'Todo' || (E.lkOc === 'Fav' ? c.fav || esFav(c.ids) : (c.ocasion || 'Diario') === E.lkOc));
+  raiz.innerHTML = cab + (ocs.length > 2 ? `<div class="lk-ocs">${ocs.map(o => `<button class="${o === E.lkOc ? 'on' : ''}" data-lkoc="${o}">${o === 'Todo' ? t('Todo', 'All') : o === 'Fav' ? `${CORAZON}${t('Favoritos', 'Favourites')}` : ocNombre(o)}</button>`).join('')}</div>` : '')
+    + (lista.length ? `<div class="pr-rejilla">${lista.map(c => { const f = c.fav || esFav(c.ids); return `<div class="pr-t"><div class="pr-card" data-look="${c.id}">${figLook(c, true)}</div><div class="pr-pie"><span class="pr-oc">${ocNombre(c.ocasion || 'Diario')}</span><button class="pr-fav${f ? ' on' : ''}" data-lkfav="${c.id}" aria-pressed="${f}" aria-label="${t('Favorito', 'Favourite')}">${CORAZON}</button></div></div>`; }).join('')}</div>`
+      : `<div class="hz-vacio lk-vacio">${E.lkOc === 'Fav' ? t('Aún no tienes favoritos: toca el corazón de un look.', 'No favourites yet: tap the heart on a look.') : t('Aún no tienes looks guardados. En «Hoy» toca el corazón de los que te gusten, o crea uno con +.', 'No saved looks yet. In “Today” tap the heart on the ones you like, or create one with +.')}<button class="hz-bt" data-lktab="hoy">${t('Ver los de hoy', 'See today’s')}</button></div>`);
+  raiz.querySelectorAll('[data-lkfav]').forEach(b => b.onclick = async ev => { ev.stopPropagation(); const c = E.conjuntos.find(x => x.id === b.dataset.lkfav); if (!c) return; const g = E.perfil.gustos = E.perfil.gustos || { si: {}, no: {} }, k = claveLook(c.ids); g.fav = g.fav || []; const ya = c.fav || g.fav.includes(k); g.fav = ya ? g.fav.filter(x => x !== k) : [...g.fav, k]; c.fav = !ya; await guardar(); pintarLooks(); });
+}
 function pintarLooks() {
+  if (PROP) return pintarLooksProp();
   // 0.89 (Gabriela, 24/10: «doy en looks y no me ha creado ningún look»): sin looks guardados, Looks abre en las ideas
   if (E.lkTab === 'mios' && !E.lkTocado && !E.conjuntos.length) E.lkTab = 'ideas';
   const v = lkVista(), raiz = $('lk-raiz'); document.documentElement.dataset.looks = v;
@@ -2216,6 +2333,101 @@ async function panelPrivacidad() {
 }
 // 0.99 (Gabriela, 24/10: «rediseña el perfil de yo, muy cargado y poco estético»): nombre y una línea, una frase sobre el clóset,
 // tres filas de lo mío (silueta, estilo, colores), los ajustes de diario y lo técnico plegado en «Más opciones»
+/* ---------- 0.12 · tu diagnóstico (Pro). Gabriela, 28/10: «la app es quien te escanea y te da un diagnóstico de colorimetría, silueta y tipo de ropa
+   que te favorece… te tiras una foto al inicio de cara y de cuerpo, o las subes… no son cosas aisladas, las fotos del inicio con las opciones que pones
+   en Yo… hay que darle más protagonismo en la versión Pro». Motor en diagnostico.js (MediaPipe, en el móvil); reglas en diagnostico-reglas.json.
+   En la cuenta se guarda solo el resultado (estación, silueta); los colores medidos de piel, pelo y ojos se quedan en este móvil. ---------- */
+const VER_APP = (document.querySelector('script[src*="app.js"]')?.src.split('v=')[1]) || '0';
+let DIAG = null; const diagMod = async () => DIAG || (DIAG = { D: await import('./diagnostico.js?v=' + VER_APP), R: await (await fetch('diagnostico-reglas.json?v=' + VER_APP)).json() });
+const medidasLocales = () => { try { return JSON.parse(localStorage.getItem('tc_diag_medidas') || 'null'); } catch (e) { return null; } };
+function puntosDiag(ps) {
+  const reglas = planDemo() === 'pro' && E.perfil?.diag?.cuerpo?.puntos; if (!reglas?.length) return 0;
+  const ab = ps.find(p => p.tipo === 'Abajo'), ar = ps.find(p => p.tipo === 'Arriba' && !esCapa(p)), dentro = ps.como === 'por dentro'; let s = 0;
+  for (const r of reglas) {
+    const vale = v => Array.isArray(r.valor) ? r.valor.includes(v) : r.valor === 'no_liso' ? v && v !== 'liso' : r.valor === v;
+    if (r.donde === 'abajo' && ab && vale(estDe(ab)[r.campo])) s += r.p;
+    else if (r.donde === 'arriba' && ar && vale(estDe(ar)[r.campo])) s += r.p;
+    else if (r.donde === 'look' && ((r.campo === 'como' && dentro) || (r.campo === 'capa' && ps.some(p => p.tipo === 'Abrigo' || esCapa(p))) || (r.campo === 'mismo_color' && ar && ab && ar.color === ab.color))) s += r.p;
+  }
+  return s;
+}
+async function hacerDiagnostico(estado) {
+  const pf = E.perfil || {}, { D, R } = await diagMod(), res = { fecha: hoyISO(), avisos: {} };
+  estado(t('Preparando el análisis (la primera vez tarda un poco más)…', 'Getting the analysis ready (slower the first time)…')); await D.cargar();
+  if (pf.selfie) {
+    estado(t('Mirando tus colores…', 'Looking at your colours…')); const c = await D.analizarCara(pf.selfie); res.avisos.cara = c.prob.map(p => ({ k: p.k, fatal: p.fatal }));
+    if (c.ok) { const e = D.estacion(c, R, pf.colores?.r || {}), S = R.colorimetria.estaciones[e.k];
+      res.color = { k: e.k, familia: e.familia, n: S.n, d: S.d, hex: S.hex, si: S.si, no: S.no, metal: S.metal, consejo: S.consejo, ejes: e.ejes, confianza: e.confianza };
+      try { localStorage.setItem('tc_diag_medidas', JSON.stringify({ piel: c.piel.hex, pelo: c.pelo?.hex, ojos: c.ojos?.hex, contraste: c.contraste })); } catch (er) { } }
+  }
+  if (pf.cuerpo) {
+    estado(t('Midiendo tu silueta…', 'Measuring your figure…')); const b = await D.analizarCuerpo(pf.cuerpo); res.avisos.cuerpo = b.prob.map(p => ({ k: p.k, fatal: p.fatal }));
+    if (b.ok) { const si = D.silueta(b, R), T = R.silueta.tipos[si.k], Pp = R.silueta.proporciones[si.prop];
+      res.cuerpo = { k: si.k, prop: si.prop, ratios: si.ratios, confianza: si.confianza, n: T.n, d: T.d, favorece: T.favorece, evitar: T.evitar, propN: Pp.n, propD: Pp.d, puntos: [...T.puntos, ...Pp.puntos] }; }
+  }
+  E.perfil = E.perfil || {}; const ant = E.perfil.diag || {};
+  E.perfil.diag = { ...ant, ...res, color: res.color || (pf.selfie ? null : ant.color), cuerpo: res.cuerpo || (pf.cuerpo ? null : ant.cuerpo) };
+  if (res.color) E.perfil.colores = { ...(E.perfil.colores || { r: {} }), est: res.color.familia, sub: res.color.k, fuente: 'foto' };
+  if (res.cuerpo) E.perfil.tipoCuerpo = res.cuerpo.k;
+  E.propuestas = []; E.generados = []; await guardar(); return { res, R };
+}
+const textoProb = (R, k) => (R?.problemas?.[k] || R?.problemas?.error || ['', ''])[idioma() === 'en' ? 1 : 0];
+function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; en el Pro, las fotos o el resultado
+  const pf = E.perfil || {}, dg = pf.diag, es = idioma() === 'en' ? 1 : 0, pro = planDemo() === 'pro';
+  const mini = (k, ic) => `<span class="dg-mini${pf[k] ? ' hecha' : ''}">${pf[k] ? `<img src="${URL.createObjectURL(pf[k])}" alt="">` : `<svg><use href="#${ic}"/></svg>`}</span>`;
+  if (!pro) return `<section class="dg-tarjeta"><div class="dg-cab"><h2>${t('Tu diagnóstico', 'Your analysis')}</h2><span class="dg-pro">Pro</span></div><p>${t('Con una foto de tu cara y otra de cuerpo entero, la app analiza tus colores, tu silueta y la ropa que te favorece.', 'From a face photo and a full-body photo, the app analyses your colours, your figure and the clothes that suit you.')}</p><button class="boton linea" data-diag="plan">${t('Ver el plan Pro', 'See the Pro plan')}</button></section>`;
+  if (dg?.color || dg?.cuerpo) return `<section class="dg-tarjeta hecho" data-diag="ver" role="button" tabindex="0"><div class="dg-cab"><h2>${t('Tu diagnóstico', 'Your analysis')}</h2><span class="dg-pro">Pro</span></div>
+    ${dg.color ? `<div class="dg-tela">${dg.color.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>` : ''}
+    <p class="dg-res">${[dg.color?.n[es], dg.cuerpo?.n[es]].filter(Boolean).join(' · ')}</p><span class="dg-ver">${t('Ver mi diagnóstico', 'See my analysis')}<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span></section>`;
+  return `<section class="dg-tarjeta"><div class="dg-cab"><h2>${t('Tu diagnóstico', 'Your analysis')}</h2><span class="dg-pro">Pro</span></div>
+    <div class="dg-fotos">${mini('selfie', 'ic-camara')}${mini('cuerpo', 'ic-cuerpo')}</div>
+    <p>${t('Una foto de tu cara y otra de cuerpo entero: la app analiza tus colores, tu silueta y la ropa que te favorece. Las fotos no salen de tu móvil.', 'A face photo and a full-body photo: the app analyses your colours, your figure and the clothes that suit you. Photos never leave your phone.')}</p>
+    <button class="boton" data-diag="fotos">${pf.selfie || pf.cuerpo ? t('Hacer mi diagnóstico', 'Get my analysis') : t('Hacer las fotos', 'Take the photos')}</button></section>`;
+}
+function panelDiagFotos() {
+  const pf = E.perfil || {};
+  const hueco = (k, tit, consejos) => `<label class="dg-hueco${pf[k] ? ' hecha' : ''}" data-k="${k}">${pf[k] ? `<img src="${URL.createObjectURL(pf[k])}" alt="">` : `<svg><use href="#${k === 'selfie' ? 'ic-camara' : 'ic-cuerpo'}"/></svg>`}<b>${tit}</b><small>${consejos}</small><input type="file" accept="image/*" data-dgfoto="${k}"></label>`;
+  const cap = abrirPanel(t('Tus fotos', 'Your photos'), `<p class="pn-lema">${t('Dos fotos y la app hace el resto. Se analizan aquí mismo: no salen de tu móvil.', 'Two photos and the app does the rest. They’re analysed right here and never leave your phone.')}</p>
+    <div class="dg-huecos">${hueco('selfie', t('Tu cara', 'Your face'), t('De frente, con luz natural, sin filtros ni gafas, el pelo suelto.', 'Facing the camera, in daylight, no filters or glasses, hair down.'))}${hueco('cuerpo', t('Cuerpo entero', 'Full body'), t('De pie y de frente, hasta los pies, con ropa ajustada y los brazos un poco separados.', 'Standing, facing the camera, head to toe, fitted clothes, arms slightly apart.'))}</div>
+    <div class="dg-estado" id="dg-estado" aria-live="polite"></div>
+    <button class="boton" id="dg-analizar" ${pf.selfie || pf.cuerpo ? '' : 'disabled'}>${t('Analizar mis fotos', 'Analyse my photos')}</button>`, cap => {
+    cap.querySelectorAll('[data-dgfoto]').forEach(inp => inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; try { const r = await procesarFoto(f); E.perfil = E.perfil || {}; E.perfil[inp.dataset.dgfoto] = r.blob; await guardar(); panelDiagFotos(); } catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); } });
+    $('dg-analizar').onclick = async () => {
+      const b = $('dg-analizar'), est = $('dg-estado'); b.disabled = true;
+      try { const { res, R } = await hacerDiagnostico(x => { est.textContent = x; });
+        const malos = [...(res.avisos.cara || []).filter(p => p.fatal).map(p => ['cara', p.k]), ...(res.avisos.cuerpo || []).filter(p => p.fatal).map(p => ['cuerpo', p.k])];
+        if (malos.length && !res.color && !res.cuerpo) { est.innerHTML = malos.map(([q, k]) => `<p class="dg-mal">${q === 'cara' ? t('Tu cara', 'Your face') : t('Cuerpo entero', 'Full body')}: ${textoProb(R, k)}</p>`).join(''); b.disabled = false; return; }
+        cap.remove(); pintarYo(); panelDiag(malos.map(([q, k]) => `${q === 'cara' ? t('Tu cara', 'Your face') : t('Cuerpo entero', 'Full body')}: ${textoProb(R, k)}`));
+      } catch (e) { est.innerHTML = `<p class="dg-mal">${t('No he podido hacer el análisis en este móvil. Prueba otra vez con buena conexión.', 'I could not run the analysis on this phone. Try again with a good connection.')}</p>`; b.disabled = false; }
+    };
+  });
+}
+async function panelDiag(pendientes = []) {
+  const dg = E.perfil?.diag || {}, es = idioma() === 'en' ? 1 : 0, m = medidasLocales(), c = dg.color, b = dg.cuerpo;
+  let R = null; try { R = (await diagMod()).R; } catch (e) { }
+  const conf = x => x >= .75 ? t('alta', 'high') : x >= .5 ? t('media', 'medium') : t('baja', 'low');
+  const subt = c ? (c.ejes.t > .2 ? t('cálido', 'warm') : c.ejes.t < -.2 ? t('frío', 'cool') : t('neutro', 'neutral')) : '';
+  const contr = m ? (m.contraste >= 45 ? t('alto', 'high') : m.contraste >= 28 ? t('medio', 'medium') : t('bajo', 'low')) : '';
+  const deMio = c ? E.prendas.filter(p => c.si.includes(p.color) && ['Arriba', 'Vestidos', 'Abrigo'].includes(p.tipo)).slice(0, 6) : [];
+  const favor = b ? E.prendas.filter(p => ['Arriba', 'Abajo', 'Vestidos'].includes(p.tipo)).map(p => [p, puntosDiag([p])]).filter(x => x[1] > 0).sort((x, y) => y[1] - x[1]).slice(0, 6).map(x => x[0]) : [];
+  const avisos = [...pendientes, ...[...(dg.avisos?.cara || []), ...(dg.avisos?.cuerpo || [])].filter(p => !p.fatal).map(p => textoProb(R, p.k))].filter(Boolean);
+  const html = `${c ? `<section class="dg-sec"><h2 class="dg-h">${t('Tus colores', 'Your colours')}</h2><div class="dg-tela grande">${c.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>
+      <h3 class="dg-nom">${c.n[es]}</h3><p class="dg-d">${c.d[es]}</p>
+      ${m ? `<div class="dg-medido">${[['piel', t('Piel', 'Skin')], ['pelo', t('Pelo', 'Hair')], ['ojos', t('Ojos', 'Eyes')]].filter(([k]) => m[k]).map(([k, n]) => `<span><i style="background:${m[k]}"></i>${n}</span>`).join('')}</div>
+        <p class="dg-d">${t(`Subtono ${subt} y contraste ${contr}.`, `${cap(subt)} undertone and ${contr} contrast.`)}</p>` : ''}
+      <div class="dg-dos"><div><h4>${t('Te favorecen', 'Suit you')}</h4><p>${c.si.map(colNom).join(', ')}</p></div><div><h4>${t('Mejor lejos de la cara', 'Better away from your face')}</h4><p>${c.no.map(colNom).join(', ')}</p></div></div>
+      <p class="dg-d"><b>${t('Metal', 'Metal')}:</b> ${c.metal}. ${es ? '' : c.consejo}</p>
+      ${deMio.length ? `<h4>${t('De tu clóset, para la cara', 'From your closet, near your face')}</h4><div class="co-mias">${deMio.map(p => `<button data-ficha="${p.id}"><img src="${urlFoto(p)}" alt=""></button>`).join('')}</div>` : ''}</section>` : ''}
+    ${b ? `<section class="dg-sec"><h2 class="dg-h">${t('Tu silueta', 'Your figure')}</h2><div class="dg-sil">${siluetaSVG([Math.round(42 * b.ratios.hombros_cadera), Math.round(42 * b.ratios.cintura_cadera), 42])}<div><h3 class="dg-nom">${b.n[es]}</h3><p class="dg-d">${b.d[es]}</p><p class="dg-d">${b.propN[es]}: ${b.propD[es].charAt(0).toLowerCase() + b.propD[es].slice(1)}</p></div></div>
+      <div class="dg-dos"><div><h4>${t('Te favorece', 'Flatters you')}</h4><ul>${b.favorece[es].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>${t('Mejor evitar', 'Better avoid')}</h4><ul>${b.evitar[es].map(x => `<li>${x}</li>`).join('')}</ul></div></div>
+      ${favor.length ? `<h4>${t('De tu clóset, lo que más te favorece', 'From your closet, what suits you most')}</h4><div class="co-mias">${favor.map(p => `<button data-ficha="${p.id}"><img src="${urlFoto(p)}" alt=""></button>`).join('')}</div>` : ''}</section>` : ''}
+    <section class="dg-sec"><p class="dg-d">${t('Hoy y tus looks ya tienen en cuenta este diagnóstico.', 'Today and your looks already use this analysis.')}${c ? ` ${t('Confianza en los colores', 'Colour confidence')}: ${conf(c.confianza)}.` : ''}${b ? ` ${t('En la silueta', 'Figure')}: ${conf(b.confianza)}.` : ''}</p>
+      ${avisos.length ? `<ul class="dg-avisos">${avisos.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
+      ${grupoP('', filaP({ attr: 'data-diag="fotos"', ic: 'camara', tit: t('Repetir con otras fotos', 'Redo with other photos') }) + filaP({ attr: 'data-ir="colores"', ic: 'ok', tit: t('Ajustar mis colores a mano', 'Adjust my colours by hand') }) + filaP({ attr: 'data-ir="cuerpo"', ic: 'ok', tit: t('Elegir mi silueta a mano', 'Choose my figure by hand') }))}
+      <p class="pn-nota">${t('Es una orientación, no una regla: si algo te hace feliz, póntelo. Tus fotos y los colores medidos se quedan en este móvil; en tu cuenta solo se guarda el resultado.', 'A guide, not a rule: if something makes you happy, wear it. Your photos and measured colours stay on this phone; only the result is saved to your account.')}</p></section>`;
+  abrirPanel(t('Tu diagnóstico', 'Your analysis'), html, cap => cap.addEventListener('click', e => { if (e.target.closest('[data-ir],[data-ficha],[data-diag]')) setTimeout(() => cap.remove(), 0); }));
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-diag]'); if (!b) return; const k = b.dataset.diag; if (k === 'plan') panelPlan(); else if (k === 'fotos') panelDiagFotos(); else panelDiag(); });
 function pintarYo() {
   const pf = E.perfil || {}, es = idioma() === 'en' ? 1 : 0;
   const fila = (attr, tit, val, oro, flecha = true) => `<button class="item" ${attr}>${tit}<span class="valor${oro ? ' oro' : ''}">${val}${flecha ? '<svg><use href="#ic-flecha"/></svg>' : ''}</span></button>`;
@@ -2234,11 +2446,13 @@ function pintarYo() {
   const sil = pf.selfie && pf.cuerpo ? t('fotos listas', 'photos ready') : pf.selfie || pf.cuerpo ? t('falta una foto', 'one photo missing') : t('por descubrir', 'to discover');
   const ests = (pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).slice(0, 2), colO = pf.colores?.est ? EST_COLOR[pf.colores.est] : null;
   const ent = (attr, tit, val) => `<button class="y3-a" ${attr}>${tit}<small>${val}</small></button>`;
-  $('yo-lista').innerHTML = ent('data-ir="silueta"', t('Mi silueta', 'My figure'), sil)
+  const dg = pf.diag, dgSil = dg?.cuerpo && planDemo() === 'pro', dgCol = dg?.color && planDemo() === 'pro';
+  $('yo-lista').innerHTML = ent(dgSil ? 'data-diag="ver"' : 'data-ir="silueta"', t('Mi silueta', 'My figure'), dgSil ? min(dg.cuerpo.n[es]) : sil)
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? ests.map(min).join(t(' y ', ' and ')) : t('elígelo', 'choose it'))
-    + ent('id="yo-colores"', t('Mis colores', 'My colours'), colO ? min(colO.n[es]) : t('por descubrir', 'to discover'));
+    + ent(dgCol ? 'data-diag="ver"' : 'id="yo-colores"', t('Mis colores', 'My colours'), dgCol ? min(dg.color.n[es]) : colO ? min(colO.n[es]) : t('por descubrir', 'to discover'));
+  let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; $('yo-lista').after(td); } td.innerHTML = tarjetaDiag();
   pintarPanelYo();
-  $('yo-colores').onclick = () => ir('colores');
+  if ($('yo-colores')) $('yo-colores').onclick = () => ir('colores');
 }
 // 0.45 (Sheila, 22/10: «necesito seguir trabajando con mi misma base de datos… que cada vez que actualizas la versión guarde mi base de datos»):
 // recuperar la copia en otro navegador o móvil; se suma a lo que haya, sin duplicar (por id), y no toca lo que ya existe
@@ -2287,7 +2501,9 @@ function pintarSilueta() {
   [['selfie', 'l-selfie'], ['cuerpo', 'l-cuerpo']].forEach(([k, id]) => { const l = $(id); const bl = pf[k]; l.classList.toggle('hecho', !!bl); l.querySelectorAll('img,i').forEach(x => x.remove()); if (bl) { const im = document.createElement('img'); im.src = URL.createObjectURL(bl); l.prepend(im); const i = document.createElement('i'); i.textContent = '✓'; l.append(i); } });
 }
 async function guardarFotoPerfil(k, file) {
-  try { const r = await procesarFoto(file); E.perfil = E.perfil || {}; E.perfil[k] = r.blob; await guardar(); pintarSilueta(); toast(k === 'selfie' ? t('Selfie guardada', 'Selfie saved') : t('Foto de cuerpo guardada', 'Body photo saved')); }
+  try { const r = await procesarFoto(file); E.perfil = E.perfil || {}; E.perfil[k] = r.blob; await guardar(); pintarSilueta(); toast(k === 'selfie' ? t('Selfie guardada', 'Selfie saved') : t('Foto de cuerpo guardada', 'Body photo saved'));
+    // 0.12: con las dos fotos del alta, el diagnóstico se hace solo, por detrás («no son cosas aisladas, las fotos del inicio con las opciones que pones en Yo»)
+    if (E.perfil.selfie && E.perfil.cuerpo && planDemo() === 'pro') hacerDiagnostico(() => { }).then(({ res }) => { if (res.color || res.cuerpo) toast(t('Tu diagnóstico está listo: lo tienes en Yo', 'Your analysis is ready: find it in Me')); }).catch(() => { }); }
   catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); }
 }
 
@@ -2429,7 +2645,7 @@ function pintarCuerpo() {
 }
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-tcuerpo]'); if (!b) return;
-  E.perfil = E.perfil || {}; E.perfil.tipoCuerpo = b.dataset.tcuerpo; await guardar(); pintarCuerpo();
+  E.perfil = E.perfil || {}; E.perfil.tipoCuerpo = b.dataset.tcuerpo; if (E.perfil.diag?.cuerpo) E.perfil.diag.cuerpo.puntos = null; await guardar(); pintarCuerpo(); // 0.12: lo que elige a mano manda sobre el diagnóstico
 });
 
 /* ---------- tu estilo (0.36, 22/10, Sheila): el perfil lleva uno o dos estilos y los looks se ordenan según ellos.
