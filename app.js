@@ -427,7 +427,8 @@ const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:$
 // 0.32 · presentación «collage» (Sheila, 22/10: «inspírate en esto para presentar los looks», dos referencias tipo Pinterest):
 // el look en una columna (arriba tocando la pieza de abajo), y a un lado el bolso arriba, los accesorios en medio y el calzado abajo.
 // Se activa con ?comp=collage (queda guardado); la simétrica (Eje/Cruz, cerrada por Gabriela el 20/10) sigue por defecto hasta que ella decida.
-const COMP = (() => { try { const q = new URLSearchParams(location.search).get('comp'); if (q) localStorage.setItem('tc_comp', q); return localStorage.getItem('tc_comp') || 'abierto'; } catch (e) { return 'abierto'; } })(); // 0.98: «abierto» por defecto (Sheila y Gabriela, 24/10: «mira qué mal la distribución», «la distribución espacial… horrenda»)
+// 0.107 (Gabriela, 28/10: «5. me gustan simétrica y collage»): Hoy, el calendario y la ficha, simétrica; Looks, collage. ?comp= solo para pruebas
+const COMP = (() => { try { return new URLSearchParams(location.search).get('comp') || 'simetrica'; } catch (e) { return 'simetrica'; } })(); // 0.98: «abierto» por defecto (Sheila y Gabriela, 24/10: «mira qué mal la distribución», «la distribución espacial… horrenda»)
 function collage(ps) {
   const m = tam, rol = r => ps.filter(p => r.includes(p.tipo)), G = 6;
   const arriba = rol(['Arriba', 'Abrigo']).slice(0, 2), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0], acc = rol(['Accesorios']).slice(0, 3);
@@ -440,7 +441,7 @@ function collage(ps) {
   const lw = Math.max(0, ...szI.map(s => s[0]), szZ[0] * .7, szB[0] * .8); // los dos lados igual de anchos: el look queda siempre en el centro (Gabriela, 22/10: «¿todo sale descentrado?»)
   const x0 = lw + (lw ? G : 0), W = 2 * x0 + colW * 1.1;
   out.forEach(o => o[1] = x0 + colW * .05 + (colW - o[3]) / 2 + o[5]);
-  let ly = 0; izq.forEach((p, k) => { const [w, h] = szI[k]; out.push([p, (izW - w) / 2, ly, w, h]); ly += h + G; });
+  let ly = 0; izq.forEach((p, k) => { const [w, h] = szI[k]; out.push([p, (lw - w) / 2, ly, w, h]); ly += h + G; });
   if (calzado) { const [w, h] = szZ; out.push([calzado, Math.max(0, x0 - w * .55), H - h * .85, w, h]); }
   if (bolso) { const [w, h] = szB; out.push([bolso, W - w, H * .3 - h / 2, w, h]); }
   const Ht = Math.max(H + (calzado ? szZ[1] * .15 : 0), ly - G);
@@ -485,7 +486,7 @@ function capas(ps, abierto) {
   const W = x1 - x0, H = y1 - y0;
   return { out: out.map(([p, x, yy, w, h]) => [p, x - x0, yy - y0, w, h]), W, H };
 }
-function composicion(ps) {
+function composicion(ps, COMP) {
   if (ps.some(p => (!p.caja || p.cajaV !== 2) && (p.foto || p.src))) setTimeout(medirTodas, 0);
   if (COMP === 'capas' || COMP === 'abierto') { const c = capas(ps, COMP === 'abierto'); if (c) return c.out.map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
   if (COMP === 'collage') { const c = collage(ps); if (c) return c.out.sort((a, b) => ['Bolsos', 'Calzado'].includes(a[0].tipo) - ['Bolsos', 'Calzado'].includes(b[0].tipo)).map(([p, x, y, w, h]) => pieza(p, x, y, w, h, c.W, c.H)).join('') + `<!--${c.W}x${c.H}-->`; }
@@ -509,8 +510,8 @@ function composicion(ps) {
   }
   return out.map(([p, x, yy]) => pieza(p, x, yy, m(p)[0], m(p)[1], W, y)).join('') + `<!--${W}x${y}-->`;
 }
-function maniqui(ps, mini) { // nombre heredado: ahora devuelve la composición simétrica
-  const html = composicion(ps); const r = html.match(/<!--([\d.]+)x([\d.]+)-->/);
+function maniqui(ps, mini, modo) { // nombre heredado: devuelve la composición (simétrica salvo que se pida otra)
+  const html = composicion(ps, modo || COMP); const r = html.match(/<!--([\d.]+)x([\d.]+)-->/);
   return `<div class="lienzo${mini ? ' mini' : ''}" style="aspect-ratio:${r ? r[1] + '/' + r[2] : '1/1'}">${html}</div>`;
 }
 const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
@@ -1550,15 +1551,21 @@ const dinero = n => n.toLocaleString(idioma() === 'en' ? 'en-GB' : 'es-ES', { st
 function abrirFicha(id) {
   const p = P(id); if (!p) return;
   $('f-cat').textContent = catTxt(catDe(p)); $('f-img').src = urlFoto(p); $('f-nombre').textContent = p.nombre;
-  $('f-sub').textContent = [p.color, estNombre(p.estacion), p.notas].filter(Boolean).join(' · ');
-  const usos = p.usos || []; $('f-usos').textContent = usos.length; $('f-ultima').textContent = usos.length ? fecha(usos[usos.length - 1], true) : '—';
-  const conj = E.conjuntos.filter(c => c.ids.includes(id)); $('f-conj').textContent = conj.length;
-  $('f-coste').classList.toggle('oculto', !p.precio); if (p.precio) $('f-coste').textContent = `${t('Te costó', 'It cost')} ${dinero(p.precio)} · ${usos.length ? dinero(p.precio / usos.length) + ' ' + t('cada puesta', 'per wear') : t('aún sin estrenar', 'not worn yet')}`;
+  // 0.107 · Ficha F7 «Hoja de sastre» (Gabriela, 28/10: «1. F7»; «la letra donde dice 20 octubre… pon todo homogéneo»): título, cuándo te la
+  // pusiste en una línea y los datos en filas con puntos guía, todo en la misma letra
+  const usos = p.usos || [], conj = E.conjuntos.filter(c => c.ids.includes(id)), es = p.est || {}, ult = usos[usos.length - 1];
+  $('f-uso').textContent = !usos.length ? t('aún sin estrenar', 'not worn yet') : usos.length === 1 ? `${t('puesta una vez · el', 'worn once · on')} ${fecha(ult)}` : `${t('puesta', 'worn')} ${veces(usos.length)} · ${t('la última, el', 'last on')} ${fecha(ult)}`;
+  const may = s => s ? String(s).replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()) : '';
+  const filas = [[t('Prenda', 'Garment'), (NOM_X[p.x] || [])[idioma() === 'en' ? 1 : 0] || catTxt(catDe(p))], [t('Color', 'Colour'), p.color],
+    p.tipo === 'Abajo' && es.tiro && [t('Tiro', 'Rise'), may(es.tiro)], p.tipo === 'Abajo' && es.corte && [t('Corte', 'Cut'), may(es.corte)],
+    p.tipo !== 'Abajo' && es.largo && [t('Largo', 'Length'), may(es.largo)], [t('Estación', 'Season'), estNombre(p.estacion)], p.notas && [t('Notas', 'Notes'), p.notas],
+    p.precio && [t('Precio', 'Price'), dinero(p.precio)], p.precio && usos.length && [t('Cada puesta', 'Per wear'), dinero(p.precio / usos.length)], [t('En tus looks', 'In your outfits'), conj.length]].filter(Boolean);
+  $('f-datos').innerHTML = filas.map(([k, v]) => `<div><dt>${k}</dt><span class="pun"></span><dd>${String(v).replace(/</g, '&lt;')}</dd></div>`).join('');
   $('f-estado').classList.toggle('oculto', !p.estado); $('f-estado').textContent = estadoTxt(p.estado);
   const conAvatar = planDemo() === 'pro' ? conj.find(c => c.img) : null; const primero = conj[0];
   $('f-asi').innerHTML = conAvatar ? `<div class="puesta"><img src="${conAvatar.img}" alt=""><div class="pie">${conAvatar.nombre}</div></div>` : primero ? `<div class="puesta">${maniqui(primero.ids.map(P).filter(Boolean))}<div class="pie">${primero.nombre}</div></div>` : `<div class="vacio">${t('Aún no está en ningún conjunto. Añádela a uno o pulsa «Hoy llevo esto».', 'Not in any outfit yet. Add it to one or tap “Wearing this today”.')}</div>`;
   const acc = [['conjunto', t('Añadir a un conjunto', 'Add to an outfit')], ['lavar', p.estado === 'lavar' ? t('Ya está limpia', 'Clean again') : t('Enviar a lavar', 'Send to wash')], ['guardada', p.estado === 'guardada' ? t('Volver a sacarla', 'Bring it back out') : t('Guardar hasta la próxima estación', 'Store until next season')], ['donar', p.estado === 'donar' ? t('Me la quedo', 'Keeping it') : t('Donar o vender', 'Donate or sell')]];
-  if (p.tipo !== 'Accesorios') acc.unshift(['partido', t('Sácale partido', 'Make the most of it')]);
+  if (p.tipo !== 'Accesorios' && planDemo() === 'pro') acc.unshift(['partido', t('Sácale partido', 'Make the most of it')]); // 0.107: en el Pro (Gabriela, 28/10: «sácale partido, sí»)
   if (p.foto) acc.push(['girar', t('Girar la foto', 'Rotate the photo')]);
   $('f-acciones').innerHTML = acc.map(([k, v]) => `<button class="item" data-accion="${k}">${v}<svg><use href="#ic-flecha"/></svg></button>`).join('');
   $('f-acciones').querySelectorAll('[data-accion]').forEach(b => b.onclick = async () => {
@@ -1652,7 +1659,7 @@ function sacalePartido(p) {
 // filtro por ocasión y tres formas de verlos a prueba (?looks=1 rejilla de 2 · 2 uno a uno · 3 lista)
 E.lkTab = ({ ideas: 'ideas', cal: 'cal' })[new URLSearchParams(location.search).get('lk')] || 'mios'; E.lkOc = 'Todo'; E.lkI = 0;
 const lkVista = () => { const v = new URLSearchParams(location.search).get('looks') || localStorage.getItem('tc_looks'); return ['1', '2', '3', '4', '5'].includes(v) ? v : '1'; }; // 0.49 (Gabriela, 22/10: «aplica el mismo estilo a todas las nuevas… y corregimos sobre esa base»): rejilla como el Clóset cerrado; // 4 y 5 (21/10, «adapta la interfaz a mi estilo»): sobre blanco, sin cajas
-const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(c.ids.map(P).filter(Boolean), mini);
+const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(c.ids.map(P).filter(Boolean), mini, COMP === 'simetrica' ? 'collage' : COMP);
 const usosTxt = c => c.usos?.length ? veces(c.usos.length) : t('sin estrenar', 'not worn yet');
 function pintarLooks() {
   // 0.89 (Gabriela, 24/10: «doy en looks y no me ha creado ningún look»): sin looks guardados, Looks abre en las ideas
@@ -1708,7 +1715,7 @@ function abrirLook(id) {
   const ps = c.ids.map(P).filter(Boolean);
   $('lk-ocasion').textContent = ocNombre(c.ocasion || 'Diario'); $('lk-nombre').textContent = c.nombre;
   $('lk-sub').textContent = c.usos?.length ? `${veces(c.usos.length)} · ${t('última', 'last')} ${fecha(c.usos[c.usos.length - 1], true)}` : t('nunca puesto', 'never worn');
-  $('lk-foto').innerHTML = c.img && planDemo() === 'pro' ? `<img src="${c.img}" alt="">` : maniqui(ps);
+  $('lk-foto').innerHTML = c.img && planDemo() === 'pro' ? `<img src="${c.img}" alt="">` : maniqui(ps, false, COMP === 'simetrica' ? 'collage' : COMP);
   $('lk-piezas').innerHTML = ps.map(p => `<button data-ficha="${p.id}"><img src="${urlFoto(p)}" alt=""><span>${p.nombre}</span></button>`).join('');
   $('lk-pongo').onclick = () => ponerse(c.ids, c).then(() => abrirLook(id));
   $('lk-borrar').onclick = async () => { if (await confirmar(t('¿Borrar este conjunto?', 'Delete this outfit?'), t('Las prendas se quedan en tu clóset.', 'The garments stay in your closet.'), t('Borrar', 'Delete'))) { E.conjuntos = E.conjuntos.filter(x => x.id !== id); await guardar(); E.propuestas = []; ir('looks'); } };

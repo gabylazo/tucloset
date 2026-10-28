@@ -1209,3 +1209,14 @@ img{-webkit-user-drag:none}
 .hz-zapato{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:17px;color:var(--oro-t);text-align:center;margin:-4px 0 14px}
 .lk-zap{display:block;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14.5px;color:var(--oro-t);text-align:center;margin:-2px 0 4px}
 .f-coste{text-align:center;font-size:14px;color:var(--sec);margin-top:10px}
+/* 0.107 · Ficha F7 «Hoja de sastre» (Gabriela, 28/10) y foto centrada al editar */
+.f7-tit{font-family:var(--f-marca);font-weight:400;font-size:30px;line-height:1.1;text-align:center;margin-top:6px;color:var(--tinta)}
+.f7-uso{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:400;font-size:18px;text-align:center;color:var(--oro-t);margin-top:4px}
+.f7-foto{margin-top:10px}
+.f7-datos{margin:16px 2px 0}
+.f7-datos div{display:flex;align-items:baseline;font-size:15px;line-height:2.15}
+.f7-datos dt{color:var(--ter);flex-shrink:0}
+.f7-datos dd{margin:0 0 0 auto;color:var(--tinta);text-align:right}
+.f7-datos .pun{flex:1;min-width:14px;border-bottom:1px dotted rgba(74,53,38,.35);margin:0 8px;transform:translateY(-5px)}
+.previa{margin-left:auto;margin-right:auto}
+.plb-rej li:last-child:nth-child(odd){grid-column:1/-1;justify-self:center;text-align:center}
