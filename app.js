@@ -2049,7 +2049,7 @@ function sacalePartido(p) {
 /* ---------- CONJUNTOS ---------- */
 // 0.10 · Looks con el diseño cerrado (21/10): título centrado, «Mis looks» e «Ideas para hoy» en letras con el botón de dos agujeros,
 // filtro por ocasión y tres formas de verlos a prueba (?looks=1 rejilla de 2 · 2 uno a uno · 3 lista)
-E.lkTab = ({ ideas: 'ideas', cal: 'cal', hoy: 'hoy' })[new URLSearchParams(location.search).get('lk')] || (PROP ? 'hoy' : 'mios'); E.lkOc = 'Todo'; E.lkI = 0;
+E.lkTab = ({ ideas: 'ideas', cal: 'cal', hoy: 'hoy', mios: 'mios' })[new URLSearchParams(location.search).get('lk')] || (PROP ? 'hoy' : 'mios'); E.lkOc = 'Todo'; E.lkI = 0;
 const lkVista = () => { const v = new URLSearchParams(location.search).get('looks') || localStorage.getItem('tc_looks'); return ['1', '2', '3', '4', '5'].includes(v) ? v : '1'; }; // 0.49 (Gabriela, 22/10: «aplica el mismo estilo a todas las nuevas… y corregimos sobre esa base»): rejilla como el Clóset cerrado; // 4 y 5 (21/10, «adapta la interfaz a mi estilo»): sobre blanco, sin cajas
 const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(conZapato(c.ids.map(P).filter(Boolean), c.zspec, c.como), mini);
 const usosTxt = c => c.usos?.length ? veces(c.usos.length) : t('sin estrenar', 'not worn yet');
