@@ -1767,23 +1767,28 @@ function abrirAyuda() {
 function pintarYo() {
   const pf = E.perfil || {}, es = idioma() === 'en' ? 1 : 0;
   const fila = (attr, tit, val, oro, flecha = true) => `<button class="item" ${attr}>${tit}<span class="valor${oro ? ' oro' : ''}">${val}${flecha ? '<svg><use href="#ic-flecha"/></svg>' : ''}</span></button>`;
-  $('yo-cara').innerHTML = pf.selfie ? `<img src="${URL.createObjectURL(pf.selfie)}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:50% 20%">` : '';
-  $('yo-nombre').textContent = pf.nombre || t('Tú', 'You');
-  $('yo-sub').textContent = [CLOSET_ACT ? t('Clóset de pruebas', 'Test closet') : '', E.tiempo?.nombre || pf.ciudad || pf.lugar, `${E.prendas.length} ${t('prendas', 'garments')}`].filter(Boolean).join(' · ');
+  // 0.108 · Yo = Y3 «Tu armario» con la paleta de Y2 (Gabriela, 28/10: «Y3, pero me gusta mucho la paleta de colores de Y2… deberían unirse»)
+  const nom = (pf.nombre || '').trim(), nomB = nom && nom === nom.toUpperCase() ? nom.charAt(0) + nom.slice(1).toLowerCase() : nom;
+  $('yo-nombre').textContent = nomB ? t(`El clóset de ${nomB}`, `${nomB}’s closet`) : t('Tu clóset', 'Your closet');
   const rc = E.prendas.length ? resumenCloset() : null;
-  $('yo-mas').innerHTML = rc ? `<p class="yo-da">${t(`Mi clóset da para ${rc.looks} ${rc.looks === 1 ? 'look' : 'looks'}`, `My closet makes ${rc.looks} ${rc.looks === 1 ? 'look' : 'looks'}`)}</p>` : '';
-  const sil = pf.selfie && pf.cuerpo ? t('fotos listas', 'photos ready') : pf.selfie || pf.cuerpo ? t('falta una foto', 'one photo missing') : t('sin fotos', 'no photos');
+  $('yo-sub').textContent = [CLOSET_ACT ? t('clóset de pruebas', 'test closet') : '', `${E.prendas.length} ${t('prendas', 'garments')}`, rc ? `${rc.looks} ${t('looks posibles', 'possible looks')}` : ''].filter(Boolean).join(' · ');
+  const nCol = {}; E.prendas.forEach(p => { if (p.color) nCol[p.color] = (nCol[p.color] || 0) + 1; });
+  const ord = Object.entries(nCol).sort((a, b) => b[1] - a[1]), min = c => c.toLowerCase();
+  $('yo-pal').innerHTML = ord.map(([c, n]) => `<i style="flex:${n};background:${COLORES.find(x => x[0] === c)?.[1] || '#ccc'}" title="${c}"></i>`).join('');
+  const base = ord.slice(0, 3).map(e => e[0]).filter(c => c !== 'Estampado'), luz = ord.filter(([c]) => !base.includes(c) && !NEUTROS.has(c) && c !== 'Estampado').slice(0, 2).map(e => e[0]);
+  const yy = l => l.length > 1 ? l.slice(0, -1).map(min).join(', ') + ' y ' + min(l[l.length - 1]) : l.map(min).join('');
+  $('yo-ley').textContent = !base.length ? '' : idioma() === 'en' ? 'The colours of your closet' : `Tu clóset es ${yy(base)}${luz.length ? `; ${luz.length > 1 ? 'el ' + min(luz[0]) + ' y el ' + min(luz[1]) + ' le dan' : 'el ' + min(luz[0]) + ' le da'} la luz` : ''}`;
+  $('yo-pal').classList.toggle('oculto', !ord.length);
+  const sil = pf.selfie && pf.cuerpo ? t('fotos listas', 'photos ready') : pf.selfie || pf.cuerpo ? t('falta una foto', 'one photo missing') : t('por descubrir', 'to discover');
   const ests = (pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).slice(0, 2), colO = pf.colores?.est ? EST_COLOR[pf.colores.est] : null;
-  $('yo-lista').innerHTML = fila('data-ir="silueta"', t('Mi silueta', 'My figure'), sil, pf.selfie && pf.cuerpo)
-    + fila('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? ests.join(' · ') : t('elígelo', 'choose it'), ests.length)
-    + fila('id="yo-colores"', t('Mis colores', 'My colours'), colO ? colO.n[es] : t('descúbrelos', 'find them'), colO);
-  $('yo-ajustes').innerHTML = (NUBE ? fila('data-ir="cuenta"', t('Cuenta', 'Account'), cuenta() ? cuenta().correo : t('Crear o entrar', 'Create or sign in'), cuenta()) : '')
-    + fila('id="yo-ciudad"', t('Ciudad para el tiempo', 'City for the weather'), pf.ciudad || E.tiempo?.nombre || pf.lugar || t('tu ubicación', 'your location'))
-    + fila('id="yo-idioma"', t('Idioma', 'Language'), idioma() === 'en' ? 'English' : 'Español')
-    + `<div class="item">${t('Suscripción', 'Subscription')}<span class="valor">${t('Prueba · versión web', 'Trial · web version')}</span></div>`
-    + fila('id="yo-ayuda"', t('Ayuda', 'Help'), t('Preguntas frecuentes', 'FAQ'));
+  const ent = (attr, tit, val) => `<button class="y3-a" ${attr}>${tit}<small>${val}</small></button>`;
+  $('yo-lista').innerHTML = ent('data-ir="silueta"', t('Mi silueta', 'My figure'), sil)
+    + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? ests.map(min).join(t(' y ', ' and ')) : t('elígelo', 'choose it'))
+    + ent('id="yo-colores"', t('Mis colores', 'My colours'), colO ? min(colO.n[es]) : t('por descubrir', 'to discover'));
+  $('yo-ajustes').innerHTML = (NUBE ? `<button data-ir="cuenta">${t('Cuenta', 'Account')}</button>` : '')
+    + `<button id="yo-ciudad">${t('Ciudad', 'City')}</button><button id="yo-idioma">${idioma() === 'en' ? 'Español' : 'English'}</button><button id="yo-ayuda">${t('Ayuda', 'Help')}</button>`;
   $('yo-mas-t').textContent = t('Más opciones', 'More options');
-  $('yo-tecnico').innerHTML = fila('data-ir="diseno"', t('Diseño (para decidir)', 'Design (to decide)'), `${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}`)
+  $('yo-tecnico').innerHTML = `<div class="item">${t('Suscripción', 'Subscription')}<span class="valor">${t('Prueba · versión web', 'Trial · web version')}</span></div>` + fila('id="yo-ciudad2"', t('Ciudad para el tiempo', 'City for the weather'), pf.ciudad || E.tiempo?.nombre || pf.lugar || t('tu ubicación', 'your location'), false, false) + fila('data-ir="diseno"', t('Diseño (para decidir)', 'Design (to decide)'), `${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}`)
     + fila('id="yo-plan"', t('Plan (para enseñarlo)', 'Plan (demo)'), planDemo() === 'pro' ? t('Pro · tu avatar', 'Pro · your avatar') : t('Básico', 'Basic'), false, false)
     + fila('id="yo-closet"', t('Clóset', 'Closet'), `${CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes')} · ${t('cambiar', 'switch')}`, false, false)
     + fila('id="yo-exportar"', t('Guardar una copia de mis datos', 'Save a copy of my data'), '', false, false)
@@ -1796,7 +1801,7 @@ function pintarYo() {
     await guardar(); await cargarTiempo(true); E.propuestas = []; pintarYo(); };
   $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   $('yo-plan').onclick = () => { PLAN_URL = null; localStorage.setItem('tc_plan', planDemo() === 'pro' ? 'basico' : 'pro'); pintarYo(); toast(planDemo() === 'pro' ? t('Pro: tu avatar con el conjunto', 'Pro: your avatar') : t('Básico: el conjunto en el maniquí', 'Basic: the outfit on the mannequin')); };
-  $('yo-ayuda').onclick = abrirAyuda;
+  $('yo-ayuda').onclick = abrirAyuda; $('yo-ciudad2').onclick = () => $('yo-ciudad').click();
   $('yo-exportar').onclick = exportar;
   $('yo-importar').querySelector('input').onchange = e => e.target.files[0] && importar(e.target.files[0]);
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
