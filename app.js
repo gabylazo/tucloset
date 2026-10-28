@@ -169,7 +169,7 @@ async function aptaNube(b) {
 const avisarFallo = (paso, e, b) => { try { fetch(API + '/api/aviso?d=' + encodeURIComponent(`${paso}|${String(e?.message || e).slice(0, 160)}|${b ? (b.type || '?') + ':' + b.size : ''}`)).catch(() => { }); } catch (x) { } };
 function docLocal() {
   return { perfil: sinBlobs(E.perfil), conjuntos: E.conjuntos, agenda: E.agenda, borradas: JSON.parse(LS.get('tc_nube_borradas') || '[]'),
-    prendas: E.prendas.filter(p => !p.ejemplo).map(p => ({ ...sinBlobs(p), conFoto: !!p.foto, conOriginal: !!p.original })) };
+    prendas: E.prendas.filter(p => !p.ejemplo).map(p => ({ ...sinBlobs(p), alfaF: undefined, conFoto: !!p.foto, conOriginal: !!p.original })) }; // alfaF: solo de este móvil
 }
 E.nube = { estado: '', cuando: LS.get('tc_nube_cuando') || '' };
 let nubeT, nubeEnCurso = null;
@@ -210,7 +210,7 @@ async function bajarNube() {
   // ahora bajan 6 a la vez, solo las recortadas antes de entrar, y las originales después, por detrás
   const nuevas = [], fotos = [], originales = [];
   for (const q of doc.prendas || []) {
-    const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null }; if (l?.fotoTorcida) p.fotoTorcida = l.fotoTorcida; delete p.conFoto; delete p.conOriginal;
+    const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null }; if (l?.fotoTorcida) p.fotoTorcida = l.fotoTorcida; if (l?.alfaB) { p.alfaB = l.alfaB; p.alfaF = l.alfaF; } delete p.conFoto; delete p.conOriginal;
     if (q.conFoto && (!l?.foto || l.nube !== q.nube)) fotos.push(async () => { try { const f = await api('/api/foto/' + q.id + '?v=' + (q.nube || '')); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } });
     if (q.conOriginal && (!p.original || l?.nubeO !== q.nubeO)) originales.push(async () => { try { const f = await api('/api/foto/' + q.id + '-o?v=' + (q.nubeO || '')); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; } } catch (e) { } });
     nuevas.push(p); locales.delete(q.id);
@@ -463,13 +463,18 @@ function medirTodas() {
 // 0.86 (Gabriela, 24/10: «no se ve superpuesto como el estilo revista… se ve superpuesto transparente y queda feo»):
 // las fotos guardadas llevan fondo blanco y se pintaban en «multiply», así que al pisarse se transparentaban.
 // Se saca una versión con el fondo transparente (relleno desde los bordes de lo casi blanco) y esas piezas se pintan opacas, con sombra fina.
-const alfa = new Map(); let alfando = null;
+// 0.115 (Gabriela, 28/10: «la app en el móvil sigue teniendo problemas para abrir… no me entero si le doy a un botón o no… se demora una eternidad»):
+// medido con la CPU 6 veces más lenta, esto se rehacía con las 25 fotos en cada apertura (más de 8 s de cálculo). Ahora se guarda en el móvil
+// (alfaB, con la firma de la foto en alfaF) y solo se rehace si cambia la foto; primero las piezas que hay en pantalla y dejando respirar entre una y otra
+const alfa = new Map(), alfaPide = new Set(); let alfando = null, alfaSucio = false;
 async function hacerAlfa(p) {
+  const f = p.foto ? firma(p.foto) : '';
+  if (f && p.alfaB instanceof Blob && p.alfaF === f) return URL.createObjectURL(p.alfaB);
   const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = urlFoto(p); });
-  const k = Math.min(1, 900 / Math.max(im.naturalWidth, im.naturalHeight)), W = Math.max(1, Math.round(im.naturalWidth * k)), H = Math.max(1, Math.round(im.naturalHeight * k));
+  const k = Math.min(1, 720 / Math.max(im.naturalWidth, im.naturalHeight)), W = Math.max(1, Math.round(im.naturalWidth * k)), H = Math.max(1, Math.round(im.naturalHeight * k));
   const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, W, H);
   const d = x.getImageData(0, 0, W, H), px = d.data;
-  let transp = 0; for (let i = 0; i < W; i++) if (px[i * 4 + 3] < 20) transp++; if (transp > W * .3) return urlFoto(p); // ya trae transparencia
+  let transp = 0; for (let i = 0; i < W; i++) if (px[i * 4 + 3] < 20) transp++; if (transp > W * .3) { if (f) { p.alfaB = p.foto; p.alfaF = f; alfaSucio = true; } return urlFoto(p); } // ya trae transparencia
   const claro = i => { const r = px[i * 4], g = px[i * 4 + 1], b = px[i * 4 + 2]; return Math.min(r, g, b) > 248 && Math.max(r, g, b) - Math.min(r, g, b) < 7; };
   const fuera = new Uint8Array(W * H), pila = [];
   const sem = i => { if (!fuera[i] && claro(i)) { fuera[i] = 1; pila.push(i); } };
@@ -481,21 +486,31 @@ async function hacerAlfa(p) {
     if (borde) { const l = Math.min(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]); px[i * 4 + 3] = Math.max(60, Math.min(255, (255 - l) * 6)); } // borde suave
   }
   x.putImageData(d, 0, 0);
-  const bl = await new Promise(r => c.toBlob(r, 'image/png')); return URL.createObjectURL(bl);
+  const bl = await new Promise(r => c.toBlob(r, 'image/png')); if (f && bl) { p.alfaB = bl; p.alfaF = f; alfaSucio = true; } return URL.createObjectURL(bl);
 }
 function alfasTodas() {
   if (alfando) return alfando;
   alfando = (async () => {
     await 0; // 0.97: el mismo fallo que en medirTodas (con nada pendiente, «alfando» se quedaba ocupado para siempre)
-    let n = 0; for (const p of E.prendas) { if (alfa.has(p.id) || !(p.foto || p.src)) continue; try { alfa.set(p.id, await hacerAlfa(p)); n++; } catch (e) { alfa.set(p.id, null); } }
-    alfando = null; if (n) { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); else if (E.pantalla === 'look' && typeof repintarLook === 'function') repintarLook(); }
+    const repinta = () => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); else if (E.pantalla === 'look' && typeof repintarLook === 'function') repintarLook(); };
+    try {
+      const pend = E.prendas.filter(p => !alfa.has(p.id) && (p.foto || p.src)).sort((a, b) => alfaPide.has(b.id) - alfaPide.has(a.id));
+      let n = 0, pintado = false;
+      for (const p of pend) {
+        try { alfa.set(p.id, await hacerAlfa(p)); n++; } catch (e) { alfa.set(p.id, null); }
+        alfaPide.delete(p.id); if (n && !pintado && !alfaPide.size) { pintado = true; repinta(); }
+        await new Promise(r => setTimeout(r, 0));
+      }
+      if (alfaSucio) { alfaSucio = false; await BD.set('prendas', E.prendas).catch(() => { }); }
+      if (n && !pintado) repinta();
+    } finally { alfando = null; }
   })();
   return alfando;
 }
 const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:${y / H * 100}%;width:${w / W * 100}%;height:${h / H * 100}%`;
   if (!p.caja) return `<img src="${urlFoto(p)}" alt="" style="${pos}">`;
   const [a, b, c, d] = p.caja, cw = c - a, ch = d - b;
-  const u = alfa.get(p.id); if (!alfa.has(p.id)) setTimeout(alfasTodas, 0);
+  const u = alfa.get(p.id); if (!alfa.has(p.id)) { alfaPide.add(p.id); setTimeout(alfasTodas, 0); }
   return `<i class="pz${u ? ' op' : ''}" style="${pos};background-image:url('${u || urlFoto(p)}');background-size:${100 / cw}% ${100 / ch}%;background-position:${cw < 1 ? a / (1 - cw) * 100 : 0}% ${ch < 1 ? b / (1 - ch) * 100 : 0}%"></i>`; };
 // 0.32 · presentación «collage» (Sheila, 22/10: «inspírate en esto para presentar los looks», dos referencias tipo Pinterest):
 // el look en una columna (arriba tocando la pieza de abajo), y a un lado el bolso arriba, los accesorios en medio y el calzado abajo.
