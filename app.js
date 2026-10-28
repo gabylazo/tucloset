@@ -2072,24 +2072,37 @@ function lineaTiempo() { // fecha, cielo, mínima y máxima, y la lluvia con su 
   const lluvia = ['lluvia', 'tormenta'].includes(w.clave) ? `${ico('lluvia')}${t('ahora', 'now')}` : w.lluviaH != null ? `${ico('lluvia')}${w.lluviaH}:00` : '';
   return `<span>${d}</span><span>${ico(cielo)}${w.min != null ? `${w.min}° / ${w.max}°` : `${w.t}°`}</span>${lluvia ? `<span>${lluvia}</span>` : ''}`;
 }
-function porqueHoy(pr, ps) { // una línea con el porqué: la de la estilista o la del tiempo
+function avisoTiempo(ps) { // lluvia o fresco a primera hora sin nada encima
   const w = E.tiempo, min = w ? (w.min ?? w.t) : null, capa = ps.some(p => p.tipo === 'Abrigo' || esCapa(p));
   if (w && w.lluviaH != null && !capa) return t(`Lluvia a las ${w.lluviaH}:00: llévate algo por encima.`, `Rain at ${w.lluviaH}:00: take a layer.`);
   if (w && w.t <= 19 && min <= 12 && !capa) return t(`A primera hora, ${min}°: llévate una chaqueta.`, `Early on, ${min}°: take a jacket.`);
-  return pr.porque || '';
+  return '';
 }
+// una línea con el porqué de cada look; lo que vale para todos (no hay chaquetas o zapatos subidos) va una sola vez arriba
+function porqueDiag(ps) { // Pro con diagnóstico: el porqué sale de sus colores y de su silueta
+  const d = planDemo() === 'pro' && E.perfil?.diag; if (!d) return ''; const es = idioma() === 'en' ? 1 : 0;
+  const cara = ps.find(p => p.tipo === 'Arriba' && !esCapa(p)) || ps.find(p => p.tipo === 'Vestidos'), col = cara && d.color?.si?.includes(cara.color);
+  const sil = d.cuerpo?.puntos?.length && puntosDiag(ps) > 0, cn = cara && colNom(cara.color);
+  if (col && sil) return t(`${cn[0].toUpperCase() + cn.slice(1)} cerca de la cara (${d.color.n[0]}) y una línea que favorece tu silueta.`, `${cn[0].toUpperCase() + cn.slice(1)} near your face (${d.color.n[1]}) and a line that suits your figure.`);
+  if (col) return t(`${cn[0].toUpperCase() + cn.slice(1)} cerca de la cara: es de tu paleta, ${d.color.n[0]}.`, `${cn[0].toUpperCase() + cn.slice(1)} near your face: it’s in your palette, ${d.color.n[1]}.`);
+  if (sil) return t(`Favorece tu silueta (${d.cuerpo.n[0].toLowerCase()}).`, `Suits your figure (${d.cuerpo.n[1].toLowerCase()}).`);
+  return '';
+}
+const porqueHoy = (pr, ps, hayCapas) => (hayCapas && avisoTiempo(ps)) || pr.porque || porqueDiag(ps);
 function pintarLooksHoy(raiz, cab) {
   const planHoy = eventoAhora()?.oc;
   if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy || 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); E.propuestas = masCercanos(E.hoyFalta, E.propuestas); } }
-  const lista = E.propuestas.slice(0, 8), cabT = cab + `<div class="pr-tiempo mini-et">${lineaTiempo()}</div><div class="pr-plan">${preguntaHoy(planHoy)}</div>${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : ''}`;
+  const act = activas(), hayCapas = act.some(p => p.tipo === 'Abrigo' || esCapa(p)), hayZap = act.some(p => p.tipo === 'Calzado'), fresco = hayCapas ? '' : avisoTiempo([]);
+  const avisos = [fresco && `${fresco} <button data-ir="subir">${t('Sube las tuyas', 'Upload yours')}</button>`, !hayZap && `${t('Los zapatos son de muestra.', 'The shoes are samples.')} <button data-ir="subir">${t('Sube los tuyos', 'Upload yours')}</button>`].filter(Boolean);
+  const lista = E.propuestas.slice(0, 8), cabT = cab + `<div class="pr-tiempo mini-et">${lineaTiempo()}</div><div class="pr-plan">${preguntaHoy(planHoy)}</div>${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : ''}${avisos.length ? `<div class="pr-avisos">${avisos.map(a => `<p>${a}</p>`).join('')}</div>` : ''}`;
   if (!lista.length) { raiz.innerHTML = cabT + `<div class="hz-vacio lk-vacio">${activas().length ? t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.') : t('Tu look de hoy aparecerá aquí en cuanto tengas una prenda de arriba, una de abajo y unos zapatos.', 'Your look of the day will appear here once you have a top, a bottom and shoes.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button></div>`; return; }
   const slide = (pr, i) => {
-    const ps = pr.ids.map(P).filter(Boolean), psZ = conZapato(ps, pr.zspec, pr.como), fav = esFav(pr.ids), porque = porqueHoy(pr, ps);
+    const ps = pr.ids.map(P).filter(Boolean), psZ = conZapato(ps, pr.zspec, pr.como), fav = esFav(pr.ids), porque = porqueHoy(pr, ps, hayCapas);
     const oc = planHoy && !E.hoyFalta && pr.tipo !== 'conjunto' ? planHoy : (pr.c && pr.c.ocasion) || pr.ocasion || ocasionDe(ps);
     pr.ocHoy = oc;
     return `<article class="pr-slide"><div class="pr-card" data-prficha="${i}">${maniqui(psZ, false, 'tarjeta')}</div>
       <div class="pr-pie"><span class="pr-oc">${ocNombre(oc)}</span><button class="pr-fav${fav ? ' on' : ''}" data-prfav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${CORAZON}</button></div>
-      ${porque ? `<p class="pr-porque">${porque}</p>` : ''}${psZ.some(p => p.muestra) ? `<button class="pr-zap" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: upload yours')}</button>` : ''}
+      ${porque ? `<p class="pr-porque">${porque}</p>` : ''}${hayZap && psZ.some(p => p.muestra) ? `<button class="pr-zap" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: upload yours')}</button>` : ''}
       <div class="pr-acc"><button class="boton" data-prpongo="${i}">${t('Me lo pongo', 'I’ll wear it')}</button><button class="pr-otra" data-protra="${i}">${t('Otra idea', 'Another idea')} <svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
       <button class="pr-no" data-prno="${i}">${t('No me gusta', 'Not for me')}</button></article>`;
   };

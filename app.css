@@ -1401,9 +1401,9 @@ img{-webkit-user-drag:none}
 /* Hoy en Looks (alternativa A, carrusel): tarjeta de 338 × 422 en un móvil de 390 y la siguiente asomando */
 .pr-tiempo{display:flex;justify-content:center;gap:14px;align-items:center;margin:2px 0 4px;color:var(--sec,#57473B)}
 .pr-tiempo span{display:inline-flex;align-items:center;gap:4px}
-.pr-tiempo svg{width:15px;height:15px}
+.pr-tiempo svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .pr-plan{text-align:center;margin-bottom:10px}
-.pr-carrusel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:16px;padding:0 16px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.pr-carrusel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:16px;padding:2px 16px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .pr-carrusel::-webkit-scrollbar{display:none}
 .pr-slide{flex:0 0 calc(100% - 60px);max-width:340px;scroll-snap-align:start;display:flex;flex-direction:column}
 .pr-card{position:relative;aspect-ratio:4/5;width:100%;cursor:pointer}
@@ -1415,6 +1415,7 @@ img{-webkit-user-drag:none}
 .pr-fav svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.6;opacity:.7}
 .pr-fav.on svg{fill:currentColor;opacity:1}
 .pr-porque{font-size:13px;line-height:1.45;color:var(--sec,#57473B);margin:0 0 10px}
+.pr-avisos{margin:-2px 24px 12px;text-align:center}.pr-avisos p{margin:0;font-size:12px;line-height:1.5;color:var(--sec,#57473B)}.pr-avisos button{font:inherit;color:var(--nogal,#4A3526);background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:3px}
 .pr-zap{font-size:12px;color:var(--sec,#57473B);background:none;border:0;padding:0;margin:0 0 10px;text-align:left;text-decoration:underline;text-underline-offset:3px}
 .pr-acc{display:flex;align-items:center;gap:14px}
 .pr-acc .boton{flex:1}
