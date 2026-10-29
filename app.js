@@ -77,6 +77,7 @@ const fecha = (iso, corta) => { if (!iso) return '—'; const d = new Date(iso);
 const $ = id => document.getElementById(id);
 let toastT; function toast(m) { const e = $('toast'); e.textContent = m; e.classList.add('visible'); clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove('visible'), 2200); }
 function confirmar(titulo, texto, si, no) { return new Promise(res => { $('dlg-t').textContent = titulo; $('dlg-p').textContent = texto; $('dlg-si').textContent = si || t('Sí', 'Yes'); $('dlg-no').textContent = no || t('Cancelar', 'Cancel'); const d = $('dlg'); d.showModal(); $('dlg-si').onclick = () => { d.close(); res(true); }; $('dlg-no').onclick = () => { d.close(); res(false); }; }); }
+const urlsCat = new Map(); function urlCat(p) { if (!p) return ''; if (!p.cat) return urlFoto(p); if (!urlsCat.has(p.id)) urlsCat.set(p.id, URL.createObjectURL(p.cat)); return urlsCat.get(p.id); } // 0.121
 function urlFoto(p) { if (!p) return ''; if (p.src) return p.src; if (!p.foto) return ''; if (!urls.has(p.id)) urls.set(p.id, URL.createObjectURL(p.foto)); return urls.get(p.id); }
 const P = id => E.prendas.find(p => p.id === id);
 const activas = () => E.prendas.filter(p => !['guardada', 'donar'].includes(p.estado));
@@ -181,7 +182,7 @@ async function subirNube(reintento) {
     try {
       // borradas desde la última subida: se apuntan para que los otros móviles también las quiten, y su foto se borra del servidor
       const antes = JSON.parse(LS.get('tc_nube_ids') || '[]'), ahora = E.prendas.filter(p => !p.ejemplo).map(p => p.id);
-      const fuera = antes.filter(id => !ahora.includes(id)); if (fuera.length) { const b = new Set(JSON.parse(LS.get('tc_nube_borradas') || '[]')); fuera.forEach(id => b.add(id)); LS.set('tc_nube_borradas', JSON.stringify([...b].slice(-2000))); for (const id of fuera) { api('/api/foto/' + id, { method: 'DELETE' }).catch(() => { }); api('/api/foto/' + id + '-o', { method: 'DELETE' }).catch(() => { }); } }
+      const fuera = antes.filter(id => !ahora.includes(id)); if (fuera.length) { const b = new Set(JSON.parse(LS.get('tc_nube_borradas') || '[]')); fuera.forEach(id => b.add(id)); LS.set('tc_nube_borradas', JSON.stringify([...b].slice(-2000))); for (const id of fuera) { api('/api/foto/' + id, { method: 'DELETE' }).catch(() => { }); api('/api/foto/' + id + '-o', { method: 'DELETE' }).catch(() => { }); api('/api/foto/' + id + '-c', { method: 'DELETE' }).catch(() => { }); } }
       let cambio = false, fallos = 0;
       for (const p of E.prendas) {
         if (p.ejemplo) continue;
@@ -210,7 +211,8 @@ async function bajarNube() {
   // ahora bajan 6 a la vez, solo las recortadas antes de entrar, y las originales después, por detrás
   const nuevas = [], fotos = [], originales = [];
   for (const q of doc.prendas || []) {
-    const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null }; if (l?.fotoTorcida) p.fotoTorcida = l.fotoTorcida; delete p.conFoto; delete p.conOriginal;
+    const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null, cat: l?.cat || null }; if (l?.fotoTorcida) p.fotoTorcida = l.fotoTorcida; delete p.conFoto; delete p.conOriginal;
+    if (q.conCat && (!p.cat || l?.nubeC !== q.nubeC)) (ST ? fotos : originales).push(async () => { try { const f = await api('/api/foto/' + q.id + '-c?v=' + (q.nubeC || '')); if (f.ok) { p.cat = await f.blob(); urlsCat.delete(q.id); if (typeof stRepintar === 'function') stRepintar(); } } catch (e) { } }); // 0.121: foto de catálogo (Gemini), solo la usa la propuesta 013
     if (q.conFoto && (!l?.foto || l.nube !== q.nube)) fotos.push(async () => { try { const f = await api('/api/foto/' + q.id + '?v=' + (q.nube || '')); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } });
     if (q.conOriginal && (!p.original || l?.nubeO !== q.nubeO)) originales.push(async () => { try { const f = await api('/api/foto/' + q.id + '-o?v=' + (q.nubeO || '')); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; } } catch (e) { } });
     nuevas.push(p); locales.delete(q.id);
@@ -531,7 +533,9 @@ const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:$
 // 0.111 (Gabriela, 28/10: «la confección de los outfits es horrible, no hay simetría, muchos espacios entre prendas»): «conjunto» en todas partes
 // 0.12 · propuesta completa (Gabriela, 28/10: «cuando tengas una solución y una propuesta homogénea y general… me notificas»): con ?propuesta=012 se ve
 // la app nueva (tarjeta 4:5, Hoy dentro de Looks, barra de cuatro) con su propia ropa; ?propuesta=0 vuelve a la de siempre. Se aplica a todas con su sí
-const PROP = (() => { try { const u = new URLSearchParams(location.search), q = u.get('propuesta'); if (u.get('ver') === '012') return true; /* solo esta vez (la comparativa) */ if (q === '0') localStorage.removeItem('tc_prop'); else if (q) localStorage.setItem('tc_prop', '012'); return localStorage.getItem('tc_prop') === '012'; } catch (e) { return false; } })();
+const PROP = (() => { try { const u = new URLSearchParams(location.search), q = u.get('propuesta'); if (['012', '013'].includes(u.get('ver'))) return true; /* solo esta vez (la comparativa) */ if (q === '0') localStorage.removeItem('tc_prop'); else if (q) localStorage.setItem('tc_prop', q === '013' ? '013' : '012'); return ['012', '013'].includes(localStorage.getItem('tc_prop')); } catch (e) { return false; } })();
+// 0.121 · propuesta 013 (Gabriela, 29/10: «ES HORROROSO… apóyate en otras IAs»): diseño de Stitch y fotos de catálogo de Gemini, en st.js y st.css
+const ST = (() => { try { const u = new URLSearchParams(location.search); return u.get('ver') === '013' || (u.get('ver') !== '012' && localStorage.getItem('tc_prop') === '013'); } catch (e) { return false; } })();
 const COMP = (() => { try { return new URLSearchParams(location.search).get('comp') || (PROP ? 'tarjeta' : 'conjunto'); } catch (e) { return 'conjunto'; } })();
 if (PROP) { const tb = document.getElementById('tabs'), lk = tb?.querySelector('[data-ir="looks"]'); if (lk) { tb.querySelector('[data-ir="hoy"]')?.remove(); tb.prepend(lk); tb.classList.add('cuatro'); document.documentElement.classList.add('prop'); } } // 0.98: «abierto» por defecto (Sheila y Gabriela, 24/10: «mira qué mal la distribución», «la distribución espacial… horrenda»)
 function collage(ps) {

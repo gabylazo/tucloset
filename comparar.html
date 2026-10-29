@@ -37,7 +37,7 @@ tr.grupo td{font-family:Bellefair,serif;font-size:19px;font-weight:400;padding-t
 </style></head><body>
 <h1>Básico y Pro, con tu clóset</h1>
 <p class="sub">Tu cuenta en las dos versiones. Toca una pestaña de arriba y cambian las dos pantallas.</p>
-<p class="sub" id="modo"><label><input type="checkbox" id="p012" checked> Con la propuesta 0.12 (Hoy dentro de Looks y tarjetas 4:5)</label></p>
+<p class="sub" id="modo"><label><input type="checkbox" id="p012" checked> Con la propuesta 013 (diseño de Stitch y fotos de catálogo)</label></p>
 <nav id="nav"><button data-p="hoy" class="on">Hoy</button><button data-p="closet">Clóset</button><button data-p="looks">Looks</button><button data-p="cal">Calendario</button><button data-p="yo">Yo</button></nav>
 <div class="par">
   <figure><figcaption>Básico<span>1,99 € al mes · tu armario, en orden y a tu estilo</span></figcaption><iframe id="fb" title="Básico"></iframe></figure>
@@ -73,7 +73,7 @@ tr.grupo td{font-family:Bellefair,serif;font-size:19px;font-weight:400;padding-t
 <script>
 const base = new URL('index.html', location.href).href + '?repaso=0';
 const ir = p => {
-  const pr = document.getElementById('p012').checked, q = (pr ? 'ver=012&' : '') + (p === 'cal' ? 'pantalla=looks&lk=cal' : p === 'looks' ? 'pantalla=looks&lk=' + (pr ? 'mios' : 'ideas') : p === 'hoy' && pr ? 'pantalla=looks&lk=hoy' : 'pantalla=' + p);
+  const pr = document.getElementById('p012').checked, q = (pr ? 'ver=013&' : '') + (p === 'cal' ? 'pantalla=looks&lk=cal' : p === 'looks' ? 'pantalla=looks&lk=' + (pr ? 'mios' : 'ideas') : p === 'hoy' && pr ? 'pantalla=looks&lk=hoy' : 'pantalla=' + p);
   fb.src = base + '&plan=basico&' + q; fp.src = base + '&plan=pro&' + q;
   nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
 };
