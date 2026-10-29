@@ -4,7 +4,7 @@
    mosaico de baldosas: sin collage, sin recuadros, sin sombras y sin frases. Colores: nogal, blanco y dorado (este, solo en el nombre y en el corazón).
    Solo actúa con la propuesta 014 (?propuesta=014, o ?ver=014 una vez): sin ella, la app no cambia. */
 if (Z14) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'z14.css?v=0.122'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'z14.css?v=0.122b'; document.head.append(l);
   document.documentElement.classList.add('z');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -22,7 +22,7 @@ if (Z14) (() => {
   const rol = p => p.tipo === 'Abrigo' || esCapa(p) ? 'capa' : ({ Arriba: 'top', Abajo: 'bajo', Vestidos: 'vestido', Calzado: 'zapato', Bolsos: 'bolso' }[p.tipo] || 'acc');
   const PRIN = ['capa', 'top', 'vestido', 'bajo'], COMPL = ['zapato', 'bolso', 'acc'];
   const foto = p => p.cat ? urlCat(p) : urlFoto(p);
-  const baldosa = (p, ficha) => `<span class="z-b${p.cat || p.src ? '' : ' sin-cat'}" data-k="${rol(p)}"${ficha && !p.muestra ? ` data-ficha="${p.id}" role="button"` : ''}><img src="${foto(p)}" alt="${esc(p.nombre || '')}" loading="lazy"></span>`;
+  const baldosa = (p, ficha) => `<span class="z-b${p.cat || p.src ? '' : ' sin-cat'}" data-k="${rol(p)}"${ficha && !p.muestra ? ` data-ficha="${p.id}" role="button"` : ''}><img src="${foto(p)}" alt="${esc(p.nombre || '')}"></span>`; // sin carga diferida: el look se ve entero desde el primer momento
   window.mosaico = function (ps, clase = '') {
     const pr = ps.filter(p => PRIN.includes(rol(p))).sort((a, b) => PRIN.indexOf(rol(a)) - PRIN.indexOf(rol(b))).slice(0, 4);
     const co = ps.filter(p => !PRIN.includes(rol(p))).sort((a, b) => COMPL.indexOf(rol(a)) - COMPL.indexOf(rol(b))).slice(0, 3);
