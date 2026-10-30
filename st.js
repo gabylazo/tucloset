@@ -4,7 +4,7 @@
    de la suya (p.cat); si no la tiene, la de siempre. Solo actúa con la propuesta 013 (?propuesta=013, o ?ver=013 una vez): sin ella, la app no cambia. */
 if (ST) (() => {
   const css = h => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = h; document.head.append(l); };
-  css('https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..600&family=EB+Garamond:ital,wght@0,400..600;1,400..500&family=DM+Sans:opsz,wght@9..40,400..600&display=swap');
+  // 0.123: sus letras (Bodoni Moda, EB Garamond, DM Sans) vienen ya en fuentes.css, alojadas en la propia web
   css('st.css?v=0.121');
   document.documentElement.classList.add('st');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
