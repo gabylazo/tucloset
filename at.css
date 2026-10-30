@@ -172,3 +172,5 @@ html.at #pared .at-cel { aspect-ratio: 4 / 5; background: var(--baldosa); }
 html.at #pared .at-cel img { position: static; inset: auto; width: 100%; height: 100%; mix-blend-mode: normal; }
 html.at #pared .at-cel.sin-cat img { mix-blend-mode: multiply; }
 html.at #pared .at-cel i { background: none; padding: 0; left: 0; right: 0; text-align: center; }
+/* Yo · el diagnóstico sin caja, entre rayas como el resto de la pantalla */
+html.at .dg-tarjeta { border: 0; border-top: 1px solid var(--raya); border-bottom: 1px solid var(--raya); padding: 22px 0 20px; }
