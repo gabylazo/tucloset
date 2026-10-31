@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.127'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.127b'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -57,7 +57,8 @@ if (AT) (() => {
     if (capa && (top || grande)) { oC = pon(capa, null, 0, 0); y = oC[4] * .06; }
     else if (capa) oT = pon(capa, null, 0, 2);
     if (top) oT = pon(top, null, y, dentro ? 1 : 2);
-    if (grande) { const yG = oT ? oT[2] + oT[4] * (grande.tipo === 'Vestidos' ? .55 : .93) : y; oG = pon(grande, null, yG, dentro ? 2 : 1); }
+    // con manga larga el puño baja más que el bajo de la prenda: se solapa un poco más para que no quede un hueco en la cintura
+    if (grande) { const larga = top && typeof Motor !== 'undefined' && Motor.ficha(top).manga === 'larga', yG = oT ? oT[2] + oT[4] * (grande.tipo === 'Vestidos' ? .55 : larga ? .87 : .93) : y; oG = pon(grande, null, yG, dentro ? 2 : 1); }
     const cuerpo = [oC, oT, oG].filter(Boolean);
     let fin = cuerpo.length ? Math.max(...cuerpo.map(o => o[2] + o[4])) : 0;
     if (zap) { const [w, h] = medidas(zap); pon(zap, -w / 2, fin + (cuerpo.length ? 3 : 0), 3); fin += h + 3; }

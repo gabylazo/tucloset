@@ -2617,6 +2617,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   } else if (q.get('fin') !== '0') setTimeout(() => { el.remove(); if ($('p-inicio').classList.contains('activa')) $('p-inicio').classList.add('aparece'); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 2250);
 }
 (async () => {
+  if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true })); // 0.127: primero todos los scripts (el diseño y el motor); si no, en un móvil lento la primera pantalla salía con el diseño antiguo
   entrada(new URLSearchParams(location.search));
   E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {};
   try { navigator.storage?.persist?.(); } catch (e) { }
