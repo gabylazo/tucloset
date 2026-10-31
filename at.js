@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.126'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.127'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -118,7 +118,7 @@ if (AT) (() => {
     const fav = esFav(pr.ids), puesto = pr.ids.length > 0 && pr.ids.every(id => (P(id)?.usos || []).includes(hoyISO()));
     pant.innerHTML = `<div class="at-pant">${cab}<div class="at-hoy" id="at-hoy">${flechas}<button class="at-fav at-fav-hoy${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button>${figura(ps, W, H, true)}
       <button class="at-oc" data-hzpreg aria-expanded="${!!E.hzPreg}" aria-label="${ocNombre(oc)}: ${t('cambiar la ocasión', 'change the occasion')}">${ocNombre(oc)}${I.abajo}</button>${ocs}
-      ${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : ''}</div>
+      ${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${t('Con tu abrigo encima: súbelo y saldrá aquí', 'With your coat on top: add it and it will show here')}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : ''}</div>
       <div class="at-pie"><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button></div></div>`;
     // el look ocupa el hueco que de verdad queda entre la cabecera y el botón (en cada móvil es distinto)
     const z = $('at-hoy'), ajustar = () => { const fig = z.querySelector('.at-look'); if (!fig || !z.clientHeight) return;
@@ -127,10 +127,10 @@ if (AT) (() => {
     ajustar(); requestAnimationFrame(ajustar); // la primera vez la pantalla aún no se ve: se mide en el siguiente fotograma
     const mover = d => { E.hoyIdx = ((E.hoyIdx || 0) + d + lista.length) % lista.length; E.hzPreg = false; pintarHoy(); };
     pant.querySelectorAll('[data-atmov]').forEach(b => b.onclick = () => mover(+b.dataset.atmov));
-    $('at-pongo').onclick = async e => { const b = e.currentTarget; await ponerse(pr.ids, pr.c); b.classList.add('hecho'); b.setAttribute('aria-pressed', 'true'); b.textContent = t('Puesto hoy', 'Worn today'); };
+    $('at-pongo').onclick = async e => { const b = e.currentTarget; await ponerse(pr.ids, pr.c); await datosLook(pr); b.classList.add('hecho'); b.setAttribute('aria-pressed', 'true'); b.textContent = t('Puesto hoy', 'Worn today'); };
     // el corazón, y el doble toque sobre el look como en Instagram (un toque sobre una prenda abre su ficha, un instante después para distinguirlos)
     const fv = $('at-fav'), alternar = async quiero => { if (quiero != null && esFav(pr.ids) === quiero) { fv.classList.remove('late'); void fv.offsetWidth; fv.classList.add('late'); return; }
-      await alternarFav(pr.ids, oc); const on = esFav(pr.ids); fv.classList.toggle('on', on); fv.setAttribute('aria-pressed', on); fv.classList.remove('late'); void fv.offsetWidth; if (on) fv.classList.add('late'); };
+      await alternarFav(pr.ids, oc); await datosLook(pr); const on = esFav(pr.ids); fv.classList.toggle('on', on); fv.setAttribute('aria-pressed', on); fv.classList.remove('late'); void fv.offsetWidth; if (on) fv.classList.add('late'); };
     fv.onclick = () => alternar();
     let toque = 0, espera = null;
     z.addEventListener('click', e => {
@@ -234,11 +234,12 @@ if (AT) (() => {
   };
 
   /* ---------- LOOKS: Mis looks · Favoritos · Calendario, en letras; los looks en baldosas de dos en dos; el primero, «Crear un look» ---------- */
-  const filaLooks = act => `<header class="at-tit"><h1>${t('Looks', 'Looks')}</h1></header><nav class="at-fila at-cats" aria-label="${t('Tipos de look', 'Look types')}">${[['mios', t('Mis looks', 'My looks')], ['fav', t('Favoritos', 'Favourites')], ['cal', t('Calendario', 'Calendar')]].map(([k, n]) => `<button class="${act === k ? 'on' : ''}" data-lktab="${k}"${act === k ? ' aria-current="true"' : ''}>${n}${DOS}</button>`).join('')}</nav>`;
+  const filaLooks = act => `<header class="at-tit"><h1>${t('Looks', 'Looks')}</h1></header><nav class="at-fila at-cats" aria-label="${t('Tipos de look', 'Look types')}">${[['ideas', t('Ideas', 'Ideas')], ['mios', t('Mis looks', 'My looks')], ['fav', t('Favoritos', 'Favourites')], ['cal', t('Calendario', 'Calendar')]].map(([k, n]) => `<button class="${act === k ? 'on' : ''}" data-lktab="${k}"${act === k ? ' aria-current="true"' : ''}>${n}${DOS}</button>`).join('')}</nav>`;
   pintarLooks = function () {
     const raiz = $('lk-raiz'); document.documentElement.dataset.looks = 'at';
-    if (!['mios', 'fav', 'cal'].includes(E.lkTab)) E.lkTab = 'mios';
+    if (!['ideas', 'mios', 'fav', 'cal'].includes(E.lkTab)) E.lkTab = 'ideas';
     if (E.lkTab === 'cal') return pintarCalendario(raiz);
+    if (E.lkTab === 'ideas') return pintarIdeas(raiz);
     const fav = E.lkTab === 'fav', lista = E.conjuntos.filter(c => !fav || c.fav || esFav(c.ids));
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     const crear = fav ? '' : `<figure class="at-t"><button class="at-bal at-crear" style="width:${TW}px;height:${TH}px" data-ir="nuevo-look">${I.mas}<span>${t('Crear un look', 'Create a look')}</span></button></figure>`;
@@ -254,6 +255,71 @@ if (AT) (() => {
     raiz.querySelector('.lk-cab')?.remove(); raiz.querySelector('.lk-tabs')?.remove();
     raiz.insertAdjacentHTML('afterbegin', filaLooks('cal'));
   };
+
+  /* ---------- EL MOTOR DE LOOKS (motor.js): un look solo sale si encaja en una fórmula del oficio y pasa los vetos. Primero lo apuntado en el calendario,
+     luego las ideas del motor y después los looks guardados que valgan para el tiempo de hoy ---------- */
+  let ultima = {};
+  const pedirMotor = (plan, n) => {
+    const g = E.perfil?.gustos, hoy = hoyISO(), excluir = [...(g?.fuera || []), ...(g?.hoy?.d === hoy ? g.hoy.k : [])], pr = activas();
+    const firma = JSON.stringify([plan, n, hoy, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
+    if (ultima[plan + n]?.firma === firma) return ultima[plan + n].r;
+    const r = Motor.looks({ prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
+    ultima[plan + n] = { firma, r }; return r;
+  };
+  const propuestasDe = (plan, n) => { const r = pedirMotor(plan, n); return (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta); };
+  generarLooks = (n, plan) => propuestasDe(plan || 'Todos', n).map(x => ({ ...x, prin: x.ids[0] }));
+  // al guardar un look del motor, también su zapato y cómo se lleva la de arriba
+  const datosLook = async x => { if (!x.zspec && !x.como) return; const k = claveLook(x.ids), cj = E.conjuntos.find(c => claveLook(c.ids) === k); if (cj && !cj.zspec && !cj.como) { cj.zspec = x.zspec; cj.como = x.como; await guardar(); } };
+  const valeHoy = c => {
+    const o = { tiempo: E.tiempo, plan: c.ocasion || 'Diario', perfil: E.perfil, hoy: hoyISO(), hora: new Date().getHours() }, K = { Abajo: 'abajo', Vestidos: 'vestido', Abrigo: 'capa', Calzado: 'calzado', Bolsos: 'bolso' };
+    for (const id of c.ids) { const p = P(id); if (!p) return false; if (p.tipo === 'Arriba') { if (esCapa(p) && !o.capa) o.capa = p; else if (!o.arriba) o.arriba = p; else o.base_interior = p; } else if (K[p.tipo]) o[K[p.tipo]] = p; }
+    if (o.capa && !o.arriba) { o.arriba = o.capa; delete o.capa; }
+    return !Motor.juzgar(o).veto.duros.length;
+  };
+  proponer = function () {
+    const props = [], dia = E.agenda[diaISO(new Date())], evA = eventoAhora(), lkA = evA ? lookDe(diaISO(new Date()), evA) : null, clave = claveLook, g = E.perfil?.gustos;
+    if (lkA) props.push({ tipo: 'agenda', ids: lkA, ocasion: evA.oc }); else if (dia?.look?.length && dia.look.every(P)) props.push({ tipo: 'agenda', ids: dia.look, ocasion: dia.planes?.[0]?.oc });
+    for (const x of propuestasDe(E.plan, 8)) if (!props.some(y => clave(y.ids) === clave(x.ids))) props.push({ tipo: 'propuesta', ...x });
+    const guardados = E.conjuntos.filter(c => c.ids.every(id => P(id) && !['guardada', 'donar'].includes(P(id).estado)) && (E.plan === 'Todos' || (c.ocasion || 'Diario') === E.plan) && !props.some(y => clave(y.ids) === clave(c.ids)) && valeHoy(c)).sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));
+    for (const c of guardados.slice(0, 4)) props.push({ tipo: 'conjunto', c, ids: c.ids, zspec: c.zspec, como: c.como });
+    const fuera = x => x.tipo !== 'agenda' && (g?.fuera?.includes(clave(x.ids)) || (g?.hoy?.d === hoyISO() && g.hoy.k.includes(clave(x.ids))));
+    E.propuestas = props.filter(x => !fuera(x)); if (E.hoyIdx >= E.propuestas.length) E.hoyIdx = 0;
+  };
+
+  /* ---------- IDEAS: lo que el motor saca de su ropa para el tiempo de hoy, en rejilla como Pinterest; el corazón guarda sin abrir; sin frases a la vista ---------- */
+  function pintarIdeas(raiz) {
+    const oc = E.ideaOc || 'Todos', r = pedirMotor(oc, 12), lista = E.ideas = (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta), w = E.tiempo;
+    const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
+    const fila = ['Todos', 'Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].map(o => `<button class="${o === oc ? 'on' : ''}" data-ideaoc="${o}"${o === oc ? ' aria-current="true"' : ''}>${o === 'Todos' ? t('Todas', 'All') : ocNombre(o)}${DOS}</button>`).join('');
+    const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button></figure>`; };
+    const vendria = r.falta?.length && !en() ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';
+    raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${w ? `<p class="at-para">${t('Para hoy', 'For today')}, ${Math.round(w.t)}°</p>` : ''}`
+      + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio"><p>${t('Con lo que tienes no sale un look completo para esta ocasión.', 'What you have doesn’t make a complete look for this occasion.')}</p></div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
+    raiz.onclick = async e => {
+      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria]'); if (!b) return;
+      if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkTocado = true; return pintarLooks(); }
+      if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; return pintarLooks(); }
+      if (b.dataset.ideavendria != null) { E.ideaVendria = !E.ideaVendria; return pintarLooks(); }
+      if (b.dataset.ideafav != null) { const x = lista[+b.dataset.ideafav]; await alternarFav(x.ids, x.ocasion); await datosLook(x); const on = esFav(x.ids); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); return; }
+      abrirIdea(lista[+b.dataset.idea]);
+    };
+  }
+  // una idea abierta: igual que un look, pero aún sin guardar
+  function abrirIdea(x) {
+    ir('look'); let r = $('at-look'); if (!r) { r = document.createElement('div'); r.id = 'at-look'; r.className = 'at-abierto'; $('p-look').append(r); }
+    const [ancho, alto] = caja(), W = Math.min(330, ancho - 60), H = Math.max(260, alto - 330), fav = esFav(x.ids), porque = !en() && x.porque;
+    r.innerHTML = `<div class="at-barra-sup"><button class="at-volver" data-ir="looks" aria-label="${t('Volver', 'Back')}">${I.iz}</button><button class="at-fav${fav ? ' on' : ''}" data-atfav aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button></div>
+      <h1 class="at-h1">${esc(ocNombre(x.ocasion))}</h1>
+      <div class="at-centro">${figura(psDe(x), W, H, true)}</div>
+      <div class="at-acciones"><button class="at-btn" data-atl="pongo">${t('Me lo pongo', 'I’ll wear it')}</button>
+        ${porque ? `<div class="at-enlaces"><button class="at-enlace" data-atl="porque" aria-expanded="${!!E.ideaPorque}">${t('Por qué funciona', 'Why it works')}</button></div>${E.ideaPorque ? `<p class="at-porque">${esc(porque)}</p>` : ''}` : ''}</div>`;
+    r.onclick = async e => {
+      const b = e.target.closest('[data-atl],[data-atfav]'); if (!b) return;
+      if (b.dataset.atfav != null) { await alternarFav(x.ids, x.ocasion); await datosLook(x); return abrirIdea(x); }
+      if (b.dataset.atl === 'porque') { E.ideaPorque = !E.ideaPorque; return abrirIdea(x); }
+      await ponerse(x.ids, null); await datosLook(x); E.propuestas = []; b.textContent = t('Puesto hoy', 'Worn today'); b.classList.add('hecho');
+    };
+  }
 
   /* ---------- NUEVO LOOK: las prendas, con su foto de catálogo ---------- */
   const prepararNuevoLookViejo = prepararNuevoLook;

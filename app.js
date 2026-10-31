@@ -711,7 +711,7 @@ function ubicacionMovil(siempre) {
 }
 async function cargarTiempo(forzar) {
   const cache = JSON.parse(localStorage.getItem('tc_tiempo') || 'null');
-  if (!forzar && cache && cache.v && cache.k === 38 && 'lluviaH' in cache.v && Date.now() - cache.ts < 30 * 60000) { E.tiempo = cache.v; return E.tiempo; }
+  if (!forzar && cache && cache.v && cache.k === 39 && 'lluviaH' in cache.v && Date.now() - cache.ts < 30 * 60000) { E.tiempo = cache.v; return E.tiempo; }
   try {
     let lat = E.perfil?.lat, lon = E.perfil?.lon, nombre = E.perfil?.ciudad || E.perfil?.lugar || '';
     // 0.38 (Sheila, 22/10: «me sale Madrid y yo estoy en Huelva»): sin ciudad ni ubicación ya no se da Madrid por hecho;
@@ -721,11 +721,11 @@ async function cargarTiempo(forzar) {
     if (lat && !nombre) nombre = await nombreLugar(lat, lon);
     if (!lat && E.perfil?.ciudad) { const g = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(E.perfil.ciudad)}&count=1&language=es`)).json(); if (g.results?.length) { lat = g.results[0].latitude; lon = g.results[0].longitude; nombre = g.results[0].name; } }
     if (!lat) { lat = 40.4168; lon = -3.7038; nombre = E.perfil?.ciudad || 'Madrid'; } // último recurso: sin red de ubicación ni ciudad encontrada
-    const r = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=precipitation_probability&timezone=auto&forecast_days=1`)).json();
+    const r = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,apparent_temperature,wind_speed_10m,relative_humidity_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max&hourly=precipitation_probability&timezone=auto&forecast_days=1`)).json();
     const cod = r.current.weather_code; const txt = cod === 0 ? ['despejado', 'clear'] : cod <= 2 ? ['nubes y claros', 'partly cloudy'] : cod === 3 ? ['nublado', 'cloudy'] : cod < 50 ? ['niebla', 'fog'] : cod < 70 ? ['lluvia', 'rain'] : cod < 80 ? ['nieve', 'snow'] : cod < 90 ? ['chubascos', 'showers'] : ['tormenta', 'storm'];
     const ahora = new Date().getHours(); const probs = r.hourly?.precipitation_probability || []; let lluviaH = null; for (let h = ahora; h < Math.min(24, probs.length); h++) if (probs[h] >= 50) { lluviaH = h; break; }
-    E.tiempo = { t: Math.round(r.current.temperature_2m), max: Math.round(r.daily.temperature_2m_max[0]), min: Math.round(r.daily.temperature_2m_min[0]), lluvia: r.daily.precipitation_probability_max?.[0] ?? 0, txt, nombre, cod, clave: claveTiempo(cod), lluviaH };
-    localStorage.setItem('tc_tiempo', JSON.stringify({ ts: Date.now(), k: 38, v: E.tiempo }));
+    E.tiempo = { sens: r.current.apparent_temperature, viento: r.current.wind_speed_10m, hum: r.current.relative_humidity_2m, uv: r.daily.uv_index_max?.[0], t: Math.round(r.current.temperature_2m), max: Math.round(r.daily.temperature_2m_max[0]), min: Math.round(r.daily.temperature_2m_min[0]), lluvia: r.daily.precipitation_probability_max?.[0] ?? 0, txt, nombre, cod, clave: claveTiempo(cod), lluviaH };
+    localStorage.setItem('tc_tiempo', JSON.stringify({ ts: Date.now(), k: 39, v: E.tiempo }));
   } catch (e) { E.tiempo = null; }
   return E.tiempo;
 }
@@ -1012,6 +1012,7 @@ const ZAP_MUESTRA = {
   'sandalias-beige-plataforma': ['Sandalias beige de plataforma', '#D8C7A8', 0.469], 'sandalias-marrones-planas': ['Sandalias marrones planas', '#6B4A2B', 0.383],
 };
 function claveMuestra(ps, spec) {
+  if (spec?.muestra) return spec.muestra; // el motor de looks ya sabe cuál
   if (spec?.tipo) {
     const c = (spec.color || '').toLowerCase(), tx = (spec.texto || '').toLowerCase(), ta = spec.tacon;
     if (spec.tipo === 'zapatillas') return /blanc/.test(c) ? 'zapatillas-blancas' : 'zapatillas-negras';
