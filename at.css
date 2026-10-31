@@ -1,7 +1,7 @@
 /* TuCloset · diseño A «Atelier» (30/10/2026). Solo con html.at (?propuesta=atelier). Tokens medidos (lista de calidad de Estudio):
    nogal 11,5:1 sobre blanco; gris de texto #7D6E63 4,9:1; dorado 2,4:1, nunca en texto; oro tinta #8E6F28 4,7:1 para el foco.
-   De las favoritas de Gabriela (30/10: «18, 7 y 3»): Sézane, la ficha con la foto a todo el ancho y el nombre en mayúsculas; Indyx, los looks en
-   rejilla de 3 y el «+» en un cuadrado; Combyne, el look como collage de prendas sueltas con sus complementos. */
+   De las favoritas de Gabriela (30/10: «18, 7 y 3»): Sézane, la ficha con la foto a todo el ancho y el nombre en mayúsculas; Indyx, el «+» en un
+   cuadrado; Combyne, el look como collage de prendas sueltas con sus complementos. */
 html.at { --sec: #7D6E63; --ter: #7D6E63; --suave2: #7D6E63; --baldosa: #F7F6F4; --raya: rgba(74, 53, 38, .14); --oro-tinta: #8E6F28; --linea: rgba(74, 53, 38, .14); }
 html.at[data-letra], html.at[class] { --f: 'Jost', system-ui, sans-serif; }
 html.at body { font-family: var(--f); font-weight: 400; }
@@ -15,10 +15,10 @@ html.at .at-dos::before { left: 2.2px; } html.at .at-dos::after { right: 2.2px; 
 html.at .activo > .at-dos, html.at .on > .at-dos { display: block; }
 
 /* un solo botón relleno por pantalla; lo secundario, en enlace */
-html.at .at-btn, html.at .boton:not(.linea), html.at .hz-bt:not([style*="border:0"]) { display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 24px; background: var(--tinta); color: #fff; border: 0; border-radius: 0; font: 500 12.5px/1 var(--f); letter-spacing: .16em; text-transform: uppercase; }
+html.at .at-btn, html.at .boton:not(.linea), html.at .hz-bt:not([style*="border:0"]) { display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 24px; background: var(--tinta); color: #fff; border: 0; border-radius: 0; font: 500 12px/1 var(--f); letter-spacing: .12em; text-transform: uppercase; }
 html.at .at-btn { width: 240px; max-width: 100%; margin: 0 auto; }
-html.at .boton.linea { min-height: 48px; border-radius: 0; font: 500 12.5px/1 var(--f); letter-spacing: .16em; text-transform: uppercase; }
-html.at .at-enlace { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; font: 400 14px/1 var(--f); color: var(--sec); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--raya); }
+html.at .boton.linea { min-height: 48px; border-radius: 0; font: 500 12px/1 var(--f); letter-spacing: .12em; text-transform: uppercase; }
+html.at .at-enlace { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; font: 400 15px/1 var(--f); color: var(--sec); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--raya); }
 html.at .at-vacio { padding: 48px 32px; text-align: center; color: var(--sec); font-size: 15px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
 html.at .at-vacio p { max-width: 30ch; text-wrap: pretty; }
 
@@ -26,7 +26,7 @@ html.at .at-vacio p { max-width: 30ch; text-wrap: pretty; }
 html.at .tabs { height: var(--tabs); border-top: 1px solid var(--raya); align-items: stretch; padding: 0 0 env(safe-area-inset-bottom); background: #fff; }
 html.at .tabs button { flex: 1; min-width: 0; min-height: 62px; padding: 0 0 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: var(--sec); position: relative; background: none; }
 html.at .tabs button .at-ic { width: 22px; height: 22px; }
-html.at .tabs button span.at-lbl { font: 400 11.5px/1 var(--f) !important; letter-spacing: .1em !important; text-transform: uppercase; }
+html.at .tabs button span.at-lbl { font: 400 12px/1 var(--f) !important; letter-spacing: .1em !important; text-transform: uppercase; }
 html.at .tabs button.activo { color: var(--tinta); }
 html.at .tabs button.activo span.at-lbl { font-weight: 500 !important; }
 html.at .tabs button .at-dos { bottom: 1px; }
@@ -48,12 +48,12 @@ html.at .at-bal { display: flex; align-items: center; justify-content: center; b
 
 /* ---------- Hoy ---------- */
 html.at #p-hoy { overflow: hidden; }
-html.at .at-pant { height: calc(100% - var(--tabs)); display: flex; flex-direction: column; text-align: center; }
+html.at .at-pant { height: 100%; display: flex; flex-direction: column; text-align: center; }
 html.at .at-cab { flex: none; padding: 26px 20px 0; }
 html.at .at-marca { display: inline-flex; align-items: center; font: 400 28px/1 var(--f-marca); color: var(--tinta); white-space: nowrap; }
 html.at .at-marca svg { width: 22px; height: 22px; margin-right: 10px; }
 html.at .at-marca span { color: var(--oro); }
-html.at .at-fecha { margin-top: 12px; font: 400 12px/1 var(--f); letter-spacing: .18em; text-transform: uppercase; color: var(--sec); display: flex; justify-content: center; align-items: center; gap: 7px; }
+html.at .at-fecha { margin-top: 12px; font: 400 12px/1 var(--f); letter-spacing: .1em; text-transform: uppercase; color: var(--sec); display: flex; justify-content: center; align-items: center; gap: 7px; }
 html.at .at-fecha svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
 html.at .at-sep { margin: 0 2px; }
 html.at .at-hoy { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
@@ -63,10 +63,10 @@ html.at .at-oc { font: 400 22px/1 var(--f-marca); min-height: 44px; padding: 0 8
 html.at .at-oc .at-ic { width: 14px; height: 14px; color: var(--sec); }
 html.at .at-fila { display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; padding: 0 20px; max-width: 100%; }
 html.at .at-fila::-webkit-scrollbar { display: none; }
-html.at .at-fila button { flex: none; min-height: 48px; min-width: 44px; position: relative; font: 400 11.5px/1 var(--f); letter-spacing: .14em; text-transform: uppercase; color: var(--sec); }
+html.at .at-fila button { flex: none; min-height: 48px; min-width: 44px; position: relative; font: 400 12px/1 var(--f); letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
 html.at .at-fila button.on { color: var(--tinta); font-weight: 500; }
-html.at .at-nota { min-height: 36px; font: 400 12.5px/1.3 var(--f); color: var(--sec); }
-html.at .at-hoy .cal-falta { font-size: 12.5px; color: var(--sec); }
+html.at .at-nota { min-height: 36px; font: 400 13px/1.3 var(--f); color: var(--sec); }
+html.at .at-hoy .cal-falta { font-size: 13px; color: var(--sec); }
 html.at .at-pie { flex: none; padding: 8px 0 20px; display: flex; justify-content: center; }
 
 /* ---------- Clóset ---------- */
@@ -78,15 +78,15 @@ html.at #p-closet .mc-busca input { flex: 1; min-width: 0; height: 44px; border:
 html.at #p-closet .mc-busca input::placeholder { color: var(--sec); }
 html.at #p-closet #mc-filtrar { width: 44px; height: 44px; margin-right: -12px; display: flex; align-items: center; justify-content: center; color: var(--sec); position: relative; background: none; border: 0; }
 html.at #p-closet #mc-filtrar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.3; }
-html.at #p-closet #mc-nf { position: absolute; top: 8px; right: 6px; font: 500 10px/1 var(--f); color: var(--tinta); }
+html.at #p-closet #mc-nf { position: absolute; top: 8px; right: 6px; font: 500 11px/1 var(--f); color: var(--tinta); }
 html.at #p-closet #cats { display: flex; gap: 22px; overflow-x: auto; padding: 4px 20px 0; margin: 0; scrollbar-width: none; justify-content: flex-start; border: 0; }
-html.at #p-closet #cats button { flex: none; min-height: 48px; min-width: 44px; position: relative; padding: 0; border: 0; border-radius: 0; background: none; font: 400 11.5px/1 var(--f); letter-spacing: .14em; text-transform: uppercase; color: var(--sec); }
+html.at #p-closet #cats button { flex: none; min-height: 48px; min-width: 44px; position: relative; padding: 0; border: 0; border-radius: 0; background: none; font: 400 12px/1 var(--f); letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
 html.at #p-closet #cats button.activo { color: var(--tinta); font-weight: 500; background: none; }
 html.at #p-closet #pared { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 8px 0 calc(var(--tabs) + 24px); margin: 0; }
-html.at .at-cel { position: relative; aspect-ratio: 4 / 5; background: var(--baldosa); display: flex; align-items: center; justify-content: center; padding: 18px; border: 0; border-radius: 0; }
+html.at .at-cel { position: relative; aspect-ratio: 4 / 5; background: var(--baldosa); display: flex; align-items: center; justify-content: center; padding: 12px; border: 0; border-radius: 0; }
 html.at .at-cel img { width: 100%; height: 100%; object-fit: contain; }
 html.at .at-cel.sin-cat img { mix-blend-mode: multiply; }
-html.at .at-cel i { position: absolute; left: 0; right: 0; bottom: 6px; font: 400 9.5px/1 var(--f); font-style: normal; letter-spacing: .12em; text-transform: uppercase; color: var(--sec); }
+html.at .at-cel i { position: absolute; left: 0; right: 0; bottom: 6px; font: 400 11px/1 var(--f); font-style: normal; letter-spacing: .08em; text-transform: uppercase; color: var(--sec); }
 html.at .mc-hoja { border-radius: 0; }
 html.at .mc-hoja .mc-ops button:not(.sw) { border-radius: 0; }
 
@@ -96,19 +96,19 @@ html.at #p-ficha > :not(#at-ficha) { display: none !important; }
 html.at .at-ficha { display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; }
 html.at .at-barra-sup { position: absolute; top: 8px; left: -10px; right: -10px; display: flex; justify-content: space-between; align-items: center; z-index: 3; }
 html.at .at-volver, html.at .at-fav { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--tinta); }
-html.at .at-fav.on svg { fill: var(--tinta); }
-html.at .at-foto { width: calc(100% + 36px); margin: 0 -18px; aspect-ratio: 1 / 1; background: var(--baldosa); display: flex; align-items: center; justify-content: center; padding: 34px 40px 26px; }
-html.at .at-foto img { width: 100%; height: 100%; object-fit: contain; }
+html.at .at-fav.on svg { fill: var(--oro); stroke: var(--tinta); }
+html.at .at-foto { flex: none; width: calc(100% + 36px); margin: 0 -18px; aspect-ratio: 3 / 4; max-height: 62dvh; background: var(--baldosa); position: relative; overflow: hidden; }
+html.at .at-foto img { position: absolute; left: 9%; top: 7%; width: 82%; height: 88%; object-fit: contain; }
 html.at .at-foto.sin-cat img { mix-blend-mode: multiply; }
-html.at .at-estado { margin-top: 16px; font: 400 11px/1 var(--f); letter-spacing: .14em; text-transform: uppercase; color: var(--sec); }
-html.at .at-h1 { font: 400 23px/1.2 var(--f-marca); letter-spacing: .06em; text-transform: uppercase; margin-top: 18px; text-wrap: balance; color: var(--tinta); }
-html.at .at-datos { margin-top: 6px; font-size: 13.5px; color: var(--sec); }
+html.at .at-estado { margin-top: 16px; font: 400 11px/1 var(--f); letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
+html.at .at-h1 { font: 400 22px/1.2 var(--f-marca); letter-spacing: .06em; text-transform: uppercase; margin-top: 18px; text-wrap: balance; color: var(--tinta); }
+html.at .at-datos { margin-top: 6px; font-size: 13px; color: var(--sec); }
 html.at .at-minis { display: flex; gap: 16px; justify-content: center; margin: 22px 0 0; }
 html.at .at-minis.muchos { justify-content: flex-start; overflow-x: auto; width: calc(100% + 36px); margin-left: -18px; margin-right: -18px; padding: 0 18px; scrollbar-width: none; }
 html.at .at-acciones { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 22px 0 6px; width: 100%; }
 html.at .at-lista { width: 100%; margin-top: 18px; border-top: 1px solid var(--raya); display: flex; flex-direction: column; }
-html.at .at-lista button { min-height: 50px; border-bottom: 1px solid var(--raya); font: 400 14.5px/1.2 var(--f); color: var(--tinta); text-align: center; }
-html.at .at-nota-fin { margin: 16px 0 0; font-size: 12.5px; color: var(--sec); }
+html.at .at-lista button { min-height: 50px; border-bottom: 1px solid var(--raya); font: 400 15px/1.2 var(--f); color: var(--tinta); text-align: center; }
+html.at .at-nota-fin { margin: 16px 0 0; font-size: 13px; color: var(--sec); }
 
 /* ---------- Look abierto ---------- */
 html.at #p-look > :not(#at-look) { display: none !important; }
@@ -119,15 +119,14 @@ html.at .at-centro { margin-top: 14px; }
 html.at .at-enlaces { display: flex; gap: 6px; justify-content: center; }
 html.at .at-dias { justify-content: flex-start; margin-top: 4px; }
 
-/* ---------- Looks (rejilla de 3, como Indyx) ---------- */
+/* ---------- Looks (rejilla de 2: con 3, cada look medía 73 × 105 px y no se reconocía la ropa) ---------- */
 html.at .at-tit { text-align: center; padding: 26px 20px 4px; }
 html.at .at-tit h1 { font: 400 28px/1 var(--f-marca); }
-html.at .at-cats { justify-content: center; }
-html.at .at-rej2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 8px; padding: 12px 20px calc(var(--tabs) + 24px); justify-items: center; }
+html.at .at-rej2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 12px; padding: 12px 20px calc(var(--tabs) + 24px); justify-items: center; }
 html.at .at-t { margin: 0; display: flex; flex-direction: column; align-items: center; min-width: 0; width: 100%; }
-html.at .at-t figcaption { margin-top: 7px; font-size: 12.5px; color: var(--sec); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.at .at-t figcaption { margin-top: 8px; font-size: 13px; color: var(--sec); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html.at .at-crear { flex-direction: column; gap: 8px; color: var(--sec); background: none; border: 1px solid var(--raya); }
-html.at .at-crear span { font: 400 10.5px/1.3 var(--f); letter-spacing: .12em; text-transform: uppercase; padding: 0 8px; }
+html.at .at-crear span { font: 400 11px/1.3 var(--f); letter-spacing: .1em; text-transform: uppercase; padding: 0 8px; }
 html.at #p-looks .cal { padding-bottom: calc(var(--tabs) + 24px); }
 
 /* ---------- el resto de pantallas: las mismas letras, grises y botones ---------- */
@@ -140,30 +139,30 @@ html.at .tabs button.activo::before, html.at .tabs button.activo::after { displa
 html.at #p-closet #cats button.activo::after { display: none; }
 html.at #p-closet #cats button.activo, html.at .at-fila button.on { text-decoration: none; }
 html.at #p-closet .cl-cambio { display: flex; justify-content: center; gap: 18px; margin-top: 4px; border: 0; background: none; }
-html.at #p-closet .cl-cambio button { min-height: 44px; min-width: 44px; padding: 0 4px; border: 0; background: none; font: 400 11px/1 var(--f); letter-spacing: .14em; text-transform: uppercase; color: var(--sec); }
+html.at #p-closet .cl-cambio button { min-height: 44px; min-width: 44px; padding: 0 4px; border: 0; background: none; font: 400 11px/1 var(--f); letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
 html.at #p-closet .cl-cambio button.on { color: var(--tinta); font-weight: 500; text-decoration: underline; text-underline-offset: 6px; text-decoration-color: var(--oro); }
 html.at .at-nota { min-height: 44px; }
 html.at .at-crear span { text-align: center; }
 html.at .ag-mes button { width: 44px; height: 44px; }
 html.at .ag-rej button { height: 44px; }
 /* Yo: las mismas dos letras que el resto (sin la cursiva de una tercera familia) y las listas sin cajas */
-html.at #p-yo .y3-sub { font: 400 12px/1.4 var(--f); font-style: normal; letter-spacing: .14em; text-transform: uppercase; color: var(--sec); margin-top: 8px; }
-html.at #p-yo .y3-ley { font: 400 13.5px/1.5 var(--f); font-style: normal; color: var(--sec); max-width: 34ch; margin-left: auto; margin-right: auto; }
-html.at #p-yo .y3-a small { font: 400 11px/1 var(--f); font-style: normal; letter-spacing: .12em; text-transform: uppercase; color: var(--sec); margin-left: 10px; }
+html.at #p-yo .y3-sub { font: 400 12px/1.4 var(--f); font-style: normal; letter-spacing: .1em; text-transform: uppercase; color: var(--sec); margin-top: 8px; }
+html.at #p-yo .y3-ley { font: 400 13px/1.5 var(--f); font-style: normal; color: var(--sec); max-width: 34ch; margin-left: auto; margin-right: auto; }
+html.at #p-yo .y3-a small { font: 400 11px/1 var(--f); font-style: normal; letter-spacing: .1em; text-transform: uppercase; color: var(--sec); margin-left: 10px; }
 html.at .pn-c { border: 0; border-top: 1px solid var(--raya); border-bottom: 1px solid var(--raya); }
 html.at .pn-f { padding-left: 2px; padding-right: 2px; }
 html.at .pn-gt { color: var(--sec); }
 /* Nuevo look: los mismos campos de línea, las ocasiones en letras y las prendas en baldosas */
 html.at #p-nuevo-look .cab .et { font: 400 22px/1 var(--f-marca); letter-spacing: 0; text-transform: none; color: var(--tinta); }
-html.at #p-nuevo-look .campo > span { font: 400 11px/1 var(--f); letter-spacing: .14em; text-transform: uppercase; color: var(--sec); }
+html.at #p-nuevo-look .campo > span { font: 400 11px/1 var(--f); letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
 html.at #p-nuevo-look input { border: 0; border-bottom: 1px solid var(--raya); border-radius: 0; padding-left: 0; padding-right: 0; background: none; }
 html.at #nl-ocasiones { display: flex; flex-wrap: wrap; gap: 4px 22px; }
-html.at #nl-ocasiones .chip { position: relative; min-height: 48px; min-width: 44px; padding: 0; border: 0; background: none; font: 400 11.5px/1 var(--f); letter-spacing: .14em; text-transform: uppercase; color: var(--sec); }
+html.at #nl-ocasiones .chip { position: relative; min-height: 48px; min-width: 44px; padding: 0; border: 0; background: none; font: 400 12px/1 var(--f); letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
 html.at #nl-ocasiones .chip.sel { color: var(--tinta); font-weight: 500; background: none; }
 html.at #nl-ocasiones .chip.sel::after { content: ''; position: absolute; left: 50%; bottom: 2px; width: 11px; height: 11px; margin-left: -5.5px; border: 1.2px solid var(--oro); border-radius: 50%; box-sizing: border-box; background: radial-gradient(circle at 30% 46%, var(--oro) 1px, transparent 1.4px), radial-gradient(circle at 70% 46%, var(--oro) 1px, transparent 1.4px); }
 html.at #nl-prendas button { background: var(--baldosa); border: 0; border-radius: 0; outline: 0; padding: 12px; }
 html.at #nl-prendas button.sel { box-shadow: inset 0 0 0 1.5px var(--tinta); }
-html.at #nl-prendas .et { font: 400 11px/1 var(--f); letter-spacing: .14em; text-transform: uppercase; color: var(--sec); }
+html.at #nl-prendas .et { font: 400 11px/1 var(--f); letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
 html.at #p-closet #pared { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 html.at .at-cel img { min-width: 0; max-width: 100%; }
 html.at .ag-mas { min-height: 44px; }
@@ -174,3 +173,18 @@ html.at #pared .at-cel.sin-cat img { mix-blend-mode: multiply; }
 html.at #pared .at-cel i { background: none; padding: 0; left: 0; right: 0; text-align: center; }
 /* Yo · el diagnóstico sin caja, entre rayas como el resto de la pantalla */
 html.at .dg-tarjeta { border: 0; border-top: 1px solid var(--raya); border-bottom: 1px solid var(--raya); padding: 22px 0 20px; }
+/* ---------- investigación de interfaces, 31/10 (equipo/producto/diseno/investigacion-interfaces-2026-10/CAMBIOS-PARA-LA-A.md) ---------- */
+html.at .mini-et, html.at .dg-pro { font-size: 11px; }
+html.at #p-closet #cats > :first-child, html.at .at-fila:not(.at-dias) > :first-child { margin-left: auto; }
+html.at #p-closet #cats > :last-child, html.at .at-fila:not(.at-dias) > :last-child { margin-right: auto; }
+html.at .tabs button.activo .at-ic { stroke-width: 1.8; }
+html.at .tabs button.subir.activo .at-ic { stroke-width: 1.6; }
+html.at .at-btn.hecho { background: #fff; color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+/* Hoy: el corazón, arriba a la derecha del look, y el doble toque sobre el look (latido de 280 ms, nada si se pide menos movimiento) */
+html.at .at-fav-hoy { position: absolute; top: 0; right: 8px; z-index: 2; }
+@media (prefers-reduced-motion: no-preference) { html.at .at-fav.late svg { animation: at-late 280ms cubic-bezier(.2, .7, .2, 1); } }
+@keyframes at-late { 45% { transform: scale(1.24); } }
+/* Yo: el diagnóstico también centrado, con el botón del mismo ancho que los demás */
+html.at .dg-tarjeta { text-align: center; }
+html.at .dg-cab, html.at .dg-fotos { justify-content: center; gap: 10px; }
+html.at .dg-tarjeta .boton { width: 240px; max-width: 100%; margin: 0 auto; }

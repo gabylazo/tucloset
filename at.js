@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.125'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.126'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -72,7 +72,7 @@ if (AT) (() => {
   function piezas(c, fichas) {
     return c.out.map(([p, x, y, w, h]) => {
       const attr = fichas && !p.muestra ? ` data-ficha="${p.id}" role="button" tabindex="0" aria-label="${esc(p.nombre || '')}"` : '';
-      if (conCat(p) || p.muestra) return `<img class="at-p" src="${conCat(p) ? urlCat(p) : p.src}" alt="${attr ? '' : esc(p.nombre || '')}" style="left:${x / c.W * 100}%;top:${y / c.H * 100}%;width:${w / c.W * 100}%;height:${h / c.H * 100}%"${attr}>`;
+      if (conCat(p) || p.muestra) return `<img class="at-p" src="${conCat(p) ? urlCat(p) : p.src}" alt="${esc(p.nombre || '')}" style="left:${x / c.W * 100}%;top:${y / c.H * 100}%;width:${w / c.W * 100}%;height:${h / c.H * 100}%"${attr}>`;
       const html = pieza(p, x, y, w, h, c.W, c.H); // sin foto de catálogo todavía: el recorte de siempre
       return attr ? html.replace(/^<(img|i) /, `<$1${attr} `) : html;
     }).join('');
@@ -115,10 +115,11 @@ if (AT) (() => {
     const muestra = ps.some(p => p.muestra);
     const flechas = lista.length > 1 ? `<button class="at-flecha iz" data-atmov="-1" aria-label="${t('Look anterior', 'Previous look')}">${I.iz}</button><button class="at-flecha de" data-atmov="1" aria-label="${t('Look siguiente', 'Next look')}">${I.de}</button>` : '';
     const ocs = E.hzPreg ? `<div class="at-fila at-ocs">${OCASIONES.map(o => `<button class="${o === oc ? 'on' : ''}" data-hzoc="${o}">${ocNombre(o)}${DOS}</button>`).join('')}</div>` : '';
-    pant.innerHTML = `<div class="at-pant">${cab}<main class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}
-      <button class="at-oc" data-hzpreg aria-expanded="${!!E.hzPreg}" aria-label="${t('Ocasión', 'Occasion')}: ${ocNombre(oc)}. ${t('Cambiar', 'Change')}">${ocNombre(oc)}${I.abajo}</button>${ocs}
-      ${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : ''}</main>
-      <div class="at-pie"><button class="at-btn" id="at-pongo">${t('Me lo pongo', 'I’ll wear it')}</button></div></div>`;
+    const fav = esFav(pr.ids), puesto = pr.ids.length > 0 && pr.ids.every(id => (P(id)?.usos || []).includes(hoyISO()));
+    pant.innerHTML = `<div class="at-pant">${cab}<div class="at-hoy" id="at-hoy">${flechas}<button class="at-fav at-fav-hoy${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button>${figura(ps, W, H, true)}
+      <button class="at-oc" data-hzpreg aria-expanded="${!!E.hzPreg}" aria-label="${ocNombre(oc)}: ${t('cambiar la ocasión', 'change the occasion')}">${ocNombre(oc)}${I.abajo}</button>${ocs}
+      ${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : ''}</div>
+      <div class="at-pie"><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button></div></div>`;
     // el look ocupa el hueco que de verdad queda entre la cabecera y el botón (en cada móvil es distinto)
     const z = $('at-hoy'), ajustar = () => { const fig = z.querySelector('.at-look'); if (!fig || !z.clientHeight) return;
       const resto = [...z.children].filter(x => x !== fig && !x.classList.contains('at-flecha')).reduce((s, x) => s + x.offsetHeight + 6, 0), libre = Math.floor(z.clientHeight - resto - 12);
@@ -126,11 +127,31 @@ if (AT) (() => {
     ajustar(); requestAnimationFrame(ajustar); // la primera vez la pantalla aún no se ve: se mide en el siguiente fotograma
     const mover = d => { E.hoyIdx = ((E.hoyIdx || 0) + d + lista.length) % lista.length; E.hzPreg = false; pintarHoy(); };
     pant.querySelectorAll('[data-atmov]').forEach(b => b.onclick = () => mover(+b.dataset.atmov));
-    $('at-pongo').onclick = () => ponerse(pr.ids, pr.c);
+    $('at-pongo').onclick = async e => { const b = e.currentTarget; await ponerse(pr.ids, pr.c); b.classList.add('hecho'); b.setAttribute('aria-pressed', 'true'); b.textContent = t('Puesto hoy', 'Worn today'); };
+    // el corazón, y el doble toque sobre el look como en Instagram (un toque sobre una prenda abre su ficha, un instante después para distinguirlos)
+    const fv = $('at-fav'), alternar = async quiero => { if (quiero != null && esFav(pr.ids) === quiero) { fv.classList.remove('late'); void fv.offsetWidth; fv.classList.add('late'); return; }
+      await alternarFav(pr.ids, oc); const on = esFav(pr.ids); fv.classList.toggle('on', on); fv.setAttribute('aria-pressed', on); fv.classList.remove('late'); void fv.offsetWidth; if (on) fv.classList.add('late'); };
+    fv.onclick = () => alternar();
+    let toque = 0, espera = null;
+    z.addEventListener('click', e => {
+      const ahora = Date.now(), f = e.target.closest('[data-ficha]'), enLook = e.target.closest('.at-look'); if (!enLook) return;
+      e.stopPropagation(); clearTimeout(espera);
+      if (ahora - toque < 280) { toque = 0; return alternar(true); }
+      toque = ahora; if (f) espera = setTimeout(() => abrirFicha(f.dataset.ficha), 280);
+    }, true);
     // deslizar el look también cambia de look
     let x0 = null;
     z.ontouchstart = e => { x0 = e.touches[0].clientX; };
     z.ontouchend = e => { if (x0 == null || lista.length < 2) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) mover(dx < 0 ? 1 : -1); };
+  };
+
+  /* ---------- al volver de una prenda o de un look, el clóset y Looks siguen donde estaban (la queja repetida de las apps de armario) ---------- */
+  const irViejo = ir, sitio = {};
+  ir = function (n, d) {
+    const de = E.pantalla;
+    if ((de === 'closet' || de === 'looks') && (n === 'ficha' || n === 'look')) sitio[de] = $('p-' + de).scrollTop;
+    irViejo(n, d);
+    if ((n === 'closet' || n === 'looks') && (de === 'ficha' || de === 'look') && sitio[n]) $('p-' + n).scrollTop = sitio[n];
   };
 
   /* ---------- CLÓSET: MiCloset, el buscador a todo el ancho con el filtro dentro, las categorías en letras y la rejilla de 3 en baldosas ---------- */
@@ -173,7 +194,7 @@ if (AT) (() => {
       ${p.estado ? `<p class="at-estado">${estadoTxt(p.estado)}</p>` : ''}<h1 class="at-h1">${esc(p.nombre)}</h1><p class="at-datos">${datos}</p>${precio ? `<p class="at-datos">${precio}</p>` : ''}
       ${looks.length ? `<div class="at-minis${looks.length > 2 ? ' muchos' : ''}">${looks.map(x => baldosa(x.ps, MW, MH, x.attr)).join('')}</div>` : ''}
       <div class="at-acciones"><button class="at-btn" data-ir="nuevo-look" data-atpre="${id}">${t('Crear un look', 'Create a look')}</button></div>
-      <nav class="at-lista">${acc.map(([k, v]) => `<button data-atfacc="${k}">${esc(v)}</button>`).join('')}</nav>
+      <nav class="at-lista" aria-label="${t('Acciones de la prenda', 'Garment actions')}">${acc.map(([k, v]) => `<button data-atfacc="${k}">${esc(v)}</button>`).join('')}</nav>
       <p class="at-nota-fin">${esc($('f-nota').textContent)}</p>`;
     r.onclick = e => {
       const b = e.target.closest('[data-atfacc],[data-atcrear],[data-atpre]'); if (!b) return;
@@ -212,14 +233,14 @@ if (AT) (() => {
     };
   };
 
-  /* ---------- LOOKS: Mis looks · Favoritos · Calendario, en letras; los looks en baldosas de tres en tres, como Indyx; el primero, «Crear un look» ---------- */
-  const filaLooks = act => `<header class="at-tit"><h1>${t('Looks', 'Looks')}</h1></header><nav class="at-fila at-cats">${[['mios', t('Mis looks', 'My looks')], ['fav', t('Favoritos', 'Favourites')], ['cal', t('Calendario', 'Calendar')]].map(([k, n]) => `<button class="${act === k ? 'on' : ''}" data-lktab="${k}"${act === k ? ' aria-current="true"' : ''}>${n}${DOS}</button>`).join('')}</nav>`;
+  /* ---------- LOOKS: Mis looks · Favoritos · Calendario, en letras; los looks en baldosas de dos en dos; el primero, «Crear un look» ---------- */
+  const filaLooks = act => `<header class="at-tit"><h1>${t('Looks', 'Looks')}</h1></header><nav class="at-fila at-cats" aria-label="${t('Tipos de look', 'Look types')}">${[['mios', t('Mis looks', 'My looks')], ['fav', t('Favoritos', 'Favourites')], ['cal', t('Calendario', 'Calendar')]].map(([k, n]) => `<button class="${act === k ? 'on' : ''}" data-lktab="${k}"${act === k ? ' aria-current="true"' : ''}>${n}${DOS}</button>`).join('')}</nav>`;
   pintarLooks = function () {
     const raiz = $('lk-raiz'); document.documentElement.dataset.looks = 'at';
     if (!['mios', 'fav', 'cal'].includes(E.lkTab)) E.lkTab = 'mios';
     if (E.lkTab === 'cal') return pintarCalendario(raiz);
     const fav = E.lkTab === 'fav', lista = E.conjuntos.filter(c => !fav || c.fav || esFav(c.ids));
-    const [ancho] = caja(), TW = Math.floor((ancho - 40 - 16) / 3), TH = Math.round(TW * 1.25);
+    const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     const crear = fav ? '' : `<figure class="at-t"><button class="at-bal at-crear" style="width:${TW}px;height:${TH}px" data-ir="nuevo-look">${I.mas}<span>${t('Crear un look', 'Create a look')}</span></button></figure>`;
     const t1 = c => `<figure class="at-t">${baldosa(psDe(c), TW, TH, ` data-look="${c.id}"`)}<figcaption>${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</figcaption></figure>`;
     raiz.innerHTML = filaLooks(E.lkTab) + (lista.length || !fav ? `<div class="at-rej2">${crear}${lista.map(t1).join('')}</div>`

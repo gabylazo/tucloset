@@ -1474,3 +1474,6 @@ img{-webkit-user-drag:none}
 .dg-sil{display:flex;gap:14px;align-items:flex-start;margin-bottom:6px}
 .dg-sil svg{width:64px;flex:0 0 64px;height:auto}
 .dg-avisos{font-size:13px;color:var(--sec,#57473B);padding-left:18px;margin:0 0 12px}
+/* 31/10 (axe): se permite ampliar con los dedos. En móvil, campos a 16 px para que iOS no amplíe al tocarlos, y sin el zoom del doble toque */
+html{touch-action:manipulation}
+@media (pointer:coarse){input,select,textarea{font-size:16px!important}}
