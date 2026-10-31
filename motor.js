@@ -4,7 +4,7 @@
    herramientas/motor-datos.py). Sin servidor y sin modelos. Todo entra por parámetro y las prendas no se tocan (la ficha va aparte), para poder probarlo en Node
    contra PRUEBA-CLOSET.md. No hay nada aleatorio: el desempate es una huella del día y del look, así que el mismo día salen las mismas ideas. */
 const Motor = (() => {
-  let R, F, S = {}, ZV = [];
+  let R, F, S = {}, ZV = [], VETA_ZAPATO = new Set();
   const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // palabra que termina en $ = palabra completa; si no, prefijo de palabra
@@ -27,6 +27,7 @@ const Motor = (() => {
     const cn = R.inferencia.color.palabras_en_el_nombre;
     for (const c of Object.keys(cn)) cn[c] = cn[c].map(x => typeof x === 'string' ? re(x) : x);
     F.porId = Object.fromEntries(F.formulas.map(f => [f.id, f]));
+    VETA_ZAPATO = new Set(R.vetos.lista.filter(v => v.duro && JSON.stringify(v.si).includes('calzado.')).map(v => v.id));
     ZV = ZAPS.map(([k, sub, color, tacon]) => {
       const s = R.inferencia.subtipos.find(x => x.id === sub), f = { ...R.inferencia.defecto_atributos, ...s.def, subtipo: sub, cat: 'calzado', conf: {}, tacon, tacon_num: TACON[tacon], estilos: [] };
       if (sub.startsWith('sandalias')) f.abierto = true;
@@ -176,7 +177,7 @@ const Motor = (() => {
       clo_total: clo, clo_fuera: fuera, clo_en_rango: fuera === 0, capa_manga_larga: !!(C && C.manga !== 'sin_mangas'), tiene_abrigo: C?.rol === 'abrigo', capa_quitable: !!(C && C.rol !== 'abrigo'),
       n_capas: [l.capa, l.base_interior && l.base_interior._f.rol === 'capa_ligera'].filter(Boolean).length, capa_sin_base: !l.vestido && l.arriba?._f.rol === 'capa_ligera' && !l.base_interior, n_bases_arriba: bases,
       n_deportivas: ropa.filter(f => f.deportiva).length + (l.calzado?._f.deportiva ? 1 : 0), tonal: !!(A && B && A.familia === B.familia), contraste_valor: !!(A && B && ((A.valor === 'claro' && B.valor === 'oscuro') || (A.valor === 'oscuro' && B.valor === 'claro'))),
-      cintura_al_aire: !!(A && B && A.largo === 'crop' && A.subtipo !== 'body' && l.como !== 'por_dentro' && (B.tiro === 'bajo' || (B.tiro === 'medio' && pf.cintura === 'no') || (B.tiro === 'medio' && pf.cintura == null))),
+      cintura_al_aire: !!(A && B && l.como !== 'por_dentro' && ((A.largo === 'crop' && A.subtipo !== 'body' && (B.tiro === 'bajo' || (B.tiro === 'medio' && pf.cintura === 'no') || (B.tiro === 'medio' && pf.cintura == null))) || (A.largo === 'cintura' && B.tiro === 'bajo'))),
       cintura_marcada: !!(A && B && B.tiro === 'alto' && (['crop', 'cintura'].includes(A.largo) || l.como === 'por_dentro')),
       como: l.como || 'suelta', n_abajos, dos_denim_distintos: denim.length >= 2 && new Set(denim.map(f => f.color)).size > 1, usa_color_vetado: ropa.some(f => pf.evitarColores.includes(f.color)),
       pareja_rechazada_3: no.some(k => g.no[k] >= 3), parejas_gustadas: si, parejas_rechazadas: no.length, es_favorito: (g.fav || []).includes(ids2),
@@ -224,7 +225,7 @@ const Motor = (() => {
     const z = c._f, ropa = PIEZAS.map(k => l[k]).filter(p => p && !['calzado', 'bolso'].includes(p._f.cat)).map(p => p._f), B = l.abajo?._f, T = ctx.tramo.calzado || {};
     const media = ropa.reduce((s, f) => s + (f.form ?? 3), 0) / (ropa.length || 1), cols = new Set(ropa.map(f => f.color)), fam = new Set(ropa.map(f => f.familia)), denim = ropa.some(f => f.tejido === 'denim');
     let s = 0;
-    if ((T.prohibir || []).includes(z.subtipo)) s -= 2; if ((T.preferir || []).includes(z.subtipo)) s += .4;
+    if ((T.prohibir || []).includes(z.subtipo)) s -= 2; const iPref = (T.preferir || []).indexOf(z.subtipo); if (iPref >= 0) s += iPref ? .4 : .65;
     s -= Math.abs((z.form ?? 3) - media) * .15;
     if (pf.tacon_num != null && z.tacon_num > pf.tacon_num) s -= .6;
     if (B?.corte === 'acampanado') s += z.tacon === 'plano' ? -1 : .5;
@@ -276,7 +277,9 @@ const Motor = (() => {
         const [hz] = H('calzado'); let cs = hz ? cands(hz, zapatos) : [];
         if (!cs.length && zapatos.length && !zapatos[0].muestra) cs = zapatos; // con zapatos subidos, siempre uno suyo
         const aguanta = cs.filter(c => pf.tacon_num == null || c._f.tacon_num <= pf.tacon_num); if (aguanta.length) cs = aguanta; // el tacón que ella dijo, si hay con qué
-        cs = cs.map(c => [puntosCalzado(c, l, ctx, pf, hz), c]).sort((a, b) => b[0] - a[0]).slice(0, 3).map(x => x[1]);
+        cs = cs.map(c => [puntosCalzado(c, l, ctx, pf, hz), c]).sort((a, b) => b[0] - a[0]).map(x => x[1]);
+        const sirven = []; for (const c of cs) { if (sirven.length >= 3) break; const lz = { ...l, calzado: c }; if (!vetar(entorno(lz, camposLook(lz, ctx, pf, hoy), ctx, pf)).duros.some(v => VETA_ZAPATO.has(v.id))) sirven.push(c); } // los tres mejores que el par admite
+        cs = sirven.length ? sirven : cs.slice(0, 1);
         for (const c of cs.length ? cs : [null]) {
           const l2 = { ...l }; if (c) l2.calzado = c; if (faltaHueco) l2.hueco_faltante = faltaHueco;
           const [hb] = H('bolso'); if (hb && c) { const b = cands(hb, ents)[0]; if (b) l2.bolso = b; }
@@ -292,14 +295,14 @@ const Motor = (() => {
     const c = camposLook(l, ctx, pf, hoy), e = entorno(l, c, ctx, pf), veto = vetar(e), pts = puntuar(l, c, e);
     // un look puesto ayer no es la primera idea: el peso del grupo «variedad» solo no lo baja lo bastante
     const ayer = c.dias_desde_ultimo_uso === 1 || c.dias_desde_ultimo_uso === 0 ? (c.es_favorito ? .05 : .15) : 0;
-    return { ...l, ctx, campos: c, veto, pts, nota: pts.total + veto.p / 4 - ayer + huella(hoy + claveRopa(l)) * .04, casi: !!(l.hueco_faltante || (l.capa_faltante && ['T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
+    return { ...l, ctx, campos: c, veto, pts, nota: pts.total + veto.p / 4 - ayer + huella(hoy + claveRopa(l)) * .04, casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
   }
   function elegir(cs, n, excluir) {
     const ok = cs.filter(l => !l.veto.duros.length && !l.casi && !excluir.has(claveLook(l))).sort((a, b) => b.nota - a.nota), sel = [], usoA = new Map(), usoB = new Map(), usoF = new Map(), vistos = new Set(), gemelos = new Set();
     for (const tope of [1, 2]) for (const l of ok) {
       if (sel.length >= n) break; if (l.nota < R.puntos.umbrales.mostrar_minimo && sel.length) break;
-      const a = (l.arriba || l.vestido).id, b = l.abajo?.id, k = claveRopa(l), fA = (l.arriba || l.vestido)._f, gem = [b, fA.color, fA.estampado, fA.manga].join('|');
-      if (tope === 1 && gemelos.has(gem)) continue; // misma prenda de abajo y una de arriba que se ve casi igual: solo si no hay otra cosa
+      const a = (l.arriba || l.vestido).id, b = l.abajo?.id, k = claveRopa(l), fA = (l.arriba || l.vestido)._f, fB = l.abajo?._f, gem = [fB?.color, fB?.corte, fA.color, fA.estampado, fA.manga].join('|');
+      if (tope === 1 && gemelos.has(gem)) continue; // una de abajo y una de arriba que se ven casi iguales: solo si no hay otra cosa
       if (vistos.has(k) || (usoA.get(a) || 0) >= tope || (b && tope === 1 && (usoB.get(b) || 0) >= 2) || (b && (usoB.get(b) || 0) >= Math.max(3, Math.ceil(n / 2))) || (usoF.get(l.formula.id) || 0) >= 2) continue;
       vistos.add(k); gemelos.add(gem); sel.push(l); usoA.set(a, (usoA.get(a) || 0) + 1); if (b) usoB.set(b, (usoB.get(b) || 0) + 1); usoF.set(l.formula.id, (usoF.get(l.formula.id) || 0) + 1);
     }
@@ -324,15 +327,17 @@ const Motor = (() => {
       const sin = f.huecos.filter(h => !h.opcional && !cands(h, h.rol === 'calzado' ? zapatosPropios : ents).length);
       if (sin.length !== 1) continue;
       const h = sin[0], abrigo = h.rol === 'capa' && tiposDe(h).some(t => R.grupos['@abrigo_frio'].includes(t)), g = abrigo ? 'abrigo' : h.rol === 'base_interior' ? 'arriba' : h.rol;
-      const c = cuenta[g] = cuenta[g] || { n: 0, tipos: {} }; c.n++; const t0 = tiposDe(h)[0]; c.tipos[t0] = (c.tipos[t0] || 0) + 1;
+      const c = cuenta[g] = cuenta[g] || { n: 0, tipos: {}, todos: new Set() }; c.n++; const t0 = tiposDe(h)[0]; c.tipos[t0] = (c.tipos[t0] || 0) + 1; for (const t of tiposDe(h)) c.todos.add(t);
     }
     if (String(ctx.tramo.capa).startsWith('obligatoria') && !ents.some(p => p._f.cat === 'capa' && p._f.subtipo !== 'chaleco_traje')) {
       const t0 = ctx.tramo.id === 'T4' ? 'gabardina' : ctx.tramo.id === 'T5' ? 'abrigo_lana' : 'plumifero', g = ctx.tramo.id === 'T4' ? 'capa' : 'abrigo', c = cuenta[g] = cuenta[g] || { n: 0, tipos: {} };
       c.n += 50; c.tipos[t0] = (c.tipos[t0] || 0) + 50;
     }
     const orden = R.faltas.prioridad;
+    if (!Object.keys(cuenta).length && !cands({ tipos: ['@pantalon', '@falda'] }, ents.filter(p => p._f.tmax >= ctx.t_ref && p._f.tmin <= ctx.t_ref)).length) { const c = cuenta.abajo = { n: 1, tipos: {} }; c.tipos[ctx.t_ref >= 24 ? 'pantalon_lino' : 'pantalon_vestir'] = 1; } // sin ninguna prenda de abajo para este tiempo
     return Object.entries(cuenta).sort((a, b) => b[1].n - a[1].n || orden.indexOf(a[0]) - orden.indexOf(b[0])).slice(0, 3).map(([g, c]) => {
-      const t0 = Object.entries(c.tipos).sort((a, b) => b[1] - a[1])[0][0];
+      const pref = g === 'calzado' && (ctx.tramo.calzado?.preferir || []).find(t => c.todos?.has(t)); // el zapato que nombra el aviso es el del tiempo que hace
+      const t0 = pref || Object.entries(c.tipos).sort((a, b) => b[1] - a[1])[0][0];
       return { grupo: g, tipo: t0, n: c.n, frase: R.faltas.frases[g].replace('{tipo}', nombreTipo(t0)) };
     });
   }
@@ -341,16 +346,22 @@ const Motor = (() => {
     const t0 = Date.now(), hoy = o.hoy || new Date().toISOString().slice(0, 10), plan = o.plan || 'Todos', n = o.n || 6, pf = perfilMotor(o.perfil, o), excluir = new Set(o.excluir || []);
     const ctx0 = contexto(o.tiempo, plan, { hora: o.hora, t_ref: o.t_ref, evento: o.evento, lugar: o.lugar });
     const ents = (o.prendas || []).filter(p => !p.noMeGusta).map(p => ({ id: p.id, p, _f: ficha(p, pf) }));
-    const ropa = ents.filter(p => p.p.tipo !== 'Calzado'), propios = ents.filter(p => p.p.tipo === 'Calzado'), zapatos = propios.length ? propios : ZV;
+    let ropa = ents.filter(p => p.p.tipo !== 'Calzado'); const propios = ents.filter(p => p.p.tipo === 'Calzado'), zapatos = propios.length ? propios : ZV;
+    if (ents.length > 150) { // clóset enorme: se forman parejas con lo menos puesto últimamente
+      const reciente = x => (x.p.usos || []).reduce((m, u) => u > m ? u : m, ''), poco = (tipo, n) => ropa.filter(x => x.p.tipo === tipo).sort((a, b) => reciente(a).localeCompare(reciente(b))).slice(0, n);
+      ropa = [...poco('Arriba', 40), ...poco('Abajo', 25), ...ropa.filter(x => !['Arriba', 'Abajo'].includes(x.p.tipo))];
+    }
     let cs = [], res = [];
-    for (const margen of [1, 3]) {
-      const cacheP = new Map(); cs = [];
+    for (const margen of [1, 3, 6]) {
+      const cacheP = new Map(); cs = []; if (margen === 6) BARATOS.delete('V39');
       for (const f of formulasPosibles(ctx0, pf, plan, margen)) {
         const ocs = plan === 'Todos' ? OC_TODOS(ctx0).filter(x => f.ocasiones.includes(x)) : [plan], ctx = plan === 'Todos' ? { ...ctx0, ocasion: ocs[0] } : ctx0;
         const resta = plan === 'Todos' && ocs[0] !== 'Diario' && ocs[0] !== 'Noche' ? .1 : 0; // sin plan, antes lo de diario
         for (const l of rellenar(f, ropa, zapatos, ctx, pf, hoy, cacheP)) { const e = evaluar(l, ctx, pf, hoy); e.nota -= resta; cs.push(e); }
       }
-      res = elegir(cs, n, excluir); if (res.length >= Math.min(3, n)) break;
+      res = elegir(cs, n, excluir);
+      if (margen === 6) { BARATOS.add('V39'); if (!res.length) res = elegir(cs.filter(l => l.campos.arriba_fuera_grados <= 4 && l.veto.duros.every(v => v.id === 'V39')).map(l => ({ ...l, veto: { ...l.veto, duros: [] } })), Math.min(n, 3), excluir); }
+      if (res.length >= Math.min(3, n) || (margen === 3 && res.length)) break;
     }
     const casi = res.length ? [] : elegir(cs.filter(l => l.casi).map(l => ({ ...l, veto: { ...l.veto, duros: [] }, casi: false, faltaCapa: true })), Math.min(n, 4), excluir);
     return { looks: res, casi, falta: faltas(ctx0, plan, ropa, propios, pf), ctx: ctx0, ms: Date.now() - t0, candidatos: cs.length, todos: o.depurar ? cs : undefined };
@@ -362,11 +373,12 @@ const Motor = (() => {
     l.como = o.como || comoDe(o.formula, l);
     return evaluar(l, ctx, pf, hoy);
   }
+  const capaQueFalta = l => { const tr = l.ctx.tramo; if (String(tr.capa).startsWith('obligatoria')) return tr.id === 'T4' ? 'chaqueta' : 'abrigo'; return l.hueco_faltante ? nombreTipo(tiposDe(l.hueco_faltante.h)[0]) : 'abrigo'; };
   const zapatoDe = l => { const c = l.calzado; if (!c || !c.muestra) return null; const f = c._f; return { muestra: c.muestra, tipo: f.subtipo, color: f.color.toLowerCase(), tacon: f.tacon }; };
   // la propuesta tal y como la pinta la app: los ids de las prendas reales, el zapato de muestra si hace falta y cómo se lleva la de arriba
   function aPropuesta(l) {
     const ps = ['capa', 'arriba', 'base_interior', 'abajo', 'vestido', 'calzado', 'bolso', 'accesorio'].map(k => l[k]).filter(p => p && !p.muestra);
-    return { ids: ps.map(p => p.id), ocasion: l.ctx.ocasion, formula: l.formula?.id, nombre: l.formula?.nombre, porque: l.formula?.porque, como: l.campos.como === 'por_dentro' ? 'por dentro' : l.campos.como, zspec: zapatoDe(l), faltaCapa: !!l.faltaCapa, nota: l.nota };
+    return { ids: ps.map(p => p.id), ocasion: l.ctx.ocasion, formula: l.formula?.id, nombre: l.formula?.nombre, porque: l.formula?.porque, como: l.campos.como === 'por_dentro' ? 'por dentro' : l.campos.como, zspec: zapatoDe(l), faltaCapa: !!l.faltaCapa, capaFalta: l.faltaCapa ? capaQueFalta(l) : null, nota: l.nota };
   }
   return { iniciar, inferir, ficha: p => ficha(p, {}), contexto, perfilMotor, looks, juzgar, aPropuesta, faltas, claveLook, get R() { return R; }, get F() { return F; } };
 })();
