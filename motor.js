@@ -35,7 +35,9 @@ const Motor = (() => {
     });
   }
   const grupo = t => t[0] === '@' ? R.grupos[t] || [] : [t];
-  const tiposDe = h => h._t || (h._t = [...new Set(h.tipos.flatMap(grupo))]);
+  // lo que se llama sin apellido («Pantalón negro», «Zapatos», «Chaqueta», «Top») entra donde entra su familia; si no, no saldría en casi ningún look
+  const COMODIN = { pantalon_generico: ['pantalon_vestir', 'chino', 'pantalon_fluido'], zapato_cerrado: ['mocasines', 'bailarinas', 'zapato_cordones'], abrigo_generico: ['abrigo_lana', 'gabardina'], chaqueta: ['americana', 'cazadora_cuero', 'bomber', 'sobrecamisa'], top: ['blusa'] };
+  const tiposDe = h => { if (h._t) return h._t; const t = [...new Set(h.tipos.flatMap(grupo))]; for (const k in COMODIN) if (!t.includes(k) && COMODIN[k].some(x => t.includes(x))) t.push(k); return h._t = t; };
   function conColor(f, color) {
     const K = R.color.colores[color] || R.color.colores.Estampado;
     return Object.assign(f, { color, color_clase: K.clase, valor: K.valor, calidez: K.calidez, familia: K.familia, valor_num: { claro: 1, medio: 2, oscuro: 3 }[K.valor] });
@@ -43,8 +45,10 @@ const Motor = (() => {
 
   /* ---------- 1. la ficha de cada prenda: lo que dice su nombre, y lo que dieron la usuaria o la estilista manda ---------- */
   function inferir(p, perfil = {}) {
-    const I = R.inferencia, nom = norm((p.nombre || '') + ' ' + (p.x || '')), est = p.est || {};
-    let sub = I.subtipos.find(s => s.tiposApp.includes(p.tipo) && s.re.some(r => r.test(nom))), conSub = !!sub;
+    const I = R.inferencia, nom = norm((p.nombre || '') + ' ' + (p.x || '')), est = p.est || {}, buscar = txt => txt && I.subtipos.find(s => s.tiposApp.includes(p.tipo) && s.re.some(r => r.test(txt)));
+    // manda el nombre; lo reconocido en la foto (p.x, en inglés) solo afina si el nombre no dice el tipo: «Pantalón negro» + wide leg pants
+    let sub = buscar(norm(p.nombre)); if (!sub || COMODIN[sub.id]) sub = buscar(norm(p.x)) || sub;
+    let conSub = !!sub;
     const dicho = est.sub && I.subtipos.find(s => s.id === (SUB_EST[est.sub] || est.sub));
     if (dicho && !(sub && (sub.id.startsWith(dicho.id) || (dicho.id === 'camiseta' && sub.id === 'henley')))) { sub = dicho; conSub = true; }
     if (!sub) sub = I.por_defecto_si_nada_coincide[p.tipo] || I.por_defecto_si_nada_coincide.Arriba;
@@ -311,6 +315,8 @@ const Motor = (() => {
     while (resto.length) { const pre = out[out.length - 1], i = resto.findIndex(l => !pre || (l.arriba || l.vestido).id !== (pre.arriba || pre.vestido).id); out.push(...resto.splice(i < 0 ? 0 : i, 1)); }
     return out;
   }
+  // en qué ocasiones cabe una prenda (para el filtro del clóset): una fórmula de esa ocasión la admite en un hueco y la prenda no baja del nivel de la ocasión
+  const ocasionesDe = p => { const f0 = ficha(p, {}), e = [{ id: p.id, p, _f: f0 }]; return [...new Set(F.formulas.filter(f => f.huecos.some(h => cands(h, e).length)).flatMap(f => f.ocasiones))].filter(o => !(f0.form < (R.ocasiones[o]?.form_media_min ?? 0) - .5)); };
   const claveLook = l => PIEZAS.map(k => l[k]).filter(p => p && !p.muestra).map(p => p.id).sort().join();
 
   /* ---------- 6. fórmulas posibles, qué falta y la llamada de la app ---------- */
@@ -380,7 +386,7 @@ const Motor = (() => {
     const ps = ['capa', 'arriba', 'base_interior', 'abajo', 'vestido', 'calzado', 'bolso', 'accesorio'].map(k => l[k]).filter(p => p && !p.muestra);
     return { ids: ps.map(p => p.id), ocasion: l.ctx.ocasion, formula: l.formula?.id, nombre: l.formula?.nombre, porque: l.formula?.porque, como: l.campos.como === 'por_dentro' ? 'por dentro' : l.campos.como, zspec: zapatoDe(l), faltaCapa: !!l.faltaCapa, capaFalta: l.faltaCapa ? capaQueFalta(l) : null, nota: l.nota };
   }
-  return { iniciar, inferir, ficha: p => ficha(p, {}), contexto, perfilMotor, looks, juzgar, aPropuesta, faltas, claveLook, get R() { return R; }, get F() { return F; } };
+  return { iniciar, inferir, ficha: p => ficha(p, {}), ocasionesDe, contexto, perfilMotor, looks, juzgar, aPropuesta, faltas, claveLook, get R() { return R; }, get F() { return F; } };
 })();
 if (typeof module !== 'undefined') module.exports = Motor;
 else if (typeof MOTOR_DATOS !== 'undefined') Motor.iniciar(MOTOR_DATOS.R, MOTOR_DATOS.F, MOTOR_DATOS.S);

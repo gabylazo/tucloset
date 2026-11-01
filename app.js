@@ -1428,9 +1428,10 @@ function pintarCalendario(raiz) { // vista de mes de la 0.40–0.110; desde la 0
 
 /* ---------- CLÓSET ---------- */
 // 0.8 · categorías de tienda: lo de abajo se separa en pantalones y faldas por el nombre
-const catDe = p => p.tipo === 'Abajo' ? (/falda|skirt/i.test(p.nombre) ? 'Faldas' : 'Pantalones') : ({ Arriba: 'Tops', Abrigo: 'Abrigos', Vestidos: 'Vestidos', Calzado: 'Zapatos', Bolsos: 'Bolsos', Accesorios: 'Accesorios' }[p.tipo] || p.tipo);
+let catArriba = () => 'Tops'; // el diseño nuevo (at.js) separa las prendas de arriba
+const catDe = p => p.tipo === 'Abajo' ? (/falda|skirt/i.test(p.nombre) ? 'Faldas' : 'Pantalones') : p.tipo === 'Arriba' ? catArriba(p) : ({ Abrigo: 'Abrigos', Vestidos: 'Vestidos', Calzado: 'Zapatos', Bolsos: 'Bolsos', Accesorios: 'Accesorios' }[p.tipo] || p.tipo);
 const CATS_ORDEN = ['Tops', 'Pantalones', 'Faldas', 'Vestidos', 'Abrigos', 'Zapatos', 'Bolsos', 'Accesorios'];
-const catTxt = c => idioma() === 'en' ? ({ Todo: 'All', Tops: 'Tops', Pantalones: 'Trousers', Faldas: 'Skirts', Vestidos: 'Dresses', Abrigos: 'Outerwear', Zapatos: 'Shoes', Bolsos: 'Bags', Accesorios: 'Accessories' }[c] || c) : c;
+const catTxt = c => idioma() === 'en' ? ({ Todo: 'All', Tops: 'Tops', Camisetas: 'T-shirts', 'Camisas y blusas': 'Shirts & blouses', Punto: 'Knitwear', Pantalones: 'Trousers', Faldas: 'Skirts', Vestidos: 'Dresses', Abrigos: 'Outerwear', Zapatos: 'Shoes', Bolsos: 'Bags', Accesorios: 'Accessories' }[c] || c) : c;
 E.f = { ocasion: [], estacion: [], color: [], uso: [], estado: [] };
 const FILTROS = () => [
   ['ocasion', t('Ocasión', 'Occasion'), OCASIONES.map(o => [o, ocNombre(o)])],
@@ -1474,7 +1475,7 @@ function pintarFiltros() {
     ? `<button class="sw ${E.f.color.includes(v) ? 'on' : ''}" data-fil="${k}|${v}" title="${v}" style="background:${txt}"></button>`
     : `<button class="${E.f[k].includes(v) ? 'on' : ''}" data-fil="${k}|${v}">${txt}</button>`).join('')}</div>${k === 'ocasion' ? `<small>${t('según el tipo de prenda y tus looks', 'from the garment type and your looks')}</small>` : ''}</div>`).join('');
   const n = E.prendas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && pasaFiltros(p)).length;
-  $('mc-ver').textContent = t(`Ver ${n} prendas`, `See ${n} garments`);
+  $('mc-ver').textContent = n === 1 ? t('Ver 1 prenda', 'See 1 garment') : t(`Ver ${n} prendas`, `See ${n} garments`);
 }
 function hojaFiltros(abrir) { $('mc-hoja').hidden = !abrir; $('mc-velo').hidden = !abrir; if (abrir) pintarFiltros(); }
 const estadoTxt = e => ({ lavar: t('A lavar', 'To wash'), guardada: t('Guardada', 'Stored'), donar: t('Para donar', 'To donate') }[e] || '');

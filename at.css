@@ -67,7 +67,7 @@ html.at .at-fila button { flex: none; min-height: 48px; min-width: 44px; positio
 html.at .at-fila button.on { color: var(--tinta); font-weight: 500; }
 html.at .at-nota { min-height: 36px; font: 400 13px/1.3 var(--f); color: var(--sec); }
 html.at .at-hoy .cal-falta { font-size: 13px; color: var(--sec); }
-html.at .at-pie { flex: none; padding: 8px 0 20px; display: flex; justify-content: center; }
+html.at .at-pie { flex: none; padding: 8px 0 6px; display: flex; flex-direction: column; align-items: center; }
 
 /* ---------- Clóset ---------- */
 html.at #p-closet .mc-cab { text-align: center; padding: 26px 20px 14px; }
@@ -78,7 +78,8 @@ html.at #p-closet .mc-busca input { flex: 1; min-width: 0; height: 44px; border:
 html.at #p-closet .mc-busca input::placeholder { color: var(--sec); }
 html.at #p-closet #mc-filtrar { width: 44px; height: 44px; margin-right: -12px; display: flex; align-items: center; justify-content: center; color: var(--sec); position: relative; background: none; border: 0; }
 html.at #p-closet #mc-filtrar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.3; }
-html.at #p-closet #mc-nf { position: absolute; top: 8px; right: 6px; font: 500 11px/1 var(--f); color: var(--tinta); }
+html.at #p-closet #mc-nf { position: absolute; top: 3px; right: 1px; min-width: 16px; height: 16px; padding: 0 3px; display: grid; place-items: center; background: var(--tinta); color: #fff; font: 500 11px/1 var(--f); }
+html.at #p-closet #mc-nf:empty { display: none; }
 html.at #p-closet #cats { display: flex; gap: 22px; overflow-x: auto; padding: 4px 20px 0; margin: 0; scrollbar-width: none; justify-content: flex-start; border: 0; }
 html.at #p-closet #cats button { flex: none; min-height: 48px; min-width: 44px; position: relative; padding: 0; border: 0; border-radius: 0; background: none; font: 400 12px/1 var(--f); letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
 html.at #p-closet #cats button.activo { color: var(--tinta); font-weight: 500; background: none; }
@@ -96,7 +97,9 @@ html.at #p-ficha > :not(#at-ficha) { display: none !important; }
 html.at .at-ficha { display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; }
 html.at .at-barra-sup { position: absolute; top: 8px; left: -10px; right: -10px; display: flex; justify-content: space-between; align-items: center; z-index: 3; }
 html.at .at-volver, html.at .at-fav { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--tinta); }
-html.at .at-fav.on svg { fill: var(--oro); stroke: var(--tinta); }
+/* el corazón en rojo: prueba pedida por Sheila el 01/11 (m. 1643) para que resalte; antes, dorado con borde nogal. Para volver, quitar estas dos líneas y poner fill: var(--oro); stroke: var(--tinta) */
+html.at .at-fav { color: #C1121F; }
+html.at .at-fav.on svg { fill: #C1121F; stroke: #C1121F; }
 html.at .at-foto { flex: none; width: calc(100% + 36px); margin: 0 -18px; aspect-ratio: 3 / 4; max-height: 62dvh; background: var(--baldosa); position: relative; overflow: hidden; }
 html.at .at-foto img { position: absolute; left: 9%; top: 7%; width: 82%; height: 88%; object-fit: contain; }
 html.at .at-foto.sin-cat img { mix-blend-mode: multiply; }

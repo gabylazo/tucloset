@@ -5,10 +5,20 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.129c'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.130'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
+  // Sheila, 01/11 (m. 1647): una blusa de manga larga no es un top. Las prendas de arriba se separan como en las tiendas, según lo que el motor entiende del nombre
+  const CAT_ARRIBA = { blusa: 'Camisas y blusas', camisa: 'Camisas y blusas', sobrecamisa: 'Camisas y blusas', jersey: 'Punto', jersey_cuello_alto: 'Punto', sudadera: 'Punto', cardigan: 'Punto', chaleco_punto: 'Punto', forro_polar: 'Punto', camiseta: 'Camisetas', camiseta_tirantes: 'Camisetas', henley: 'Camisetas', polo: 'Camisetas', camiseta_tecnica: 'Camisetas' }, ARRIBA = ['Tops', 'Camisetas', 'Camisas y blusas', 'Punto'];
+  catArriba = p => CAT_ARRIBA[Motor.ficha(p).subtipo] || 'Tops';
+  CATS_ORDEN.splice(0, 1, ...ARRIBA);
+  Object.assign(TIPO_DE_CAT, { Camisetas: 'Arriba', 'Camisas y blusas': 'Arriba', Punto: 'Arriba' });
+  Object.assign(SUBCATS, { Tops: ['a crop top', 'a sleeveless top', 'a halter bodysuit', 'a peplum top', 'a knitted vest'], Camisetas: ['a t-shirt', 'a polo shirt', 'a tank top'], 'Camisas y blusas': ['a blouse', 'a shirt'], Punto: ['a sweater', 'a hoodie', 'a cardigan'] });
+  for (const k in COMPLEMENTA) { const i = COMPLEMENTA[k].indexOf('Tops'); if (i >= 0) COMPLEMENTA[k].splice(i, 1, ...ARRIBA); }
+  // Sheila, 01/11 (m. 1649): con el filtro Evento no salía ningún pantalón. La ocasión de una prenda también sale de las fórmulas del motor
+  const ocasionesViejas = ocasionesPrenda;
+  ocasionesPrenda = p => [...new Set([...ocasionesViejas(p), ...Motor.ocasionesDe(p)])];
   const caja = () => { const a = $('app'); return [Math.min(a.clientWidth || innerWidth, 430), a.clientHeight || innerHeight]; };
   const DOS = '<span class="at-dos" aria-hidden="true"></span>';
   const svg = d => `<svg class="at-ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -116,7 +126,7 @@ if (AT) (() => {
       return;
     }
     const ps = psDe(pr), oc = planHoy && !E.hoyFalta && pr.tipo !== 'conjunto' ? planHoy : (pr.c && pr.c.ocasion) || pr.ocasion || ocasionDe(ps);
-    const [ancho, alto] = caja(), W = Math.min(330, ancho - 60), H = Math.max(240, alto - 360);
+    const [ancho, alto] = caja(), W = Math.min(330, ancho - 60), H = Math.max(240, alto - 404);
     const muestra = ps.some(p => p.muestra);
     const flechas = lista.length > 1 ? `<button class="at-flecha iz" data-atmov="-1" aria-label="${t('Look anterior', 'Previous look')}">${I.iz}</button><button class="at-flecha de" data-atmov="1" aria-label="${t('Look siguiente', 'Next look')}">${I.de}</button>` : '';
     const ocs = E.hzPreg ? `<div class="at-fila at-ocs">${OCASIONES.map(o => `<button class="${o === oc ? 'on' : ''}" data-hzoc="${o}">${ocNombre(o)}${DOS}</button>`).join('')}</div>` : '';
@@ -124,7 +134,7 @@ if (AT) (() => {
     pant.innerHTML = `<div class="at-pant">${cab}<div class="at-hoy" id="at-hoy">${flechas}<button class="at-fav at-fav-hoy${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button>${figura(ps, W, H, true)}
       <button class="at-oc" data-hzpreg aria-expanded="${!!E.hzPreg}" aria-label="${ocNombre(oc)}: ${t('cambiar la ocasión', 'change the occasion')}">${ocNombre(oc)}${I.abajo}</button>${ocs}
       ${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'With your coat on top: add it and it will show here' : `Con ${pr.capaFalta && pr.capaFalta !== 'abrigo' ? (pr.capaFalta === 'chaqueta' ? 'tu chaqueta' : 'tu ' + pr.capaFalta) : 'tu abrigo'} encima: súbelo y saldrá aquí`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : ''}</div>
-      <div class="at-pie"><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button></div></div>`;
+      <div class="at-pie"><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button><button class="at-enlace" id="at-no">${t('No me gusta', 'Not for me')}</button></div></div>`;
     // el look ocupa el hueco que de verdad queda entre la cabecera y el botón (en cada móvil es distinto)
     const z = $('at-hoy'), ajustar = () => { const fig = z.querySelector('.at-look'); if (!fig || !z.clientHeight) return;
       const resto = [...z.children].filter(x => x !== fig && !x.classList.contains('at-flecha')).reduce((s, x) => s + x.offsetHeight + 6, 0), libre = Math.floor(z.clientHeight - resto - 12);
@@ -133,6 +143,16 @@ if (AT) (() => {
     const mover = d => { E.hoyIdx = ((E.hoyIdx || 0) + d + lista.length) % lista.length; E.hzPreg = false; pintarHoy(); };
     pant.querySelectorAll('[data-atmov]').forEach(b => b.onclick = () => mover(+b.dataset.atmov));
     $('at-pongo').onclick = async e => { const b = e.currentTarget; await ponerse(pr.ids, pr.c); await datosLook(pr); b.classList.add('hecho'); b.setAttribute('aria-pressed', 'true'); b.textContent = t('Puesto hoy', 'Worn today'); };
+    // «No me gusta» (Sheila, 23/10; se perdió al montar este diseño y lo echó en falta el 01/11, m. 1645): el look propuesto no vuelve y la app aprende qué prendas no quiere juntas
+    $('at-no').onclick = async () => {
+      anotarGusto(pr.ids, 'no'); const g = E.perfil.gustos, k = claveLook(pr.ids);
+      if (pr.tipo === 'propuesta') g.fuera = [...(g.fuera || []), k].slice(-300);
+      else { if (g.hoy?.d !== hoyISO()) g.hoy = { d: hoyISO(), k: [] }; g.hoy.k.push(k); }
+      await guardar();
+      lista.splice(E.hoyIdx || 0, 1); if ((E.hoyIdx || 0) >= lista.length) E.hoyIdx = 0;
+      if (!lista.length) { E.propuestas = []; E.hoyIdx = 0; }
+      pintarHoy(); toast(t('Anotado. Te propondré otras combinaciones', 'Noted. I’ll suggest other combinations'));
+    };
     // el corazón, y el doble toque sobre el look como en Instagram (un toque sobre una prenda abre su ficha, un instante después para distinguirlos)
     const fv = $('at-fav'), alternar = async quiero => { if (quiero != null && esFav(pr.ids) === quiero) { fv.classList.remove('late'); void fv.offsetWidth; fv.classList.add('late'); return; }
       await alternarFav(pr.ids, oc); await datosLook(pr); const on = esFav(pr.ids); fv.classList.toggle('on', on); fv.setAttribute('aria-pressed', on); fv.classList.remove('late'); void fv.offsetWidth; if (on) fv.classList.add('late'); };
