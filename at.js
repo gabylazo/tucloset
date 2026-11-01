@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.128b'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.129'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -30,7 +30,7 @@ if (AT) (() => {
   }
 
   /* ---------- el look: a escala real (Eje, cerrado el 20/10), con la foto de catálogo de cada prenda ----------
-     La de arriba pisa un 7 % la de abajo; la capa asoma por detrás; el calzado, al pie con 3 cm de aire y 26 cm de ancho; el bolso a la derecha a la
+     La de arriba pisa un 7 % la de abajo; si hay capas, cada prenda entera, en fila y sin taparse (Sheila, 01/11: una foto encima de otra no se entiende); el calzado, al pie con 3 cm de aire y 26 cm de ancho; el bolso a la derecha a la
      altura de la cadera y los accesorios a la izquierda, a la de los hombros. El marco es simétrico respecto al eje: el look queda siempre en el centro. */
   const AR = new Map(), midiendo = new Set();
   const medir = src => { if (!src || midiendo.has(src)) return; midiendo.add(src); const im = new Image(); im.onload = () => { if (im.naturalHeight) { AR.set(src, im.naturalWidth / im.naturalHeight); window.stRepintar?.(); } }; im.src = src; };
@@ -48,20 +48,24 @@ if (AT) (() => {
   }
   const eje = p => conCat(p) || p.muestra ? .5 : (p.caja?.[5] ?? .5);
   function lookAt(ps) {
-    const rol = r => ps.filter(p => r.includes(p.tipo)), tops = rol(['Arriba']);
-    const capa = rol(['Abrigo'])[0] || (tops.length > 1 ? tops.find(esCapa) || tops[1] : null), top = tops.find(p => p !== capa);
+    const rol = r => ps.filter(p => r.includes(p.tipo)), abrigo = rol(['Abrigo'])[0], tops = rol(['Arriba']), sup = abrigo ? [abrigo, ...tops] : tops; // las de arriba, de fuera hacia dentro
     const grande = rol(['Abajo', 'Vestidos'])[0], zap = rol(['Calzado'])[0], bolso = rol(['Bolsos'])[0], acc = rol(['Accesorios']).slice(0, 2);
-    const dentro = ps.como === 'por dentro', out = [];
+    const dentro = ps.como === 'por dentro', out = [], AIRE = 3;
     const pon = (p, x, y, z) => { const [w, h] = medidas(p), o = [p, x == null ? -w * eje(p) : x, y, w, h, z]; out.push(o); return o; };
-    let y = 0, oC = null, oT = null, oG = null;
-    if (capa && (top || grande)) { oC = pon(capa, null, 0, 0); y = oC[4] * .06; }
-    else if (capa) oT = pon(capa, null, 0, 2);
-    if (top) oT = pon(top, null, y, dentro ? 1 : 2);
-    // con manga larga el puño baja más que el bajo de la prenda: se solapa un poco más para que no quede un hueco en la cintura
-    if (grande) { const larga = top && typeof Motor !== 'undefined' && Motor.ficha(top).manga === 'larga', yG = oT ? oT[2] + oT[4] * (grande.tipo === 'Vestidos' ? .55 : larga ? .87 : .93) : y; oG = pon(grande, null, yG, dentro ? 2 : 1); }
-    const cuerpo = [oC, oT, oG].filter(Boolean);
-    let fin = cuerpo.length ? Math.max(...cuerpo.map(o => o[2] + o[4])) : 0;
-    if (zap) { const [w, h] = medidas(zap); pon(zap, -w / 2, fin + (cuerpo.length ? 3 : 0), 3); fin += h + 3; }
+    const alto = p => medidas(p)[1], anchoFila = l => l.reduce((s, p) => s + medidas(p)[0], 0) + AIRE * Math.max(0, l.length - 1);
+    // a un lado, de arriba abajo: la capa junto a un vestido o el abrigo mucho más largo que lo de debajo
+    const vestido = grande?.tipo === 'Vestidos', vaAlLado = sup.length && (vestido || (grande && sup.length > 1 && alto(sup[0]) > 1.35 * Math.max(...sup.slice(1).map(alto))));
+    const resto = vaAlLado ? sup.slice(1) : sup;
+    let ejeX = 0, oL = null;
+    if (vaAlLado) { const col = Math.max(anchoFila(resto), grande ? medidas(grande)[0] : 0, zap ? 26 : 0), total = medidas(sup[0])[0] + 4 + col; oL = pon(sup[0], -total / 2, 0, 1); ejeX = total / 2 - col / 2; }
+    let x = ejeX - anchoFila(resto) / 2;
+    const fila = resto.map(p => { const o = pon(p, resto.length === 1 && !ejeX ? null : x, 0, dentro ? 1 : 2); x += o[3] + AIRE; return o; }), oT = fila[0] || null;
+    // con manga larga el puño baja más que el bajo de la prenda: se solapa un poco más para que no quede un hueco en la cintura; varias en fila, casi sin pisar
+    let oG = null;
+    if (grande) { const larga = fila.length === 1 && typeof Motor !== 'undefined' && Motor.ficha(resto[0]).manga === 'larga', finFila = fila.length ? Math.max(...fila.map(o => o[4])) : 0, wG = medidas(grande)[0]; oG = pon(grande, ejeX ? ejeX - wG / 2 : null, finFila * (fila.length > 1 ? .98 : larga ? .87 : .93), dentro ? 2 : 1); }
+    const columna = [...fila, oG].filter(Boolean), cuerpo = [oL, ...columna].filter(Boolean);
+    let fin = columna.length ? Math.max(...columna.map(o => o[2] + o[4])) : oL ? oL[4] : 0;
+    if (zap) { const [w, h] = medidas(zap); pon(zap, ejeX - w / 2, fin + (cuerpo.length ? 3 : 0), 3); fin += h + 3; }
     if (!out.length) return null;
     const der = Math.max(0, ...cuerpo.map(o => o[1] + o[3])), izq = Math.min(0, ...cuerpo.map(o => o[1]));
     if (bolso) { const [, h] = medidas(bolso), ref = oG || oT; pon(bolso, der + 3, ref ? ref[2] + ref[4] * (ref === oG ? .1 : .55) : 0, 3); }
