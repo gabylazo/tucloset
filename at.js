@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.137'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.138'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -176,7 +176,7 @@ if (AT) (() => {
     // ropa, se dice ahí, sin inventar un look, y se ofrece uno de diario (que ya no lleva el aviso)
     if (E.hoyDiarioDe !== planHoy) E.hoyDiario = false;
     if (planHoy && !hayOcasion(planHoy) && !E.hoyDiario) {
-      const f = faltaPara(planHoy), o = ocNombre(planHoy).toLowerCase(), y = f.length > 1 ? f.slice(0, -1).join(', ') + t(' o ', ' or ') + f[f.length - 1] : f[0] || '';
+      const f = faltaPara(planHoy), o = ocNombre(planHoy).toLowerCase(), y = lista(f);
       pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocBoton(planHoy) + '</header>')}${ocsDe(planHoy)}<div class="at-vacio at-sinropa"><p>${planHoy === 'Deporte' ? t('Aún no tienes ropa de deporte.', 'No sportswear yet.') : t(`Con tu ropa aún no sale un look para ${o}.`, `Your clothes don’t make a look for ${o} yet.`)} ${t('Cuando la subas, tu look saldrá aquí.', 'Once you add it, your look will appear here.')}</p>${y ? `<p class="at-falta-que">${t('Te vendría bien', 'What would help')}: ${esc(y.charAt(0).toLowerCase() + y.slice(1))}.</p>` : ''}<button class="at-enlace" id="at-diario">${t('Ver un look de diario', 'See an everyday look')}</button></div></div>`;
       $('at-diario').onclick = () => { E.hoyDiario = true; E.hoyDiarioDe = planHoy; E.propuestas = []; pintarHoy(); };
       return;
