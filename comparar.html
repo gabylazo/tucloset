@@ -73,7 +73,7 @@ tr.grupo td{font-family:Bellefair,serif;font-size:19px;font-weight:400;padding-t
 <script>
 const base = new URL('index.html', location.href).href + '?repaso=0';
 const ir = p => {
-  const pr = document.getElementById('p012').checked, q = (pr ? 'ver=atelier&' : '') + (p === 'cal' ? 'pantalla=looks&lk=cal' : p === 'looks' ? 'pantalla=looks&lk=ideas' : 'pantalla=' + p);
+  const pr = document.getElementById('p012').checked, q = (pr ? 'ver=atelier&' : 'ver=clasico&') + (p === 'cal' ? 'pantalla=looks&lk=cal' : p === 'looks' ? 'pantalla=looks&lk=ideas' : 'pantalla=' + p);
   fb.src = base + '&plan=basico&' + q; fp.src = base + '&plan=pro&' + q;
   nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
 };

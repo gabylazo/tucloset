@@ -533,13 +533,16 @@ const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:$
 // 0.111 (Gabriela, 28/10: «la confección de los outfits es horrible, no hay simetría, muchos espacios entre prendas»): «conjunto» en todas partes
 // 0.12 · propuesta completa (Gabriela, 28/10: «cuando tengas una solución y una propuesta homogénea y general… me notificas»): con ?propuesta=012 se ve
 // la app nueva (tarjeta 4:5, Hoy dentro de Looks, barra de cuatro) con su propia ropa; ?propuesta=0 vuelve a la de siempre. Se aplica a todas con su sí
-const PROP = (() => { try { const u = new URLSearchParams(location.search), q = u.get('propuesta'); if (['012', '013', '014'].includes(u.get('ver'))) return true; /* solo esta vez (la comparativa) */ if (u.get('ver') === 'atelier') return false; if (q === '0') localStorage.removeItem('tc_prop'); else if (q) localStorage.setItem('tc_prop', ['013', '014', 'atelier'].includes(q) ? q : '012'); return ['012', '013', '014'].includes(localStorage.getItem('tc_prop')); } catch (e) { return false; } })();
+// 03/11 (Gabriela: «sí, para todas»; Sheila dijo sí el 30/10): el diseño A «Atelier» es el de todas. Las propuestas 012, 013 y 014 solo se ven con ?ver= una vez;
+// ?ver=clasico enseña el diseño de antes (lo usa comparar.html). Lo que hubiera guardado de las pruebas en tc_prop se olvida.
+const VER = (() => { try { const v = new URLSearchParams(location.search).get('ver') || ''; if (localStorage.getItem('tc_prop')) localStorage.removeItem('tc_prop'); return v; } catch (e) { return ''; } })();
+const PROP = ['012', '013', '014'].includes(VER);
 // 0.121 · propuesta 013 (Gabriela, 29/10: «ES HORROROSO… apóyate en otras IAs»): diseño de Stitch y fotos de catálogo de Gemini, en st.js y st.css
-const ST = (() => { try { const u = new URLSearchParams(location.search); return u.get('ver') === '013' || (!['012', '014', 'atelier'].includes(u.get('ver')) && localStorage.getItem('tc_prop') === '013'); } catch (e) { return false; } })();
+const ST = VER === '013';
 // 0.122 · propuesta 014 (Gabriela, 29/10, al ver la 013: «la veo horrible… va en contra total de mi concepto de estética»; referencia: Zara y Massimo Dutti), en z14.js y z14.css
-const Z14 = (() => { try { const u = new URLSearchParams(location.search); return u.get('ver') === '014' || (!['012', '013', 'atelier'].includes(u.get('ver')) && localStorage.getItem('tc_prop') === '014'); } catch (e) { return false; } })();
+const Z14 = VER === '014';
 // 0.124 · diseño A «Atelier» (Gabriela, 30/10: «la a», entre las dos direcciones hechas con el método del manual de Estudio; favoritas de las 20: «18, 7 y 3»), en at.js y at.css
-const AT = (() => { try { const u = new URLSearchParams(location.search); return u.get('ver') === 'atelier' || (!['012', '013', '014'].includes(u.get('ver')) && localStorage.getItem('tc_prop') === 'atelier'); } catch (e) { return false; } })();
+const AT = !['012', '013', '014', 'clasico'].includes(VER);
 const COMP = (() => { try { return new URLSearchParams(location.search).get('comp') || (PROP ? 'tarjeta' : 'conjunto'); } catch (e) { return 'conjunto'; } })();
 if (PROP) { const tb = document.getElementById('tabs'), lk = tb?.querySelector('[data-ir="looks"]'); if (lk) { tb.querySelector('[data-ir="hoy"]')?.remove(); tb.prepend(lk); tb.classList.add('cuatro'); document.documentElement.classList.add('prop'); } } // 0.98: «abierto» por defecto (Sheila y Gabriela, 24/10: «mira qué mal la distribución», «la distribución espacial… horrenda»)
 function collage(ps) {
@@ -1750,13 +1753,20 @@ const REGLAS_FOTO = [
   ['Zapatos y accesorios', 'los zapatos, el par junto y de lado; cinturones y pañuelos, estirados', 'Shoes and accessories', 'shoes as a pair, side on; belts and scarves laid out straight']
 ];
 const reglasFoto = () => `<details class="s-reglas"><summary>${t('Cómo hacer una buena foto', 'How to take a good photo')}</summary><ol>${REGLAS_FOTO.map(r => `<li><b>${t(r[0], r[2])}</b>${t(r[1], r[3])}</li>`).join('')}</ol></details>`;
+// 03/11 (Gabriela: «tengo 29» en el móvil y 25 en la cuenta; va a subir toda su ropa): sin cuenta abierta, o en el clóset de pruebas, lo subido se queda solo en este móvil; se avisa antes de subir
+function avisoSinNube() {
+  if (!NUBE) return '';
+  if (CLOSET_ACT) return `<div class="s-aviso s-nube"><b>${t('Estás en el clóset de pruebas', 'You are in the test closet')}</b><span>${t('Lo que subas aquí no se guarda en tu cuenta.', 'What you upload here is not saved to your account.')}</span><div><button class="boton" data-cambio="">${t('Pasar a mi ropa', 'Switch to my clothes')}</button></div></div>`;
+  if (!cuenta()) return `<div class="s-aviso s-nube"><b>${t('Entra en tu cuenta antes de subir', 'Sign in before uploading')}</b><span>${t('Sin cuenta, tu ropa se queda solo en este móvil y no la verás en otros.', 'Without an account your clothes stay only on this phone.')}</span><div><button class="boton" data-ir="entrar">${t('Entrar', 'Sign in')}</button></div></div>`;
+  return '';
+}
 function prepararSubir() { E.subida = []; E.sDet = null; pintarSubida(); }
 // Subir (Gabriela, 20/10): una sola prenda → su ficha (3B); varias → rejilla (3A) con lo general a la vista y, al tocar una, su ficha
 function pintarSubida() {
   const n = E.subida.length, raiz = $('s-raiz'), X = `<button class="x" data-ir="closet" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>`;
   const mas = (txt, cls) => `<label class="${cls}">${txt}<input type="file" accept="image/*" multiple data-sfotos></label>`;
   const det = n === 1 ? E.subida[0] : E.subida.find(i => i.id === E.sDet);
-  if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Una prenda por foto', 'One garment per photo')}</div></div><div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div><p class="consejo">${t('La app quita el fondo y te propone tipo y color.', 'The app removes the background and suggests type and colour.')}</p>${reglasFoto()}<div class="bts"><label class="boton">${t('Hacer una foto', 'Take a photo')}<input type="file" accept="image/*" capture="environment" data-sfotos></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}<span class="txt">${t('Hasta 20 a la vez', 'Up to 20 at a time')}</span></div></div>`;
+  if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Una prenda por foto', 'One garment per photo')}</div></div>${avisoSinNube()}<div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div><p class="consejo">${t('La app quita el fondo y te propone tipo y color.', 'The app removes the background and suggests type and colour.')}</p>${reglasFoto()}<div class="bts"><label class="boton">${t('Hacer una foto', 'Take a photo')}<input type="file" accept="image/*" capture="environment" data-sfotos></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}<span class="txt">${t('Hasta 20 a la vez', 'Up to 20 at a time')}</span></div></div>`;
   else if (det) {
     const i = E.subida.indexOf(det), listo = det.estado === 'listo';
     const ops = (lista, sel, k, nom) => `<div class="ops">${lista.map(x => `<button type="button" class="${x === sel ? 'on' : ''}" data-s${k}="${x}">${nom(x)}</button>`).join('')}</div>`;
