@@ -343,3 +343,9 @@ html.at .at-vj-maleta button.on { color: var(--sec); text-decoration: line-throu
 html.at .at-vj-maleta button.on .at-vj-caja::after { content: ''; width: 10px; height: 10px; background: var(--tinta); }
 html.at .at-vj-pie { margin-top: 22px; gap: 18px; }
 html.at .at-vj-lista { flex-direction: column; align-items: center; }
+/* 03/11 · Mi cápsula */
+html.at .at-cap .at-vj-ops + .at-vj-ops { margin-top: -6px; }
+html.at .at-cap-cuenta { margin: 18px 0 12px; }
+html.at .at-cap-prendas { display: grid; grid-template-columns: repeat(3, auto); justify-content: center; gap: 8px; padding: 0 20px; }
+html.at .at-cap-p { display: grid; place-items: center; padding: 10%; background: var(--baldosa); border: 0; cursor: pointer; }
+html.at .at-cap-p { overflow: hidden; } html.at .at-cap-p img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }

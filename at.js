@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.141'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.142'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -374,9 +374,10 @@ if (AT) (() => {
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     const crear = fav ? '' : `<figure class="at-t"><button class="at-bal at-crear" style="width:${TW}px;height:${TH}px" data-ir="nuevo-look">${I.mas}<span>${t('Crear un look', 'Create a look')}</span></button></figure>`;
     const t1 = c => `<figure class="at-t">${baldosa(psDe(c), TW, TH, ` data-look="${c.id}"`)}<figcaption>${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</figcaption></figure>`;
-    raiz.innerHTML = filaLooks(E.lkTab) + (lista.length || !fav ? `<div class="at-rej2">${crear}${lista.map(t1).join('')}</div>`
+    const capsula = fav ? '' : `<figure class="at-t"><button class="at-bal at-crear" style="width:${TW}px;height:${TH}px" data-capsula>${I.percha}<span>${t('Mi cápsula', 'My capsule')}</span></button></figure>`;
+    raiz.innerHTML = filaLooks(E.lkTab) + (lista.length || !fav ? `<div class="at-rej2">${crear}${capsula}${lista.map(t1).join('')}</div>`
       : `<div class="at-vacio"><p>${t('Aún no tienes favoritos. Abre un look y toca el corazón.', 'No favourites yet. Open a look and tap the heart.')}</p></div>`);
-    raiz.onclick = e => { const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
+    raiz.onclick = e => { if (e.target.closest('[data-capsula]')) return abrirCapsula(); const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
   };
   // el calendario de siempre, con la cabecera de Looks
   const pintarAgendaVieja = pintarAgenda;
@@ -533,6 +534,52 @@ if (AT) (() => {
       bt.disabled = true; bt.textContent = t('Preparando…', 'Packing…'); err.textContent = '';
       try { const v = await hacerViaje(F); viajes().unshift(v); E.perfil.viajes = viajes().slice(0, 12); await guardar(); E.vjForm = null; abrirViaje(v.id); }
       catch (x) { bt.disabled = false; bt.textContent = t('Preparar la maleta', 'Pack my suitcase'); err.textContent = x.message === 'sinlooks' ? t(`Con tu ropa no sale un look para el tiempo de allí (${x.temp}).`, `Your clothes don’t make a look for the weather there (${x.temp}).`) + (x.falta ? ` ${x.falta.charAt(0).toUpperCase() + x.falta.slice(1)}.` : '') : x.message === 'destino' ? t('No encuentro ese destino. Prueba con el nombre de la ciudad.', 'I can’t find that place. Try the city name.') : t('Ahora no puedo saber el tiempo de allí. Prueba en un momento.', 'I can’t get the weather there right now. Try again shortly.'); }
+    };
+  }
+
+  /* ---------- MI CÁPSULA (FUNCIONES 16; Gabriela, 03/11: «todo lo que falta incorporarlo ya»): eliges para qué y cuántas prendas, y la app elige de tu
+     clóset las que más looks hacen entre sí, con el tiempo de ahora. Todos los looks salen del motor (fórmulas y vetos); se eligen las prendas a la
+     manera golosa: cada vez, el look que más looks deja completos por prenda nueva. No se guarda: se rehace al abrirla. ---------- */
+  function hacerCapsula(oc, N) {
+    const r = Motor.looks({ prendas: activas(), tiempo: E.tiempo, plan: oc, perfil: E.perfil, n: 12, hoy: hoyISO(), pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], depurar: true });
+    const min = Motor.R.puntos?.umbrales?.mostrar_minimo ?? -1e9, vistos = new Set();
+    const L = deVerdad(oc, (r.todos || []).filter(l => (l.casi || !l.veto.duros.length) && l.nota >= min).sort((a, b) => b.nota - a.nota || a.casi - b.casi).map(l => ({ ...Motor.aPropuesta(l), faltaCapa: !!l.casi })))
+      .filter(x => { const k = x.ids.slice().sort().join(); return x.ids.length && !vistos.has(k) && vistos.add(k); }).slice(0, 160).map((x, i) => ({ x, ids: x.ids, i }));
+    const C = new Set(), hechos = () => L.filter(l => l.ids.every(id => C.has(id)));
+    while (C.size < N) {
+      const ya = hechos().length; let mejor = null, nota = 0;
+      for (const l of L) {
+        const nuevos = l.ids.filter(id => !C.has(id)); if (!nuevos.length || C.size + nuevos.length > N) continue;
+        const C2 = new Set([...C, ...nuevos]), g = L.filter(m => m.ids.every(id => C2.has(id))).length - ya, v = g / nuevos.length - l.i * .002;
+        if (v > nota) { nota = v; mejor = nuevos; }
+      }
+      if (!mejor) break; mejor.forEach(id => C.add(id));
+    }
+    return { prendas: [...C].map(P).filter(Boolean), looks: hechos().map(l => l.x) };
+  }
+  function abrirCapsula() {
+    let cap = $('at-capsula'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-capsula'; cap.className = 'ay-capa at-vj at-cap'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); document.body.append(cap); }
+    const F = E.capF = E.capF || { oc: 'Diario', n: 10 }, { prendas, looks } = hacerCapsula(F.oc, F.n), ORD = ['Abrigo', 'Arriba', 'Vestidos', 'Abajo', 'Calzado', 'Bolsos', 'Accesorios'];
+    prendas.sort((a, b) => ORD.indexOf(a.tipo) - ORD.indexOf(b.tipo));
+    const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25), PW = Math.floor((ancho - 40 - 16) / 3);
+    const opc = (k, v, txt) => `<button class="${F[k] === v ? 'on' : ''}" data-cap${k}="${v}" aria-pressed="${F[k] === v}">${txt}${DOS}</button>`;
+    cap.innerHTML = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button><h1>${t('Mi cápsula', 'My capsule')}</h1>
+      <p class="at-vj-sub">${t('Las prendas de tu clóset que más looks hacen entre sí, para el tiempo de ahora.', 'The pieces in your closet that make the most looks together, for the weather now.')}</p>
+      <div class="at-fila at-vj-ops">${opc('oc', 'Diario', t('Diario', 'Everyday'))}${opc('oc', 'Oficina', t('Trabajo', 'Work'))}${opc('oc', 'Noche', t('Noche', 'Night'))}</div>
+      <div class="at-fila at-vj-ops">${[10, 15, 20].map(n => opc('n', n, t(`${n} prendas`, `${n} pieces`))).join('')}</div>
+      ${looks.length ? `<p class="at-vj-datos at-cap-cuenta">${t(`${prendas.length} prendas · ${looks.length} looks`, `${prendas.length} pieces · ${looks.length} looks`)}</p>
+        ${looks.some(x => x.faltaCapa) ? `<p class="at-vj-nota">${t('Con este tiempo, con tu abrigo encima.', 'In this weather, with your coat on top.')}</p>` : ''}
+        <div class="at-cap-prendas">${prendas.map(p => `<button class="at-cap-p" style="width:${PW}px;height:${Math.round(PW * 1.25)}px" data-capficha="${p.id}" aria-label="${esc(p.nombre)}"><img src="${urlCat(p)}" alt="" loading="eager"></button>`).join('')}</div>
+        <h2 class="at-vj-h2">${t('Los looks que salen', 'The looks it makes')}</h2>
+        <div class="at-rej2 at-vj-dias">${looks.slice(0, 24).map((x, i) => `<figure class="at-t">${baldosa(psDe(x), TW, TH, ` data-caplook="${i}" aria-label="${esc(ocNombre(x.ocasion || F.oc))}"`)}</figure>`).join('')}</div>`
+        : `<p class="at-vj-sub">${t('Con tu ropa aún no sale una cápsula para esto. Sube más prendas y vuelve.', 'Your clothes don’t make a capsule for this yet. Add more and come back.')}</p>`}`;
+    cap.onclick = e => {
+      const b = e.target.closest('.x,[data-capoc],[data-capn],[data-capficha],[data-caplook]'); if (!b) return;
+      if (b.classList.contains('x')) return cap.remove();
+      if (b.dataset.capoc) { F.oc = b.dataset.capoc; return abrirCapsula(); }
+      if (b.dataset.capn) { F.n = +b.dataset.capn; return abrirCapsula(); }
+      if (b.dataset.capficha) { cap.remove(); return abrirFicha(b.dataset.capficha); }
+      if (b.dataset.caplook) { cap.remove(); return abrirIdea(looks[+b.dataset.caplook]); }
     };
   }
 
