@@ -5,17 +5,29 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.132'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.133'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
-  // Sheila, 01/11 (m. 1647): una blusa de manga larga no es un top. Las prendas de arriba se separan como en las tiendas, según lo que el motor entiende del nombre
-  const CAT_ARRIBA = { blusa: 'Camisas y blusas', camisa: 'Camisas y blusas', sobrecamisa: 'Camisas y blusas', jersey: 'Punto', jersey_cuello_alto: 'Punto', sudadera: 'Punto', cardigan: 'Punto', chaleco_punto: 'Punto', forro_polar: 'Punto', camiseta: 'Camisetas', camiseta_tirantes: 'Camisetas', henley: 'Camisetas', polo: 'Camisetas', camiseta_tecnica: 'Camisetas' }, ARRIBA = ['Tops', 'Camisetas', 'Camisas y blusas', 'Punto'];
-  catArriba = p => CAT_ARRIBA[Motor.ficha(p).subtipo] || 'Tops';
-  CATS_ORDEN.splice(0, 1, ...ARRIBA);
-  Object.assign(TIPO_DE_CAT, { Camisetas: 'Arriba', 'Camisas y blusas': 'Arriba', Punto: 'Arriba' });
-  Object.assign(SUBCATS, { Tops: ['a crop top', 'a sleeveless top', 'a halter bodysuit', 'a peplum top', 'a knitted vest'], Camisetas: ['a t-shirt', 'a polo shirt', 'a tank top'], 'Camisas y blusas': ['a blouse', 'a shirt'], Punto: ['a sweater', 'a hoodie', 'a cardigan'] });
-  for (const k in COMPLEMENTA) { const i = COMPLEMENTA[k].indexOf('Tops'); if (i >= 0) COMPLEMENTA[k].splice(i, 1, ...ARRIBA); }
+  // Sheila, 01/11 (m. 1647): una blusa de manga larga no es un top; 03/11 (m. 1696): unas chaquetas y un chaleco de pelo tampoco, «estudia en Zara, Lefties, H&M, Pull and Bear
+  // las clasificaciones». Las cuatro separan siempre la ropa de abrigo de los tops (Zara: abrigos, cazadoras, blazers; H&M: chaquetas y abrigos; Pull&Bear: cazadoras y chaquetas;
+  // Lefties: cazadoras | abrigos), las camisetas de los tops y bodies (Zara), el punto y las sudaderas, y los vaqueros de los pantalones (Zara: jeans; H&M: vaqueros; Lefties: denim).
+  // Menú de Zara leído el 03/11; de las otras, los nombres de sus secciones. La categoría sale de lo que el motor entiende del nombre (y de la foto), sea cual sea el tipo elegido.
+  const CAT_SUB = { camiseta: 'Camisetas', camiseta_tirantes: 'Camisetas', henley: 'Camisetas', polo: 'Camisetas', camiseta_tecnica: 'Camisetas',
+    top: 'Tops', top_corto: 'Tops', body: 'Tops', top_deportivo: 'Tops', blusa: 'Camisas y blusas', camisa: 'Camisas y blusas', sobrecamisa: 'Camisas y blusas',
+    jersey: 'Punto', jersey_cuello_alto: 'Punto', cardigan: 'Punto', chaleco_punto: 'Punto', sudadera: 'Sudaderas', forro_polar: 'Sudaderas',
+    chaleco_traje: 'Abrigos', chaleco_acolchado: 'Abrigos', americana: 'Abrigos', chaqueta_vaquera: 'Abrigos', cazadora_cuero: 'Abrigos', bomber: 'Abrigos', chaqueta_deportiva: 'Abrigos',
+    chubasquero: 'Abrigos', parka: 'Abrigos', plumifero: 'Abrigos', gabardina: 'Abrigos', abrigo_lana: 'Abrigos', abrigo_generico: 'Abrigos', kimono: 'Abrigos', chaqueta: 'Abrigos',
+    vaquero: 'Vaqueros', shorts: 'Shorts', bermudas: 'Shorts', mono: 'Vestidos' };
+  const ARRIBA = ['Camisetas', 'Tops', 'Camisas y blusas', 'Punto', 'Sudaderas'];
+  catPor = p => { if (!['Arriba', 'Abrigo', 'Abajo', 'Vestidos'].includes(p.tipo)) return null; const c = CAT_SUB[Motor.ficha(p).subtipo]; return c || (p.tipo === 'Arriba' ? 'Tops' : null); };
+  catArriba = p => catPor(p) || 'Tops';
+  CATS_ORDEN.splice(0, CATS_ORDEN.length, ...ARRIBA, 'Abrigos', 'Pantalones', 'Vaqueros', 'Faldas', 'Shorts', 'Vestidos', 'Zapatos', 'Bolsos', 'Accesorios');
+  Object.assign(CAT_ES, { Tops: 'Tops y bodies', Abrigos: 'Chaquetas y abrigos' });
+  Object.assign(TIPO_DE_CAT, { Camisetas: 'Arriba', 'Camisas y blusas': 'Arriba', Punto: 'Arriba', Sudaderas: 'Arriba', Vaqueros: 'Abajo', Shorts: 'Abajo' });
+  Object.assign(SUBCATS, { Tops: ['a crop top', 'a sleeveless top', 'a halter bodysuit', 'a peplum top'], Camisetas: ['a t-shirt', 'a polo shirt', 'a tank top'], 'Camisas y blusas': ['a blouse', 'a shirt'], Punto: ['a sweater', 'a cardigan', 'a knitted vest'], Sudaderas: ['a hoodie'],
+    Pantalones: ['trousers', 'wide leg pants', 'leggings'], Vaqueros: ['jeans'], Shorts: ['shorts'] });
+  for (const k in COMPLEMENTA) { const i = COMPLEMENTA[k].indexOf('Tops'); if (i >= 0) COMPLEMENTA[k].splice(i, 1, ...ARRIBA); const j = COMPLEMENTA[k].indexOf('Pantalones'); if (j >= 0) COMPLEMENTA[k].splice(j + 1, 0, 'Vaqueros'); }
   // Sheila, 01/11 (m. 1649): con el filtro Evento no salía ningún pantalón. La ocasión de una prenda también sale de las fórmulas del motor
   const ocasionesViejas = ocasionesPrenda;
   ocasionesPrenda = p => [...new Set([...ocasionesViejas(p), ...Motor.ocasionesDe(p)])];
@@ -105,21 +117,24 @@ if (AT) (() => {
     const [wt, ht] = top ? medidas(top) : [0, 0], [wg, hg] = grande ? medidas(grande) : [0, 0];
     const yG = top ? ht * (larga ? .87 : .93) : 0, ch = grande ? yG + hg : ht, cw = Math.max(wt, wg);
     const AIRE = Math.round(W * .04), med = lado.map(medidas), hueco = AIRE * Math.max(0, lado.length - 1), anchoL = lado.length ? W * (capas.length ? .42 : .34) : 0;
-    const base = lado.length ? Math.min(...med.map(([w]) => anchoL / w), (H - hueco) / med.reduce((t, [, h]) => t + h, 0)) : 0;
+    // cada pieza de la derecha, a su propia escala: lo que quepa en el ancho de la columna, con tope (como en los collages de Sheila, el bolso y los accesorios se ven grandes;
+    // el calzado y la capa, casi a escala real); si entre todas no caben en el alto, se reducen juntas
+    const tope = (p, k) => k * (['Bolsos', 'Accesorios'].includes(p.tipo) ? 1.6 : p.tipo === 'Calzado' ? 1.15 : 1);
+    const escalas = (k, ancho) => { const e = lado.map((p, j) => Math.min(ancho / med[j][0], tope(p, k))), tot = med.reduce((t, [, h], j) => t + h * e[j], 0); return tot > H - hueco ? e.map(x => x * (H - hueco) / tot) : e; };
     // dos pasadas: si la columna de la derecha sale más estrecha que su sitio, lo que sobra es para la principal
     let anchoP = lado.length ? W - anchoL - AIRE : W, s, esc, colL;
     for (let i = 0; i < 2; i++) {
       s = Math.min(anchoP / cw, H / ch);
-      esc = lado.map(p => Math.min(base, s * (['Bolsos', 'Accesorios'].includes(p.tipo) ? 1.4 : 1)));
+      esc = escalas(s, anchoL);
       colL = Math.max(0, ...med.map(([w], j) => w * esc[j]));
       anchoP = lado.length ? W - colL - AIRE : W;
     }
     // si a la derecha solo va el calzado, va junto al bajo y lo de arriba puede usar también el ancho que queda encima (un jersey con las mangas abiertas no se queda pequeño)
     const soloPies = top && grande && lado.length === 1 && lado[0].tipo === 'Calzado';
     if (soloPies) {
-      const cabe = k => Math.max(wt, wg) * k / 2 + Math.max(wt * k / 2, wg * k / 2 + AIRE + med[0][0] * Math.min(base, k)) <= W;
+      const cabe = k => Math.max(wt, wg) * k / 2 + Math.max(wt * k / 2, wg * k / 2 + AIRE + med[0][0] * escalas(k, anchoL)[0]) <= W;
       s = H / ch; while (s > .1 && !cabe(s)) s *= .98;
-      esc = [Math.min(base, s)]; colL = med[0][0] * esc[0];
+      esc = escalas(s, anchoL); colL = med[0][0] * esc[0];
     }
     const mW = cw * s, mH = ch * s, ejeX = mW / 2, altos = med.map(([, h], j) => h * esc[j]), sumaL = altos.reduce((a, b) => a + b, 0);
     const alto = Math.max(mH, sumaL + hueco), y0 = (alto - mH) / 2, out = [];
@@ -208,6 +223,15 @@ if (AT) (() => {
     let x0 = null;
     z.ontouchstart = e => { x0 = e.touches[0].clientX; };
     z.ontouchend = e => { if (x0 == null || lista.length < 2) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) mover(dx < 0 ? 1 : -1); };
+  };
+
+  /* ---------- Estilos (Sheila, 03/11, m. 1702: «más visuales, para que las personas se identifiquen con outfits que les gustan»): cada estilo con un look en foto, hecho
+     con Gemini (de nadie, sin marcas); la paleta del 22/10 (Gabriela: «me gusta con las paletas de colores») se queda debajo, en una tira. Decide Gabriela ---------- */
+  const FOTO_ESTILO = new Set(['oldmoney', 'clasico', 'minimalista', 'frances', 'casual', 'deportivo', 'urbano', 'rock', 'glam', 'retro', 'eclectico', 'romantico', 'boho']);
+  const pintarEstiloViejo = pintarEstilo;
+  pintarEstilo = function () {
+    pintarEstiloViejo();
+    document.querySelectorAll('#es-lista [data-estilo]').forEach(b => { if (!FOTO_ESTILO.has(b.dataset.estilo)) return; const tela = b.querySelector('.es-tela'); tela.insertAdjacentHTML('beforebegin', `<img class="es-foto" src="estilos/${b.dataset.estilo}.webp?v=1" alt="">`); tela.classList.add('es-mini'); });
   };
 
   /* ---------- al volver de una prenda o de un look, el clóset y Looks siguen donde estaban (la queja repetida de las apps de armario) ---------- */

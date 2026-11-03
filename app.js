@@ -1438,9 +1438,11 @@ function pintarCalendario(raiz) { // vista de mes de la 0.40–0.110; desde la 0
 /* ---------- CLÓSET ---------- */
 // 0.8 · categorías de tienda: lo de abajo se separa en pantalones y faldas por el nombre
 let catArriba = () => 'Tops'; // el diseño nuevo (at.js) separa las prendas de arriba
-const catDe = p => p.tipo === 'Abajo' ? (/falda|skirt/i.test(p.nombre) ? 'Faldas' : 'Pantalones') : p.tipo === 'Arriba' ? catArriba(p) : ({ Abrigo: 'Abrigos', Vestidos: 'Vestidos', Calzado: 'Zapatos', Bolsos: 'Bolsos', Accesorios: 'Accesorios' }[p.tipo] || p.tipo);
+let catPor = () => null; // y desde el 03/11 clasifica todo como las tiendas (Sheila: «estudia en Zara, Lefties, H&M, Pull and Bear las clasificaciones»)
+const CAT_ES = {}; // los nombres en español que cambia el diseño nuevo (Tops → Tops y bodies…)
+const catDe = p => catPor(p) || (p.tipo === 'Abajo' ? (/falda|skirt/i.test(p.nombre) ? 'Faldas' : 'Pantalones') : p.tipo === 'Arriba' ? catArriba(p) : ({ Abrigo: 'Abrigos', Vestidos: 'Vestidos', Calzado: 'Zapatos', Bolsos: 'Bolsos', Accesorios: 'Accesorios' }[p.tipo] || p.tipo));
 const CATS_ORDEN = ['Tops', 'Pantalones', 'Faldas', 'Vestidos', 'Abrigos', 'Zapatos', 'Bolsos', 'Accesorios'];
-const catTxt = c => idioma() === 'en' ? ({ Todo: 'All', Tops: 'Tops', Camisetas: 'T-shirts', 'Camisas y blusas': 'Shirts & blouses', Punto: 'Knitwear', Pantalones: 'Trousers', Faldas: 'Skirts', Vestidos: 'Dresses', Abrigos: 'Outerwear', Zapatos: 'Shoes', Bolsos: 'Bags', Accesorios: 'Accessories' }[c] || c) : c;
+const catTxt = c => idioma() === 'en' ? ({ Todo: 'All', Tops: 'Tops', Camisetas: 'T-shirts', 'Camisas y blusas': 'Shirts & blouses', Punto: 'Knitwear', Pantalones: 'Trousers', Faldas: 'Skirts', Vestidos: 'Dresses', Abrigos: 'Outerwear', Zapatos: 'Shoes', Bolsos: 'Bags', Accesorios: 'Accessories', Sudaderas: 'Sweatshirts', Vaqueros: 'Jeans', Shorts: 'Shorts' }[c] || c) : (CAT_ES[c] || c);
 E.f = { ocasion: [], estacion: [], color: [], uso: [], estado: [] };
 const FILTROS = () => [
   ['ocasion', t('Ocasión', 'Occasion'), OCASIONES.map(o => [o, ocNombre(o)])],
