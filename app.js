@@ -1191,7 +1191,7 @@ document.addEventListener('click', async e => {
   if (b.dataset.hzoc) {
     const k = diaISO(new Date()), h = new Date().getHours(), fr = h < 14 ? 'Mañana' : h < 20 ? 'Tarde' : 'Noche';
     E.agenda[k] = E.agenda[k] || { planes: [] }; E.agenda[k].planes = [{ id: uid(), oc: b.dataset.hzoc, fr, deHoy: 1 }, ...E.agenda[k].planes.filter(p => p.oc !== b.dataset.hzoc)];
-    E.hzPreg = false; E.propuestas = []; E.hoyIdx = 0; await guardar();
+    E.hzPreg = false; E.hoyDiario = false; E.propuestas = []; E.hoyIdx = 0; await guardar();
   } else E.hzPreg = !E.hzPreg;
   if (E.pantalla === 'looks') pintarLooks(); else pintarHoy();
 });

@@ -307,3 +307,8 @@ html.at .at-cuidar[open] summary .at-ic { transform: rotate(180deg); }
 html.at .at-cuidar ul { margin: 0; padding: 0 8px 12px; list-style: none; }
 html.at .at-cuidar li { font: 400 13px/1.5 var(--f); color: var(--sec); padding: 0 0 6px; text-wrap: balance; }
 html.at .at-cuidar + .at-lista { margin-top: 0; }
+/* 03/11, 15:3x (Gabriela: «el espacio entre los looks y "sin ropa de deporte" es muy poco») */
+html.at .at-hoy .at-nota, html.at .at-hoy .cal-falta { margin-top: 22px; }
+html.at .at-sinropa { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 0 32px 40px; }
+html.at .at-sinropa p { margin: 0; font: 400 16px/1.5 var(--f); color: var(--tinta); text-wrap: balance; }
+html.at .at-sinropa .at-falta-que { font-size: 14px; color: var(--sec); }
