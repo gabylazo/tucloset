@@ -141,9 +141,16 @@ const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.p
 async function api(ruta, op = {}) {
   const c = cuenta(), h = { ...(op.headers || {}) }; if (c?.token) h.Authorization = 'Bearer ' + c.token;
   if (op.json !== undefined) { h['Content-Type'] = 'application/json'; op.body = JSON.stringify(op.json); }
-  const r = await fetch(API + ruta, { method: op.method || 'GET', headers: h, body: op.body });
+  // 0.146 (Gabriela, 03/11: «entro y no se carga, se queda ahí pensando»): cada llamada tiene un tiempo máximo; una foto colgada ya no deja la app esperando
+  const ac = op.tiempo && typeof AbortController === 'function' ? new AbortController() : null, tm = ac && setTimeout(() => ac.abort(), op.tiempo);
+  let r; try { r = await fetch(API + ruta, { method: op.method || 'GET', headers: h, body: op.body, signal: ac?.signal }); } catch (e) { throw ac?.signal.aborted ? new Error('tiempo ' + Math.round(op.tiempo / 1000) + ' s') : e; } finally { clearTimeout(tm); }
   if (r.status === 401 && c && !/alta|entrar/.test(ruta)) { LS.set('tc_cuenta', null); toast(t('Tu sesión ha caducado: vuelve a entrar', 'Your session expired: sign in again')); }
   return r;
+}
+async function subirFoto(ruta, b) {
+  const fb = await aptaNube(b); let cuerpo;
+  try { cuerpo = await fb.arrayBuffer(); } catch (e) { throw new Error('leer ' + (e?.message || e)); }
+  const r = await api(ruta, { method: 'PUT', body: cuerpo, headers: { 'Content-Type': fb.type || 'image/jpeg' }, tiempo: 45000 }); if (!r.ok) throw new Error('http ' + r.status);
 }
 const sinBlobs = o => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => !(v instanceof Blob)));
 const firma = b => b ? b.size + ':' + (b.type || '') : '';
@@ -183,18 +190,24 @@ async function subirNube(reintento) {
       // borradas desde la última subida: se apuntan para que los otros móviles también las quiten, y su foto se borra del servidor
       const antes = JSON.parse(LS.get('tc_nube_ids') || '[]'), ahora = E.prendas.filter(p => !p.ejemplo).map(p => p.id);
       const fuera = antes.filter(id => !ahora.includes(id)); if (fuera.length) { const b = new Set(JSON.parse(LS.get('tc_nube_borradas') || '[]')); fuera.forEach(id => b.add(id)); LS.set('tc_nube_borradas', JSON.stringify([...b].slice(-2000))); for (const id of fuera) { api('/api/foto/' + id, { method: 'DELETE' }).catch(() => { }); api('/api/foto/' + id + '-o', { method: 'DELETE' }).catch(() => { }); api('/api/foto/' + id + '-c', { method: 'DELETE' }).catch(() => { }); } }
+      // 0.146: los datos van primero, para que las prendas lleguen a la cuenta aunque una foto tarde o falle; después, las fotos y, si sube alguna, otra vez los datos con su marca
+      const ponerDatos = async () => {
+        const r = await api('/api/datos', { method: 'PUT', json: { doc: docLocal(), version: +(LS.get('tc_nube_ver') || 0) }, tiempo: 40000 });
+        if (r.status === 409) return null; if (!r.ok) throw new Error('datos ' + r.status);
+        const d = await r.json(); LS.set('tc_nube_ver', d.version); LS.set('tc_nube_ids', JSON.stringify(ahora)); LS.set('tc_nube_cuando', d.actualizado); return d;
+      };
+      let d = await ponerDatos();
+      if (!d) { if (reintento) throw new Error('datos 409'); await bajarNube(); nubeEnCurso = null; return subirNube(true); }
+      E.nube = { estado: 'subiendo', cuando: d.actualizado }; pintarCuentaSiToca();
       let cambio = false, fallos = 0;
       for (const p of E.prendas) {
         if (p.ejemplo) continue;
         // 0.113: una foto que no sube ya no frena las demás ni los datos; se reintenta en la próxima subida
-        if (p.foto && p.fotoSub !== firma(p.foto)) { try { const fb = await aptaNube(p.foto); const r = await api('/api/foto/' + p.id, { method: 'PUT', body: fb, headers: { 'Content-Type': fb.type || 'image/jpeg' } }); if (!r.ok) throw new Error('foto ' + r.status); p.fotoSub = firma(p.foto); p.nube = Date.now().toString(36); cambio = true; } catch (e) { fallos++; avisarFallo('foto', e, p.foto); } } // nube = marca de la versión subida; fotoSub = qué foto local se subió
-        if (p.original && p.fotoSubO !== firma(p.original)) { try { const ob = await aptaNube(p.original); const r = await api('/api/foto/' + p.id + '-o', { method: 'PUT', body: ob, headers: { 'Content-Type': ob.type || 'image/jpeg' } }); if (!r.ok) throw new Error('original ' + r.status); p.fotoSubO = firma(p.original); p.nubeO = Date.now().toString(36); cambio = true; } catch (e) { avisarFallo('original', e, p.original); } }
+        if (p.foto && p.fotoSub !== firma(p.foto)) { try { await subirFoto('/api/foto/' + p.id, p.foto); p.fotoSub = firma(p.foto); p.nube = Date.now().toString(36); cambio = true; } catch (e) { fallos++; avisarFallo('foto', e, p.foto); } } // nube = marca de la versión subida; fotoSub = qué foto local se subió
+        if (p.original && p.fotoSubO !== firma(p.original)) { try { await subirFoto('/api/foto/' + p.id + '-o', p.original); p.fotoSubO = firma(p.original); p.nubeO = Date.now().toString(36); cambio = true; } catch (e) { avisarFallo('original', e, p.original); } }
       }
-      if (cambio) await BD.set('prendas', E.prendas);
-      const r = await api('/api/datos', { method: 'PUT', json: { doc: docLocal(), version: +(LS.get('tc_nube_ver') || 0) } });
-      if (r.status === 409 && !reintento) { await bajarNube(); nubeEnCurso = null; return subirNube(true); }
-      if (!r.ok) throw new Error('datos ' + r.status);
-      const d = await r.json(); LS.set('tc_nube_ver', d.version); LS.set('tc_nube_ids', JSON.stringify(ahora)); LS.set('tc_nube_cuando', d.actualizado); E.nube = { estado: fallos ? 'error' : 'ok', cuando: d.actualizado };
+      if (cambio) { await BD.set('prendas', E.prendas); d = await ponerDatos(); if (!d) { if (reintento) throw new Error('datos 409'); await bajarNube(); nubeEnCurso = null; return subirNube(true); } }
+      E.nube = { estado: fallos ? 'error' : 'ok', cuando: d.actualizado };
     } catch (e) { E.nube.estado = 'error'; avisarFallo('datos', e); }
     pintarCuentaSiToca();
   })();
@@ -203,7 +216,7 @@ async function subirNube(reintento) {
 // trae lo del servidor y lo junta con lo de este móvil: lo del servidor manda; lo que solo está aquí se queda (y se subirá)
 async function bajarNube() {
   if (!cuenta()) return false;
-  const r = await api('/api/datos'); if (!r.ok) return false;
+  const r = await api('/api/datos', { tiempo: 30000 }); if (!r.ok) return false;
   const { doc, version } = await r.json(); if (!doc) return false;
   const borr = new Set(doc.borradas || []); LS.set('tc_nube_borradas', JSON.stringify(doc.borradas || []));
   const locales = new Map(E.prendas.map(p => [p.id, p]));
@@ -212,9 +225,9 @@ async function bajarNube() {
   const nuevas = [], fotos = [], originales = [];
   for (const q of doc.prendas || []) {
     const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null, cat: l?.cat || null }; if (l?.fotoTorcida) p.fotoTorcida = l.fotoTorcida; delete p.conFoto; delete p.conOriginal;
-    if (q.conCat && (!p.cat || l?.nubeC !== q.nubeC)) (ST || Z14 || AT ? fotos : originales).push(async () => { try { const f = await api('/api/foto/' + q.id + '-c?v=' + (q.nubeC || '')); if (f.ok) { p.cat = await f.blob(); urlsCat.delete(q.id); if (typeof stRepintar === 'function') stRepintar(); } } catch (e) { } }); // 0.121: foto de catálogo (Gemini), solo la usa la propuesta 013
-    if (q.conFoto && (!l?.foto || l.nube !== q.nube)) fotos.push(async () => { try { const f = await api('/api/foto/' + q.id + '?v=' + (q.nube || '')); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } });
-    if (q.conOriginal && (!p.original || l?.nubeO !== q.nubeO)) originales.push(async () => { try { const f = await api('/api/foto/' + q.id + '-o?v=' + (q.nubeO || '')); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; } } catch (e) { } });
+    if (q.conCat && (!p.cat || l?.nubeC !== q.nubeC)) (ST || Z14 || AT ? fotos : originales).push(async () => { try { const f = await api('/api/foto/' + q.id + '-c?v=' + (q.nubeC || ''), { tiempo: 30000 }); if (f.ok) { p.cat = await f.blob(); urlsCat.delete(q.id); if (typeof stRepintar === 'function') stRepintar(); } } catch (e) { } }); // 0.121: foto de catálogo (Gemini), solo la usa la propuesta 013
+    if (q.conFoto && (!l?.foto || l.nube !== q.nube)) fotos.push(async () => { try { const f = await api('/api/foto/' + q.id + '?v=' + (q.nube || ''), { tiempo: 30000 }); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } });
+    if (q.conOriginal && (!p.original || l?.nubeO !== q.nubeO)) originales.push(async () => { try { const f = await api('/api/foto/' + q.id + '-o?v=' + (q.nubeO || ''), { tiempo: 30000 }); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; } } catch (e) { } });
     nuevas.push(p); locales.delete(q.id);
   }
   const aLaVez = async (tareas, n) => { let i = 0; await Promise.all(Array.from({ length: Math.min(n, tareas.length) }, async () => { while (i < tareas.length) await tareas[i++](); })); };
@@ -238,8 +251,8 @@ async function abrirCuenta(modo, correo, clave, nombre) {
   const d = await r.json().catch(() => ({}));
   if (!r.ok) { const m = ERR_CUENTA[d.error]; toast(m ? t(m[0], m[1]) : t('No se ha podido. Inténtalo de nuevo.', 'It did not work. Try again.')); return false; }
   LS.set('tc_cuenta', JSON.stringify({ token: d.token, correo: d.correo, nombre: d.nombre })); LS.set('tc_nube_ver', '0'); LS.set('tc_nube_ids', '[]');
-  if (modo === 'entrar') { E.nube.estado = 'bajando'; await bajarNube(); setTimeout(medirTodas, 1500); } // 0.95 (Gabriela, 24/10: «se demora demasiado»): al entrar ya no se repasan las prendas con el reconocedor (45 MB y varios minutos en el móvil)
-  await subirNube(); return true;
+  if (modo === 'entrar') { E.nube.estado = 'bajando'; try { await bajarNube(); } catch (e) { avisarFallo('bajar', e); } setTimeout(medirTodas, 1500); } // 0.95 (Gabriela, 24/10: «se demora demasiado»): al entrar ya no se repasan las prendas con el reconocedor (45 MB y varios minutos en el móvil)
+  subirNube().catch(() => { }); return true; // 0.146: lo de este móvil sube por detrás; entrar ya no espera a las fotos
 }
 async function cerrarSesion() {
   if (!await confirmar(t('¿Cerrar sesión?', 'Sign out?'), t('Tu clóset sigue guardado en tu cuenta. En este móvil se queda lo que ya tienes.', 'Your closet stays saved in your account. This phone keeps what it has.'), t('Cerrar sesión', 'Sign out'))) return;
