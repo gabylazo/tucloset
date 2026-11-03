@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.140'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.141'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -428,11 +428,13 @@ if (AT) (() => {
     const fila = ['Todos', 'Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].map(o => `<button class="${o === oc ? 'on' : ''}" data-ideaoc="${o}"${o === oc ? ' aria-current="true"' : ''}>${o === 'Todos' ? t('Todas', 'All') : ocNombre(o)}${DOS}</button>`).join('');
     const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button></figure>`; };
     const vendria = r.falta?.length && !en() && activas().length ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';
-    raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${w ? `<p class="at-para">${t('Para hoy', 'For today')}, ${Math.round(w.t)}°</p>` : ''}`
+    const vj = oc === 'Viaje' ? `<div class="at-vj-entrada"><button class="at-enlace" data-viaje>${t('Planear un viaje', 'Plan a trip')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button>${viajes().map(v => `<button class="at-enlace" data-viaje="${v.id}">${esc(v.destino)} · ${rango(v)}</button>`).join('')}</div>` : '';
+    raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${vj}${w && !vj ? `<p class="at-para">${t('Para hoy', 'For today')}, ${Math.round(w.t)}°</p>` : ''}`
       + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio">${activas().length ? `<p>${oc === 'Deporte' ? t('Aún no tienes ropa de deporte. Cuando la subas, tus looks saldrán aquí.', 'No sportswear yet. Once you add some, your looks will appear here.') : t('Con lo que tienes aún no sale un look completo para esta ocasión. Cuando subas más, saldrá aquí.', 'What you have doesn’t make a complete look for this occasion yet.')}</p>` : `<p>${t('Sube tu ropa y aquí saldrán tus ideas.', 'Add your clothes and your ideas will appear here.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>`}</div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
     deslizable(raiz.querySelector('.at-ocs-ideas'));
     raiz.onclick = async e => {
-      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria]'); if (!b) return;
+      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje]'); if (!b) return;
+      if (b.dataset.viaje != null) return abrirViaje(b.dataset.viaje);
       if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkTocado = true; return pintarLooks(); }
       if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; return pintarLooks(); }
       if (b.dataset.ideavendria != null) { E.ideaVendria = !E.ideaVendria; return pintarLooks(); }
@@ -440,6 +442,100 @@ if (AT) (() => {
       abrirIdea(lista[+b.dataset.idea]);
     };
   }
+  /* ---------- PLANNING TRAVEL (Pro; «Qué incluye cada plan»): destino, ida y días → un look por día con el tiempo de allí y la lista de la maleta.
+     Gabriela, 03/11: «todo lo que falta incorporarlo ya». El tiempo es la previsión de Open-Meteo hasta 16 días; más lejos, cómo fue esos días el año
+     pasado (y se dice). Los looks salen del motor con el tiempo de cada día y se eligen para repetir pantalón, calzado y abrigo y no repetir la parte
+     de arriba: la maleta, ligera. Los viajes se guardan en el perfil (local y nube) solos; «Borrar el viaje» los quita. ---------- */
+  const viajes = () => { E.perfil = E.perfil || {}; return (E.perfil.viajes = E.perfil.viajes || []); };
+  const masDias = (d, n) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() + n); return diaISO(x); };
+  const fDia = (d, o) => new Date(d + 'T12:00').toLocaleDateString(loc(), o);
+  const rango = v => { const a = v.desde, b = masDias(v.desde, v.dias - 1), m = { day: 'numeric', month: 'short' }; return a === b ? fDia(a, m) : a.slice(0, 7) === b.slice(0, 7) ? `${fDia(a, { day: 'numeric' })}–${fDia(b, m)}` : `${fDia(a, m)} – ${fDia(b, m)}`; };
+  async function tiempoViaje(lat, lon, desde, dias) {
+    const hasta = masDias(desde, dias - 1), previsto = hasta <= masDias(diaISO(new Date()), 15), atras = d => (+d.slice(0, 4) - 1) + (d.slice(4) === '-02-29' ? '-02-28' : d.slice(4));
+    const url = previsto ? `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,wind_speed_10m_max,uv_index_max&timezone=auto&start_date=${desde}&end_date=${hasta}`
+      : `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code,wind_speed_10m_max&timezone=auto&start_date=${atras(desde)}&end_date=${atras(hasta)}`;
+    const d = (await (await fetch(url)).json()).daily; if (!d?.time?.length) throw new Error('sin tiempo');
+    return { previsto, dias: d.time.map((_, i) => { const max = Math.round(d.temperature_2m_max[i]), min = Math.round(d.temperature_2m_min[i]), cod = d.weather_code[i] ?? 2;
+      return { t: Math.round((2 * max + min) / 3), max, min, cod, clave: claveTiempo(cod), lluvia: previsto ? d.precipitation_probability_max?.[i] ?? 0 : (d.precipitation_sum?.[i] >= 1 ? 70 : 10), viento: (d.wind_speed_10m_max?.[i] ?? 10) * .6, uv: d.uv_index_max?.[i] ?? 3 }; }) };
+  }
+  // el look de un día: entre los buenos del motor, el que menos prendas nuevas mete en la maleta, sin repetir la parte de arriba si se puede
+  function lookDeViaje(w, plan, hora, dia, usos, hechos) {
+    const r = Motor.looks({ prendas: activas(), tiempo: w, plan, perfil: E.perfil, n: 14, hoy: dia, hora, pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
+    const cs = deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)).filter(x => !hechos.has(x.ids.slice().sort().join()));
+    let mejor = null, min = 1e9;
+    cs.forEach((x, i) => { const c = i * .15 + x.ids.reduce((s, id) => { const p = P(id), n = usos.get(id) || 0; return !p ? s : !n ? s + 1 : p.tipo === 'Arriba' && !esCapa(p) ? s + 2.2 * n : s; }, 0); if (c < min) { min = c; mejor = x; } });
+    return mejor;
+  }
+  async function hacerViaje(f) {
+    const g = (await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(f.destino)}&count=1&language=${idioma()}`)).json()).results?.[0];
+    if (!g) throw new Error('destino');
+    const tv = await tiempoViaje(g.latitude, g.longitude, f.desde, f.dias), usos = new Map(), hechos = new Set(), plan = [];
+    const poner = (fecha, w, oc, hora) => { const x = lookDeViaje(w, oc, hora, fecha, usos, hechos); if (!x) return; x.ids.forEach(id => usos.set(id, (usos.get(id) || 0) + 1)); hechos.add(x.ids.slice().sort().join());
+      plan.push({ fecha, oc, ids: x.ids, zspec: x.zspec, como: x.como, w: { max: w.max, min: w.min, lluvia: w.lluvia, clave: w.clave } }); };
+    tv.dias.forEach((w, i) => poner(masDias(f.desde, i), w, f.motivo, 12));
+    const ultimo = tv.dias.length - 1; for (const oc of f.extras) poner(masDias(f.desde, Math.max(0, ultimo - (oc === 'Evento' ? 1 : 0))), tv.dias[Math.max(0, ultimo - (oc === 'Evento' ? 1 : 0))], oc, 21);
+    plan.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const tmin = Math.min(...tv.dias.map(w => w.min)), tmax = Math.max(...tv.dias.map(w => w.max));
+    if (!plan.length) { const e = new Error('sinlooks'); const g = n => String(n).replace('-', '−'); e.temp = t(`de ${g(tmin)}° a ${g(tmax)}°`, `${g(tmin)}° to ${g(tmax)}°`); e.falta = tmax < 12 ? t('te hace falta ropa de más abrigo', 'you need warmer clothes') : tmin > 22 ? t('te hace falta ropa más fresca', 'you need lighter clothes') : ''; throw e; }
+    return { id: uid(), destino: g.name, pais: g.country || '', desde: f.desde, dias: f.dias, motivo: f.motivo, extras: f.extras, previsto: tv.previsto, plan, listo: [], lluvia: tv.dias.some(w => w.lluvia >= 50), tmin, tmax, creado: Date.now() };
+  }
+  function abrirViaje(id) {
+    let cap = $('at-viaje'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-viaje'; cap.className = 'ay-capa at-vj'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); document.body.append(cap); }
+    const cerrar = () => { cap.remove(); if (E.pantalla === 'looks') pintarLooks(); };
+    const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>`;
+    const v = id && viajes().find(x => x.id === id);
+    if (planDemo() !== 'pro') { cap.innerHTML = `${X}<h1>${t('Tu viaje', 'Your trip')}</h1><p class="at-vj-sub">${t('Dices adónde vas y cuántos días, y te preparo un look para cada día con el tiempo de allí y la lista de la maleta.', 'Tell me where and for how many days, and I’ll plan a look for each day with the weather there and your packing list.')}</p><p class="at-vj-sub"><span class="dg-pro">Pro</span></p>`; cap.querySelector('.x').onclick = cerrar; return; }
+    if (!v) return formViaje(cap, X, cerrar);
+    const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25), m = Math.round(TW * .17), mh = Math.round(TH * .12);
+    const maleta = [...new Set(v.plan.flatMap(d => d.ids))].map(P).filter(Boolean), ORD = ['Abrigo', 'Arriba', 'Vestidos', 'Abajo', 'Calzado', 'Bolsos', 'Accesorios'];
+    maleta.sort((a, b) => ORD.indexOf(a.tipo) - ORD.indexOf(b.tipo) || catTxt(catDe(a)).localeCompare(catTxt(catDe(b))) || a.nombre.localeCompare(b.nombre));
+    const cosas = [...maleta.map(p => [p.id, p.nombre]), ...(v.lluvia ? [['paraguas', t('Paraguas', 'Umbrella')]] : [])];
+    const tmin = v.tmin ?? Math.min(...v.plan.map(d => d.w.min)), tmax = v.tmax ?? Math.max(...v.plan.map(d => d.w.max));
+    cap.innerHTML = `${X}<h1>${esc(v.destino)}</h1><p class="at-vj-datos">${rango(v)} · ${tmin}°–${tmax}°</p>${v.previsto ? '' : `<p class="at-vj-nota">${t('Aún no hay previsión: es el tiempo de esos días el año pasado.', 'No forecast yet: this is last year’s weather for those days.')}</p>`}
+      ${v.plan.length ? `<div class="at-rej2 at-vj-dias">${v.plan.map(d => `<figure class="at-t"><div class="at-bal" style="width:${TW}px;height:${TH}px">${figura(psDe(d), TW - 2 * m, TH - 2 * mh)}</div><figcaption>${fDia(d.fecha, { weekday: 'short', day: 'numeric' })}${ICO_T[d.w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(d.w.clave) ? 'nube' : d.w.clave] || ''}${d.w.max}°${d.w.lluvia >= 50 ? ICO_T.lluvia : ''}${d.oc !== v.motivo ? ` · ${ocNombre(d.oc)}` : ''}</figcaption></figure>`).join('')}</div>`
+        : `<p class="at-vj-sub">${t('Con tu ropa no sale un look para este viaje. Sube más y vuelve a probar.', 'Your clothes don’t make a look for this trip yet.')}</p>`}
+      ${cosas.length ? `<h2 class="at-vj-h2">${t('En la maleta', 'In the suitcase')} · ${cosas.length}</h2><ul class="at-vj-maleta">${cosas.map(([k, n]) => { const on = v.listo.includes(k); return `<li><button data-vjk="${k}" aria-pressed="${on}" class="${on ? 'on' : ''}"><span class="at-vj-caja" aria-hidden="true"></span>${esc(n)}</button></li>`; }).join('')}</ul>` : ''}
+      <div class="at-enlaces at-vj-pie"><button class="at-enlace" data-vjotra>${t('Otro viaje', 'Another trip')}</button><button class="at-enlace" data-vjborrar>${t('Borrar el viaje', 'Delete the trip')}</button></div>`;
+    cap.scrollTop = 0;
+    cap.onclick = async e => {
+      const b = e.target.closest('.x,[data-vjk],[data-vjotra],[data-vjborrar]'); if (!b) return;
+      if (b.classList.contains('x')) return cerrar();
+      if (b.dataset.vjk) { const k = b.dataset.vjk, on = !v.listo.includes(k); v.listo = on ? [...v.listo, k] : v.listo.filter(x => x !== k); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); return guardar(); }
+      if (b.dataset.vjotra != null) return abrirViaje();
+      if (b.dataset.vjborrar != null) { E.perfil.viajes = viajes().filter(x => x.id !== v.id); await guardar(); toast(t('Viaje borrado', 'Trip deleted')); return cerrar(); }
+    };
+  }
+  function formViaje(cap, X, cerrar) {
+    const F = E.vjForm = E.vjForm || { destino: '', desde: masDias(diaISO(new Date()), 1), dias: 3, motivo: 'Diario', extras: [] };
+    const opc = (k, v, txt, on) => `<button class="${on ? 'on' : ''}" data-vj${k}="${v}" aria-pressed="${on}">${txt}${DOS}</button>`;
+    cap.innerHTML = `${X}<h1>${t('Tu viaje', 'Your trip')}</h1>
+      <form class="at-vj-form" novalidate>
+        <label class="at-vj-campo"><span>${t('Destino', 'Destination')}</span><input id="vj-destino" type="text" autocomplete="off" enterkeyhint="done" placeholder="${t('Ciudad', 'City')}" value="${esc(F.destino)}" required></label>
+        <div class="at-vj-dos"><label class="at-vj-campo"><span>${t('Ida', 'Leaving')}</span><input id="vj-desde" type="date" min="${diaISO(new Date())}" value="${F.desde}"></label>
+          <label class="at-vj-campo"><span>${t('Días', 'Days')}</span><select id="vj-dias">${Array.from({ length: 14 }, (_, i) => `<option${i + 1 === F.dias ? ' selected' : ''}>${i + 1}</option>`).join('')}</select></label></div>
+        <p class="at-vj-et">${t('Para', 'For')}</p><div class="at-fila at-vj-ops">${opc('motivo', 'Diario', t('Ocio', 'Leisure'), F.motivo === 'Diario')}${opc('motivo', 'Oficina', t('Trabajo', 'Work'), F.motivo === 'Oficina')}</div>
+        <p class="at-vj-et">${t('Además', 'Also')}</p><div class="at-fila at-vj-ops">${opc('extra', 'Noche', t('Una noche de salir', 'A night out'), F.extras.includes('Noche'))}${opc('extra', 'Evento', t('Un evento', 'An event'), F.extras.includes('Evento'))}</div>
+        <p class="at-vj-error" role="alert"></p>
+        <button class="at-btn" type="submit">${t('Preparar la maleta', 'Pack my suitcase')}</button>
+      </form>${viajes().length ? `<h2 class="at-vj-h2">${t('Tus viajes', 'Your trips')}</h2><div class="at-enlaces at-vj-lista">${viajes().map(v => `<button class="at-enlace" data-vjver="${v.id}">${esc(v.destino)} · ${rango(v)}</button>`).join('')}</div>` : ''}`;
+    const lee = () => { F.destino = $('vj-destino').value.trim(); F.desde = $('vj-desde').value || F.desde; F.dias = +$('vj-dias').value; };
+    cap.onclick = e => {
+      const b = e.target.closest('.x,[data-vjmotivo],[data-vjextra],[data-vjver]'); if (!b) return; e.preventDefault(); lee();
+      if (b.classList.contains('x')) return cerrar();
+      if (b.dataset.vjver) return abrirViaje(b.dataset.vjver);
+      if (b.dataset.vjmotivo) F.motivo = b.dataset.vjmotivo; else { const x = b.dataset.vjextra; F.extras = F.extras.includes(x) ? F.extras.filter(y => y !== x) : [...F.extras, x]; }
+      formViaje(cap, X, cerrar);
+    };
+    cap.querySelector('form').onsubmit = async e => {
+      e.preventDefault(); lee(); const err = cap.querySelector('.at-vj-error'), bt = cap.querySelector('[type=submit]');
+      if (!F.destino) { err.textContent = t('Escribe adónde vas.', 'Write where you’re going.'); return $('vj-destino').focus(); }
+      if (F.desde < diaISO(new Date())) { err.textContent = t('La ida no puede ser antes de hoy.', 'The trip can’t start before today.'); return; }
+      bt.disabled = true; bt.textContent = t('Preparando…', 'Packing…'); err.textContent = '';
+      try { const v = await hacerViaje(F); viajes().unshift(v); E.perfil.viajes = viajes().slice(0, 12); await guardar(); E.vjForm = null; abrirViaje(v.id); }
+      catch (x) { bt.disabled = false; bt.textContent = t('Preparar la maleta', 'Pack my suitcase'); err.textContent = x.message === 'sinlooks' ? t(`Con tu ropa no sale un look para el tiempo de allí (${x.temp}).`, `Your clothes don’t make a look for the weather there (${x.temp}).`) + (x.falta ? ` ${x.falta.charAt(0).toUpperCase() + x.falta.slice(1)}.` : '') : x.message === 'destino' ? t('No encuentro ese destino. Prueba con el nombre de la ciudad.', 'I can’t find that place. Try the city name.') : t('Ahora no puedo saber el tiempo de allí. Prueba en un momento.', 'I can’t get the weather there right now. Try again shortly.'); }
+    };
+  }
+
   // una idea abierta: igual que un look, pero aún sin guardar
   function abrirIdea(x) {
     ir('look'); let r = $('at-look'); if (!r) { r = document.createElement('div'); r.id = 'at-look'; r.className = 'at-abierto'; $('p-look').append(r); }
