@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.143'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.144'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -610,9 +610,14 @@ if (AT) (() => {
       cap.innerHTML = `${X}<h1>${t('Inspírate en…', 'Get inspired by…')}</h1><p class="at-vj-sub">${t('Elige un estilo: te armo looks con tu ropa a su manera.', 'Pick a style: I’ll put together looks from your clothes its way.')}</p>
         <ul class="at-insp-lista">${ARQ.map(x => `<li><button data-arq="${x[0]}"><span class="at-insp-n">${L(x[1])}</span><span class="at-insp-d">${L(x[2])}</span></button></li>`).join('')}</ul>`;
     } else {
-      const r = Motor.looks({ prendas: activas(), tiempo: E.tiempo, plan: 'Todos', perfil: { ...(E.perfil || {}), estilos: a[3] }, n: 16, hoy: hoyISO(), pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
-      const FS = Array.isArray(Motor.F) ? Motor.F : Motor.F?.formulas || Object.values(Motor.F || {}), comun = x => { const f = FS.find(y => y?.id === x.formula); return (f?.estilos || []).filter(e => a[3].includes(e)).length; };
-      const looks = deVerdad('Todos', (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)).map((x, i) => ({ x, i, c: comun(x) })).filter(o => o.c > 0).sort((p, q) => q.c - p.c || p.i - q.i).slice(0, 6).map(o => o.x);
+      // todos los candidatos del motor (sin vetos, o solo a falta de abrigo); valen los de una fórmula de ese estilo: su estilo principal es del arquetipo
+      // o comparte dos. Así cada arquetipo enseña sus fórmulas y no los mismos looks de siempre (03/11: con su ropa, 17 looks distintos en los 11)
+      const r = Motor.looks({ prendas: activas(), tiempo: E.tiempo, plan: 'Todos', perfil: { ...(E.perfil || {}), estilos: a[3] }, n: 12, hoy: hoyISO(), pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est], depurar: true });
+      const FS = Array.isArray(Motor.F) ? Motor.F : Motor.F?.formulas || Object.values(Motor.F || {}), min = Motor.R.puntos?.umbrales?.mostrar_minimo ?? -1e9;
+      const cand = (r.todos || []).filter(l => (l.casi || !l.veto.duros.length) && l.nota >= min).map(l => { const fe = (FS.find(y => y?.id === l.formula?.id) || l.formula || {}).estilos || [], c = fe.filter(e => a[3].includes(e)).length; return { l, c, prim: a[3].includes(fe[0]) }; })
+        .filter(o => o.prim || o.c >= 2).sort((x, y) => (y.prim - x.prim) || (y.c - x.c) || (y.l.nota - x.l.nota)).map(o => ({ ...Motor.aPropuesta(o.l), faltaCapa: !!o.l.casi }));
+      const vistos = new Set(), arriba = new Set(), looks = [];
+      for (const pasada of [0, 1]) for (const x of deVerdad('Todos', cand)) { const kk = x.ids.slice().sort().join(); if (looks.length >= 6 || vistos.has(kk) || (!pasada && arriba.has(x.ids[0]))) continue; vistos.add(kk); arriba.add(x.ids[0]); looks.push(x); }
       const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
       E.inspLooks = looks;
       cap.innerHTML = `${X}<h1>${L(a[1])}</h1><p class="at-vj-sub">${L(a[2])}</p>
