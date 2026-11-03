@@ -51,7 +51,7 @@ const T = {
   privado: ['Las fotos se quedan en tu móvil. Solo tu silueta, sin tu cara, se usará para probarte la ropa.', 'Photos stay on your phone. Only your figure, without your face, will be used to try clothes on.'],
   buscar: ['Buscar en mi clóset', 'Search my closet'], nueva: ['Nueva prenda', 'New garment'], editar_prenda: ['Editar prenda', 'Edit garment'], borrar: ['Borrar', 'Delete'],
   hacer_foto: ['Haz una foto o elige una de la galería', 'Take a photo or pick one from the gallery'], foto_et: ['sobre fondo liso, la prenda entera', 'plain background, whole garment'],
-  nombre_prenda: ['Nombre', 'Name'], tipo: ['Tipo', 'Type'], categoria: ['Categoría', 'Category'], estacion: ['Estación', 'Season'], tiro_q: ['¿Dónde te llega la cinturilla?', 'Where does the waistband sit?'], tiro_ay: ['El punto dorado es el ombligo. Si no lo sabes, déjalo sin marcar.', 'The gold dot is your navel. If unsure, leave it blank.'], precio: ['Precio (si quieres)', 'Price (optional)'], color: ['Color', 'Colour'], notas: ['Notas (talla, tienda, cuidado…)', 'Notes (size, shop, care…)'],
+  nombre_prenda: ['Nombre', 'Name'], tipo: ['Tipo', 'Type'], categoria: ['Categoría', 'Category'], estacion: ['Estación', 'Season'], tiro_q: ['¿Dónde te llega la cinturilla?', 'Where does the waistband sit?'], tiro_ay: ['El punto dorado es el ombligo. Si no lo sabes, déjalo sin marcar.', 'The gold dot is your navel. If unsure, leave it blank.'], largo_q: ['¿Hasta dónde te llega?', 'Where does it end?'], largo_ay: ['El punto dorado es el ombligo. Con esto sé si va por dentro o por fuera y qué pantalones le van.', 'The gold dot is your navel. It tells me whether to tuck it in and which trousers suit it.'], precio: ['Precio (si quieres)', 'Price (optional)'], color: ['Color', 'Colour'], notas: ['Notas (talla, tienda, cuidado…)', 'Notes (size, shop, care…)'],
   guardar_closet: ['Guardar en mi clóset', 'Save to my closet'], guardar_otra: ['Guardar y añadir otra', 'Save and add another'], guardar_cambios: ['Guardar cambios', 'Save changes'],
   editar: ['Editar', 'Edit'], veces: ['veces puesta', 'times worn'], ultima: ['última vez', 'last worn'], conjuntos_min: ['conjuntos', 'outfits'], hoy_llevo: ['Hoy llevo esto', 'Wearing this today'],
   asi: ['Así te queda', 'How it looks on you'], ver_conjuntos: ['Ver conjuntos', 'See outfits'], conjuntos: ['Conjuntos', 'Outfits'], nuevo_conjunto: ['Nuevo conjunto', 'New outfit'],
@@ -1449,7 +1449,7 @@ const FILTROS = () => [
   ['estacion', t('Estación', 'Season'), ESTACIONES.map(x => [x, x])],
   ['color', 'Color', COLORES.map(([n, c]) => [n, c])],
   ['uso', t('Uso', 'Use'), [['nueva', t('Sin estrenar', 'Never worn')], ['olvidada', t('Sin poner en 3 meses', 'Not worn in 3 months')], ['mas', t('Las que más uso', 'Most worn')]]],
-  ['estado', t('Estado', 'Status'), [['', t('Lista para poner', 'Ready to wear')], ['lavar', t('Para lavar', 'To wash')], ['guardada', t('Guardada', 'Stored')]]]
+  ['estado', t('Estado', 'Status'), [['', t('Lista para poner', 'Ready to wear')], ['lavar', t('Sucia', 'In the wash')], ['guardada', t('Guardada', 'Stored')]]]
 ];
 // 0.44 (Sheila, 22/10: el filtro «Oficina» daba 0 prendas): la ocasión salía solo de los looks guardados; ahora cada prenda tiene
 // también las suyas por su nivel (deportivo, diario, arreglado, noche); el bolso y los accesorios valen para todo menos deporte
@@ -1489,7 +1489,7 @@ function pintarFiltros() {
   $('mc-ver').textContent = n === 1 ? t('Ver 1 prenda', 'See 1 garment') : t(`Ver ${n} prendas`, `See ${n} garments`);
 }
 function hojaFiltros(abrir) { $('mc-hoja').hidden = !abrir; $('mc-velo').hidden = !abrir; if (abrir) pintarFiltros(); }
-const estadoTxt = e => ({ lavar: t('A lavar', 'To wash'), guardada: t('Guardada', 'Stored'), donar: t('Para donar', 'To donate') }[e] || '');
+const estadoTxt = e => ({ lavar: t('Sucia', 'In the wash'), guardada: t('Guardada', 'Stored'), donar: t('Para donar', 'To donate') }[e] || '');
 
 /* ---------- SUBIR: varias prendas de golpe (patrón de Vinted) ---------- */
 function fondoABlanco(x, w, h) { // relleno desde los bordes: lo que es fondo liso pasa a blanco; devuelve la caja de la prenda y su color
@@ -1913,6 +1913,15 @@ function pintarTiro(sel) {
   $('an-tiro-c').classList.toggle('oculto', TIPO_DE_CAT[$('an-tipo').value] !== 'Abajo');
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-tiro]'); if (!b) return; pintarTiro($('an-tiro').dataset.sel === b.dataset.tiro ? '' : b.dataset.tiro); });
+// el largo de lo de arriba (Gabriela, 03/11: «la clasificación de las prendas en plan tops por encima del ombligo»): el mismo cuerpo, el punto dorado en el ombligo y el bajo de la prenda a cuatro alturas
+const LARGO_Y = { crop: 70, cintura: 92, cadera: 116, largo: 138 };
+const largoSVG = k => `<svg viewBox="0 0 120 150" role="img" aria-hidden="true"><path d="M52 4v13Q40 21 29 25Q23 48 29 68Q37 79 37 86Q31 101 31 119V150M68 4v13Q80 21 91 25Q97 48 91 68Q83 79 83 86Q89 101 89 119V150" fill="none" stroke="#CDBFB0" stroke-width="1" stroke-linecap="round"/><path d="M48 19Q60 27 72 19L91 26L99 50L89 53L85 42V${LARGO_Y[k]}H35V42L31 53L21 50L29 26Z" fill="#FBF8F3" stroke="#4A3526" stroke-width="1.15" stroke-linejoin="round"/><circle cx="60" cy="84" r="2.4" fill="#C9A24B"/></svg>`;
+function pintarLargo(sel) {
+  const c = $('an-largo'); if (!c) return; c.dataset.sel = sel || '';
+  c.innerHTML = [['crop', t('Sobre el ombligo', 'Above the navel')], ['cintura', t('A la cintura', 'At the waist')], ['cadera', t('A la cadera', 'At the hip')], ['largo', t('Más abajo', 'Longer')]].map(([k, n]) => `<button type="button" data-largo="${k}" class="${k === sel ? 'sel' : ''}">${largoSVG(k)}<span>${n}</span></button>`).join('');
+  $('an-largo-c').classList.toggle('oculto', TIPO_DE_CAT[$('an-tipo').value] !== 'Arriba');
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-largo]'); if (!b) return; pintarLargo($('an-largo').dataset.sel === b.dataset.largo ? '' : b.dataset.largo); });
 function prepararAnadir(id) {
   E.editando = id ? P(id) : null; fotoNueva = null; fotoOriginal = null;
   const p = E.editando;
@@ -1921,13 +1930,14 @@ function prepararAnadir(id) {
   $('an-guardar').textContent = p ? t('Guardar cambios', 'Save changes') : t('Guardar en mi clóset', 'Save to my closet');
   $('an-otra').classList.toggle('oculto', !!p);
   const cat0 = p ? catDe(p) : 'Tops'; $('an-tipo').innerHTML = opsCat(cat0); $('an-sub').innerHTML = opsSub(cat0, p ? subDe(cat0, p.x, p.nombre) : '');
-  $('an-tipo').onchange = () => { $('an-sub').innerHTML = opsSub($('an-tipo').value, ''); pintarTiro($('an-tiro').dataset.sel); };
+  $('an-tipo').onchange = () => { $('an-sub').innerHTML = opsSub($('an-tipo').value, ''); pintarTiro($('an-tiro').dataset.sel); pintarLargo($('an-largo')?.dataset.sel); };
   $('an-sub').onchange = () => { const k = $('an-sub').value, n = $('an-nombre').value.trim(); if (k && (!n || NOMBRE_AUTO.test(n))) $('an-nombre').value = nombreReconocido(k, $('an-colores').dataset.sel || 'Negro'); };
   $('an-estacion').innerHTML = ESTACIONES.map(x => `<option value="${x}">${estNombre(x)}</option>`).join('');
   $('an-nombre').value = p?.nombre || ''; $('an-estacion').value = p?.estacion || 'Todo el año'; $('an-notas').value = p?.notas || ''; $('an-precio').value = p?.precio ? dinero(p.precio) : '';
   pintarColores(p?.color || '');
   pintarPrevia(p ? urlFoto(p) : '');
   pintarTiro(p?.est?.tiro || '');
+  pintarLargo(p?.est?.largo || '');
 }
 function pintarColores(sel) {
   $('an-colores').innerHTML = COLORES.map(([n, c]) => `<button type="button" data-color="${n}" class="${n === sel ? 'sel' : ''}" title="${n}" style="background:${c}"></button>`).join('');
@@ -1952,6 +1962,7 @@ async function guardarPrenda(otra) {
   if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value) }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
   else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   const tiro = tipo === 'Abajo' && $('an-tiro').dataset.sel, pr = p || E.prendas[0]; if (tiro) pr.est = { ...(pr.est || {}), tiro };
+  const largo = tipo === 'Arriba' && $('an-largo')?.dataset.sel; if (largo) pr.est = { ...(pr.est || {}), largo };
   await guardar(); E.propuestas = [];
   toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'));
   if (otra) prepararAnadir(null); else ir(p ? 'ficha' : 'closet', p?.id), p && abrirFicha(p.id);
@@ -1977,7 +1988,7 @@ function abrirFicha(id) {
   $('f-estado').classList.toggle('oculto', !p.estado); $('f-estado').textContent = estadoTxt(p.estado);
   const conAvatar = planDemo() === 'pro' ? conj.find(c => c.img) : null; const primero = conj[0];
   $('f-asi').innerHTML = conAvatar ? `<div class="puesta"><img src="${conAvatar.img}" alt=""><div class="pie">${conAvatar.nombre}</div></div>` : primero ? `<div class="puesta">${maniqui(primero.ids.map(P).filter(Boolean))}<div class="pie">${primero.nombre}</div></div>` : `<div class="vacio">${t('Aún no está en ningún conjunto. Añádela a uno o pulsa «Hoy llevo esto».', 'Not in any outfit yet. Add it to one or tap “Wearing this today”.')}</div>`;
-  const acc = [['conjunto', t('Añadir a un conjunto', 'Add to an outfit')], ['lavar', p.estado === 'lavar' ? t('Ya está limpia', 'Clean again') : t('Enviar a lavar', 'Send to wash')], ['guardada', p.estado === 'guardada' ? t('Volver a sacarla', 'Bring it back out') : t('Guardar hasta la próxima estación', 'Store until next season')], ['donar', p.estado === 'donar' ? t('Me la quedo', 'Keeping it') : t('Donar o vender', 'Donate or sell')]];
+  const acc = [['conjunto', t('Añadir a un conjunto', 'Add to an outfit')], ['lavar', p.estado === 'lavar' ? t('Ya está limpia', 'Clean again') : t('Está sucia: que no salga en los looks', 'In the wash: keep it out of looks')], ['guardada', p.estado === 'guardada' ? t('Volver a sacarla', 'Bring it back out') : t('Guardar hasta la próxima estación', 'Store until next season')], ['donar', p.estado === 'donar' ? t('Me la quedo', 'Keeping it') : t('Donar o vender', 'Donate or sell')]];
   if (p.tipo !== 'Accesorios' && planDemo() === 'pro') acc.unshift(['partido', t('Sácale partido', 'Make the most of it')]); // 0.107: en el Pro (Gabriela, 28/10: «sácale partido, sí»)
   if (p.foto) acc.push(['girar', t('Girar la foto', 'Rotate the photo')]);
   $('f-acciones').innerHTML = acc.map(([k, v]) => `<button class="item" data-accion="${k}">${v}<svg><use href="#ic-flecha"/></svg></button>`).join('');

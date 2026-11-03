@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.134'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.135'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -33,6 +33,9 @@ if (AT) (() => {
   ocasionesPrenda = p => [...new Set([...ocasionesViejas(p), ...Motor.ocasionesDe(p)])];
   const caja = () => { const a = $('app'); return [Math.min(a.clientWidth || innerWidth, 430), a.clientHeight || innerHeight]; };
   const DOS = '<span class="at-dos" aria-hidden="true"></span>';
+  // los botones (Gabriela, 03/11: «son muy grandes… generan ruido visual, prueba dorados u otra forma, proponme varias opciones»): ?boton=1…4 elige uno en este navegador
+  // (1 contorno nogal fino, 2 contorno dorado, 3 dorado lleno, 4 solo letra con raya dorada); sin elegir, el 1. Decide ella
+  { const q = new URLSearchParams(location.search).get('boton'); let b = null; try { if (/^[1-4]$/.test(q || '')) localStorage.setItem('tc_boton', q); b = localStorage.getItem('tc_boton'); } catch (e) {} document.documentElement.dataset.boton = /^[1-4]$/.test(q || '') ? q : b || '1'; }
   const svg = d => `<svg class="at-ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
   const I = {
     sol: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>'),
@@ -66,7 +69,9 @@ if (AT) (() => {
     if (p.tipo === 'Calzado') return [26, 26 * r];
     if (p.tipo === 'Bolsos') { const L = 30; return r >= 1 ? [L / r, L] : [L, L * r]; }
     if (p.tipo === 'Accesorios') { const L = 20; return r >= 1 ? [L / r, L] : [L, L * r]; }
-    const L = largoDe(p); return [L / r, L];
+    // con manga larga la foto llega hasta el puño: casi 60 cm aunque el cuerpo sea corto (03/11: un top corto de manga larga salía diminuto junto al pantalón)
+    let L = largoDe(p); if (['Arriba', 'Abrigo'].includes(p.tipo) && typeof Motor !== 'undefined' && Motor.ficha(p).manga === 'larga') L = Math.max(L, 58);
+    return [L / r, L];
   }
   const eje = p => conCat(p) || p.muestra ? .5 : (p.caja?.[5] ?? .5);
   function lookAt(ps) {
@@ -104,45 +109,36 @@ if (AT) (() => {
       return attr ? html.replace(/^<(img|i) /, `<$1${attr} `) : html;
     }).join('');
   }
-  /* ---------- el look grande, como los collages de Pinterest (Sheila, 03/11, mensajes 1679 y 1689: «las prendas más grandes, más impactantes»; «que ocupen gran parte de la pantalla»)
-     Columna ancha a la izquierda: lo de arriba sobre lo de abajo (o el vestido), a escala real entre sí. Columna estrecha a la derecha, de arriba abajo: accesorios, la capa (entera, sin
-     pisar nada), el bolso y el calzado, este a la altura del bajo. Lo de la derecha nunca sale mayor que su tamaño real, salvo bolso y accesorios, que crecen hasta un 40 % para que se vean.
-     Sin nada a la derecha, la columna va sola y centrada. Medidas en px dentro de W × H. */
+  /* ---------- el look grande, repartido solo según las piezas que lleve (Gabriela, 03/11: «que se eligiera la distribución de las piezas automáticamente en función del número
+     de piezas que tenga el look»; «no entiendo por qué los zapatos están en ese lugar y hay tanto espacio en blanco libre arriba»). Se prueban todos los repartos en una o dos
+     columnas y gana el que deja la ropa más grande en la caja sin huecos: con dos piezas, una sobre otra; con tres, en diagonal (el pantalón a un lado; lo de arriba y los
+     zapatos al otro); con más, dos columnas parejas. Todas a la misma escala (real entre sí; bolso y accesorios, hasta un 60 % más; el calzado, un 15 %). Lo de arriba y lo
+     de abajo van juntos salvo que separarlos dé bastante más tamaño. Medidas en cm; figura() las lleva a la caja. ---------- */
   function collage(ps, W, H) {
     const rol = r => ps.filter(p => r.includes(p.tipo)), abrigo = rol(['Abrigo'])[0], sup = abrigo ? [abrigo, ...rol(['Arriba'])] : rol(['Arriba']); // de fuera hacia dentro
     const top = sup[sup.length - 1] || null, grande = rol(['Abajo', 'Vestidos'])[0];
     if (!top && !grande) return null;
-    const capas = sup.slice(0, -1), lado = [...rol(['Accesorios']).slice(0, 2), ...capas, rol(['Bolsos'])[0], rol(['Calzado'])[0]].filter(Boolean);
+    const lista = [...rol(['Accesorios']).slice(0, 2), ...sup.slice(0, -1), top, rol(['Bolsos'])[0], grande, rol(['Calzado'])[0]].filter(Boolean), n = lista.length; // de arriba abajo
     const dentro = ps.como === 'por dentro', larga = top && typeof Motor !== 'undefined' && Motor.ficha(top).manga === 'larga';
-    const [wt, ht] = top ? medidas(top) : [0, 0], [wg, hg] = grande ? medidas(grande) : [0, 0];
-    const yG = top ? ht * (larga ? .87 : .93) : 0, ch = grande ? yG + hg : ht, cw = Math.max(wt, wg);
-    const AIRE = Math.round(W * .04), med = lado.map(medidas), hueco = AIRE * Math.max(0, lado.length - 1), anchoL = lado.length ? W * (capas.length ? .42 : .34) : 0;
-    // cada pieza de la derecha, a su propia escala: lo que quepa en el ancho de la columna, con tope (como en los collages de Sheila, el bolso y los accesorios se ven grandes;
-    // el calzado y la capa, casi a escala real); si entre todas no caben en el alto, se reducen juntas
-    const tope = (p, k) => k * (['Bolsos', 'Accesorios'].includes(p.tipo) ? 1.6 : p.tipo === 'Calzado' ? 1.15 : 1);
-    const escalas = (k, ancho) => { const e = lado.map((p, j) => Math.min(ancho / med[j][0], tope(p, k))), tot = med.reduce((t, [, h], j) => t + h * e[j], 0); return tot > H - hueco ? e.map(x => x * (H - hueco) / tot) : e; };
-    // dos pasadas: si la columna de la derecha sale más estrecha que su sitio, lo que sobra es para la principal
-    let anchoP = lado.length ? W - anchoL - AIRE : W, s, esc, colL;
-    for (let i = 0; i < 2; i++) {
-      s = Math.min(anchoP / cw, H / ch);
-      esc = escalas(s, anchoL);
-      colL = Math.max(0, ...med.map(([w], j) => w * esc[j]));
-      anchoP = lado.length ? W - colL - AIRE : W;
+    const k = p => ['Bolsos', 'Accesorios'].includes(p.tipo) ? 1.6 : p.tipo === 'Calzado' ? 1.15 : 1, med = new Map(lista.map(p => [p, medidas(p).map(v => v * k(p))]));
+    const G = 4, monta = () => med.get(top)[1] * (larga ? .13 : .07); // aire entre piezas; lo de abajo entra un poco bajo lo de arriba (con manga larga, algo más)
+    const columna = l => { let y = 0, w = 0; const pos = l.map((p, i) => { if (i) y += p === grande && l[i - 1] === top ? -monta() : G; const y0 = y; y += med.get(p)[1]; w = Math.max(w, med.get(p)[0]); return y0; }); return { l, pos, h: y, w }; };
+    let mejor = null;
+    for (let m = 0; m < 1 << n; m += 2) { // la primera pieza, siempre en la columna A: cada reparto se mira una vez
+      const A = columna(lista.filter((_, i) => !(m >> i & 1))), bl = lista.filter((_, i) => m >> i & 1), B = bl.length ? columna(bl) : null;
+      const s = Math.min(W / (A.w + (B ? B.w + 2 * G : 0)), H / Math.max(A.h, B ? B.h : 0));
+      const parejo = B ? Math.min(A.h, B.h) / Math.max(A.h, B.h) : 1, separa = B && top && grande && A.l.includes(top) !== A.l.includes(grande);
+      const nota = s * (.75 + .25 * parejo) * (separa ? .85 : 1);
+      if (!mejor || nota > mejor.nota) mejor = { nota, A, B };
     }
-    // si a la derecha solo va el calzado, va junto al bajo y lo de arriba puede usar también el ancho que queda encima (un jersey con las mangas abiertas no se queda pequeño)
-    const soloPies = top && grande && lado.length === 1 && lado[0].tipo === 'Calzado';
-    if (soloPies) {
-      const cabe = k => Math.max(wt, wg) * k / 2 + Math.max(wt * k / 2, wg * k / 2 + AIRE + med[0][0] * escalas(k, anchoL)[0]) <= W;
-      s = H / ch; while (s > .1 && !cabe(s)) s *= .98;
-      esc = escalas(s, anchoL); colL = med[0][0] * esc[0];
-    }
-    const mW = cw * s, mH = ch * s, ejeX = mW / 2, altos = med.map(([, h], j) => h * esc[j]), sumaL = altos.reduce((a, b) => a + b, 0);
-    const alto = Math.max(mH, sumaL + hueco), y0 = (alto - mH) / 2, out = [];
-    if (top) out.push([top, ejeX - wt * s * eje(top), y0, wt * s, ht * s, dentro ? 1 : 2]);
-    if (grande) out.push([grande, ejeX - wg * s * eje(grande), y0 + yG * s, wg * s, hg * s, dentro ? 2 : 1]);
-    const xL = (soloPies ? ejeX + wg * s / 2 : mW) + AIRE, pon = (j, y) => { const w = med[j][0] * esc[j]; out.push([lado[j], xL + (colL - w) / 2, y, w, altos[j], 3]); };
-    if (lado.length === 1) { const p = lado[0], h = altos[0], y = p.tipo === 'Calzado' ? y0 + mH - h : p.tipo === 'Bolsos' ? y0 + mH * .45 - h / 2 : y0; pon(0, Math.max(0, Math.min(alto - h, y))); }
-    else { const sep = (alto - sumaL) / (lado.length - 1); let y = 0; lado.forEach((p, j) => { pon(j, y); y += altos[j] + sep; }); }
+    const { A, B } = mejor, alto = Math.max(A.h, B ? B.h : 0), out = [];
+    const z = p => p === top ? (dentro ? 1 : 2) : p === grande ? (dentro ? 2 : 1) : 3;
+    const poner = (c, x0) => {
+      const sobra = alto - c.h, ys = c.l.length === 1 ? [c.l[0].tipo === 'Calzado' ? sobra : sobra / 2] // una sola: el calzado abajo; lo demás, en medio
+        : c.pos.map((y, i) => y + sobra * i / (c.l.length - 1)); // varias: de arriba abajo, repartiendo lo que sobra entre ellas (sin hueco encima de los zapatos)
+      c.l.forEach((p, i) => { const [w, h] = med.get(p); out.push([p, x0 + c.w / 2 - w * eje(p), ys[i], w, h, z(p)]); });
+    };
+    poner(A, 0); if (B) poner(B, A.w + 2 * G);
     const x0 = Math.min(...out.map(o => o[1])), x1 = Math.max(...out.map(o => o[1] + o[3]));
     return { out: out.sort((a, b) => a[5] - b[5]).map(([p, x, y, w, h]) => [p, x - x0, y, w, h]), W: x1 - x0, H: alto };
   }
@@ -166,7 +162,7 @@ if (AT) (() => {
   /* ---------- HOY: el nombre, la fecha con el tiempo, el look grande y quieto; debajo, la ocasión y «Me lo pongo» ---------- */
   pintarHoy = function () {
     const pant = $('p-hoy'), w = E.tiempo, planHoy = eventoAhora()?.oc;
-    if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy || 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); E.propuestas = masCercanos(E.hoyFalta, E.propuestas); } }
+    if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy && hayOcasion(planHoy) ? planHoy : 'Todos'; proponer(); if (planHoy && E.plan === 'Todos' && !hayOcasion(planHoy)) E.hoyFalta = planHoy; if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); E.propuestas = masCercanos(E.hoyFalta, E.propuestas); } }
     const lista = E.propuestas; if ((E.hoyIdx || 0) >= lista.length) E.hoyIdx = 0; const pr = lista[E.hoyIdx || 0];
     const dia = new Date().toLocaleDateString(loc(), { weekday: 'long', day: 'numeric' }).replace(',', '');
     const cielo = w ? (w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(w.clave) ? 'nube' : w.clave) : null;
@@ -180,16 +176,17 @@ if (AT) (() => {
       return;
     }
     const ps = psDe(pr), oc = planHoy && !E.hoyFalta && pr.tipo !== 'conjunto' ? planHoy : (pr.c && pr.c.ocasion) || pr.ocasion || ocasionDe(ps);
-    const [ancho, alto] = caja(), W = Math.min(480, ancho - 60), H = Math.max(260, alto - 260);
+    const [ancho, alto] = caja(), W = Math.min(440, ancho - 72), H = Math.max(240, alto - 300);
     const muestra = ps.some(p => p.muestra);
     const flechas = lista.length > 1 ? `<button class="at-flecha iz" data-atmov="-1" aria-label="${t('Look anterior', 'Previous look')}">${I.iz}</button><button class="at-flecha de" data-atmov="1" aria-label="${t('Look siguiente', 'Next look')}">${I.de}</button>` : '';
-    const ocs = E.hzPreg ? `<div class="at-fila at-ocs">${OCASIONES.map(o => `<button class="${o === oc ? 'on' : ''}" data-hzoc="${o}">${ocNombre(o)}${DOS}</button>`).join('')}</div>` : '';
+    const ocs = E.hzPreg ? `<div class="at-fila at-ocs">${OCASIONES.filter(o => o === oc || hayOcasion(o)).map(o => `<button class="${o === oc ? 'on' : ''}" data-hzoc="${o}">${ocNombre(o)}${DOS}</button>`).join('')}</div>` : '';
     const fav = esFav(pr.ids), puesto = pr.ids.length > 0 && pr.ids.every(id => (P(id)?.usos || []).includes(hoyISO()));
-    // bajo el look, una sola fila como en Instagram (Sheila, 03/11, m. 1675; decide Gabriela): el corazón a la izquierda, la ocasión en medio y «No me gusta» a la derecha
-    pant.innerHTML = `<div class="at-pant">${cab}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}
-      <div class="at-acc"><button class="at-fav${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-oc" data-hzpreg aria-expanded="${!!E.hzPreg}" aria-label="${ocNombre(oc)}: ${t('cambiar la ocasión', 'change the occasion')}">${ocNombre(oc)}${I.abajo}</button><button class="at-enlace" id="at-no">${t('No me gusta', 'Not for me')}</button></div>${ocs}
-      ${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'With your coat on top: add it and it will show here' : `Con ${pr.capaFalta && pr.capaFalta !== 'abrigo' ? (pr.capaFalta === 'chaqueta' ? 'tu chaqueta' : 'tu ' + pr.capaFalta) : 'tu abrigo'} encima: súbelo y saldrá aquí`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : ''}</div>
-      <div class="at-pie"><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button></div></div>`;
+    // 03/11, tarde (Gabriela: «la página de inicio me da la sensación de apretado… y desorden»; «no me gusta eso de no me gusta»): la ocasión pasa a la cabecera, bajo la
+    // fecha; debajo del look, si hace falta, la nota; y abajo, juntos y centrados, el corazón y «Me lo pongo»
+    const nota = E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'With your coat on top: add it and it will show here' : `Con ${pr.capaFalta && pr.capaFalta !== 'abrigo' ? (pr.capaFalta === 'chaqueta' ? 'tu chaqueta' : 'tu ' + pr.capaFalta) : 'tu abrigo'} encima: súbelo y saldrá aquí`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : '';
+    const ocB = `<button class="at-oc" data-hzpreg aria-expanded="${!!E.hzPreg}" aria-label="${ocNombre(oc)}: ${t('cambiar la ocasión', 'change the occasion')}">${ocNombre(oc)}${I.abajo}</button>`;
+    pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocB + '</header>')}${ocs}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}${nota}</div>
+      <div class="at-pie"><button class="at-fav${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button></div></div>`;
     // el look ocupa el hueco que de verdad queda entre la cabecera y el botón (en cada móvil es distinto)
     const z = $('at-hoy'), ajustar = () => { const fig = z.querySelector('.at-look'); if (!fig || !z.clientHeight) return;
       const resto = [...z.children].filter(x => x !== fig && !x.classList.contains('at-flecha')).reduce((s, x) => s + x.offsetHeight + 6, 0), libre = Math.floor(z.clientHeight - resto - 12);
@@ -198,16 +195,6 @@ if (AT) (() => {
     const mover = d => { E.hoyIdx = ((E.hoyIdx || 0) + d + lista.length) % lista.length; E.hzPreg = false; pintarHoy(); };
     pant.querySelectorAll('[data-atmov]').forEach(b => b.onclick = () => mover(+b.dataset.atmov));
     $('at-pongo').onclick = async e => { const b = e.currentTarget; await ponerse(pr.ids, pr.c); await datosLook(pr); b.classList.add('hecho'); b.setAttribute('aria-pressed', 'true'); b.textContent = t('Puesto hoy', 'Worn today'); };
-    // «No me gusta» (Sheila, 23/10; se perdió al montar este diseño y lo echó en falta el 01/11, m. 1645): el look propuesto no vuelve y la app aprende qué prendas no quiere juntas
-    $('at-no').onclick = async () => {
-      anotarGusto(pr.ids, 'no'); const g = E.perfil.gustos, k = claveLook(pr.ids);
-      if (pr.tipo === 'propuesta') g.fuera = [...(g.fuera || []), k].slice(-300);
-      else { if (g.hoy?.d !== hoyISO()) g.hoy = { d: hoyISO(), k: [] }; g.hoy.k.push(k); }
-      await guardar();
-      lista.splice(E.hoyIdx || 0, 1); if ((E.hoyIdx || 0) >= lista.length) E.hoyIdx = 0;
-      if (!lista.length) { E.propuestas = []; E.hoyIdx = 0; }
-      pintarHoy(); toast(t('Anotado. Te propondré otras combinaciones', 'Noted. I’ll suggest other combinations'));
-    };
     // el corazón, y el doble toque sobre el look como en Instagram (un toque sobre una prenda abre su ficha, un instante después para distinguirlos)
     const fv = $('at-fav'), alternar = async quiero => { if (quiero != null && esFav(pr.ids) === quiero) { fv.classList.remove('late'); void fv.offsetWidth; fv.classList.add('late'); return; }
       await alternarFav(pr.ids, oc); await datosLook(pr); const on = esFav(pr.ids); fv.classList.toggle('on', on); fv.setAttribute('aria-pressed', on); fv.classList.remove('late'); void fv.offsetWidth; if (on) fv.classList.add('late'); };
@@ -248,7 +235,10 @@ if (AT) (() => {
   pintarCloset = function () {
     const todas = E.prendas, cats = ['Todo', ...CATS_ORDEN.filter(c => todas.some(p => catDe(p) === c))];
     if (!cats.includes(E.filtro)) E.filtro = 'Todo';
-    rejCats().innerHTML = cats.map(c => `<button class="${c === E.filtro ? 'activo' : ''}" data-filtro="${c}"${c === E.filtro ? ' aria-current="true"' : ''}>${catTxt(c)}${DOS}</button>`).join('');
+    if (E.filtro !== E.atFiltroAnt) { E.atCatsAbiertas = false; E.atFiltroAnt = E.filtro; }
+    const cuantas = c => c === 'Todo' ? todas.length : todas.filter(p => catDe(p) === c).length;
+    rejCats().innerHTML = `<button class="at-catsel" data-atcats aria-expanded="${!!E.atCatsAbiertas}">${catTxt(E.filtro)} <small>${cuantas(E.filtro)}</small>${I.abajo}</button>`
+      + (E.atCatsAbiertas ? `<div class="at-catlista">${cats.map(c => `<button class="${c === E.filtro ? 'activo' : ''}" data-filtro="${c}"${c === E.filtro ? ' aria-current="true"' : ''}>${catTxt(c)} <small>${cuantas(c)}</small></button>`).join('')}</div>` : '');
     const q = E.busca.trim().toLowerCase();
     const lista = todas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && pasaFiltros(p) && (!q || [p.nombre, p.color, catDe(p), p.notas].join(' ').toLowerCase().includes(q)));
     const nf = Object.values(E.f).reduce((s, v) => s + v.length, 0); $('mc-nf').textContent = nf || '';
@@ -259,6 +249,32 @@ if (AT) (() => {
     if (!$('mc-hoja').hidden) pintarFiltros();
   };
 
+  document.addEventListener('click', e => { if (!e.target.closest('[data-atcats]')) return; E.atCatsAbiertas = !E.atCatsAbiertas; pintarCloset(); });
+
+  /* ---------- cómo cuidar cada prenda (Gabriela, 03/11: «esa opción era para dar instrucciones de lavado de cada prenda, cómo tienes que lavarla para cuidarla»).
+     Pautas generales por tejido y tipo, sacadas del nombre; la etiqueta manda ---------- */
+  function cuidados(p) {
+    const n = ((p.nombre || '') + ' ' + (p.notas || '')).toLowerCase(), f = typeof Motor !== 'undefined' ? Motor.ficha(p) : {}, st = f.subtipo || '', out = [];
+    const T = (es, en_) => out.push(t(es, en_));
+    if (p.tipo === 'Calzado') { /piel|cuero|ante\b|antelina/.test(n) || !/lona|tela|deportiv|zapatilla/.test(n) ? T('Cepíllalos y dales crema de su color; si se mojan, sécalos con papel dentro y lejos del radiador.', 'Brush them and use matching cream; if they get wet, stuff with paper and dry away from heat.') : T('A mano, con agua tibia y jabón neutro; sécalas al aire, nunca en la secadora.', 'By hand with lukewarm water and mild soap; air-dry, never tumble-dry.'); }
+    else if (p.tipo === 'Bolsos') T('Límpialo con un paño seco y guárdalo relleno de papel, para que no pierda la forma.', 'Wipe with a dry cloth and store it stuffed with paper so it keeps its shape.');
+    else if (p.tipo === 'Accesorios') T('Guárdalo aparte y lejos del perfume y la humedad.', 'Store it separately, away from perfume and damp.');
+    else if (/piel|cuero|polipiel|antelina|\bante\b/.test(n) || ['cazadora_cuero'].includes(st)) T('No va a la lavadora: límpiala con un paño húmedo y, si se mancha, a la tintorería.', 'No washing machine: wipe with a damp cloth; take stains to a dry cleaner.');
+    else if (/pluma|plumífero|plumifero|acolchad/.test(n) || ['plumifero', 'chaleco_acolchado'].includes(st)) T('Programa delicado en frío y sin suavizante; sécalo a baja temperatura con dos pelotas de tenis para que no se apelmace.', 'Gentle cold cycle, no softener; tumble-dry low with two tennis balls so it doesn’t clump.');
+    else if (['abrigo_lana', 'gabardina', 'americana', 'chaleco_traje', 'abrigo_generico'].includes(st)) T('Mejor a la tintorería; entre usos, cepíllalo y déjalo airear en una percha ancha.', 'Best dry-cleaned; between wears, brush it and air it on a wide hanger.');
+    else if (/seda|sat[eé]n/.test(n)) T('A mano en agua fría con jabón neutro, sin retorcer; plánchala del revés y a baja temperatura.', 'Hand-wash cold with mild soap, don’t wring; iron inside out on low.');
+    else if (/lana|cachemir|cashmere|merino|alpaca|mohair/.test(n)) T('A mano o con el programa de lana, en frío; sécalo en plano sobre una toalla y guárdalo doblado: en percha se deforma.', 'Hand-wash or wool cycle, cold; dry flat on a towel and store folded: hangers stretch it.');
+    else if (p.tipo === 'Abajo' && (st === 'vaquero' || /vaquer|jean|denim/.test(n))) T('Del revés, en frío (30 °C) y solo cuando haga falta; tendido, sin secadora: así no destiñe ni encoge.', 'Inside out, cold (30 °C) and only when needed; line-dry, no dryer, so it won’t fade or shrink.');
+    else if (/lino/.test(n)) T('A 30–40 °C con programa suave; plánchalo aún húmedo.', 'Gentle wash at 30–40 °C; iron while still damp.');
+    else if (['jersey', 'jersey_cuello_alto', 'cardigan', 'chaleco_punto'].includes(st) || /punto|canal/.test(n)) T('Del revés, programa delicado a 30 °C; sécalo en plano y guárdalo doblado.', 'Inside out, delicate cycle at 30 °C; dry flat and store folded.');
+    else if (['camisa', 'blusa', 'sobrecamisa'].includes(st)) T('A 30 °C con programa de camisas; cuélgala en percha nada más sacarla y casi no hará falta plancharla.', 'Shirt cycle at 30 °C; hang it straight away and it will barely need ironing.');
+    else if (p.tipo === 'Abajo' && /pinzas|vestir|traje|raya/.test(n)) T('Programa delicado a 30 °C o tintorería; cuélgalo por el bajo para que no se marque la raya.', 'Delicate cycle at 30 °C or dry-clean; hang it by the hem so the crease stays.');
+    else T('A 30 °C, del revés si tiene estampado; tiéndela a la sombra para que no pierda el color.', 'At 30 °C, inside out if printed; dry in the shade so it keeps its colour.');
+    if (!['Calzado', 'Bolsos', 'Accesorios'].includes(p.tipo)) { if (/negr|marino|oscur/.test(n) || ['Negro', 'Azul marino'].includes(p.color)) T('Con la ropa oscura y del revés, para que no se apague el negro.', 'With darks and inside out, so the black stays deep.'); else if (/blanc/.test(n) || p.color === 'Blanco') T('Aparte de los colores, con la ropa blanca.', 'Separately from colours, with whites.'); }
+    T('Si la etiqueta dice otra cosa, manda la etiqueta.', 'If the label says otherwise, follow the label.');
+    return out;
+  }
+
   /* ---------- PRENDA: la foto, el nombre, una línea de datos y sus looks; «Crear un look»; el resto, en enlaces debajo ---------- */
   const abrirFichaViejo = abrirFicha;
   abrirFicha = function (id) {
@@ -266,7 +282,9 @@ if (AT) (() => {
     let r = $('at-ficha'); if (!r) { r = document.createElement('div'); r.id = 'at-ficha'; r.className = 'at-ficha'; $('p-ficha').append(r); }
     const usos = p.usos || [], conj = E.conjuntos.filter(c => c.ids.includes(id));
     const sub = (NOM_X[p.x] || [])[en() ? 1 : 0] || catTxt(catDe(p));
-    const datos = [sub, p.color, estNombre(p.estacion), usos.length ? t(`Puesta ${veces(usos.length)}`, `Worn ${veces(usos.length)}`) : t('Sin estrenar', 'Not worn yet')].filter(Boolean).map(esc).join(' · ');
+    const fz = Motor.ficha(p), TIRO = { alto: t('Tiro alto', 'High rise'), medio: t('Tiro medio', 'Mid rise'), bajo: t('Tiro bajo', 'Low rise') }, LARGO = { crop: t('Corto, sobre el ombligo', 'Cropped, above the navel'), cintura: t('A la cintura', 'Waist length'), cadera: t('A la cadera', 'Hip length'), largo: t('Largo', 'Long') };
+    const forma = p.tipo === 'Abajo' ? TIRO[fz.tiro] : p.tipo === 'Arriba' ? LARGO[fz.largo] : '';
+    const datos = [sub, forma, p.color, estNombre(p.estacion), usos.length ? t(`Puesta ${veces(usos.length)}`, `Worn ${veces(usos.length)}`) : t('Sin estrenar', 'Not worn yet')].filter(Boolean).map(esc).join(' · ');
     const precio = p.precio ? `${dinero(p.precio)}${usos.length ? ` · ${dinero(p.precio / usos.length)} ${t('por puesta', 'per wear')}` : ''}` : '';
     // sus looks; si aún no tiene, los dos que mejor le van con tu ropa (al tocarlos, se crean)
     let looks = conj.slice(0, 8).map(c => ({ ps: psDe(c), attr: ` data-look="${c.id}" aria-label="${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}"` }));
@@ -283,6 +301,7 @@ if (AT) (() => {
       ${p.estado ? `<p class="at-estado">${estadoTxt(p.estado)}</p>` : ''}<h1 class="at-h1">${esc(p.nombre)}</h1><p class="at-datos">${datos}</p>${precio ? `<p class="at-datos">${precio}</p>` : ''}
       ${looks.length ? `<div class="at-minis${looks.length > 2 ? ' muchos' : ''}">${looks.map(x => baldosa(x.ps, MW, MH, x.attr)).join('')}</div>` : ''}
       <div class="at-acciones"><button class="at-btn" data-ir="nuevo-look" data-atpre="${id}">${t('Crear un look', 'Create a look')}</button></div>
+      <section class="at-cuidar"><h2>${t('Cómo cuidarla', 'How to care for it')}</h2><ul>${cuidados(p).map(x => `<li>${esc(x)}</li>`).join('')}</ul></section>
       <nav class="at-lista" aria-label="${t('Acciones de la prenda', 'Garment actions')}">${acc.map(([k, v]) => `<button data-atfacc="${k}">${esc(v)}</button>`).join('')}</nav>
       <p class="at-nota-fin">${esc($('f-nota').textContent)}</p>`;
     r.onclick = e => {
@@ -355,7 +374,12 @@ if (AT) (() => {
     const r = Motor.looks({ prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
     ultima[plan + n] = { firma, r }; return r;
   };
-  const propuestasDe = (plan, n) => { const r = pedirMotor(plan, n); return (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta); };
+  // Gabriela, 03/11: «tampoco que te inventes categorías si no hay ropa para eso: por ejemplo deporte, no tengo subida ropa de deporte, ¿y me pones un conjunto?»
+  const DEPORTIVO = new Set(['malla', 'jogger', 'camiseta_tecnica', 'top_deportivo', 'chaqueta_deportiva', 'forro_polar', 'botas_montana']);
+  const deVerdad = (plan, l) => plan !== 'Deporte' ? l : l.filter(x => x.ids.some(id => P(id) && DEPORTIVO.has(Motor.ficha(P(id)).subtipo)));
+  const propuestasDe = (plan, n) => { const r = pedirMotor(plan, n); return deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)); };
+  // una ocasión sale en los filtros solo si con tu ropa hay al menos un look para ella
+  const hayOcasion = o => o === 'Todos' || propuestasDe(o, 4).length > 0;
   generarLooks = (n, plan) => propuestasDe(plan || 'Todos', n).map(x => ({ ...x, prin: x.ids[0] }));
   // al guardar un look del motor, también su zapato y cómo se lleva la de arriba
   const datosLook = async x => { if (!x.zspec && !x.como) return; const k = claveLook(x.ids), cj = E.conjuntos.find(c => claveLook(c.ids) === k); if (cj && !cj.zspec && !cj.como) { cj.zspec = x.zspec; cj.como = x.como; await guardar(); } };
@@ -377,9 +401,9 @@ if (AT) (() => {
 
   /* ---------- IDEAS: lo que el motor saca de su ropa para el tiempo de hoy, en rejilla como Pinterest; el corazón guarda sin abrir; sin frases a la vista ---------- */
   function pintarIdeas(raiz) {
-    const oc = E.ideaOc || 'Todos', r = pedirMotor(oc, 12), lista = E.ideas = (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta), w = E.tiempo;
+    const oc = E.ideaOc || 'Todos', r = pedirMotor(oc, 12), lista = E.ideas = deVerdad(oc, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)), w = E.tiempo;
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
-    const fila = ['Todos', 'Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].map(o => `<button class="${o === oc ? 'on' : ''}" data-ideaoc="${o}"${o === oc ? ' aria-current="true"' : ''}>${o === 'Todos' ? t('Todas', 'All') : ocNombre(o)}${DOS}</button>`).join('');
+    const fila = ['Todos', 'Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].filter(o => o === oc || hayOcasion(o)).map(o => `<button class="${o === oc ? 'on' : ''}" data-ideaoc="${o}"${o === oc ? ' aria-current="true"' : ''}>${o === 'Todos' ? t('Todas', 'All') : ocNombre(o)}${DOS}</button>`).join('');
     const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button></figure>`; };
     const vendria = r.falta?.length && !en() && activas().length ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';
     raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${w ? `<p class="at-para">${t('Para hoy', 'For today')}, ${Math.round(w.t)}°</p>` : ''}`
