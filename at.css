@@ -302,3 +302,4 @@ html.at .at-cuidar h2 { font: 500 11.5px/1 var(--f); letter-spacing: .14em; text
 html.at .at-cuidar ul { margin: 0; padding: 0; list-style: none; }
 html.at .at-cuidar li { font: 400 14px/1.5 var(--f); color: var(--sec); padding: 0 0 8px; text-wrap: balance; }
 html.at .at-pie::after { content: ''; width: 44px; flex: none; } /* el botón queda en el eje de la pantalla y el corazón a su izquierda */
+html.at .at-hoy summary { min-height: 44px; display: inline-flex; align-items: center; }
