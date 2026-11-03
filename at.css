@@ -316,7 +316,7 @@ html.at .at-sinropa .at-falta-que { font-size: 14px; color: var(--sec); }
 html.at .at-vj-entrada { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 20px 4px; }
 html.at .at-vj-entrada .dg-pro { margin-left: 8px; }
 html.at .at-vj { text-align: center; }
-html.at .at-vj h1 { font-family: 'Bellefair', serif; font-size: 32px; margin: 6px 0 6px; }
+html.at .at-vj h1 { font-family: 'Bellefair', serif; font-size: 32px; line-height: 1.15; margin: 6px 0 6px; padding: 0 40px; text-wrap: balance; }
 html.at .at-vj-sub { max-width: 30ch; margin: 10px auto 18px; font-size: 15px; line-height: 1.5; color: var(--sec); text-wrap: balance; }
 html.at .at-vj-datos { margin: 0 0 6px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--sec); }
 html.at .at-vj-nota { max-width: 32ch; margin: 0 auto 6px; font-size: 12.5px; line-height: 1.5; color: var(--sec); }
@@ -349,3 +349,11 @@ html.at .at-cap-cuenta { margin: 18px 0 12px; }
 html.at .at-cap-prendas { display: grid; grid-template-columns: repeat(3, auto); justify-content: center; gap: 8px; padding: 0 20px; }
 html.at .at-cap-p { display: grid; place-items: center; padding: 10%; background: var(--baldosa); border: 0; cursor: pointer; }
 html.at .at-cap-p { overflow: hidden; } html.at .at-cap-p img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
+/* 03/11 · Inspírate en… */
+html.at .at-insp-lista { list-style: none; margin: 4px auto 0; padding: 0; max-width: 380px; }
+html.at .at-insp-lista li { border-top: 1px solid var(--raya); }
+html.at .at-insp-lista li:last-child { border-bottom: 1px solid var(--raya); }
+html.at .at-insp-lista button { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; min-height: 64px; padding: 12px 8px; background: none; border: 0; cursor: pointer; color: var(--tinta); }
+html.at .at-insp-n { font-family: 'Bellefair', serif; font-size: 20px; line-height: 1.2; }
+html.at .at-insp-d { font-size: 13px; line-height: 1.4; color: var(--sec); text-wrap: balance; }
+html.at .at-insp .x svg { width: 20px; height: 20px; }

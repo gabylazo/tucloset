@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.142'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.143'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -429,13 +429,15 @@ if (AT) (() => {
     const fila = ['Todos', 'Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].map(o => `<button class="${o === oc ? 'on' : ''}" data-ideaoc="${o}"${o === oc ? ' aria-current="true"' : ''}>${o === 'Todos' ? t('Todas', 'All') : ocNombre(o)}${DOS}</button>`).join('');
     const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button></figure>`; };
     const vendria = r.falta?.length && !en() && activas().length ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';
+    const insp = oc === 'Todos' ? `<div class="at-vj-entrada"><button class="at-enlace" data-inspira>${t('Inspírate en…', 'Get inspired by…')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button></div>` : '';
     const vj = oc === 'Viaje' ? `<div class="at-vj-entrada"><button class="at-enlace" data-viaje>${t('Planear un viaje', 'Plan a trip')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button>${viajes().map(v => `<button class="at-enlace" data-viaje="${v.id}">${esc(v.destino)} · ${rango(v)}</button>`).join('')}</div>` : '';
-    raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${vj}${w && !vj ? `<p class="at-para">${t('Para hoy', 'For today')}, ${Math.round(w.t)}°</p>` : ''}`
+    raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${insp}${vj}${w && !vj ? `<p class="at-para">${t('Para hoy', 'For today')}, ${Math.round(w.t)}°</p>` : ''}`
       + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio">${activas().length ? `<p>${oc === 'Deporte' ? t('Aún no tienes ropa de deporte. Cuando la subas, tus looks saldrán aquí.', 'No sportswear yet. Once you add some, your looks will appear here.') : t('Con lo que tienes aún no sale un look completo para esta ocasión. Cuando subas más, saldrá aquí.', 'What you have doesn’t make a complete look for this occasion yet.')}</p>` : `<p>${t('Sube tu ropa y aquí saldrán tus ideas.', 'Add your clothes and your ideas will appear here.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>`}</div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
     deslizable(raiz.querySelector('.at-ocs-ideas'));
     raiz.onclick = async e => {
-      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje]'); if (!b) return;
+      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje],[data-inspira]'); if (!b) return;
       if (b.dataset.viaje != null) return abrirViaje(b.dataset.viaje);
+      if (b.dataset.inspira != null) return abrirInspira();
       if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkTocado = true; return pintarLooks(); }
       if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; return pintarLooks(); }
       if (b.dataset.ideavendria != null) { E.ideaVendria = !E.ideaVendria; return pintarLooks(); }
@@ -580,6 +582,50 @@ if (AT) (() => {
       if (b.dataset.capn) { F.n = +b.dataset.capn; return abrirCapsula(); }
       if (b.dataset.capficha) { cap.remove(); return abrirFicha(b.dataset.capficha); }
       if (b.dataset.caplook) { cap.remove(); return abrirIdea(looks[+b.dataset.caplook]); }
+    };
+  }
+
+  /* ---------- INSPÍRATE EN… (Pro; equipo/moda/2026-10-22-inspirate-en.md, «sí a todos» de Gabriela el 22/10): once arquetipos de estilo, sin nombres de
+     famosas ni fotos (recomendación de la nota legal hasta que Legal diga otra cosa). Al elegir uno, el motor busca looks con tu ropa como si tus estilos
+     fueran los suyos (solo para esa búsqueda: tu perfil no cambia) y se ordenan por las fórmulas que comparten esos estilos. ---------- */
+  const ARQ = [
+    ['hollywood', ['Hollywood relajado', 'Relaxed Hollywood'], ['Neutros, prendas grandes sobre básicos y vaqueros.', 'Neutrals, oversized pieces over basics, denim.'], ['frances', 'minimalista', 'casual']],
+    ['tonal', ['Tonal de lujo', 'Tonal luxe'], ['Todo del mismo tono, en tierras y nudes, líneas limpias.', 'One tone head to toe, earthy and nude, clean lines.'], ['glam', 'minimalista']],
+    ['modelo', ['Modelo fuera de servicio', 'Off-duty model'], ['Básicos bien elegidos, vaqueros, cuero y siluetas largas.', 'Well-chosen basics, denim, leather, long lines.'], ['casual', 'urbano', 'minimalista']],
+    ['limpia', ['Limpia, deportiva y elegante', 'Clean, sporty and polished'], ['Blancos y neutros, americana sobre ropa cómoda.', 'Whites and neutrals, a blazer over comfy pieces.'], ['minimalista', 'deportivo']],
+    ['sastreria', ['Sastrería con juego', 'Playful tailoring'], ['Sastrería, conjuntos coordinados y color con intención.', 'Tailoring, matching sets, colour on purpose.'], ['clasico', 'glam', 'eclectico']],
+    ['americano', ['Clásico americano relajado', 'Relaxed American classic'], ['Vaqueros, camisetas y jerséis finos, en neutros.', 'Jeans, tees and fine knits in neutrals.'], ['clasico', 'casual', 'minimalista']],
+    ['oldmoney', ['Old money', 'Old money'], ['Crema, beige y blanco, tejidos finos, sin logos.', 'Cream, beige and white, fine fabrics, no logos.'], ['oldmoney', 'minimalista']],
+    ['boho', ['Boho chic', 'Boho chic'], ['Capas, vestidos largos, tierra y estampados.', 'Layers, long dresses, earth tones and prints.'], ['boho', 'casual']],
+    ['sinreglas', ['Sin reglas', 'No rules'], ['Grande con ceñido, color y brillo, sin miedo.', 'Big with fitted, colour and shine, fearless.'], ['eclectico', 'urbano', 'glam']],
+    ['preppy', ['Romántico con un punto preppy', 'Romantic with a preppy touch'], ['Vestidos y faldas, jerséis y cárdigan, un toque rojo.', 'Dresses and skirts, jumpers and cardigans, a touch of red.'], ['romantico', 'oldmoney']],
+    ['brillo', ['Urbano con brillo', 'Street with shine'], ['Deportivo, cuero y brillo con actitud.', 'Sporty, leather and shine with attitude.'], ['urbano', 'glam', 'retro']],
+  ];
+  function abrirInspira(k) {
+    let cap = $('at-inspira'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-inspira'; cap.className = 'ay-capa at-vj at-insp'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); document.body.append(cap); }
+    const X = `<button class="x" aria-label="${k ? t('Volver', 'Back') : t('Cerrar', 'Close')}">${k ? I.iz : '<svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg>'}</button>`, L = i => i[en() ? 1 : 0];
+    if (planDemo() !== 'pro') { cap.innerHTML = `${X}<h1>${t('Inspírate en…', 'Get inspired by…')}</h1><p class="at-vj-sub">${t('Eliges un estilo y te armo looks con tu ropa a su manera.', 'Pick a style and I’ll put together looks from your clothes its way.')}</p><p class="at-vj-sub"><span class="dg-pro">Pro</span></p>`; cap.onclick = e => e.target.closest('.x') && cap.remove(); return; }
+    const a = k && ARQ.find(x => x[0] === k);
+    if (!a) {
+      cap.innerHTML = `${X}<h1>${t('Inspírate en…', 'Get inspired by…')}</h1><p class="at-vj-sub">${t('Elige un estilo: te armo looks con tu ropa a su manera.', 'Pick a style: I’ll put together looks from your clothes its way.')}</p>
+        <ul class="at-insp-lista">${ARQ.map(x => `<li><button data-arq="${x[0]}"><span class="at-insp-n">${L(x[1])}</span><span class="at-insp-d">${L(x[2])}</span></button></li>`).join('')}</ul>`;
+    } else {
+      const r = Motor.looks({ prendas: activas(), tiempo: E.tiempo, plan: 'Todos', perfil: { ...(E.perfil || {}), estilos: a[3] }, n: 16, hoy: hoyISO(), pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
+      const FS = Array.isArray(Motor.F) ? Motor.F : Motor.F?.formulas || Object.values(Motor.F || {}), comun = x => { const f = FS.find(y => y?.id === x.formula); return (f?.estilos || []).filter(e => a[3].includes(e)).length; };
+      const looks = deVerdad('Todos', (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)).map((x, i) => ({ x, i, c: comun(x) })).filter(o => o.c > 0).sort((p, q) => q.c - p.c || p.i - q.i).slice(0, 6).map(o => o.x);
+      const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
+      E.inspLooks = looks;
+      cap.innerHTML = `${X}<h1>${L(a[1])}</h1><p class="at-vj-sub">${L(a[2])}</p>
+        ${looks.length ? `<div class="at-rej2 at-vj-dias">${looks.map((x, i) => `<figure class="at-t">${baldosa(psDe(x), TW, TH, ` data-insplook="${i}" aria-label="${esc(ocNombre(x.ocasion || 'Diario'))}"`)}<figcaption>${esc(ocNombre(x.ocasion || 'Diario'))}</figcaption></figure>`).join('')}</div>
+          ${looks.some(x => x.faltaCapa) ? `<p class="at-vj-nota">${t('Con este tiempo, con tu abrigo encima.', 'In this weather, with your coat on top.')}</p>` : ''}`
+          : `<p class="at-vj-sub">${t('Con lo que tienes aún no puedo armar este estilo: sigue subiendo prendas.', 'I can’t build this style from what you have yet: keep adding clothes.')}</p>`}`;
+    }
+    cap.scrollTop = 0;
+    cap.onclick = e => {
+      const b = e.target.closest('.x,[data-arq],[data-insplook]'); if (!b) return;
+      if (b.classList.contains('x')) return k ? abrirInspira() : cap.remove();
+      if (b.dataset.arq) return abrirInspira(b.dataset.arq);
+      if (b.dataset.insplook) { const x = E.inspLooks[+b.dataset.insplook]; cap.remove(); return abrirIdea(x); }
     };
   }
 
