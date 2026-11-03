@@ -806,7 +806,15 @@ const NECESIDADES = {
   Deporte: [[p => p.tipo === 'Calzado' && estilo(p) === 0, 'unas zapatillas', 'trainers'],
     [p => !['Calzado', 'Bolsos', 'Accesorios'].includes(p.tipo) && estilo(p) === 0, 'mallas, una sudadera o ropa deportiva', 'leggings, a hoodie or sportswear']]
 };
-function faltaPara(oc) { const act = activas(); return (NECESIDADES[oc] || []).filter(([f]) => !act.some(f)).map(n => t(n[1], n[2])); }
+// 03/11 (Gabriela: «hay cosas que cambian si eres masculino»): con ropa de hombre, otras palabras; null = no se sugiere
+const NEC_HOMBRE = { Noche: [['unos zapatos de vestir o unos botines', 'dress shoes or boots'], ['una prenda de noche: una camisa negra o una americana oscura', 'an evening piece: a black shirt or a dark blazer'], null],
+  Evento: [['un pantalón de vestir o un traje', 'dress trousers or a suit'], ['unos zapatos de vestir', 'dress shoes'], null],
+  Oficina: [['una camisa', 'a shirt'], ['un pantalón recto o un chino', 'straight trousers or chinos']],
+  Deporte: [null, ['un pantalón de chándal, una sudadera o ropa deportiva', 'joggers, a hoodie or sportswear']] };
+function faltaPara(oc) {
+  const act = activas(), h = E.perfil?.ropa === 'hombre' && NEC_HOMBRE[oc];
+  return (NECESIDADES[oc] || []).map((n, i) => !h || h[i] === undefined ? n : h[i] && [n[0], h[i][0], h[i][1]]).filter(n => n && !act.some(n[0])).map(n => t(n[1], n[2]));
+}
 // 0.68 (Sheila, 23/10: «creo que el texto es largo y agobiante»): una línea corta; lo que falta, plegado
 const avisoFalta = (oc, hay) => { const f = faltaPara(oc); if (!f.length && hay) return ''; const o = ocNombre(oc).toLowerCase();
   return `<div class="cal-falta">${hay ? '' : `<p>${t(`Sin ropa de ${o}: te enseño lo más parecido.`, `Nothing for ${o}: here is the closest.`)}</p>`}${f.length ? `<details><summary>${t('Qué te vendría bien', 'What would help')}</summary><p>${cap(lista(f))}.</p></details>` : ''}</div>`; };

@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.146'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.147'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -161,6 +161,7 @@ if (AT) (() => {
 
   /* ---------- HOY: el nombre, la fecha con el tiempo, el look grande y quieto; debajo, la ocasión y «Me lo pongo» ---------- */
   pintarHoy = function () {
+    if (!E.perfil?.ropa && E.perfil?.alta) setTimeout(preguntarRopa, 400);
     const pant = $('p-hoy'), w = E.tiempo, planHoy = eventoAhora()?.oc;
     if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy && hayOcasion(planHoy) ? planHoy : E.hoyDiario && hayOcasion('Diario') ? 'Diario' : 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); E.propuestas = masCercanos(E.hoyFalta, E.propuestas); } }
     const lista = E.propuestas; if ((E.hoyIdx || 0) >= lista.length) E.hoyIdx = 0; const pr = lista[E.hoyIdx || 0];
@@ -230,6 +231,9 @@ if (AT) (() => {
   const pintarEstiloViejo = pintarEstilo;
   pintarEstilo = function () {
     pintarEstiloViejo();
+    $('at-ropa-sel')?.remove(); const ro = E.perfil?.ropa;
+    $('es-sub').insertAdjacentHTML('beforebegin', `<div id="at-ropa-sel"><h3 class="es-tit">${t('Ropa que llevas', 'What you wear')}</h3><div class="at-fila at-vj-ops at-insp-g">${ROPAS.map(([v, n]) => `<button class="${ro === v ? 'on' : ''}" data-ropasel="${v}" aria-pressed="${ro === v}">${n[en() ? 1 : 0].replace(/^Ropa de /, '').replace(/^\w/, c => c.toUpperCase())}${DOS}</button>`).join('')}</div></div>`);
+    $('at-ropa-sel').onclick = async e => { const b = e.target.closest('[data-ropasel]'); if (!b) return; await ponerRopa(b.dataset.ropasel); pintarEstilo(); };
     document.querySelectorAll('#es-lista [data-estilo]').forEach(b => { if (!FOTO_ESTILO.has(b.dataset.estilo)) return; const tela = b.querySelector('.es-tela'); tela.insertAdjacentHTML('beforebegin', `<img class="es-foto" src="estilos/${b.dataset.estilo}.webp?v=1" alt="">`); tela.classList.add('es-mini'); });
   };
 
@@ -588,47 +592,81 @@ if (AT) (() => {
   /* ---------- INSPÍRATE EN… (Pro; equipo/moda/2026-10-22-inspirate-en.md, «sí a todos» de Gabriela el 22/10): once arquetipos de estilo, sin nombres de
      famosas ni fotos (recomendación de la nota legal hasta que Legal diga otra cosa). Al elegir uno, el motor busca looks con tu ropa como si tus estilos
      fueran los suyos (solo para esa búsqueda: tu perfil no cambia) y se ordenan por las fórmulas que comparten esos estilos. ---------- */
+  /* ---------- ¿QUÉ ROPA LLEVAS? (Gabriela, 03/11: «¿dónde te preguntan el sexo? … hay cosas que cambian si eres masculino, por ejemplo los modelos
+     a inspirarse»; eligió «al crear la cuenta y en Yo»): se pregunta una vez al entrar (con «Ahora no», vuelve en la próxima sesión) y se cambia en Yo → Mi estilo.
+     Cambia las referencias de Inspírate, lo que te vendría bien y, con ropa de hombre, quita las fórmulas solo de mujer. ---------- */
+  const ROPAS = [['mujer', ['Ropa de mujer', 'Womenswear']], ['hombre', ['Ropa de hombre', 'Menswear']], ['dos', ['De las dos', 'Both']]];
+  async function ponerRopa(v) { E.perfil = Object.assign(E.perfil || {}, { ropa: v }); E.inspG = null; E.propuestas = []; await guardar(); }
+  const ropaLuego = () => { try { return !!sessionStorage.getItem('tc_ropa_luego') || window.top !== window; } catch (e) { return true; } };
+  function preguntarRopa() {
+    if ($('at-ropa') || E.perfil?.ropa || ropaLuego()) return;
+    const cap = document.createElement('div'); cap.id = 'at-ropa'; cap.className = 'ay-capa at-vj at-ropa'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'at-ropa-t');
+    cap.innerHTML = `<h1 id="at-ropa-t" tabindex="-1">${t('¿Qué ropa llevas?', 'What do you wear?')}</h1><p class="at-vj-sub">${t('Para proponerte looks y referencias a tu medida.', 'So your looks and references fit you.')}</p>
+      <div class="at-ropa-ops">${ROPAS.map(([v, n]) => `<button class="at-btn" data-ropa="${v}">${n[en() ? 1 : 0]}</button>`).join('')}</div>
+      <button class="at-enlace" data-ropa="">${t('Ahora no', 'Not now')}</button>`;
+    document.body.append(cap); $('at-ropa-t').focus({ preventScroll: true });
+    cap.onclick = async e => { const b = e.target.closest('[data-ropa]'); if (!b) return; cap.remove(); if (b.dataset.ropa) { await ponerRopa(b.dataset.ropa); if (E.pantalla === 'hoy') pintarHoy(); } else try { sessionStorage.setItem('tc_ropa_luego', '1'); } catch (x) { } };
+  }
+
+  // 03/11 (Gabriela: «pensé que de Inspírate en… salían famosos»; eligió «Nombre como título»): el nombre arriba y el arquetipo debajo;
+  // las 8 referencias de hombre de la nota de Moda (apdo. 2b, pedidas el 22/10: «agrega a los modelos masculinos»). Sin fotos de personas.
+  // [clave, nombre, [arquetipo es, en], [línea es, en], estilos, g: 'a' ellas / 'o' ellos]
   const ARQ = [
-    ['hollywood', ['Hollywood relajado', 'Relaxed Hollywood'], ['Neutros, prendas grandes sobre básicos y vaqueros.', 'Neutrals, oversized pieces over basics, denim.'], ['frances', 'minimalista', 'casual']],
-    ['tonal', ['Tonal de lujo', 'Tonal luxe'], ['Todo del mismo tono, en tierras y nudes, líneas limpias.', 'One tone head to toe, earthy and nude, clean lines.'], ['glam', 'minimalista']],
-    ['modelo', ['Modelo fuera de servicio', 'Off-duty model'], ['Básicos bien elegidos, vaqueros, cuero y siluetas largas.', 'Well-chosen basics, denim, leather, long lines.'], ['casual', 'urbano', 'minimalista']],
-    ['limpia', ['Limpia, deportiva y elegante', 'Clean, sporty and polished'], ['Blancos y neutros, americana sobre ropa cómoda.', 'Whites and neutrals, a blazer over comfy pieces.'], ['minimalista', 'deportivo']],
-    ['sastreria', ['Sastrería con juego', 'Playful tailoring'], ['Sastrería, conjuntos coordinados y color con intención.', 'Tailoring, matching sets, colour on purpose.'], ['clasico', 'glam', 'eclectico']],
-    ['americano', ['Clásico americano relajado', 'Relaxed American classic'], ['Vaqueros, camisetas y jerséis finos, en neutros.', 'Jeans, tees and fine knits in neutrals.'], ['clasico', 'casual', 'minimalista']],
-    ['oldmoney', ['Old money', 'Old money'], ['Crema, beige y blanco, tejidos finos, sin logos.', 'Cream, beige and white, fine fabrics, no logos.'], ['oldmoney', 'minimalista']],
-    ['boho', ['Boho chic', 'Boho chic'], ['Capas, vestidos largos, tierra y estampados.', 'Layers, long dresses, earth tones and prints.'], ['boho', 'casual']],
-    ['sinreglas', ['Sin reglas', 'No rules'], ['Grande con ceñido, color y brillo, sin miedo.', 'Big with fitted, colour and shine, fearless.'], ['eclectico', 'urbano', 'glam']],
-    ['preppy', ['Romántico con un punto preppy', 'Romantic with a preppy touch'], ['Vestidos y faldas, jerséis y cárdigan, un toque rojo.', 'Dresses and skirts, jumpers and cardigans, a touch of red.'], ['romantico', 'oldmoney']],
-    ['brillo', ['Urbano con brillo', 'Street with shine'], ['Deportivo, cuero y brillo con actitud.', 'Sporty, leather and shine with attitude.'], ['urbano', 'glam', 'retro']],
+    ['hollywood', 'Dakota Johnson', ['Hollywood relajado', 'Relaxed Hollywood'], ['Neutros, prendas grandes sobre básicos y vaqueros.', 'Neutrals, oversized pieces over basics, denim.'], ['frances', 'minimalista', 'casual'], 'a'],
+    ['tonal', 'Kim Kardashian', ['Tonal de lujo', 'Tonal luxe'], ['Todo del mismo tono, en tierras y nudes, líneas limpias.', 'One tone head to toe, earthy and nude, clean lines.'], ['glam', 'minimalista'], 'a'],
+    ['modelo', 'Kendall Jenner', ['Modelo fuera de servicio', 'Off-duty model'], ['Básicos bien elegidos, vaqueros, cuero y siluetas largas.', 'Well-chosen basics, denim, leather, long lines.'], ['casual', 'urbano', 'minimalista'], 'a'],
+    ['limpia', 'Hailey Bieber', ['Limpia, deportiva y elegante', 'Clean, sporty and polished'], ['Blancos y neutros, americana sobre ropa cómoda.', 'Whites and neutrals, a blazer over comfy pieces.'], ['minimalista', 'deportivo'], 'a'],
+    ['sastreria', 'Zendaya', ['Sastrería con juego', 'Playful tailoring'], ['Sastrería, conjuntos coordinados y color con intención.', 'Tailoring, matching sets, colour on purpose.'], ['clasico', 'glam', 'eclectico'], 'a'],
+    ['americano', 'Jennifer Aniston', ['Clásico americano relajado', 'Relaxed American classic'], ['Vaqueros, camisetas y jerséis finos, en neutros.', 'Jeans, tees and fine knits in neutrals.'], ['clasico', 'casual', 'minimalista'], 'a'],
+    ['oldmoney', 'Sofia Richie Grainge', ['Old money', 'Old money'], ['Crema, beige y blanco, tejidos finos, sin logos.', 'Cream, beige and white, fine fabrics, no logos.'], ['oldmoney', 'minimalista'], 'a'],
+    ['boho', 'Sienna Miller', ['Boho chic', 'Boho chic'], ['Capas, vestidos largos, tierra y estampados.', 'Layers, long dresses, earth tones and prints.'], ['boho', 'casual'], 'a'],
+    ['sinreglas', 'Rihanna', ['Sin reglas', 'No rules'], ['Grande con ceñido, color y brillo, sin miedo.', 'Big with fitted, colour and shine, fearless.'], ['eclectico', 'urbano', 'glam'], 'a'],
+    ['preppy', 'Taylor Swift', ['Romántico con un punto preppy', 'Romantic with a preppy touch'], ['Vestidos y faldas, jerséis y cárdigan, un toque rojo.', 'Dresses and skirts, jumpers and cardigans, a touch of red.'], ['romantico', 'oldmoney'], 'a'],
+    ['brillo', 'Rosalía', ['Urbano con brillo', 'Street with shine'], ['Deportivo, cuero y brillo con actitud.', 'Sporty, leather and shine with attitude.'], ['urbano', 'glam', 'retro'], 'a'],
+    ['elordi', 'Jacob Elordi', ['Old money relajado', 'Relaxed old money'], ['Crema, camel y marino; polo, mocasines y abrigo largo.', 'Cream, camel and navy; polo, loafers, long coat.'], ['oldmoney', 'minimalista'], 'o'],
+    ['styles', 'Harry Styles', ['Retro con color', 'Retro with colour'], ['Camisa estampada, pinzas de tiro alto y cárdigan de color.', 'Printed shirt, high-rise pleats, a colourful cardigan.'], ['retro', 'eclectico', 'romantico'], 'o'],
+    ['mescal', 'Paul Mescal', ['Chico de barrio con clase', 'Classy local lad'], ['Camiseta blanca, vaqueros rectos, polo de punto y zapatillas.', 'White tee, straight jeans, knit polo, trainers.'], ['casual', 'retro'], 'o'],
+    ['beckham', 'David Beckham', ['Sastrería británica', 'British tailoring'], ['Traje gris, cuello alto y abrigo largo; cuero el fin de semana.', 'Grey suit, roll-neck, long coat; leather at weekends.'], ['clasico', 'oldmoney'], 'o'],
+    ['chalamet', 'Timothée Chalamet', ['El raro elegante', 'The elegant oddball'], ['Negro y blanco con un color vivo; americana llamativa y botas.', 'Black and white with one bright colour; a bold blazer and boots.'], ['eclectico', 'urbano'], 'o'],
+    ['rocky', 'A$AP Rocky', ['Urbano de autor', 'Designer streetwear'], ['Cuero, sudadera y vaqueros anchos, mezclando niveles.', 'Leather, hoodie and wide jeans, mixing levels.'], ['urbano', 'glam'], 'o'],
+    ['pascal', 'Pedro Pascal', ['Clásico cálido', 'Warm classic'], ['Punto, marrón y verde oliva; americana sobre camiseta negra.', 'Knits, brown and olive; a blazer over a black tee.'], ['clasico', 'casual'], 'o'],
+    ['badbunny', 'Bad Bunny', ['Sin reglas', 'No rules'], ['Color vivo, estampados y prendas sin género.', 'Bright colour, prints and genderless pieces.'], ['eclectico', 'urbano'], 'o'],
   ];
+  // una imagen de su estilo junto a la descripción (Gabriela, 22/10: «debe salir un visual de alguna forma del estilo de esa famosa»): collage de ropa sin personas, hecho con Gemini
+  const FOTO_INSP = new Set([]);
   function abrirInspira(k) {
     let cap = $('at-inspira'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-inspira'; cap.className = 'ay-capa at-vj at-insp'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); document.body.append(cap); }
     const X = `<button class="x" aria-label="${k ? t('Volver', 'Back') : t('Cerrar', 'Close')}">${k ? I.iz : '<svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg>'}</button>`, L = i => i[en() ? 1 : 0];
     if (planDemo() !== 'pro') { cap.innerHTML = `${X}<h1>${t('Inspírate en…', 'Get inspired by…')}</h1><p class="at-vj-sub">${t('Eliges un estilo y te armo looks con tu ropa a su manera.', 'Pick a style and I’ll put together looks from your clothes its way.')}</p><p class="at-vj-sub"><span class="dg-pro">Pro</span></p>`; cap.onclick = e => e.target.closest('.x') && cap.remove(); return; }
-    const a = k && ARQ.find(x => x[0] === k);
+    const a = k && ARQ.find(x => x[0] === k), ropa = E.perfil?.ropa;
+    if (!E.inspG) E.inspG = ropa === 'hombre' ? 'o' : 'a';
+    const g = ropa === 'mujer' ? 'a' : ropa === 'hombre' ? 'o' : E.inspG, foto = x => FOTO_INSP.has(x[0]) ? `<img class="at-insp-f" src="inspira/${x[0]}.webp?v=1" alt="" loading="eager">` : '';
     if (!a) {
-      cap.innerHTML = `${X}<h1>${t('Inspírate en…', 'Get inspired by…')}</h1><p class="at-vj-sub">${t('Elige un estilo: te armo looks con tu ropa a su manera.', 'Pick a style: I’ll put together looks from your clothes its way.')}</p>
-        <ul class="at-insp-lista">${ARQ.map(x => `<li><button data-arq="${x[0]}"><span class="at-insp-n">${L(x[1])}</span><span class="at-insp-d">${L(x[2])}</span></button></li>`).join('')}</ul>`;
+      cap.innerHTML = `${X}<h1>${t('Inspírate en…', 'Get inspired by…')}</h1><p class="at-vj-sub">${t('Elige a quién: te armo looks con tu ropa a su manera.', 'Pick someone: I’ll put together looks from your clothes their way.')}</p>
+        ${ropa === 'mujer' || ropa === 'hombre' ? '' : `<div class="at-fila at-vj-ops at-insp-g">${[['a', t('Ellas', 'Women')], ['o', t('Ellos', 'Men')]].map(([v, n]) => `<button class="${g === v ? 'on' : ''}" data-ginsp="${v}" aria-pressed="${g === v}">${n}${DOS}</button>`).join('')}</div>`}
+        <ul class="at-insp-lista">${ARQ.filter(x => x[5] === g).map(x => `<li><button data-arq="${x[0]}">${foto(x)}<span class="at-insp-n">${x[1]}</span><span class="at-insp-a">${L(x[2])}</span><span class="at-insp-d">${L(x[3])}</span></button></li>`).join('')}</ul>
+        <p class="at-insp-legal">${t('Inspirado en su estilo en público. Sin relación con TuCloset.', 'Inspired by their public style. Not affiliated with TuCloset.')}</p>`;
     } else {
       // todos los candidatos del motor (sin vetos, o solo a falta de abrigo); valen los de una fórmula de ese estilo: su estilo principal es del arquetipo
       // o comparte dos. Así cada arquetipo enseña sus fórmulas y no los mismos looks de siempre (03/11: con su ropa, 17 looks distintos en los 11)
-      const r = Motor.looks({ prendas: activas(), tiempo: E.tiempo, plan: 'Todos', perfil: { ...(E.perfil || {}), estilos: a[3] }, n: 12, hoy: hoyISO(), pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est], depurar: true });
+      const r = Motor.looks({ prendas: activas(), tiempo: E.tiempo, plan: 'Todos', perfil: { ...(E.perfil || {}), estilos: a[4] }, n: 12, hoy: hoyISO(), pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est], depurar: true });
       const FS = Array.isArray(Motor.F) ? Motor.F : Motor.F?.formulas || Object.values(Motor.F || {}), min = Motor.R.puntos?.umbrales?.mostrar_minimo ?? -1e9;
-      const cand = (r.todos || []).filter(l => (l.casi || !l.veto.duros.length) && l.nota >= min).map(l => { const fe = (FS.find(y => y?.id === l.formula?.id) || l.formula || {}).estilos || [], c = fe.filter(e => a[3].includes(e)).length; return { l, c, prim: a[3].includes(fe[0]) }; })
+      const cand = (r.todos || []).filter(l => (l.casi || !l.veto.duros.length) && l.nota >= min).map(l => { const fe = (FS.find(y => y?.id === l.formula?.id) || l.formula || {}).estilos || [], c = fe.filter(e => a[4].includes(e)).length; return { l, c, prim: a[4].includes(fe[0]) }; })
         .filter(o => o.prim || o.c >= 2).sort((x, y) => (y.prim - x.prim) || (y.c - x.c) || (y.l.nota - x.l.nota)).map(o => ({ ...Motor.aPropuesta(o.l), faltaCapa: !!o.l.casi }));
       const vistos = new Set(), arriba = new Set(), looks = [];
       for (const pasada of [0, 1]) for (const x of deVerdad('Todos', cand)) { const kk = x.ids.slice().sort().join(); if (looks.length >= 6 || vistos.has(kk) || (!pasada && arriba.has(x.ids[0]))) continue; vistos.add(kk); arriba.add(x.ids[0]); looks.push(x); }
       const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
       E.inspLooks = looks;
-      cap.innerHTML = `${X}<h1>${L(a[1])}</h1><p class="at-vj-sub">${L(a[2])}</p>
+      cap.innerHTML = `${X}<h1>${a[1]}</h1><p class="at-insp-a">${L(a[2])}</p>${foto(a)}<p class="at-vj-sub">${L(a[3])}</p>
         ${looks.length ? `<div class="at-rej2 at-vj-dias">${looks.map((x, i) => `<figure class="at-t">${baldosa(psDe(x), TW, TH, ` data-insplook="${i}" aria-label="${esc(ocNombre(x.ocasion || 'Diario'))}"`)}<figcaption>${esc(ocNombre(x.ocasion || 'Diario'))}</figcaption></figure>`).join('')}</div>
           ${looks.some(x => x.faltaCapa) ? `<p class="at-vj-nota">${t('Con este tiempo, con tu abrigo encima.', 'In this weather, with your coat on top.')}</p>` : ''}`
           : `<p class="at-vj-sub">${t('Con lo que tienes aún no puedo armar este estilo: sigue subiendo prendas.', 'I can’t build this style from what you have yet: keep adding clothes.')}</p>`}`;
     }
     cap.scrollTop = 0;
     cap.onclick = e => {
-      const b = e.target.closest('.x,[data-arq],[data-insplook]'); if (!b) return;
+      const b = e.target.closest('.x,[data-arq],[data-insplook],[data-ginsp]'); if (!b) return;
       if (b.classList.contains('x')) return k ? abrirInspira() : cap.remove();
+      if (b.dataset.ginsp) { E.inspG = b.dataset.ginsp; return abrirInspira(); }
       if (b.dataset.arq) return abrirInspira(b.dataset.arq);
       if (b.dataset.insplook) { const x = E.inspLooks[+b.dataset.insplook]; cap.remove(); return abrirIdea(x); }
     };
