@@ -204,3 +204,21 @@ html.at .at-faltas li { margin: 0 0 8px; }
 html.at .at-porque { margin: 4px auto 0; max-width: 300px; text-align: center; font-size: 13px; line-height: 1.5; color: var(--sec); }
 html.at .at-rej-ideas { padding-bottom: 12px; }
 html.at .at-ideas-pie { padding: 0 0 calc(var(--tabs) + 24px); }
+/* ---------- Letras como el 30/10 (Sheila, 03/11, mensaje 1656: «Pon las letras para probar como las del 30/10») ----------
+   Deshace solo el cambio 5 de CAMBIOS-PARA-LA-A.md (31/10: 6 tamaños y menos interletrado). Para volver a las del 31/10, se borra este bloque.
+   Se quedan: el contador del filtro (0.130), los campos a 16 px en el móvil y lo que no existía el 30/10 (Ideas, porqué, lo que falta). */
+html.at .at-btn, html.at .boton:not(.linea), html.at .hz-bt:not([style*="border:0"]), html.at .boton.linea { font-size: 12.5px; letter-spacing: .16em; }
+html.at .at-enlace { font-size: 14px; }
+html.at .tabs button span.at-lbl { font-size: 11.5px !important; }
+html.at .at-fecha { letter-spacing: .18em; }
+html.at .at-fila button, html.at #p-closet #cats button, html.at #nl-ocasiones .chip { font-size: 11.5px; letter-spacing: .14em; }
+html.at .at-nota, html.at .at-hoy .cal-falta, html.at .at-nota-fin, html.at .at-t figcaption { font-size: 12.5px; }
+html.at .at-cel i, html.at #pared .at-cel i { font-size: 9.5px; letter-spacing: .12em; }
+html.at .at-estado, html.at #p-closet .cl-cambio button, html.at #p-yo .y3-sub, html.at #p-nuevo-look .campo > span, html.at #nl-prendas .et { letter-spacing: .14em; }
+html.at .at-h1 { font-size: 23px; }
+html.at .at-datos, html.at #p-yo .y3-ley { font-size: 13.5px; }
+html.at .at-lista button { font-size: 14.5px; }
+html.at .at-crear span { font-size: 10.5px; letter-spacing: .12em; }
+html.at #p-yo .y3-a small { letter-spacing: .12em; }
+html.at .mini-et { font-size: 9.5px; }
+html.at .dg-pro { font-size: 10.5px; }
