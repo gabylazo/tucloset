@@ -238,3 +238,16 @@ html.at .at-crear span { font-size: 10.5px; letter-spacing: .12em; }
 html.at #p-yo .y3-a small { letter-spacing: .12em; }
 html.at .mini-et { font-size: 9.5px; }
 html.at .dg-pro { font-size: 10.5px; }
+/* ---------- Yo (Sheila, 03/11, m. 1710, con captura: «Esta distribución no me parece estética»): silueta, estilo y colores en tres columnas iguales, como los datos de
+   un perfil de Instagram; el subtítulo en una línea y sin mayúsculas; el diagnóstico sin las dos cajas vacías (salen cuando hay alguna foto). Decide Gabriela (Y3, 28/10) ---------- */
+html.at #p-yo .y3-sub { font: 400 13px/1.4 var(--f); letter-spacing: 0; text-transform: none; }
+html.at #p-yo #yo-lista.y3-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 26px; border-top: 1px solid var(--raya); border-bottom: 1px solid var(--raya); }
+html.at #p-yo .y3-nav .y3-a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 80px; padding: 12px 4px; font: 400 18px/1.15 var(--f-marca); }
+html.at #p-yo .y3-nav .y3-a + .y3-a { border-left: 1px solid var(--raya); }
+html.at #p-yo .y3-a small { display: block; margin: 0; font: 400 12px/1.3 var(--f); font-style: normal; letter-spacing: 0; text-transform: none; color: var(--sec); text-wrap: balance; }
+html.at #p-yo .y3-a small::first-letter { text-transform: uppercase; }
+html.at #p-yo #yo-diag { margin-top: 6px; }
+html.at #p-yo .dg-tarjeta { border: 0; padding: 26px 0 4px; }
+html.at #p-yo .dg-tarjeta p { text-wrap: balance; }
+html.at #p-yo .dg-pro { background: none; color: var(--tinta); border: 1px solid var(--linea2); padding: 3px 7px; }
+html.at .dg-fotos:not(:has(.hecha)) { display: none; }
