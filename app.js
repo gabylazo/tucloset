@@ -1151,8 +1151,17 @@ function ir(nombre, datos) {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('activo', b.dataset.ir === tab));
   $('tabs').classList.toggle('oculta', SIN_TABS.includes(nombre));
   const el = $('p-' + nombre); if (el) el.scrollTop = 0;
-  if (nombre === 'hoy' && !E.tiempo) cargarTiempo().then(() => cuandoQuieto(() => E.pantalla === 'hoy' && pintarHoy()));
+  if (nombre === 'hoy') !E.tiempo ? cargarTiempo().then(() => cuandoQuieto(() => E.pantalla === 'hoy' && pintarHoy())) : refrescarTiempo();
 }
+// 0.131 (Sheila, 03/11: «¿la temperatura se va actualizando durante el día?»): con la app abierta se quedaba la del arranque. Ahora, al volver a la app o a Hoy, y cada
+// 15 min con la app delante, si la que hay tiene más de 30 min se pide otra vez y se repinta la fecha con el tiempo. Los looks del día no cambian.
+function refrescarTiempo() {
+  let ts = 0; try { ts = JSON.parse(localStorage.getItem('tc_tiempo') || 'null')?.ts || 0; } catch (e) { }
+  if (!E.tiempo || Date.now() - ts < 30 * 60000) return;
+  const antes = E.tiempo; cargarTiempo(true).then(w => { if (!w) E.tiempo = antes; cuandoQuieto(() => E.pantalla === 'hoy' && pintarHoy()); });
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refrescarTiempo(); });
+setInterval(() => { if (document.visibilityState === 'visible') refrescarTiempo(); }, 15 * 60000);
 
 /* ---------- HOY ---------- */
 function proponer() {

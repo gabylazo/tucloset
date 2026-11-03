@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.131'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.132'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -92,9 +92,48 @@ if (AT) (() => {
       return attr ? html.replace(/^<(img|i) /, `<$1${attr} `) : html;
     }).join('');
   }
+  /* ---------- el look grande, como los collages de Pinterest (Sheila, 03/11, mensajes 1679 y 1689: «las prendas más grandes, más impactantes»; «que ocupen gran parte de la pantalla»)
+     Columna ancha a la izquierda: lo de arriba sobre lo de abajo (o el vestido), a escala real entre sí. Columna estrecha a la derecha, de arriba abajo: accesorios, la capa (entera, sin
+     pisar nada), el bolso y el calzado, este a la altura del bajo. Lo de la derecha nunca sale mayor que su tamaño real, salvo bolso y accesorios, que crecen hasta un 40 % para que se vean.
+     Sin nada a la derecha, la columna va sola y centrada. Medidas en px dentro de W × H. */
+  function collage(ps, W, H) {
+    const rol = r => ps.filter(p => r.includes(p.tipo)), abrigo = rol(['Abrigo'])[0], sup = abrigo ? [abrigo, ...rol(['Arriba'])] : rol(['Arriba']); // de fuera hacia dentro
+    const top = sup[sup.length - 1] || null, grande = rol(['Abajo', 'Vestidos'])[0];
+    if (!top && !grande) return null;
+    const capas = sup.slice(0, -1), lado = [...rol(['Accesorios']).slice(0, 2), ...capas, rol(['Bolsos'])[0], rol(['Calzado'])[0]].filter(Boolean);
+    const dentro = ps.como === 'por dentro', larga = top && typeof Motor !== 'undefined' && Motor.ficha(top).manga === 'larga';
+    const [wt, ht] = top ? medidas(top) : [0, 0], [wg, hg] = grande ? medidas(grande) : [0, 0];
+    const yG = top ? ht * (larga ? .87 : .93) : 0, ch = grande ? yG + hg : ht, cw = Math.max(wt, wg);
+    const AIRE = Math.round(W * .04), med = lado.map(medidas), hueco = AIRE * Math.max(0, lado.length - 1), anchoL = lado.length ? W * (capas.length ? .42 : .34) : 0;
+    const base = lado.length ? Math.min(...med.map(([w]) => anchoL / w), (H - hueco) / med.reduce((t, [, h]) => t + h, 0)) : 0;
+    // dos pasadas: si la columna de la derecha sale más estrecha que su sitio, lo que sobra es para la principal
+    let anchoP = lado.length ? W - anchoL - AIRE : W, s, esc, colL;
+    for (let i = 0; i < 2; i++) {
+      s = Math.min(anchoP / cw, H / ch);
+      esc = lado.map(p => Math.min(base, s * (['Bolsos', 'Accesorios'].includes(p.tipo) ? 1.4 : 1)));
+      colL = Math.max(0, ...med.map(([w], j) => w * esc[j]));
+      anchoP = lado.length ? W - colL - AIRE : W;
+    }
+    // si a la derecha solo va el calzado, va junto al bajo y lo de arriba puede usar también el ancho que queda encima (un jersey con las mangas abiertas no se queda pequeño)
+    const soloPies = top && grande && lado.length === 1 && lado[0].tipo === 'Calzado';
+    if (soloPies) {
+      const cabe = k => Math.max(wt, wg) * k / 2 + Math.max(wt * k / 2, wg * k / 2 + AIRE + med[0][0] * Math.min(base, k)) <= W;
+      s = H / ch; while (s > .1 && !cabe(s)) s *= .98;
+      esc = [Math.min(base, s)]; colL = med[0][0] * esc[0];
+    }
+    const mW = cw * s, mH = ch * s, ejeX = mW / 2, altos = med.map(([, h], j) => h * esc[j]), sumaL = altos.reduce((a, b) => a + b, 0);
+    const alto = Math.max(mH, sumaL + hueco), y0 = (alto - mH) / 2, out = [];
+    if (top) out.push([top, ejeX - wt * s * eje(top), y0, wt * s, ht * s, dentro ? 1 : 2]);
+    if (grande) out.push([grande, ejeX - wg * s * eje(grande), y0 + yG * s, wg * s, hg * s, dentro ? 2 : 1]);
+    const xL = (soloPies ? ejeX + wg * s / 2 : mW) + AIRE, pon = (j, y) => { const w = med[j][0] * esc[j]; out.push([lado[j], xL + (colL - w) / 2, y, w, altos[j], 3]); };
+    if (lado.length === 1) { const p = lado[0], h = altos[0], y = p.tipo === 'Calzado' ? y0 + mH - h : p.tipo === 'Bolsos' ? y0 + mH * .45 - h / 2 : y0; pon(0, Math.max(0, Math.min(alto - h, y))); }
+    else { const sep = (alto - sumaL) / (lado.length - 1); let y = 0; lado.forEach((p, j) => { pon(j, y); y += altos[j] + sep; }); }
+    const x0 = Math.min(...out.map(o => o[1])), x1 = Math.max(...out.map(o => o[1] + o[3]));
+    return { out: out.sort((a, b) => a[5] - b[5]).map(([p, x, y, w, h]) => [p, x - x0, y, w, h]), W: x1 - x0, H: alto };
+  }
   // el look dentro de una caja de W × H px, a la mayor escala que quepa y centrado
   function figura(ps, W, H, fichas) {
-    const c = lookAt(ps); if (!c) return `<div class="at-look" style="width:${W}px;height:${H}px"></div>`;
+    const c = collage(ps, W, H) || lookAt(ps); if (!c) return `<div class="at-look" style="width:${W}px;height:${H}px"></div>`;
     const s = Math.min(W / c.W, H / c.H);
     return `<div class="at-look" style="width:${W}px;height:${H}px"><div class="at-lz" style="width:${(c.W * s).toFixed(1)}px;height:${(c.H * s).toFixed(1)}px">${piezas(c, fichas)}</div></div>`;
   }
@@ -126,15 +165,16 @@ if (AT) (() => {
       return;
     }
     const ps = psDe(pr), oc = planHoy && !E.hoyFalta && pr.tipo !== 'conjunto' ? planHoy : (pr.c && pr.c.ocasion) || pr.ocasion || ocasionDe(ps);
-    const [ancho, alto] = caja(), W = Math.min(330, ancho - 60), H = Math.max(240, alto - 404);
+    const [ancho, alto] = caja(), W = Math.min(480, ancho - 60), H = Math.max(260, alto - 260);
     const muestra = ps.some(p => p.muestra);
     const flechas = lista.length > 1 ? `<button class="at-flecha iz" data-atmov="-1" aria-label="${t('Look anterior', 'Previous look')}">${I.iz}</button><button class="at-flecha de" data-atmov="1" aria-label="${t('Look siguiente', 'Next look')}">${I.de}</button>` : '';
     const ocs = E.hzPreg ? `<div class="at-fila at-ocs">${OCASIONES.map(o => `<button class="${o === oc ? 'on' : ''}" data-hzoc="${o}">${ocNombre(o)}${DOS}</button>`).join('')}</div>` : '';
     const fav = esFav(pr.ids), puesto = pr.ids.length > 0 && pr.ids.every(id => (P(id)?.usos || []).includes(hoyISO()));
-    pant.innerHTML = `<div class="at-pant">${cab}<div class="at-hoy" id="at-hoy">${flechas}<button class="at-fav at-fav-hoy${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button>${figura(ps, W, H, true)}
-      <button class="at-oc" data-hzpreg aria-expanded="${!!E.hzPreg}" aria-label="${ocNombre(oc)}: ${t('cambiar la ocasión', 'change the occasion')}">${ocNombre(oc)}${I.abajo}</button>${ocs}
+    // bajo el look, una sola fila como en Instagram (Sheila, 03/11, m. 1675; decide Gabriela): el corazón a la izquierda, la ocasión en medio y «No me gusta» a la derecha
+    pant.innerHTML = `<div class="at-pant">${cab}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}
+      <div class="at-acc"><button class="at-fav${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-oc" data-hzpreg aria-expanded="${!!E.hzPreg}" aria-label="${ocNombre(oc)}: ${t('cambiar la ocasión', 'change the occasion')}">${ocNombre(oc)}${I.abajo}</button><button class="at-enlace" id="at-no">${t('No me gusta', 'Not for me')}</button></div>${ocs}
       ${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'With your coat on top: add it and it will show here' : `Con ${pr.capaFalta && pr.capaFalta !== 'abrigo' ? (pr.capaFalta === 'chaqueta' ? 'tu chaqueta' : 'tu ' + pr.capaFalta) : 'tu abrigo'} encima: súbelo y saldrá aquí`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : ''}</div>
-      <div class="at-pie"><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button><button class="at-enlace" id="at-no">${t('No me gusta', 'Not for me')}</button></div></div>`;
+      <div class="at-pie"><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button></div></div>`;
     // el look ocupa el hueco que de verdad queda entre la cabecera y el botón (en cada móvil es distinto)
     const z = $('at-hoy'), ajustar = () => { const fig = z.querySelector('.at-look'); if (!fig || !z.clientHeight) return;
       const resto = [...z.children].filter(x => x !== fig && !x.classList.contains('at-flecha')).reduce((s, x) => s + x.offsetHeight + 6, 0), libre = Math.floor(z.clientHeight - resto - 12);

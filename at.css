@@ -204,6 +204,17 @@ html.at .at-faltas li { margin: 0 0 8px; }
 html.at .at-porque { margin: 4px auto 0; max-width: 300px; text-align: center; font-size: 13px; line-height: 1.5; color: var(--sec); }
 html.at .at-rej-ideas { padding-bottom: 12px; }
 html.at .at-ideas-pie { padding: 0 0 calc(var(--tabs) + 24px); }
+/* ---------- Hoy grande (Sheila, 03/11, mensajes 1679 y 1689: las prendas ocupan casi toda la pantalla y lo demás pierde sitio y protagonismo) ----------
+   Cabecera más baja; bajo el look, una sola fila (corazón, ocasión y «No me gusta», como en Instagram: m. 1675, decide Gabriela) y «Me lo pongo». El look, en collage(): at.js. */
+html.at .at-cab { padding-top: 14px; }
+html.at .at-marca { font-size: 24px; }
+html.at .at-marca svg { width: 19px; height: 19px; margin-right: 8px; }
+html.at .at-fecha { margin-top: 8px; }
+html.at .at-acc { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; padding: 0 10px; margin-top: 4px; }
+html.at .at-acc .at-fav { justify-self: start; }
+html.at .at-acc .at-oc { margin-top: 0; }
+html.at .at-acc .at-enlace { justify-self: end; padding: 0 6px; }
+html.at .at-pie { padding: 6px 0 14px; }
 /* ---------- Letras como el 30/10 (Sheila, 03/11, mensaje 1656: «Pon las letras para probar como las del 30/10») ----------
    Deshace solo el cambio 5 de CAMBIOS-PARA-LA-A.md (31/10: 6 tamaños y menos interletrado). Para volver a las del 31/10, se borra este bloque.
    Se quedan: el contador del filtro (0.130), los campos a 16 px en el móvil y lo que no existía el 30/10 (Ideas, porqué, lo que falta). */
