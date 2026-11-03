@@ -1989,6 +1989,7 @@ function abrirFicha(id) {
   const conAvatar = planDemo() === 'pro' ? conj.find(c => c.img) : null; const primero = conj[0];
   $('f-asi').innerHTML = conAvatar ? `<div class="puesta"><img src="${conAvatar.img}" alt=""><div class="pie">${conAvatar.nombre}</div></div>` : primero ? `<div class="puesta">${maniqui(primero.ids.map(P).filter(Boolean))}<div class="pie">${primero.nombre}</div></div>` : `<div class="vacio">${t('Aún no está en ningún conjunto. Añádela a uno o pulsa «Hoy llevo esto».', 'Not in any outfit yet. Add it to one or tap “Wearing this today”.')}</div>`;
   const acc = [['conjunto', t('Añadir a un conjunto', 'Add to an outfit')], ['lavar', p.estado === 'lavar' ? t('Ya está limpia', 'Clean again') : t('Está sucia: que no salga en los looks', 'In the wash: keep it out of looks')], ['guardada', p.estado === 'guardada' ? t('Volver a sacarla', 'Bring it back out') : t('Guardar hasta la próxima estación', 'Store until next season')], ['donar', p.estado === 'donar' ? t('Me la quedo', 'Keeping it') : t('Donar o vender', 'Donate or sell')]];
+  acc.splice(acc.findIndex(([k]) => k === 'donar') + 1, 0, ['donde', t('Dónde donarla cerca', 'Where to donate it nearby')]);
   if (p.tipo !== 'Accesorios' && planDemo() === 'pro') acc.unshift(['partido', t('Sácale partido', 'Make the most of it')]); // 0.107: en el Pro (Gabriela, 28/10: «sácale partido, sí»)
   if (p.foto) acc.push(['girar', t('Girar la foto', 'Rotate the photo')]);
   $('f-acciones').innerHTML = acc.map(([k, v]) => `<button class="item" data-accion="${k}">${v}<svg><use href="#ic-flecha"/></svg></button>`).join('');
@@ -1996,6 +1997,7 @@ function abrirFicha(id) {
     const k = b.dataset.accion;
     if (k === 'conjunto') return ir('nuevo-look', [id]);
     if (k === 'partido') return sacalePartido(p);
+    if (k === 'donde') return donarCerca();
     if (k === 'girar') { p.foto = await girarBlob(p.foto); if (p.original) p.original = await girarBlob(p.original); urls.delete(p.id); alfa.delete(p.id); p.caja = null; await guardar(); E.propuestas = []; return abrirFicha(id); }
     p.estado = p.estado === k ? '' : k; await guardar(); E.propuestas = []; abrirFicha(id); toast(p.estado ? estadoTxt(p.estado) : t('De vuelta al clóset', 'Back in the closet'));
   });
@@ -2003,6 +2005,30 @@ function abrirFicha(id) {
   $('f-editar').onclick = () => ir('anadir', id);
   $('f-nota').textContent = `${t('Añadida el', 'Added on')} ${fecha(p.creada)}${p.ejemplo ? ' · ' + t('prenda de ejemplo', 'sample garment') : ''}`;
   ir('ficha');
+}
+
+// 0.140 · Dónde donar cerca (Gabriela, 03/11: «para saber los puntos de donación cerca debes enlazar con Google Maps, para eso igual pides ubicación,
+// siempre que el usuario pueda claro»). Cada fila abre Google Maps con esa búsqueda. La ubicación solo se pide si la usuaria pulsa «Usar mi ubicación»
+// (o si ya la dio antes en el navegador); se redondea (~100 m), va solo en el enlace de Google Maps y no se guarda. Sin ella, Google Maps busca por su cuenta.
+// (Se probó OpenStreetMap para listar los puntos dentro de la app: sus servidores no respondían en 20 s, el 03/11; no es fiable para esto.)
+function donarCerca() {
+  const cap = document.createElement('div'); cap.className = 'ay-capa dn-capa'; let pos = null;
+  const QS = [[t('Contenedores de ropa', 'Clothing banks'), t('contenedor de ropa', 'clothing donation bin')], [t('Tiendas solidarias', 'Charity shops'), t('tienda solidaria de ropa', 'charity shop')], [t('Segunda mano, para venderla', 'Second-hand, to sell it'), t('tienda de ropa de segunda mano', 'second hand clothing store')]];
+  const url = q => pos ? `https://www.google.com/maps/search/${encodeURIComponent(q)}/@${pos[0]},${pos[1]},15z` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q + t(' cerca de mí', ' near me'))}`;
+  const pinta = aviso => {
+    cap.innerHTML = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button><h1>${t('Donar cerca', 'Donate nearby')}</h1>
+      <p class="dn-sub">${t('Elige qué buscar: se abre en Google Maps.', 'Choose what to look for: it opens in Google Maps.')}</p>
+      <ul class="dn-lista">${QS.map(([n, q]) => `<li><a href="${url(q)}" target="_blank" rel="noopener">${n}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></a></li>`).join('')}</ul>
+      ${pos ? `<p class="dn-nota">${t('Centrado en tu ubicación. No se guarda.', 'Centred on your location. It isn’t stored.')}</p>` : `<button class="dn-maps" data-dnubic>${t('Centrar en mi ubicación', 'Centre on my location')}</button>${aviso ? `<p class="dn-aviso">${aviso}</p>` : `<p class="dn-nota">${t('Opcional. Solo se usa para estos enlaces y no se guarda.', 'Optional. Only used for these links and never stored.')}</p>`}`}`;
+    cap.querySelector('.x').onclick = () => cap.remove(); const u = cap.querySelector('[data-dnubic]'); if (u) u.onclick = ubicar;
+  };
+  const ubicar = () => {
+    if (!navigator.geolocation) return pinta(t('Tu navegador no da la ubicación; Google Maps buscará por su cuenta.', 'Your browser gives no location; Google Maps will search on its own.'));
+    navigator.geolocation.getCurrentPosition(c => { pos = [c.coords.latitude.toFixed(3), c.coords.longitude.toFixed(3)]; if (cap.isConnected) pinta(); },
+      () => cap.isConnected && pinta(t('Sin permiso de ubicación: Google Maps buscará por su cuenta.', 'No location permission: Google Maps will search on its own.')), { timeout: 12000, maximumAge: 600000 });
+  };
+  document.body.appendChild(cap); pinta();
+  navigator.permissions?.query({ name: 'geolocation' }).then(r => r.state === 'granted' && ubicar(), () => { });
 }
 
 // 0.65 · «Sácale partido» (Sheila, 23/10: «hay prendas que simplemente sientes que no le sacas su máximo potencial con nada de lo que hay en tu closet…

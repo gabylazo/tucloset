@@ -1482,3 +1482,13 @@ html{touch-action:manipulation}
 .an-largo button span{font-size:12px;line-height:1.2;text-align:center}
 #an-largo-c .an-tiro button span,#an-largo-c .an-tiro-ay{font-weight:400}
 #an-largo-c .an-tiro-ay{font-weight:300}
+/* 0.140 · Donar cerca */
+.dn-capa .dn-sub{max-width:30ch;margin:0 auto 22px;color:var(--sec);font-size:15px;line-height:1.5;text-wrap:balance}
+.dn-capa .dn-lista{list-style:none;margin:0 auto 22px;padding:0;width:100%;max-width:420px;text-align:left}
+.dn-capa .dn-lista li{border-top:1px solid var(--linea)}
+.dn-capa .dn-lista li:last-child{border-bottom:1px solid var(--linea)}
+.dn-capa .dn-lista a{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:0 4px;color:var(--tinta);text-decoration:none;font-size:16px}
+.dn-capa .dn-lista svg{width:16px;height:16px;flex:none;fill:none;stroke:var(--sec);stroke-width:1.3}
+.dn-capa .dn-maps{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;background:none;border:0;color:var(--tinta);font:inherit;font-size:15px;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+.dn-capa .dn-nota,.dn-capa .dn-aviso{max-width:32ch;margin:6px auto 0;font-size:13px;line-height:1.5;color:var(--sec)}
+.dn-capa .dn-aviso{color:var(--tinta)}
