@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.135'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.136'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -235,10 +235,8 @@ if (AT) (() => {
   pintarCloset = function () {
     const todas = E.prendas, cats = ['Todo', ...CATS_ORDEN.filter(c => todas.some(p => catDe(p) === c))];
     if (!cats.includes(E.filtro)) E.filtro = 'Todo';
-    if (E.filtro !== E.atFiltroAnt) { E.atCatsAbiertas = false; E.atFiltroAnt = E.filtro; }
-    const cuantas = c => c === 'Todo' ? todas.length : todas.filter(p => catDe(p) === c).length;
-    rejCats().innerHTML = `<button class="at-catsel" data-atcats aria-expanded="${!!E.atCatsAbiertas}">${catTxt(E.filtro)} <small>${cuantas(E.filtro)}</small>${I.abajo}</button>`
-      + (E.atCatsAbiertas ? `<div class="at-catlista">${cats.map(c => `<button class="${c === E.filtro ? 'activo' : ''}" data-filtro="${c}"${c === E.filtro ? ' aria-current="true"' : ''}>${catTxt(c)} <small>${cuantas(c)}</small></button>`).join('')}</div>` : '');
+    rejCats().innerHTML = cats.map(c => `<button class="${c === E.filtro ? 'activo' : ''}" data-filtro="${c}"${c === E.filtro ? ' aria-current="true"' : ''}>${catTxt(c)}${DOS}</button>`).join('');
+    deslizable(rejCats());
     const q = E.busca.trim().toLowerCase();
     const lista = todas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && pasaFiltros(p) && (!q || [p.nombre, p.color, catDe(p), p.notas].join(' ').toLowerCase().includes(q)));
     const nf = Object.values(E.f).reduce((s, v) => s + v.length, 0); $('mc-nf').textContent = nf || '';
@@ -249,7 +247,19 @@ if (AT) (() => {
     if (!$('mc-hoja').hidden) pintarFiltros();
   };
 
-  document.addEventListener('click', e => { if (!e.target.closest('[data-atcats]')) return; E.atCatsAbiertas = !E.atCatsAbiertas; pintarCloset(); });
+  /* una fila en horizontal con una flecha a cada lado si hay más de lo que cabe (Gabriela, 03/11: «solo buscar una solución para seguir desplazando hacia la derecha y ver el
+     resto»): la elegida queda a la vista; las flechas aparecen y desaparecen según se pueda seguir */
+  function deslizable(fila) {
+    if (!fila) return; let caja = fila.parentElement;
+    if (!caja.classList.contains('at-desl')) { caja = document.createElement('div'); caja.className = 'at-desl'; fila.before(caja); caja.append(fila); }
+    if (!caja.querySelector('.at-mas')) caja.insertAdjacentHTML('beforeend', `<button class="at-mas iz" aria-label="${t('Ver las anteriores', 'Show previous')}" tabindex="-1">${I.iz}</button><button class="at-mas de" aria-label="${t('Ver más', 'Show more')}" tabindex="-1">${I.de}</button>`);
+    const iz = caja.querySelector('.at-mas.iz'), de = caja.querySelector('.at-mas.de');
+    const ver = () => { const sobra = fila.scrollWidth - fila.clientWidth; iz.classList.toggle('ver', sobra > 4 && fila.scrollLeft > 4); de.classList.toggle('ver', sobra > 4 && fila.scrollLeft < sobra - 4); };
+    iz.onclick = () => fila.scrollBy({ left: -fila.clientWidth * .7 }); de.onclick = () => fila.scrollBy({ left: fila.clientWidth * .7 });
+    fila.onscroll = ver;
+    const act = fila.querySelector('.activo, .on'); if (act && act.offsetLeft + act.offsetWidth > fila.clientWidth) fila.scrollLeft = act.offsetLeft - (fila.clientWidth - act.offsetWidth) / 2;
+    ver(); requestAnimationFrame(ver);
+  }
 
   /* ---------- cómo cuidar cada prenda (Gabriela, 03/11: «esa opción era para dar instrucciones de lavado de cada prenda, cómo tienes que lavarla para cuidarla»).
      Pautas generales por tejido y tipo, sacadas del nombre; la etiqueta manda ---------- */
@@ -301,7 +311,7 @@ if (AT) (() => {
       ${p.estado ? `<p class="at-estado">${estadoTxt(p.estado)}</p>` : ''}<h1 class="at-h1">${esc(p.nombre)}</h1><p class="at-datos">${datos}</p>${precio ? `<p class="at-datos">${precio}</p>` : ''}
       ${looks.length ? `<div class="at-minis${looks.length > 2 ? ' muchos' : ''}">${looks.map(x => baldosa(x.ps, MW, MH, x.attr)).join('')}</div>` : ''}
       <div class="at-acciones"><button class="at-btn" data-ir="nuevo-look" data-atpre="${id}">${t('Crear un look', 'Create a look')}</button></div>
-      <section class="at-cuidar"><h2>${t('Cómo cuidarla', 'How to care for it')}</h2><ul>${cuidados(p).map(x => `<li>${esc(x)}</li>`).join('')}</ul></section>
+      <details class="at-cuidar"><summary>${t('Cómo cuidarla', 'How to care for it')}${I.abajo}</summary><ul>${cuidados(p).map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>
       <nav class="at-lista" aria-label="${t('Acciones de la prenda', 'Garment actions')}">${acc.map(([k, v]) => `<button data-atfacc="${k}">${esc(v)}</button>`).join('')}</nav>
       <p class="at-nota-fin">${esc($('f-nota').textContent)}</p>`;
     r.onclick = e => {
@@ -408,6 +418,7 @@ if (AT) (() => {
     const vendria = r.falta?.length && !en() && activas().length ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';
     raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${w ? `<p class="at-para">${t('Para hoy', 'For today')}, ${Math.round(w.t)}°</p>` : ''}`
       + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio">${activas().length ? `<p>${t('Con lo que tienes no sale un look completo para esta ocasión.', 'What you have doesn’t make a complete look for this occasion.')}</p>` : `<p>${t('Sube tu ropa y aquí saldrán tus ideas.', 'Add your clothes and your ideas will appear here.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>`}</div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
+    deslizable(raiz.querySelector('.at-ocs-ideas'));
     raiz.onclick = async e => {
       const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria]'); if (!b) return;
       if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkTocado = true; return pintarLooks(); }

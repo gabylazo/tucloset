@@ -284,22 +284,26 @@ html.at .at-hoy .at-nota { margin-top: 10px; }
 html.at .at-pie { flex-direction: row; justify-content: center; align-items: center; gap: 14px; padding: 8px 0 26px; }
 html.at .at-pie .at-fav { width: 44px; height: 44px; margin: 0; display: inline-flex; align-items: center; justify-content: center; }
 html.at .at-pie .at-btn { margin: 0; }
-/* las ocasiones en varias líneas, todas a la vista («no poder seguir viendo después de Viaje») */
-html.at .at-ocs, html.at .at-ocs-ideas { flex-wrap: wrap; justify-content: center; column-gap: 18px; row-gap: 0; overflow: visible; padding: 0 16px; }
-html.at .at-ocs > *, html.at .at-ocs-ideas > * { margin-left: 0 !important; margin-right: 0 !important; }
-html.at .at-ocs-ideas button { min-height: 44px; }
-/* el clóset: la categoría elegida y, al tocarla, todas con cuántas prendas tiene cada una */
-html.at #p-closet #cats { display: block; overflow: visible; padding: 6px 20px 0; text-align: center; }
-html.at #p-closet #cats > * { margin-left: 0; margin-right: 0; }
-html.at #p-closet #cats .at-catsel { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px; font-weight: 500; color: var(--tinta); }
-html.at #p-closet #cats small { font: 400 11px/1 var(--f); letter-spacing: 0; color: var(--sec); }
-html.at #p-closet #cats .at-catsel .at-ic { width: 12px; height: 12px; color: var(--sec); }
-html.at #p-closet #cats .at-catlista { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; margin: 2px 0 10px; border-top: 1px solid var(--raya); }
-html.at #p-closet #cats .at-catlista button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; width: 100%; border-bottom: 1px solid var(--raya); }
-/* la ficha: cómo cuidarla */
-html.at .at-cuidar { margin: 28px 20px 0; padding: 20px 0 4px; border-top: 1px solid var(--raya); }
-html.at .at-cuidar h2 { font: 500 11.5px/1 var(--f); letter-spacing: .14em; text-transform: uppercase; color: var(--tinta); margin: 0 0 14px; }
-html.at .at-cuidar ul { margin: 0; padding: 0; list-style: none; }
-html.at .at-cuidar li { font: 400 14px/1.5 var(--f); color: var(--sec); padding: 0 0 8px; text-wrap: balance; }
 html.at .at-pie::after { content: ''; width: 44px; flex: none; } /* el botón queda en el eje de la pantalla y el corazón a su izquierda */
 html.at .at-hoy summary { min-height: 44px; display: inline-flex; align-items: center; }
+/* ---------- 03/11, 15:0x (Gabriela: «me gustaba la distribución de la clasificación así en horizontal, solo buscar una solución para seguir desplazando hacia la derecha y ver el
+   resto»; «lo de cómo cuidarla tiene que ser una pestaña, no aparecer así en texto grande»; «lo de pruebas, ¿qué es?») ---------- */
+/* las filas en horizontal, con una flecha a cada lado cuando hay más (y un velo blanco que avisa de que sigue) */
+html.at .at-desl { position: relative; }
+html.at .at-desl .at-mas { position: absolute; top: 0; bottom: 0; width: 44px; display: none; align-items: center; justify-content: center; color: var(--tinta); z-index: 2; }
+html.at .at-desl .at-mas.iz { left: 0; background: linear-gradient(90deg, #fff 55%, rgba(255, 255, 255, 0)); justify-content: flex-start; padding-left: 8px; }
+html.at .at-desl .at-mas.de { right: 0; background: linear-gradient(270deg, #fff 55%, rgba(255, 255, 255, 0)); justify-content: flex-end; padding-right: 8px; }
+html.at .at-desl .at-mas.ver { display: flex; }
+html.at .at-desl .at-mas .at-ic { width: 16px; height: 16px; }
+html.at #p-closet .at-desl #cats, html.at .at-desl .at-fila { scroll-behavior: smooth; }
+/* «Pruebas» (un segundo clóset que solo vive en el móvil, para probar sin mezclar con tu ropa) sale de la cabecera; sigue en Yo › Clóset (decisión 10, Sheila) */
+html.at #p-closet .cl-cambio { display: none; }
+/* cómo cuidarla: una pestaña más de la lista, plegada */
+html.at .at-cuidar { margin: 22px 20px 0; border-top: 1px solid var(--raya); }
+html.at .at-cuidar summary { list-style: none; min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; font: 400 16px/1 var(--f); color: var(--tinta); cursor: pointer; }
+html.at .at-cuidar summary::-webkit-details-marker { display: none; }
+html.at .at-cuidar summary .at-ic { width: 12px; height: 12px; color: var(--sec); transition: transform .2s; }
+html.at .at-cuidar[open] summary .at-ic { transform: rotate(180deg); }
+html.at .at-cuidar ul { margin: 0; padding: 0 8px 12px; list-style: none; }
+html.at .at-cuidar li { font: 400 13px/1.5 var(--f); color: var(--sec); padding: 0 0 6px; text-wrap: balance; }
+html.at .at-cuidar + .at-lista { margin-top: 0; }
