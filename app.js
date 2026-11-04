@@ -234,10 +234,10 @@ async function preguntarEncuesta(forzar) {
       if (!creada || creada < '2026-11-10' || Date.now() - new Date(creada) < 7 * 864e5) return;
       const r = await api('/api/encuesta', { tiempo: 10000 }); if (!r.ok) return; if ((await r.json()).hecha) { LS.set('tc_encuesta_hecha', '1'); return; }
     }
-    abrirEncuesta();
+    abrirEncuesta(forzar);
   } catch (e) { }
 }
-function abrirEncuesta() {
+function abrirEncuesta(previa) { // previa (?encuesta=1): para que la vean las socias; no envía nada
   const es = idioma() === 'en' ? 1 : 0, res = {};
   const html = `<p class="pn-lema">${t('Ocho preguntas, solo tocar. Menos de un minuto.', 'Eight questions, just tap. Under a minute.')}</p>
     ${ENCUESTA.map((q, i) => `<fieldset class="en-q"><legend>${q[es]}</legend><div class="at-fila at-vj-ops">${q[2].map((o, j) => `<button type="button" data-enq="${i}" data-eno="${j}" aria-pressed="false">${o[es]}<span class="at-dos" aria-hidden="true"></span></button>`).join('')}</div></fieldset>`).join('')}
@@ -250,6 +250,7 @@ function abrirEncuesta() {
       if (b) { const i = +b.dataset.enq; res[i] = +b.dataset.eno; cap.querySelectorAll(`[data-enq="${i}"]`).forEach(x => { const on = +x.dataset.eno === res[i]; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); }); $('en-enviar').disabled = Object.keys(res).length < ENCUESTA.length; return; }
       if (e.target.closest('#en-luego')) { LS.set('tc_encuesta_luego', new Date().toISOString().slice(0, 10)); cap.remove(); return; }
       if (e.target.closest('#en-enviar')) {
+        if (previa) { cap.remove(); toast(t('Vista previa: no se ha enviado nada.', 'Preview: nothing was sent.')); return; }
         const env = $('en-enviar'); env.disabled = true;
         const r = Object.fromEntries(ENCUESTA.map((q, i) => [q[0], q[2][res[i]][0]]));
         try { const x = await api('/api/encuesta', { method: 'POST', json: { r }, tiempo: 15000 }); if (!x.ok) throw new Error('http ' + x.status); LS.set('tc_encuesta_hecha', '1'); cap.remove(); toast(t('Gracias. Lo leemos todo.', 'Thank you. We read every answer.')); }

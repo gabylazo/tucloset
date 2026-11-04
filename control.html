@@ -101,6 +101,20 @@ h3 { font: 400 20px/1.25 'Bellefair', serif; margin: 0; }
 .boton { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px; margin-top: 18px; border: 1px solid var(--tinta); text-decoration: none; letter-spacing: .08em; font-size: 14px; }
 .pie { text-align: center; color: var(--gris); font-size: 13px; margin-top: 48px; }
 .fallos li { font-size: 13px; }
+.doc { border-top: 1px solid var(--raya); }
+.doc:last-of-type { border-bottom: 1px solid var(--raya); }
+.doc summary { list-style: none; cursor: pointer; padding: 14px 28px 14px 0; position: relative; min-height: 44px; }
+.doc summary::-webkit-details-marker { display: none; }
+.doc summary::after { content: '+'; position: absolute; right: 4px; top: 12px; font-size: 22px; line-height: 1; }
+.doc[open] summary::after { content: '–'; }
+.doc summary .n { display: block; font-size: 13px; color: var(--gris); }
+.doc-cuerpo { padding: 0 0 24px; font-size: 15px; }
+.doc-cuerpo h4 { font: 400 19px/1.3 'Bellefair', serif; margin: 22px 0 6px; }
+.doc-cuerpo p, .doc-cuerpo li { max-width: 68ch; }
+.doc-cuerpo ul, .doc-cuerpo ol { padding-left: 20px; margin: 6px 0 12px; }
+.doc-cuerpo table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0 14px; }
+.doc-cuerpo td, .doc-cuerpo th { border-bottom: 1px solid var(--raya); padding: 7px 6px; text-align: left; vertical-align: top; font-weight: 400; }
+.doc-cuerpo th { color: var(--gris); font-size: 12px; }
 .fallos code { font: 12px/1.4 ui-monospace, Menlo, monospace; color: var(--tinta); word-break: break-word; }
 </style>
 </head>
@@ -132,7 +146,7 @@ h3 { font: 400 20px/1.25 'Bellefair', serif; margin: 0; }
   const activas7 = new Set(d.uso.filter(u => u.dia >= dia(6)).map(u => u.usuaria)).size;
   const fallos7 = d.avisos.filter(a => a.fecha >= new Date(hoy - 7 * 864e5).toISOString()).length;
   const prendas = d.usuarias.reduce((s, u) => s + u.prendas, 0);
-  const secciones = [['toca', 'Os toca'], ['cifras', 'Cifras'], ['departamentos', 'Departamentos'], ['funciones', 'Funciones'], ['fases', 'Fases'], ['cuentas', 'Cuentas'], ['usuarias', 'Usuarias'], ['encuesta', 'Encuesta'], ['fallos', 'Fallos']];
+  const secciones = [['toca', 'Os toca'], ['mirar', 'Para mirar'], ['cifras', 'Cifras'], ['departamentos', 'Departamentos'], ['funciones', 'Funciones'], ['fases', 'Fases'], ['cuentas', 'Cuentas'], ['usuarias', 'Usuarias'], ['encuesta', 'Encuesta'], ['documentos', 'Documentos'], ['fallos', 'Fallos']];
 
   // uso de los últimos 14 días: cuántas personas abrieron la app cada día
   const dias = [...Array(14)].map((_, i) => dia(13 - i)), porDia = dias.map(k => new Set(d.uso.filter(u => u.dia === k).map(u => u.usuaria)).size), max = Math.max(1, ...porDia);
@@ -148,6 +162,8 @@ h3 { font: 400 20px/1.25 'Bellefair', serif; margin: 0; }
   raiz.innerHTML = `<nav aria-label="Secciones"><ul>${secciones.map(([k, n]) => `<li><a href="#${k}">${n}</a></li>`).join('')}</ul></nav><main>
   <section id="toca"><h2>Os toca</h2><p class="sub">Lo que solo podéis decidir o hacer vosotras. Entre paréntesis, lo que recomiendo.</p>
     <ul class="toca">${(P.pendientes || []).map(p => `<li><span class="q">${esc(p.q)}</span><span>${esc(p.t)}</span>${p.r ? `<span class="r">(${esc(p.r)})</span>` : ''}</li>`).join('')}</ul></section>
+  <section id="mirar"><h2>Para mirar</h2><p class="sub">Todo lo que tenéis que ver, junto.</p>
+    <ul class="filas">${(P.mirar || []).map(x => `<li><span>${x.url ? `<a href="${esc(x.url)}">${esc(x.t)}</a>` : esc(x.t)}</span>${x.e ? est(x.e) : '<span></span>'}${x.n ? `<span class="n">${esc(x.n)}</span>` : ''}</li>`).join('')}</ul></section>
   <section id="cifras"><h2>Cifras</h2><p class="sub">Datos reales del servidor.</p>
     <div class="cifras"><div><b>${d.usuarias.length}</b><span>cuentas</span></div><div><b>${activas7}</b><span>activas en 7 días</span></div><div><b>${prendas}</b><span>prendas subidas</span></div>
     <div><b>0</b><span>suscriptoras (aún no se cobra)</span></div><div><b>${d.entradas7}</b><span>entradas en 7 días</span></div><div><b>${fallos7}</b><span>fallos en 7 días</span></div></div>
@@ -167,6 +183,7 @@ h3 { font: 400 20px/1.25 'Bellefair', serif; margin: 0; }
     <div class="desliza" tabindex="0" role="region" aria-label="Tabla de usuarias"><table class="tabla"><thead><tr><th>Cuenta</th><th>Alta</th><th class="num">Prendas</th><th class="num">Looks</th><th class="num">Puestas</th><th>Versión</th><th>Última vez</th></tr></thead>
     <tbody>${d.usuarias.sort((a, b) => (b.actualizado || '').localeCompare(a.actualizado || '')).map(u => `<tr><td>${esc(u.correo)}</td><td>${fecha(u.creada)}</td><td class="num">${u.prendas}${u.catalogo ? ` (${u.catalogo} de catálogo)` : ''}</td><td class="num">${u.looks}</td><td class="num">${u.usos}</td><td>${esc({ gratis: 'Gratis', basico: 'Básico', pro: 'Pro' }[u.ve] || '—')}</td><td>${fecha(u.actualizado)}</td></tr>`).join('')}</tbody></table></div></section>
   <section id="encuesta"><h2>Encuesta de las pruebas</h2>${enc}</section>
+  <section id="documentos"><h2>Documentos</h2>${(P.docs || []).length ? P.docs.map(x => `<details class="doc"><summary><h3>${esc(x.t)}</h3><span class="n">${esc(x.n || '')}</span></summary><div class="doc-cuerpo">${x.html}</div></details>`).join('') : '<p class="vacio">Aún no hay documentos.</p>'}</section>
   <section id="fallos"><h2>Fallos</h2><p class="sub">Lo que la app avisa cuando algo no llega al servidor. Sin datos de nadie.</p>
     ${d.avisos.length ? `<ul class="filas fallos">${d.avisos.slice(0, 20).map(a => `<li><code>${esc(a.d)}</code><span>${hora(a.fecha)}</span></li>`).join('')}</ul>` : '<p class="vacio">Ningún fallo.</p>'}</section>
   <p class="pie">Datos del servidor: ${hora(d.generado)}. Panel de la Dirección: ${esc(P.actualizado || '—')}.</p>
