@@ -215,6 +215,49 @@ async function subirNube(reintento) {
   try { await nubeEnCurso; } finally { nubeEnCurso = null; }
 }
 // trae lo del servidor y lo junta con lo de este móvil: lo del servidor manda; lo que solo está aquí se queda (y se subirá)
+/* ---------- 04/11 · encuesta de las pruebas: 8 preguntas de tocar, al séptimo día desde que se creó la cuenta (solo cuentas de las pruebas, desde el 10/11) ---------- */
+const ENCUESTA = [
+  ['¿Cuántos días la has abierto?', 'How many days did you open it?', [['1–2', '1–2'], ['3–4', '3–4'], ['5 o más', '5 or more']]],
+  ['¿Te has puesto algún look de la app?', 'Did you wear any look from the app?', [['Ninguno', 'None'], ['1–2', '1–2'], ['3 o más', '3 or more']]],
+  ['Subir tu ropa fue…', 'Adding your clothes was…', [['Fácil', 'Easy'], ['Normal', 'OK'], ['Pesado', 'A chore']]],
+  ['Los looks te parecieron…', 'The looks felt…', [['Me los pondría', 'I would wear them'], ['Algunos sí', 'Some of them'], ['No van conmigo', 'Not for me']]],
+  ['¿Qué te ha servido más?', 'What helped you most?', [['Hoy', 'Today'], ['El clóset', 'The closet'], ['Ideas y cápsula', 'Ideas and capsule'], ['Nada todavía', 'Nothing yet']]],
+  ['¿Ha fallado algo?', 'Did anything fail?', [['Nada', 'Nothing'], ['Alguna vez', 'Once or twice'], ['Bastante', 'Quite a lot']]],
+  ['¿Seguirías usándola?', 'Would you keep using it?', [['Sí', 'Yes'], ['Puede', 'Maybe'], ['No', 'No']]],
+  ['¿Pagarías 1,99 € al mes por ella?', 'Would you pay €1.99 a month for it?', [['Sí', 'Yes'], ['Con algo más', 'With something more'], ['No', 'No']]]];
+async function preguntarEncuesta(forzar) {
+  try {
+    if (!forzar) {
+      if (!cuenta() || window.top !== window || LS.get('tc_encuesta_hecha') || LS.get('tc_encuesta_luego') === new Date().toISOString().slice(0, 10)) return;
+      let creada = LS.get('tc_cuenta_creada');
+      if (!creada) { const r = await api('/api/yo', { tiempo: 10000 }); if (!r.ok) return; creada = (await r.json()).creada; if (creada) LS.set('tc_cuenta_creada', creada); }
+      if (!creada || creada < '2026-11-10' || Date.now() - new Date(creada) < 7 * 864e5) return;
+      const r = await api('/api/encuesta', { tiempo: 10000 }); if (!r.ok) return; if ((await r.json()).hecha) { LS.set('tc_encuesta_hecha', '1'); return; }
+    }
+    abrirEncuesta();
+  } catch (e) { }
+}
+function abrirEncuesta() {
+  const es = idioma() === 'en' ? 1 : 0, res = {};
+  const html = `<p class="pn-lema">${t('Ocho preguntas, solo tocar. Menos de un minuto.', 'Eight questions, just tap. Under a minute.')}</p>
+    ${ENCUESTA.map((q, i) => `<fieldset class="en-q"><legend>${q[es]}</legend><div class="at-fila at-vj-ops">${q[2].map((o, j) => `<button type="button" data-enq="${i}" data-eno="${j}" aria-pressed="false">${o[es]}<span class="at-dos" aria-hidden="true"></span></button>`).join('')}</div></fieldset>`).join('')}
+    <button class="boton" id="en-enviar" disabled>${t('Enviar', 'Send')}</button>
+    <button class="boton linea" id="en-luego">${t('Ahora no', 'Not now')}</button>
+    <p class="pn-nota">${t('Solo se guardan tus respuestas, con tu cuenta. Nos sirven para mejorar la app.', 'Only your answers are saved, with your account. They help us improve the app.')}</p>`;
+  abrirPanel(t('¿Qué tal la semana?', 'How was your week?'), html, cap => {
+    cap.addEventListener('click', async e => {
+      const b = e.target.closest('[data-enq]');
+      if (b) { const i = +b.dataset.enq; res[i] = +b.dataset.eno; cap.querySelectorAll(`[data-enq="${i}"]`).forEach(x => { const on = +x.dataset.eno === res[i]; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); }); $('en-enviar').disabled = Object.keys(res).length < ENCUESTA.length; return; }
+      if (e.target.closest('#en-luego')) { LS.set('tc_encuesta_luego', new Date().toISOString().slice(0, 10)); cap.remove(); return; }
+      if (e.target.closest('#en-enviar')) {
+        const env = $('en-enviar'); env.disabled = true;
+        const r = Object.fromEntries(ENCUESTA.map((q, i) => [q[0], q[2][res[i]][0]]));
+        try { const x = await api('/api/encuesta', { method: 'POST', json: { r }, tiempo: 15000 }); if (!x.ok) throw new Error('http ' + x.status); LS.set('tc_encuesta_hecha', '1'); cap.remove(); toast(t('Gracias. Lo leemos todo.', 'Thank you. We read every answer.')); }
+        catch (er) { env.disabled = false; toast(cuenta() ? t('No se ha podido enviar. Prueba otra vez.', 'Could not send. Try again.') : t('Entra en tu cuenta para enviarla.', 'Sign in to send it.')); }
+      }
+    });
+  });
+}
 async function bajarNube() {
   if (!cuenta()) return false;
   const r = await api('/api/datos', { tiempo: 30000 }); if (!r.ok) return false;
@@ -2727,6 +2770,8 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (E.perfil?.estilos?.some(k => ESTILO_VIEJO[k])) E.perfil.estilos = [...new Set(E.perfil.estilos.map(k => ESTILO_VIEJO[k] || k))]; // 0.52: los 6 estilos viejos pasan a los 13 // 0.45: que el navegador no borre el clóset para hacer sitio
   let migra = estacionesAuto() > 0; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
   traducir(); pintarSilueta();
+  // 04/11: la encuesta de las pruebas (Gabriela: «una encuesta sencilla, de marcar nada más, nada de escribir… después de la prueba, que puede ser una semana»)
+  setTimeout(() => preguntarEncuesta(new URLSearchParams(location.search).get('encuesta') === '1'), 4000);
   // 04/11: un apunte al día por móvil con cuenta, para el centro de control (cuántas vuelven cada día); fuera de comparar.html
   try { const dia = new Date().toISOString().slice(0, 10); if (cuenta() && window.top === window && LS.get('tc_uso_dia') !== dia) { LS.set('tc_uso_dia', dia); api('/api/uso', { method: 'POST', tiempo: 10000 }).catch(() => { }); } } catch (e) { }
   if (!NUBE) ['a-correo', 'a-clave'].forEach(id => $(id).closest('label').hidden = true);
