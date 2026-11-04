@@ -164,7 +164,7 @@ h3 { font: 400 20px/1.25 'Bellefair', serif; margin: 0; }
   <section id="cuentas"><h2>Cuentas de la empresa</h2><p class="sub">${esc(P.nota_claves || '')}</p>
     <ul class="filas">${(P.cuentas || []).map(x => `<li><span><b style="font-weight:500">${esc(x.s)}</b> · ${esc(x.p)}</span>${est(x.e)}<span class="n">${esc(x.d)}${x.n ? ` · ${esc(x.n)}` : ''}</span></li>`).join('')}</ul></section>
   <section id="usuarias"><h2>Usuarias</h2><p class="sub">Los correos van abreviados. Sin fotos ni datos del cuerpo.</p>
-    <div class="desliza"><table class="tabla"><thead><tr><th>Cuenta</th><th>Alta</th><th class="num">Prendas</th><th class="num">Looks</th><th class="num">Puestas</th><th>Versión</th><th>Última vez</th></tr></thead>
+    <div class="desliza" tabindex="0" role="region" aria-label="Tabla de usuarias"><table class="tabla"><thead><tr><th>Cuenta</th><th>Alta</th><th class="num">Prendas</th><th class="num">Looks</th><th class="num">Puestas</th><th>Versión</th><th>Última vez</th></tr></thead>
     <tbody>${d.usuarias.sort((a, b) => (b.actualizado || '').localeCompare(a.actualizado || '')).map(u => `<tr><td>${esc(u.correo)}</td><td>${fecha(u.creada)}</td><td class="num">${u.prendas}${u.catalogo ? ` (${u.catalogo} de catálogo)` : ''}</td><td class="num">${u.looks}</td><td class="num">${u.usos}</td><td>${esc({ gratis: 'Gratis', basico: 'Básico', pro: 'Pro' }[u.ve] || '—')}</td><td>${fecha(u.actualizado)}</td></tr>`).join('')}</tbody></table></div></section>
   <section id="encuesta"><h2>Encuesta de las pruebas</h2>${enc}</section>
   <section id="fallos"><h2>Fallos</h2><p class="sub">Lo que la app avisa cuando algo no llega al servidor. Sin datos de nadie.</p>
