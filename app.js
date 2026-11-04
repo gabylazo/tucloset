@@ -511,6 +511,59 @@ async function fotoRecta(b, g) {
   ox.drawImage(c, q[0], q[1], bw, bh, (W - bw * s) / 2, (H - bh * s) / 2, bw * s, bh * s);
   return new Promise(r => o.toBlob(r, 'image/jpeg', .9));
 }
+/* ---------- PRENDAS REPETIDAS (Gabriela, 05/11: «si cree que hay alguna que puede estar repetida me lo pregunta dentro de la app, es válido para todos»;
+   «que el sistema detecte si se sube una pieza más de una vez»). Cada prenda guarda la huella de su foto (dHash de 64 bits del recorte, sobre blanco, y su color medio);
+   si una se parece mucho a otra más antigua, queda con `duda` y el clóset pregunta «¿Es la misma prenda?». «Son distintas» se recuerda en `noRep`. ---------- */
+async function huellaDe(blob) {
+  const bm = await createImageBitmap(blob), a = document.createElement('canvas'); a.width = a.height = 64;
+  const xa = a.getContext('2d', { willReadFrequently: true }); xa.drawImage(bm, 0, 0, 64, 64); bm.close?.();
+  const px = xa.getImageData(0, 0, 64, 64).data; let x0 = 64, y0 = 64, x1 = -1, y1 = -1, r = 0, g = 0, b = 0, n = 0;
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const k = (y * 64 + x) * 4; if (px[k + 3] < 40) continue; const blanco = px[k] > 238 && px[k + 1] > 238 && px[k + 2] > 238; if (blanco && px[k + 3] === 255) continue;
+    if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; r += px[k]; g += px[k + 1]; b += px[k + 2]; n++; }
+  if (x1 < 0) { x0 = y0 = 0; x1 = y1 = 63; }
+  const c = document.createElement('canvas'); c.width = 9; c.height = 8; const xc = c.getContext('2d', { willReadFrequently: true });
+  xc.fillStyle = '#fff'; xc.fillRect(0, 0, 9, 8); xc.drawImage(a, x0, y0, x1 - x0 + 1, y1 - y0 + 1, 0, 0, 9, 8);
+  const d = xc.getImageData(0, 0, 9, 8).data, luz = k => d[k] * .299 + d[k + 1] * .587 + d[k + 2] * .114; let hu = '';
+  for (let y = 0; y < 8; y++) { let v = 0; for (let x = 0; x < 8; x++) { const k = (y * 9 + x) * 4; v = v * 2 + (luz(k) > luz(k + 4) ? 1 : 0); } hu += v.toString(16).padStart(2, '0'); }
+  return { hu, huC: n ? [r / n, g / n, b / n].map(Math.round) : [255, 255, 255] };
+}
+const distHuella = (a, b) => { let n = 0; for (let i = 0; i < 16; i += 2) { let v = parseInt(a.slice(i, i + 2), 16) ^ parseInt(b.slice(i, i + 2), 16); while (v) { n += v & 1; v >>= 1; } } return n; };
+// misma foto o casi (≤ 8 de 64), o muy parecida con el mismo color y la misma categoría (≤ 12 y color a menos de 30; el 05/11, entre las 25 prendas distintas de Gabriela, lo más cercano fue 14)
+function pareceRepetida(p, q) { if (!p.hu || !q.hu) return false; const h = distHuella(p.hu, q.hu), dc = Math.hypot(...p.huC.map((v, i) => v - q.huC[i])); return h <= 8 || (h <= 12 && dc < 30 && catDe(p) === catDe(q)); }
+const dudasRepetidas = () => E.prendas.filter(p => p.duda && E.prendas.some(q => q.id === p.duda));
+let revisando = null;
+function revisarRepetidas() {
+  if (revisando) return revisando;
+  revisando = (async () => {
+    await 0; // como en medirTodas: sin esto, sin nada que revisar, el finally corría antes de guardarse la promesa y «revisando» no volvía a null
+    try {
+      if (window.top !== window) return dudasRepetidas().length;
+      let cambio = false;
+      for (const p of E.prendas) if (!p.hu && p.foto instanceof Blob && !p.fotoRota) { try { Object.assign(p, await huellaDe(p.foto)); cambio = true; } catch (e) { } }
+      // E.prendas va de la más nueva a la más antigua: la nueva es la que se pregunta
+      E.prendas.forEach((p, i) => { if (p.duda || !p.hu) return; const q = E.prendas.slice(i + 1).find(q => q.hu && !(p.noRep || []).includes(q.id) && !(q.noRep || []).includes(p.id) && pareceRepetida(p, q)); if (q) { p.duda = q.id; cambio = true; } });
+      if (cambio) await guardar();
+      return dudasRepetidas().length;
+    } finally { revisando = null; }
+  })();
+  return revisando;
+}
+function abrirRepetidas() {
+  const lista = dudasRepetidas(); $('rep-capa')?.remove(); if (!lista.length) { if (E.pantalla === 'closet') pintarCloset(); return; }
+  const p = lista[0], q = E.prendas.find(x => x.id === p.duda), dia = f => f ? new Date(f).toLocaleDateString(idioma() === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'short' }) : '';
+  const cap = document.createElement('div'); cap.id = 'rep-capa'; cap.className = 'ay-capa at-vj at-rep'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'rep-t');
+  cap.innerHTML = `<h1 id="rep-t" tabindex="-1">${t('¿Es la misma prenda?', 'Is it the same garment?')}</h1><p class="at-vj-sub">${t('Se parecen mucho. Si es la misma, quito la que subiste después.', 'They look very alike. If it is the same, I remove the one you added later.')}</p>
+    <div class="rep-par">${[q, p].map(x => `<figure><img src="${urlCat(x)}" alt=""><figcaption>${String(x.nombre || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])}<small>${dia(x.creada)}</small></figcaption></figure>`).join('')}</div>
+    <div class="at-ropa-ops"><button class="at-btn" data-rep="si">${t('Sí, es la misma', 'Yes, same one')}</button><button class="at-btn" data-rep="no">${t('No, son distintas', 'No, they differ')}</button></div>
+    <button class="at-enlace" data-rep="">${lista.length > 1 ? t(`Ahora no · quedan ${lista.length - 1} más`, `Not now · ${lista.length - 1} more`) : t('Ahora no', 'Not now')}</button>`;
+  document.body.append(cap); $('rep-t').focus({ preventScroll: true });
+  cap.onclick = async e => { const b = e.target.closest('[data-rep]'); if (!b) return;
+    if (b.dataset.rep === 'si') { E.prendas = E.prendas.filter(x => x.id !== p.id); E.conjuntos.forEach(c => c.ids = c.ids.map(id => id === p.id ? q.id : id)); E.propuestas = []; await guardar(); toast(t('Quitada la repetida', 'Duplicate removed')); }
+    else if (b.dataset.rep === 'no') { p.noRep = [...(p.noRep || []), q.id]; delete p.duda; await guardar(); }
+    else { cap.remove(); return; }
+    abrirRepetidas(); };
+}
+
 let midiendo = null;
 function medirTodas() {
   if (midiendo) return midiendo;
@@ -1895,6 +1948,7 @@ async function guardarSubida() {
   if (enGratis() && E.prendas.length + listos.length > TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas: te quedan ${Math.max(0, TOPE_GRATIS - E.prendas.length)}.`, `The free version holds ${TOPE_GRATIS} garments: ${Math.max(0, TOPE_GRATIS - E.prendas.length)} left.`));
   listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1 }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
+  revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 600); }).catch(() => { });
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet'); setTimeout(enderezarTodas, 2500);
 }
 
@@ -2050,6 +2104,7 @@ async function guardarPrenda(otra) {
   const largo = tipo === 'Arriba' && $('an-largo')?.dataset.sel; if (largo) pr.est = { ...(pr.est || {}), largo };
   await guardar(); E.propuestas = [];
   toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'));
+  if (!p) revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 900); }).catch(() => { });
   if (otra) prepararAnadir(null); else ir(p ? 'ficha' : 'closet', p?.id), p && abrirFicha(p.id);
 }
 
@@ -2792,6 +2847,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (destino !== 'inicio') { const tc = cargarTiempo(); if (destino === 'hoy') await Promise.race([tc, new Promise(r => setTimeout(r, 1200))]); tc.then(() => cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); })).catch(() => { }); } // 0.96: no se espera al tiempo más de 1,2 s; cuando llega, se repinta Hoy
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
+  setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));

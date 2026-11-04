@@ -385,3 +385,13 @@ html.at .pn-cuerpo .en-q .at-vj-ops > * { margin-left: 0; margin-right: 0; } /* 
 html.at .en-q legend { padding: 0; margin: 0 auto 10px; font-size: 16px; }
 html.at .pn-cuerpo #en-enviar { margin-top: 26px; }
 html.at .pn-cuerpo #en-luego { margin-top: 10px; }
+
+/* 05/11: ¿es la misma prenda? (prendas repetidas) */
+html.at .rep-par { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 24px 0 10px; }
+html.at .rep-par figure { margin: 0; text-align: center; }
+html.at .rep-par img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: contain; background: #F7F4F1; }
+html.at .rep-par figcaption { margin-top: 8px; font-size: 14px; line-height: 1.3; }
+html.at .rep-par small { display: block; color: #74655A; font-size: 13px; margin-top: 2px; }
+html.at .at-rep .at-ropa-ops { margin-top: 18px; }
+html.at .at-rep-av { display: block; margin: 4px auto 14px; min-height: 44px; padding: 0 12px; background: none; border: 0; color: var(--tinta, #4A3526); font: inherit; font-size: 15px; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+html.at .at-rep-av[hidden] { display: none; }

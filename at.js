@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.154'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.155'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -261,6 +261,9 @@ if (AT) (() => {
     $('closet-vacio').innerHTML = todas.length ? (lista.length ? '' : `<div class="at-vacio"><p>${t('Nada con ese filtro.', 'Nothing matches.')}</p></div>`)
       : `<div class="at-vacio"><p>${t('Haz una foto a cada prenda sobre un fondo liso. Con tres ya hay look de hoy.', 'Photograph each garment on a plain background. With three there is already a look for today.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>${PUBLICA ? '' : `<button class="at-enlace" id="at-cl-ejemplo">${t('Cargar un clóset de ejemplo', 'Load a sample closet')}</button>`}</div>`;
     if (enGratis() && E.prendas.length > TOPE_GRATIS) $('closet-vacio').insertAdjacentHTML('beforeend', `<p class="at-gratis">${t(`En la versión gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`)}</p>`);
+    const nRep = dudasRepetidas().length; let av = $('at-rep-av'); // 05/11: prendas que pueden estar repetidas
+    if (nRep && !av) { av = document.createElement('button'); av.id = 'at-rep-av'; av.className = 'at-rep-av'; av.onclick = abrirRepetidas; $('pared').before(av); }
+    if (av) { av.hidden = !nRep; av.textContent = nRep === 1 ? t('1 prenda puede estar repetida · Revisar', '1 garment may be a duplicate · Review') : t(`${nRep} prendas pueden estar repetidas · Revisar`, `${nRep} garments may be duplicates · Review`); }
     const ej = $('at-cl-ejemplo'); if (ej) ej.onclick = cargarEjemplo;
     if (!$('mc-hoja').hidden) pintarFiltros();
   };
@@ -600,7 +603,9 @@ if (AT) (() => {
      Cambia las referencias de Inspírate, lo que te vendría bien y, con ropa de hombre, quita las fórmulas solo de mujer. ---------- */
   const ROPAS = [['mujer', ['Ropa de mujer', 'Womenswear']], ['hombre', ['Ropa de hombre', 'Menswear']], ['dos', ['De las dos', 'Both']]];
   async function ponerRopa(v) { E.perfil = Object.assign(E.perfil || {}, { ropa: v }); E.inspG = null; E.propuestas = []; await guardar(); }
-  const ropaLuego = () => { try { return !!sessionStorage.getItem('tc_ropa_luego') || window.top !== window; } catch (e) { return true; } };
+  // 05/11 (Gabriela: «que la app no me pregunte cada vez que entro si uso ropa de mujer o de hombre, ya con una vez es suficiente; siempre se podrá editar»):
+  // se pregunta una sola vez por cuenta (`perfil.ropaVista`, también en este móvil) y nunca antes de bajar los datos de la nube; «Ahora no» también cuenta. Se cambia en Yo → Mi estilo.
+  const ropaLuego = () => { try { return !!E.perfil?.ropaVista || !!localStorage.getItem('tc_ropa_vista') || window.top !== window || (cuenta() && !E.nubeBajada); } catch (e) { return true; } };
   function preguntarRopa() {
     if ($('at-ropa') || E.perfil?.ropa || ropaLuego()) return;
     const cap = document.createElement('div'); cap.id = 'at-ropa'; cap.className = 'ay-capa at-vj at-ropa'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'at-ropa-t');
@@ -608,7 +613,8 @@ if (AT) (() => {
       <div class="at-ropa-ops">${ROPAS.map(([v, n]) => `<button class="at-btn" data-ropa="${v}">${n[en() ? 1 : 0]}</button>`).join('')}</div>
       <button class="at-enlace" data-ropa="">${t('Ahora no', 'Not now')}</button>`;
     document.body.append(cap); $('at-ropa-t').focus({ preventScroll: true });
-    cap.onclick = async e => { const b = e.target.closest('[data-ropa]'); if (!b) return; cap.remove(); if (b.dataset.ropa) { await ponerRopa(b.dataset.ropa); if (E.pantalla === 'hoy') pintarHoy(); } else try { sessionStorage.setItem('tc_ropa_luego', '1'); } catch (x) { } };
+    try { localStorage.setItem('tc_ropa_vista', '1'); } catch (x) { }
+    cap.onclick = async e => { const b = e.target.closest('[data-ropa]'); if (!b) return; cap.remove(); E.perfil = Object.assign(E.perfil || {}, { ropaVista: 1 }); if (b.dataset.ropa) { await ponerRopa(b.dataset.ropa); if (E.pantalla === 'hoy') pintarHoy(); } else await guardar(); };
   }
 
   // 03/11 (Gabriela: «pensé que de Inspírate en… salían famosos»; eligió «Nombre como título»): el nombre arriba y el arquetipo debajo;
