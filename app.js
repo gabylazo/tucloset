@@ -2570,7 +2570,7 @@ function pintarYo() {
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? ests.map(min).join(t(' y ', ' and ')) : t('elígelo', 'choose it'))
     + ent(dg?.color ? 'data-diag="ver"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
   let ver = $('yo-ver'); if (!ver) { ver = document.createElement('div'); ver.id = 'yo-ver'; $('yo-lista').after(ver); }
-  ver.innerHTML = `<h3 class="es-tit">${t('Ver la app como', 'View the app as')}</h3><div class="at-fila at-vj-ops">${VERSIONES.map(k => `<button class="${planDemo() === k ? 'on' : ''}" data-vercomo="${k}" aria-pressed="${planDemo() === k}">${nomPlan(k)}<span class="at-dos" aria-hidden="true"></span></button>`).join('')}</div>`
+  ver.innerHTML = `<h2 class="es-tit">${t('Ver la app como', 'View the app as')}</h2><div class="at-fila at-vj-ops">${VERSIONES.map(k => `<button class="${planDemo() === k ? 'on' : ''}" data-vercomo="${k}" aria-pressed="${planDemo() === k}">${nomPlan(k)}<span class="at-dos" aria-hidden="true"></span></button>`).join('')}</div>`
     + (enGratis() && E.prendas.length > TOPE_GRATIS ? `<p class="yo-ver-n">${t(`En la gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`)}</p>` : '');
   let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; ver.after(td); } td.innerHTML = tarjetaDiag();
   pintarPanelYo();
