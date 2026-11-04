@@ -203,8 +203,9 @@ async function subirNube(reintento) {
       for (const p of E.prendas) {
         if (p.ejemplo) continue;
         // 0.113: una foto que no sube ya no frena las demás ni los datos; se reintenta en la próxima subida
-        if (p.foto && p.fotoSub !== firma(p.foto)) { try { await subirFoto('/api/foto/' + p.id, p.foto); p.fotoSub = firma(p.foto); p.nube = Date.now().toString(36); cambio = true; } catch (e) { fallos++; avisarFallo('foto', e, p.foto); } } // nube = marca de la versión subida; fotoSub = qué foto local se subió
-        if (p.original && p.fotoSubO !== firma(p.original)) { try { await subirFoto('/api/foto/' + p.id + '-o', p.original); p.fotoSubO = firma(p.original); p.nubeO = Date.now().toString(36); cambio = true; } catch (e) { avisarFallo('original', e, p.original); } }
+        // 04/11: el iPhone de Gabriela perdió las fotos de 4 prendas («leer … The object can not be found here»): se marcan, no se reintentan y la ficha pide rehacerla; si la nube la tiene, se vuelve a bajar
+        if (p.foto && !p.fotoRota && p.fotoSub !== firma(p.foto)) { try { await subirFoto('/api/foto/' + p.id, p.foto); p.fotoSub = firma(p.foto); p.nube = Date.now().toString(36); cambio = true; } catch (e) { if (/^leer /.test(e?.message || '')) { p.fotoRota = 1; cambio = true; } fallos++; avisarFallo('foto', e, p.foto); } } // nube = marca de la versión subida; fotoSub = qué foto local se subió
+        if (p.original && !p.originalRota && p.fotoSubO !== firma(p.original)) { try { await subirFoto('/api/foto/' + p.id + '-o', p.original); p.fotoSubO = firma(p.original); p.nubeO = Date.now().toString(36); cambio = true; } catch (e) { if (/^leer /.test(e?.message || '')) { p.originalRota = 1; cambio = true; } avisarFallo('original', e, p.original); } }
       }
       if (cambio) { await BD.set('prendas', E.prendas); d = await ponerDatos(); if (!d) { if (reintento) throw new Error('datos 409'); await bajarNube(); nubeEnCurso = null; return subirNube(true); } }
       E.nube = { estado: fallos ? 'error' : 'ok', cuando: d.actualizado };
@@ -226,8 +227,8 @@ async function bajarNube() {
   for (const q of doc.prendas || []) {
     const l = locales.get(q.id); const p = { ...q, foto: l?.foto || null, original: l?.original || null, cat: l?.cat || null }; if (l?.fotoTorcida) p.fotoTorcida = l.fotoTorcida; delete p.conFoto; delete p.conOriginal;
     if (q.conCat && (!p.cat || l?.nubeC !== q.nubeC)) (ST || Z14 || AT ? fotos : originales).push(async () => { try { const f = await api('/api/foto/' + q.id + '-c?v=' + (q.nubeC || ''), { tiempo: 30000 }); if (f.ok) { p.cat = await f.blob(); urlsCat.delete(q.id); if (typeof stRepintar === 'function') stRepintar(); } } catch (e) { } }); // 0.121: foto de catálogo (Gemini), solo la usa la propuesta 013
-    if (q.conFoto && (!l?.foto || l.nube !== q.nube)) fotos.push(async () => { try { const f = await api('/api/foto/' + q.id + '?v=' + (q.nube || ''), { tiempo: 30000 }); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } });
-    if (q.conOriginal && (!p.original || l?.nubeO !== q.nubeO)) originales.push(async () => { try { const f = await api('/api/foto/' + q.id + '-o?v=' + (q.nubeO || ''), { tiempo: 30000 }); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; } } catch (e) { } });
+    if (q.conFoto && (!l?.foto || l.fotoRota || l.nube !== q.nube)) fotos.push(async () => { try { const f = await api('/api/foto/' + q.id + '?v=' + (q.nube || ''), { tiempo: 30000 }); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; delete p.fotoRota; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } });
+    if (q.conOriginal && (!p.original || l?.originalRota || l?.nubeO !== q.nubeO)) originales.push(async () => { try { const f = await api('/api/foto/' + q.id + '-o?v=' + (q.nubeO || ''), { tiempo: 30000 }); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; delete p.originalRota; } } catch (e) { } });
     nuevas.push(p); locales.delete(q.id);
   }
   const aLaVez = async (tareas, n) => { let i = 0; await Promise.all(Array.from({ length: Math.min(n, tareas.length) }, async () => { while (i < tareas.length) await tareas[i++](); })); };
@@ -1999,7 +2000,7 @@ async function guardarPrenda(otra) {
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
   if (!p && enGratis() && E.prendas.length >= TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas.`, `The free version holds ${TOPE_GRATIS} garments.`));
-  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value) }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
+  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value) }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.fotoRota; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
   else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   const tiro = tipo === 'Abajo' && $('an-tiro').dataset.sel, pr = p || E.prendas[0]; if (tiro) pr.est = { ...(pr.est || {}), tiro };
   const largo = tipo === 'Arriba' && $('an-largo')?.dataset.sel; if (largo) pr.est = { ...(pr.est || {}), largo };

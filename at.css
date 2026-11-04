@@ -375,3 +375,5 @@ html.at .at-insp .x svg { width: 20px; height: 20px; }
 html.at #yo-ver{text-align:center;margin:0 0 6px}
 html.at #yo-ver .es-tit{margin:22px 0 10px}
 html.at .yo-ver-n, html.at .at-gratis{font-size:13px;color:var(--sec);text-align:center;margin:12px 16px 0;line-height:1.45}
+/* 04/11: prenda cuya foto se perdió en el móvil */
+html.at .at-sin-foto{font-size:13px;color:var(--sec);text-align:center;margin:10px 24px 0;line-height:1.45}
