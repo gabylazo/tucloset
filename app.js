@@ -2727,6 +2727,8 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (E.perfil?.estilos?.some(k => ESTILO_VIEJO[k])) E.perfil.estilos = [...new Set(E.perfil.estilos.map(k => ESTILO_VIEJO[k] || k))]; // 0.52: los 6 estilos viejos pasan a los 13 // 0.45: que el navegador no borre el clóset para hacer sitio
   let migra = estacionesAuto() > 0; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();
   traducir(); pintarSilueta();
+  // 04/11: un apunte al día por móvil con cuenta, para el centro de control (cuántas vuelven cada día); fuera de comparar.html
+  try { const dia = new Date().toISOString().slice(0, 10); if (cuenta() && window.top === window && LS.get('tc_uso_dia') !== dia) { LS.set('tc_uso_dia', dia); api('/api/uso', { method: 'POST', tiempo: 10000 }).catch(() => { }); } } catch (e) { }
   if (!NUBE) ['a-correo', 'a-clave'].forEach(id => $(id).closest('label').hidden = true);
   document.querySelector('#p-closet .mc-cab')?.insertAdjacentHTML('beforeend', `<div class="cl-cambio">${['', 'pruebas'].map(k => `<button class="${k === CLOSET_ACT ? 'on' : ''}" data-cambio="${k}">${k ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes')}</button>`).join('')}</div>`); // 0.54 botón provisional (Sheila, 22/10: «me puedes crear un botón provisional»)
   document.addEventListener('click', e => { const b = e.target.closest('[data-cambio]'); if (!b || b.dataset.cambio === CLOSET_ACT) return; try { localStorage.setItem('tc_closet', b.dataset.cambio); } catch (er) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; });
