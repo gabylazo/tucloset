@@ -49,7 +49,8 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
 .leyenda span { display: inline-flex; align-items: center; gap: 7px; }
 
 /* os toca */
-.toca .tarjeta { display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+.toca .tarjeta { display: flex; flex-direction: column; gap: 6px; }
+@media (min-width: 640px) { .toca .tarjeta { min-height: 120px; } }
 .quien { font-size: 13px; letter-spacing: .06em; color: var(--gris); }
 .toca b { font: 400 22px/1.2 'Bellefair', serif; }
 .toca .rec { margin-top: auto; font-size: 14px; color: var(--gris); }
@@ -89,7 +90,9 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
 .cabeza small { font-size: 14px; color: var(--gris); white-space: nowrap; }
 
 /* fases */
-.fases { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.fases { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 640px) { .fases { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .fases { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
 .fases .tarjeta { text-align: center; padding: 16px 12px; }
 .fases .eur { display: block; font: 400 30px/1.1 'Bellefair', serif; margin: 8px 0 2px; }
 .fases small { display: block; font-size: 13px; color: var(--gris); }
@@ -163,6 +166,7 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
   const est = e => `<span class="e ${esc(e)}" title="${EST[e] || esc(e)}"><span class="vh">${EST[e] || esc(e)}: </span></span>`;
   const fecha = iso => iso ? new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '—';
   const hora = iso => new Date(iso).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const eur = n => (+n).toLocaleString('es-ES', { useGrouping: 'always' }) + ' €';
   const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
   const barra = p => `<div class="barra" aria-hidden="true"><i style="width:${p}%"></i></div>`;
   const hoy = new Date(), dia = n => new Date(hoy - n * 864e5).toISOString().slice(0, 10);
@@ -205,8 +209,8 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
     <div class="rejilla">${grupos.map(g => { const fs = F.filter(f => f.g === g), h = fs.filter(f => f.e === 'hecho').length; return `<div class="tarjeta"><div class="cabeza"><h3>${esc(g)}</h3><small>${h} de ${fs.length}</small></div>${barra(pct(h, fs.length))}<ul class="lista">${fs.map(f => `<li>${est(f.e)}<span>${esc(f.f)}</span></li>`).join('')}</ul></div>`; }).join('')}</div></section>
 
   <section id="fases"><h2>Fases y presupuesto</h2>
-    <div class="fases">${(P.fases || []).map(f => `<div class="tarjeta"><h3>${esc(f.n)}</h3><span class="eur">${(+f.m).toLocaleString('es-ES')} €</span><small>${esc(f.i)} – ${esc(f.f)}</small>${barra(Math.round(f.a * 100))}<small style="margin-top:6px">${Math.round(f.a * 100)} %</small></div>`).join('')}</div>
-    ${P.presupuesto ? `<div class="total"><b>${P.presupuesto.total.toLocaleString('es-ES')} €</b><span>hasta octubre de 2027 · ${P.presupuesto.antes} € antes de cobrar</span></div>` : ''}
+    <div class="fases">${(P.fases || []).map(f => `<div class="tarjeta"><h3>${esc(f.n)}</h3><span class="eur">${eur(f.m)}</span><small>${esc(f.i.slice(0, 5))} – ${esc(f.f.slice(0, 5))}</small>${barra(Math.round(f.a * 100))}<small style="margin-top:6px">${Math.round(f.a * 100)} %</small></div>`).join('')}</div>
+    ${P.presupuesto ? `<div class="total"><b>${eur(P.presupuesto.total)}</b><span>hasta octubre de 2027 · ${P.presupuesto.antes} € antes de cobrar</span></div>` : ''}
     <div class="fechas">${(P.calendario || []).map(x => `<div><b>${esc(x.f.slice(0, 5))}</b><span>${esc(x.q.replace(/ \(propuesta\)$/, ''))}</span></div>`).join('')}</div></section>
 
   <section id="equipo"><h2>Equipo</h2>${leyenda}
