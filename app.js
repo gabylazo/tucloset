@@ -2493,6 +2493,9 @@ function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; e
   const pf = E.perfil || {}, dg = pf.diag, es = idioma() === 'en' ? 1 : 0, pro = planDemo() === 'pro';
   const mini = (k, ic) => `<span class="dg-mini${pf[k] ? ' hecha' : ''}">${pf[k] ? `<img src="${URL.createObjectURL(pf[k])}" alt="">` : `<svg><use href="#${ic}"/></svg>`}</span>`;
   if (!pro) return `<section class="dg-tarjeta"><div class="dg-cab"><h2>${t('Tu asesora de imagen', 'Your image adviser')}</h2><span class="dg-pro">Pro</span></div><p>${t('Con tus mismas fotos, el Pro elige tus looks también según tu silueta y te dice qué prendas de tu clóset te favorecen.', 'With the same photos, Pro also picks your looks for your figure and shows which of your clothes suit you most.')}</p><button class="boton linea" data-diag="plan">${t('Ver el plan Pro', 'See the Pro plan')}</button></section>`;
+  // 04/11 (Gabriela: «¿por qué me pide dos veces las fotos, en Mi silueta y Mis colores y otra en el diagnóstico del Pro? Debería ser solo una vez»):
+  // en el Pro las fotos y el resultado viven solo en Mi silueta y Mis colores; la tarjeta queda para el Básico y la gratis
+  if (pro) return '';
   if (dg?.color || dg?.cuerpo) return `<section class="dg-tarjeta hecho" data-diag="ver" role="button" tabindex="0"><div class="dg-cab"><h2>${t('Tu diagnóstico', 'Your analysis')}</h2><span class="dg-pro">Pro</span></div>
     ${dg.color ? `<div class="dg-tela">${dg.color.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>` : ''}
     <p class="dg-res">${[dg.color?.n[es], dg.cuerpo?.n[es]].filter(Boolean).join(' · ')}</p><span class="dg-ver">${t('Ver mi diagnóstico', 'See my analysis')}<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span></section>`;
