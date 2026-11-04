@@ -10,112 +10,133 @@
 <link rel="icon" href="iconos/icono-129-180.png">
 <link rel="stylesheet" href="fuentes.css?v=0.123">
 <!-- 04/11/2026 (Gabriela: «un sistema de control de la empresa… donde sepamos el estado de todo, de la empresa, de las cuentas, de los suscriptores, de las estadísticas de uso, de fallos»).
-     Solo para las socias: los datos llegan de /api/control con su sesión de la app; esta página no lleva ningún dato dentro. -->
+     Solo para las socias: los datos llegan de /api/control con su sesión de la app; esta página no lleva ningún dato dentro.
+     04/11, 23:5x (Gabriela: «hazlo más visible y con menos texto, así es horrible leerlo»): tarjetas, números grandes y barras; el detalle, plegado en «Más». -->
 <style>
 :root { --tinta: #4A3526; --gris: #7D6E63; --oro: #C9A24B; --raya: #E6DFD8; --suave: #F7F4F1; --blanco: #FFFFFF; }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--blanco); color: var(--tinta); font: 400 16px/1.5 'Jost', system-ui, sans-serif; }
+body { margin: 0; background: var(--blanco); color: var(--tinta); font: 400 16px/1.45 'Jost', system-ui, sans-serif; }
 a { color: inherit; }
-.cab { text-align: center; padding: 36px 16px 8px; }
-.cab img { width: 40px; height: 40px; display: block; margin: 0 auto 10px; }
-.marca { font: 400 30px/1 'Bellefair', serif; margin: 0; letter-spacing: .01em; }
-.marca span { color: var(--oro); }
-.cab p { margin: 6px 0 0; color: var(--gris); font-size: 15px; }
-nav { position: sticky; top: 0; z-index: 2; background: var(--blanco); border-bottom: 1px solid var(--raya); overflow-x: auto; scrollbar-width: none; }
-nav::-webkit-scrollbar { display: none; }
-nav ul { display: flex; gap: 4px; justify-content: safe center; margin: 0; padding: 0 12px; list-style: none; min-width: max-content; }
-nav a { display: block; padding: 12px 10px; min-height: 44px; font-size: 14px; letter-spacing: .04em; text-decoration: none; color: var(--gris); }
-nav a:hover, nav a:focus-visible { color: var(--tinta); }
-main { max-width: 760px; margin: 0 auto; padding: 0 16px 64px; }
-section { padding-top: 40px; scroll-margin-top: 48px; }
-h2 { font: 400 26px/1.2 'Bellefair', serif; text-align: center; margin: 0 0 6px; }
-.sub { text-align: center; color: var(--gris); font-size: 15px; margin: 0 0 20px; }
-h3 { font: 400 20px/1.25 'Bellefair', serif; margin: 0; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 
+.cab { text-align: center; padding: 28px 16px 6px; }
+.cab img { width: 36px; height: 36px; display: block; margin: 0 auto 8px; }
+.marca { font: 400 28px/1 'Bellefair', serif; margin: 0; }
+.marca span { color: var(--oro); }
+.cab p { margin: 4px 0 0; color: var(--gris); font-size: 14px; }
+
+nav { position: sticky; top: 0; z-index: 2; background: var(--blanco); border-bottom: 1px solid var(--raya); overflow-x: auto; scrollbar-width: none; }
+nav::-webkit-scrollbar { display: none; }
+nav ul { display: flex; gap: 2px; justify-content: safe center; margin: 0; padding: 0 12px; list-style: none; min-width: max-content; }
+nav a { display: block; padding: 12px 12px; min-height: 44px; font-size: 15px; text-decoration: none; color: var(--gris); }
+nav a:hover, nav a:focus-visible { color: var(--tinta); }
+
+main { max-width: 1120px; margin: 0 auto; padding: 0 16px 64px; }
+section { padding-top: 44px; scroll-margin-top: 52px; }
+h2 { font: 400 30px/1.15 'Bellefair', serif; text-align: center; margin: 0 0 20px; }
+h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
+.rejilla { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.tarjeta { background: var(--suave); padding: 18px; }
+
 /* estado: un cuadrado, como los botones de la app */
-.e { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gris); white-space: nowrap; }
-.e::before { content: ''; width: 10px; height: 10px; flex: none; border: 1.5px solid var(--tinta); }
-.e.hecho::before, .e.ok::before { background: var(--tinta); }
-.e.marcha::before, .e.medio::before { background: linear-gradient(90deg, var(--tinta) 50%, transparent 50%); }
-.e.espera::before { border-style: dashed; }
+.e { display: inline-block; width: 12px; height: 12px; flex: none; border: 1.5px solid var(--tinta); vertical-align: -1px; }
+.e.hecho, .e.ok { background: var(--tinta); }
+.e.marcha, .e.medio { background: linear-gradient(90deg, var(--tinta) 50%, transparent 50%); }
+.e.espera { border-style: dashed; }
+.leyenda { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 20px; font-size: 14px; color: var(--gris); margin: -8px 0 22px; }
+.leyenda span { display: inline-flex; align-items: center; gap: 7px; }
 
 /* os toca */
-.toca { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--raya); }
-.toca li { padding: 14px 0; border-bottom: 1px solid var(--raya); display: grid; grid-template-columns: 84px 1fr; gap: 4px 12px; }
-.toca .q { font-size: 13px; letter-spacing: .04em; color: var(--gris); padding-top: 2px; }
-.toca .r { grid-column: 2; font-size: 14px; color: var(--gris); }
+.toca .tarjeta { display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+.quien { font-size: 13px; letter-spacing: .06em; color: var(--gris); }
+.toca b { font: 400 22px/1.2 'Bellefair', serif; }
+.toca .rec { margin-top: auto; font-size: 14px; color: var(--gris); }
 
-/* cifras, como los datos de un perfil */
-.cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--raya); border-bottom: 1px solid var(--raya); }
-.cifras div { text-align: center; padding: 18px 6px; }
-.cifras div + div { border-left: 1px solid var(--raya); }
-.cifras div:nth-child(4) { border-left: 0; }
-.cifras div:nth-child(n+4) { border-top: 1px solid var(--raya); }
-.cifras b { display: block; font: 400 34px/1.1 'Bellefair', serif; }
-.cifras span { font-size: 13px; color: var(--gris); }
-@media (min-width: 640px) { .cifras { grid-template-columns: repeat(6, minmax(0, 1fr)); } .cifras div:nth-child(4) { border-left: 1px solid var(--raya); } .cifras div:nth-child(n+4) { border-top: 0; } }
-
-.barras { display: flex; align-items: flex-end; gap: 4px; height: 120px; margin-top: 22px; padding: 0 2px; }
+/* cifras */
+.cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.cifras div { background: var(--suave); text-align: center; padding: 20px 8px; }
+.cifras b { display: block; font: 400 48px/1 'Bellefair', serif; }
+.cifras span { display: block; margin-top: 6px; font-size: 14px; color: var(--gris); }
+@media (min-width: 760px) { .cifras { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.uso { margin-top: 12px; padding: 18px 18px 12px; }
+.uso p { margin: 0 0 6px; text-align: center; font-size: 14px; color: var(--gris); }
+.barras { display: flex; align-items: flex-end; gap: 6px; height: 120px; }
 .barras div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
-.barras i { display: block; width: 100%; max-width: 26px; background: var(--tinta); min-height: 1px; }
-.barras small { font-size: 11px; color: var(--gris); }
-.barras em { font-style: normal; font-size: 12px; }
+.barras i { display: block; width: 100%; max-width: 32px; background: var(--tinta); min-height: 1px; }
+.barras small { font-size: 12px; color: var(--gris); }
+.barras em { font-style: normal; font-size: 13px; }
 
-/* departamentos */
-.dep { border-top: 1px solid var(--raya); padding: 18px 0; }
-.dep:last-child { border-bottom: 1px solid var(--raya); }
-.dep .quien { font-size: 13px; color: var(--gris); margin: 2px 0 6px; }
-.dep p { margin: 0 0 10px; font-size: 15px; }
-.tareas { list-style: none; margin: 0; padding: 0; }
-.tareas li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 6px 0; font-size: 15px; }
-.tareas li small { grid-column: 1 / -1; color: var(--gris); font-size: 13px; }
-.cuenta-dep { text-align: center; font-size: 14px; color: var(--gris); margin: 0 0 18px; }
+/* para mirar */
+.mirar a, .mirar div { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 4px; min-height: 96px; text-decoration: none; }
+.mirar a { border: 1px solid var(--tinta); background: var(--blanco); }
+.mirar a:hover { background: var(--suave); }
+.mirar b { font: 400 21px/1.2 'Bellefair', serif; }
+.mirar span { font-size: 14px; color: var(--gris); }
 
-/* filas de tabla en el móvil */
-.filas { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--raya); }
-.filas li { padding: 12px 0; border-bottom: 1px solid var(--raya); display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
-.filas .n { grid-column: 1 / -1; font-size: 13px; color: var(--gris); }
-.grupo { font: 400 18px/1.3 'Bellefair', serif; margin: 22px 0 6px; text-align: center; }
-.v { font-size: 12px; letter-spacing: .08em; color: var(--gris); }
+/* avance de funciones */
+.grande { text-align: center; margin: 0 auto 26px; max-width: 420px; }
+.grande b { font: 400 56px/1 'Bellefair', serif; }
+.grande span { font-size: 16px; color: var(--gris); }
+.barra { height: 8px; background: var(--raya); margin-top: 12px; }
+.barra i { display: block; height: 100%; background: var(--tinta); }
+.tarjeta .barra { height: 6px; margin: 10px 0 14px; background: var(--blanco); }
+.lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.lista li { display: grid; grid-template-columns: 12px 1fr; gap: 10px; align-items: start; font-size: 15px; line-height: 1.3; }
+.lista li .e { margin-top: 3px; }
+.cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.cabeza small { font-size: 14px; color: var(--gris); white-space: nowrap; }
 
-.fase { border-top: 1px solid var(--raya); padding: 14px 0; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
-.fase:last-of-type { border-bottom: 1px solid var(--raya); }
-.fase .o, .fase .d { grid-column: 1 / -1; font-size: 14px; color: var(--gris); }
-.fase .barra { grid-column: 1 / -1; height: 4px; background: var(--suave); margin-top: 6px; }
-.fase .barra i { display: block; height: 100%; background: var(--tinta); }
-.total { text-align: center; margin: 22px 0 0; }
-.total b { font: 400 30px/1.1 'Bellefair', serif; display: block; }
-.total p { margin: 6px auto 0; max-width: 46ch; font-size: 14px; color: var(--gris); }
+/* fases */
+.fases { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.fases .tarjeta { text-align: center; padding: 16px 12px; }
+.fases .eur { display: block; font: 400 30px/1.1 'Bellefair', serif; margin: 8px 0 2px; }
+.fases small { display: block; font-size: 13px; color: var(--gris); }
+.fases .barra { margin: 12px 0 0; }
+.total { text-align: center; margin: 26px 0 0; }
+.total b { display: block; font: 400 48px/1 'Bellefair', serif; }
+.total span { font-size: 15px; color: var(--gris); }
+.fechas { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-top: 28px; }
+.fechas div { border-top: 2px solid var(--tinta); padding-top: 10px; text-align: center; }
+.fechas b { display: block; font: 400 26px/1.1 'Bellefair', serif; }
+.fechas span { font-size: 14px; color: var(--gris); }
 
-.tabla { width: 100%; border-collapse: collapse; font-size: 14px; }
-.tabla th { font-weight: 400; color: var(--gris); font-size: 12px; letter-spacing: .04em; text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--raya); }
-.tabla td { padding: 10px 6px; border-bottom: 1px solid var(--raya); vertical-align: top; }
-.tabla td.num, .tabla th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* cuentas */
+.cuentas .tarjeta { display: grid; grid-template-columns: 12px 1fr; gap: 4px 10px; align-items: start; padding: 14px 16px; }
+.cuentas .tarjeta .e { margin-top: 5px; }
+.cuentas b { font-weight: 500; font-size: 15px; }
+.cuentas span.p { grid-column: 2; font-size: 14px; color: var(--gris); }
+.nota { text-align: center; font-size: 14px; color: var(--gris); margin: 14px 0 0; }
+
+/* más: todo plegado */
+.mas details { border-top: 1px solid var(--raya); }
+.mas details:last-of-type { border-bottom: 1px solid var(--raya); }
+.mas summary { list-style: none; cursor: pointer; padding: 16px 32px 16px 0; position: relative; min-height: 44px; font: 400 21px/1.2 'Bellefair', serif; }
+.mas summary::-webkit-details-marker { display: none; }
+.mas summary::after { content: '+'; position: absolute; right: 6px; top: 14px; font: 400 24px/1 'Jost', sans-serif; }
+.mas details[open] summary::after { content: '–'; }
+.mas summary small { font: 400 14px 'Jost', sans-serif; color: var(--gris); margin-left: 8px; }
+.cuerpo { padding: 0 0 24px; font-size: 15px; }
+.cuerpo h4 { font: 400 19px/1.3 'Bellefair', serif; margin: 22px 0 6px; }
+.cuerpo p, .cuerpo li { max-width: 70ch; }
+.cuerpo ul, .cuerpo ol { padding-left: 20px; margin: 6px 0 12px; }
+.cuerpo table, .tabla { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0 14px; }
+.cuerpo td, .cuerpo th, .tabla td, .tabla th { border-bottom: 1px solid var(--raya); padding: 8px 6px; text-align: left; vertical-align: top; font-weight: 400; }
+.cuerpo th, .tabla th { color: var(--gris); font-size: 12px; }
+.tabla .num { text-align: right; font-variant-numeric: tabular-nums; }
 .desliza { overflow-x: auto; }
+.filas { list-style: none; margin: 0; padding: 0; }
+.filas li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--raya); font-size: 15px; }
+.filas code { font: 12px/1.4 ui-monospace, Menlo, monospace; word-break: break-word; }
+.filas li span:last-child { white-space: nowrap; color: var(--gris); font-size: 14px; }
+.grupo { font: 400 18px/1.3 'Bellefair', serif; margin: 18px 0 4px; }
 
 .vacio, .aviso { text-align: center; color: var(--gris); font-size: 15px; margin: 8px 0; }
 .mensaje { max-width: 34ch; margin: 80px auto; text-align: center; padding: 0 16px; }
-.mensaje h2 { margin-bottom: 12px; }
+.mensaje p { color: var(--gris); }
 .boton { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px; margin-top: 18px; border: 1px solid var(--tinta); text-decoration: none; letter-spacing: .08em; font-size: 14px; }
-.pie { text-align: center; color: var(--gris); font-size: 13px; margin-top: 48px; }
-.fallos li { font-size: 13px; }
-.doc { border-top: 1px solid var(--raya); }
-.doc:last-of-type { border-bottom: 1px solid var(--raya); }
-.doc summary { list-style: none; cursor: pointer; padding: 14px 28px 14px 0; position: relative; min-height: 44px; }
-.doc summary::-webkit-details-marker { display: none; }
-.doc summary::after { content: '+'; position: absolute; right: 4px; top: 12px; font-size: 22px; line-height: 1; }
-.doc[open] summary::after { content: '–'; }
-.doc summary .n { display: block; font-size: 13px; color: var(--gris); }
-.doc-cuerpo { padding: 0 0 24px; font-size: 15px; }
-.doc-cuerpo h4 { font: 400 19px/1.3 'Bellefair', serif; margin: 22px 0 6px; }
-.doc-cuerpo p, .doc-cuerpo li { max-width: 68ch; }
-.doc-cuerpo ul, .doc-cuerpo ol { padding-left: 20px; margin: 6px 0 12px; }
-.doc-cuerpo table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0 14px; }
-.doc-cuerpo td, .doc-cuerpo th { border-bottom: 1px solid var(--raya); padding: 7px 6px; text-align: left; vertical-align: top; font-weight: 400; }
-.doc-cuerpo th { color: var(--gris); font-size: 12px; }
-.fallos code { font: 12px/1.4 ui-monospace, Menlo, monospace; color: var(--tinta); word-break: break-word; }
+.pie { text-align: center; color: var(--gris); font-size: 13px; margin-top: 40px; }
 </style>
 </head>
 <body>
@@ -130,7 +151,7 @@ h3 { font: 400 20px/1.25 'Bellefair', serif; margin: 0; }
   const raiz = document.getElementById('raiz');
   const API = (() => { try { const q = localStorage.getItem('tc_api'); if (q) return q; } catch (e) { } return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://localhost:8787' : 'https://tucloset-api.apptucloset.workers.dev'; })();
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  const mensaje = (tit, txt, boton) => { raiz.innerHTML = `<div class="mensaje"><h2>${tit}</h2><p class="sub">${txt}</p>${boton ? `<a class="boton" href="./">${boton}</a>` : ''}</div>`; };
+  const mensaje = (tit, txt, boton) => { raiz.innerHTML = `<div class="mensaje"><h2>${tit}</h2><p>${txt}</p>${boton ? `<a class="boton" href="./">${boton}</a>` : ''}</div>`; };
   let c = null; try { c = JSON.parse(localStorage.getItem('tc_cuenta') || 'null'); } catch (e) { }
   if (!c?.token) return mensaje('Entra primero', 'Abre tu cuenta en la app y vuelve a esta página.', 'Ir a la app');
   let r; try { r = await fetch(API + '/api/control', { headers: { Authorization: 'Bearer ' + c.token } }); } catch (e) { return mensaje('Sin conexión', 'No he podido hablar con el servidor. Prueba otra vez en un momento.'); }
@@ -139,54 +160,65 @@ h3 { font: 400 20px/1.25 'Bellefair', serif; margin: 0; }
   if (!r.ok) return mensaje('Algo ha fallado', `El servidor ha respondido ${r.status}. Prueba otra vez en un momento.`);
   const d = await r.json(), P = d.panel || {};
   const EST = { hecho: 'Hecho', marcha: 'En marcha', falta: 'Falta', espera: 'Espera', ok: 'Funciona', medio: 'A medias' };
-  const est = e => `<span class="e ${esc(e)}">${EST[e] || esc(e)}</span>`;
-  const fecha = iso => { if (!iso) return '—'; const f = new Date(iso); return f.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }); };
+  const est = e => `<span class="e ${esc(e)}" title="${EST[e] || esc(e)}"><span class="vh">${EST[e] || esc(e)}: </span></span>`;
+  const fecha = iso => iso ? new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '—';
   const hora = iso => new Date(iso).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+  const barra = p => `<div class="barra" aria-hidden="true"><i style="width:${p}%"></i></div>`;
   const hoy = new Date(), dia = n => new Date(hoy - n * 864e5).toISOString().slice(0, 10);
   const activas7 = new Set(d.uso.filter(u => u.dia >= dia(6)).map(u => u.usuaria)).size;
   const fallos7 = d.avisos.filter(a => a.fecha >= new Date(hoy - 7 * 864e5).toISOString()).length;
   const prendas = d.usuarias.reduce((s, u) => s + u.prendas, 0);
-  const secciones = [['toca', 'Os toca'], ['mirar', 'Para mirar'], ['cifras', 'Cifras'], ['departamentos', 'Departamentos'], ['funciones', 'Funciones'], ['fases', 'Fases'], ['cuentas', 'Cuentas'], ['usuarias', 'Usuarias'], ['encuesta', 'Encuesta'], ['documentos', 'Documentos'], ['fallos', 'Fallos']];
+  const secciones = [['toca', 'Os toca'], ['cifras', 'Cifras'], ['funciones', 'Funciones'], ['fases', 'Fases'], ['equipo', 'Equipo'], ['cuentas', 'Cuentas'], ['mas', 'Más']];
 
-  // uso de los últimos 14 días: cuántas personas abrieron la app cada día
+  // personas que abrieron la app cada día, últimos 14 días
   const dias = [...Array(14)].map((_, i) => dia(13 - i)), porDia = dias.map(k => new Set(d.uso.filter(u => u.dia === k).map(u => u.usuaria)).size), max = Math.max(1, ...porDia);
-  const barras = `<div class="barras" role="img" aria-label="Personas que abrieron la app cada día, últimos 14 días: ${porDia.join(', ')}">${dias.map((k, i) => `<div><em>${porDia[i] || ''}</em><i style="height:${Math.round(porDia[i] / max * 86)}%"></i><small>${+k.slice(8)}</small></div>`).join('')}</div>`;
+  const barras = `<div class="barras" role="img" aria-label="Personas que abrieron la app cada día, últimos 14 días: ${porDia.join(', ')}">${dias.map((k, i) => `<div><em>${porDia[i] || ''}</em><i style="height:${Math.round(porDia[i] / max * 80)}%"></i><small>${+k.slice(8)}</small></div>`).join('')}</div>`;
 
-  // encuesta: cuántas eligieron cada respuesta
-  let enc = '<p class="vacio">Aún no hay respuestas. La encuesta sale en la app al séptimo día de prueba.</p>';
+  let enc = '<p class="vacio">Aún no hay respuestas.</p>';
   if (d.encuestas.length) { const cuenta = {}; d.encuestas.forEach(x => Object.entries(x.r).forEach(([q, v]) => { (cuenta[q] = cuenta[q] || {}); [].concat(v).forEach(o => cuenta[q][o] = (cuenta[q][o] || 0) + 1); }));
-    enc = `<p class="sub">${d.encuestas.length} respuesta${d.encuestas.length > 1 ? 's' : ''}</p>` + Object.entries(cuenta).map(([q, ops]) => `<h3 class="grupo">${esc(q)}</h3><ul class="filas">${Object.entries(ops).sort((a, b) => b[1] - a[1]).map(([o, n]) => `<li><span>${esc(o)}</span><span>${n}</span></li>`).join('')}</ul>`).join(''); }
+    enc = Object.entries(cuenta).map(([q, ops]) => `<h4 class="grupo">${esc(q)}</h4><ul class="filas">${Object.entries(ops).sort((a, b) => b[1] - a[1]).map(([o, n]) => `<li><span>${esc(o)}</span><span>${n}</span></li>`).join('')}</ul>`).join(''); }
 
-  const grupos = [...new Set((P.funciones || []).map(f => f.g))];
-  const hechas = (P.funciones || []).filter(f => f.e === 'hecho').length;
+  const F = P.funciones || [], grupos = [...new Set(F.map(f => f.g))], hechas = F.filter(f => f.e === 'hecho').length;
+  const leyenda = `<div class="leyenda"><span>${est('hecho')}Hecho</span><span>${est('marcha')}En marcha</span><span>${est('falta')}Falta</span><span>${est('espera')}Espera</span></div>`;
+  const mas = [
+    ['Usuarias', `${d.usuarias.length}`, `<div class="desliza" tabindex="0" role="region" aria-label="Tabla de usuarias"><table class="tabla"><thead><tr><th>Cuenta</th><th>Alta</th><th class="num">Prendas</th><th class="num">Looks</th><th class="num">Puestas</th><th>Versión</th><th>Última vez</th></tr></thead>
+      <tbody>${d.usuarias.sort((a, b) => (b.actualizado || '').localeCompare(a.actualizado || '')).map(u => `<tr><td>${esc(u.correo)}</td><td>${fecha(u.creada)}</td><td class="num">${u.prendas}</td><td class="num">${u.looks}</td><td class="num">${u.usos}</td><td>${esc({ gratis: 'Gratis', basico: 'Básico', pro: 'Pro' }[u.ve] || '—')}</td><td>${fecha(u.actualizado)}</td></tr>`).join('')}</tbody></table></div>`],
+    ['Encuesta de las pruebas', d.encuestas.length ? `${d.encuestas.length}` : '', enc],
+    ...(P.docs || []).map(x => [x.t, '', x.html]),
+    ['Gastos fijos al mes', P.fijos ? `${P.fijos.reduce((s, [, v]) => s + v, 0)} €` : '', `<ul class="filas">${(P.fijos || []).map(([n, v]) => `<li><span>${esc(n)}</span><span>${v} €</span></li>`).join('')}</ul>`],
+    ['Fallos', `${d.avisos.length}`, d.avisos.length ? `<ul class="filas">${d.avisos.slice(0, 20).map(a => `<li><code>${esc(a.d)}</code><span>${hora(a.fecha)}</span></li>`).join('')}</ul>` : '<p class="vacio">Ningún fallo.</p>'],
+  ];
+
   raiz.innerHTML = `<nav aria-label="Secciones"><ul>${secciones.map(([k, n]) => `<li><a href="#${k}">${n}</a></li>`).join('')}</ul></nav><main>
-  <section id="toca"><h2>Os toca</h2><p class="sub">Lo que solo podéis decidir o hacer vosotras. Entre paréntesis, lo que recomiendo.</p>
-    <ul class="toca">${(P.pendientes || []).map(p => `<li><span class="q">${esc(p.q)}</span><span>${esc(p.t)}</span>${p.r ? `<span class="r">(${esc(p.r)})</span>` : ''}</li>`).join('')}</ul></section>
-  <section id="mirar"><h2>Para mirar</h2><p class="sub">Todo lo que tenéis que ver, junto.</p>
-    <ul class="filas">${(P.mirar || []).map(x => `<li><span>${x.url ? `<a href="${esc(x.url)}">${esc(x.t)}</a>` : esc(x.t)}</span>${x.e ? est(x.e) : '<span></span>'}${x.n ? `<span class="n">${esc(x.n)}</span>` : ''}</li>`).join('')}</ul></section>
-  <section id="cifras"><h2>Cifras</h2><p class="sub">Datos reales del servidor.</p>
-    <div class="cifras"><div><b>${d.usuarias.length}</b><span>cuentas</span></div><div><b>${activas7}</b><span>activas en 7 días</span></div><div><b>${prendas}</b><span>prendas subidas</span></div>
-    <div><b>0</b><span>suscriptoras (aún no se cobra)</span></div><div><b>${d.entradas7}</b><span>entradas en 7 días</span></div><div><b>${fallos7}</b><span>fallos en 7 días</span></div></div>
-    ${barras}<p class="sub" style="margin-top:8px">Personas que abrieron la app cada día (se cuenta desde el 04/11).</p>
-    <h3 class="grupo">Próximas fechas</h3><ul class="filas">${(P.calendario || []).map(x => `<li><span>${esc(x.q)}</span><span>${esc(x.f)}</span></li>`).join('')}</ul></section>
-  <section id="departamentos"><h2>Departamentos</h2><p class="sub">Cada departamento es un agente que trabaja bajo la Dirección.</p>
-    ${(P.departamentos || []).map(x => `<div class="dep"><h3>${esc(x.n)}</h3><p class="quien">${esc(x.quien)}</p><p>${esc(x.hace)}</p><ul class="tareas">${x.tareas.map(tk => `<li><span>${esc(tk.t)}</span>${est(tk.e)}${tk.n ? `<small>${esc(tk.n)}</small>` : ''}</li>`).join('')}</ul></div>`).join('')}</section>
-  <section id="funciones"><h2>Funciones de la app</h2><p class="sub">${hechas} de ${(P.funciones || []).length} hechas. G, B y P son Gratis, Básico y Pro.</p>
-    ${grupos.map(g => `<h3 class="grupo">${esc(g)}</h3><ul class="filas">${P.funciones.filter(f => f.g === g).map(f => `<li><span>${esc(f.f)}</span>${est(f.e)}<span class="n"><span class="v">${esc(f.v)}</span>${f.n ? ` · ${esc(f.n)}` : ''}</span></li>`).join('')}</ul>`).join('')}</section>
-  <section id="fases"><h2>Fases y presupuesto</h2><p class="sub">Con las fechas adelantadas, pendientes de vuestro sí.</p>
-    ${(P.fases || []).map(f => `<div class="fase"><h3>${esc(f.n)}</h3><span>${(+f.m).toLocaleString('es-ES')} €</span><span class="d">${esc(f.i)} – ${esc(f.f)} · ${Math.round(f.a * 100)} % hecho</span><span class="o">${esc(f.o)}</span><div class="barra" aria-hidden="true"><i style="width:${Math.round(f.a * 100)}%"></i></div></div>`).join('')}
-    ${P.presupuesto ? `<div class="total"><b>${P.presupuesto.total.toLocaleString('es-ES')} €</b><span>hasta octubre de 2027</span><p>${P.presupuesto.antes} € antes de cobrar. Después, unos ${P.presupuesto.fijos} € al mes de gastos fijos, que se cubren con unas ${P.presupuesto.cubren} suscriptoras. ${esc(P.presupuesto.nota)}</p></div>` : ''}
-    ${P.fijos ? `<h3 class="grupo">Gastos fijos al mes, desde que se cobre</h3><ul class="filas">${P.fijos.map(([n, v]) => `<li><span>${esc(n)}</span><span>${v} €</span></li>`).join('')}</ul>` : ''}</section>
-  <section id="cuentas"><h2>Cuentas de la empresa</h2><p class="sub">${esc(P.nota_claves || '')}</p>
-    <ul class="filas">${(P.cuentas || []).map(x => `<li><span><b style="font-weight:500">${esc(x.s)}</b> · ${esc(x.p)}</span>${est(x.e)}<span class="n">${esc(x.d)}${x.n ? ` · ${esc(x.n)}` : ''}</span></li>`).join('')}</ul></section>
-  <section id="usuarias"><h2>Usuarias</h2><p class="sub">Los correos van abreviados. Sin fotos ni datos del cuerpo.</p>
-    <div class="desliza" tabindex="0" role="region" aria-label="Tabla de usuarias"><table class="tabla"><thead><tr><th>Cuenta</th><th>Alta</th><th class="num">Prendas</th><th class="num">Looks</th><th class="num">Puestas</th><th>Versión</th><th>Última vez</th></tr></thead>
-    <tbody>${d.usuarias.sort((a, b) => (b.actualizado || '').localeCompare(a.actualizado || '')).map(u => `<tr><td>${esc(u.correo)}</td><td>${fecha(u.creada)}</td><td class="num">${u.prendas}${u.catalogo ? ` (${u.catalogo} de catálogo)` : ''}</td><td class="num">${u.looks}</td><td class="num">${u.usos}</td><td>${esc({ gratis: 'Gratis', basico: 'Básico', pro: 'Pro' }[u.ve] || '—')}</td><td>${fecha(u.actualizado)}</td></tr>`).join('')}</tbody></table></div></section>
-  <section id="encuesta"><h2>Encuesta de las pruebas</h2>${enc}</section>
-  <section id="documentos"><h2>Documentos</h2>${(P.docs || []).length ? P.docs.map(x => `<details class="doc"><summary><h3>${esc(x.t)}</h3><span class="n">${esc(x.n || '')}</span></summary><div class="doc-cuerpo">${x.html}</div></details>`).join('') : '<p class="vacio">Aún no hay documentos.</p>'}</section>
-  <section id="fallos"><h2>Fallos</h2><p class="sub">Lo que la app avisa cuando algo no llega al servidor. Sin datos de nadie.</p>
-    ${d.avisos.length ? `<ul class="filas fallos">${d.avisos.slice(0, 20).map(a => `<li><code>${esc(a.d)}</code><span>${hora(a.fecha)}</span></li>`).join('')}</ul>` : '<p class="vacio">Ningún fallo.</p>'}</section>
-  <p class="pie">Datos del servidor: ${hora(d.generado)}. Panel de la Dirección: ${esc(P.actualizado || '—')}.</p>
+  <section id="toca"><h2>Os toca</h2>
+    <div class="rejilla toca">${(P.pendientes || []).map(p => `<div class="tarjeta"><span class="quien">${esc(p.q)}</span><b>${esc(p.t)}</b>${p.r ? `<span class="rec">${esc(p.r)}</span>` : ''}</div>`).join('')}</div></section>
+
+  <section id="cifras"><h2>Cifras</h2>
+    <div class="cifras"><div><b>${d.usuarias.length}</b><span>cuentas</span></div><div><b>${activas7}</b><span>activas, 7 días</span></div><div><b>${prendas}</b><span>prendas</span></div>
+    <div><b>0</b><span>suscriptoras</span></div><div><b>${d.entradas7}</b><span>entradas, 7 días</span></div><div><b>${fallos7}</b><span>fallos, 7 días</span></div></div>
+    <div class="tarjeta uso"><p>Personas que abren la app cada día</p>${barras}</div>
+    <div class="rejilla mirar" style="margin-top:12px">${(P.mirar || []).map(x => x.url ? `<a href="${esc(x.url)}"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></a>` : `<div class="tarjeta"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></div>`).join('')}</div></section>
+
+  <section id="funciones"><h2>Funciones de la app</h2>
+    <div class="grande"><b>${hechas}</b><span> de ${F.length} hechas</span>${barra(pct(hechas, F.length))}</div>${leyenda}
+    <div class="rejilla">${grupos.map(g => { const fs = F.filter(f => f.g === g), h = fs.filter(f => f.e === 'hecho').length; return `<div class="tarjeta"><div class="cabeza"><h3>${esc(g)}</h3><small>${h} de ${fs.length}</small></div>${barra(pct(h, fs.length))}<ul class="lista">${fs.map(f => `<li>${est(f.e)}<span>${esc(f.f)}</span></li>`).join('')}</ul></div>`; }).join('')}</div></section>
+
+  <section id="fases"><h2>Fases y presupuesto</h2>
+    <div class="fases">${(P.fases || []).map(f => `<div class="tarjeta"><h3>${esc(f.n)}</h3><span class="eur">${(+f.m).toLocaleString('es-ES')} €</span><small>${esc(f.i)} – ${esc(f.f)}</small>${barra(Math.round(f.a * 100))}<small style="margin-top:6px">${Math.round(f.a * 100)} %</small></div>`).join('')}</div>
+    ${P.presupuesto ? `<div class="total"><b>${P.presupuesto.total.toLocaleString('es-ES')} €</b><span>hasta octubre de 2027 · ${P.presupuesto.antes} € antes de cobrar</span></div>` : ''}
+    <div class="fechas">${(P.calendario || []).map(x => `<div><b>${esc(x.f.slice(0, 5))}</b><span>${esc(x.q.replace(/ \(propuesta\)$/, ''))}</span></div>`).join('')}</div></section>
+
+  <section id="equipo"><h2>Equipo</h2>${leyenda}
+    <div class="rejilla">${(P.departamentos || []).map(x => { const h = x.tareas.filter(t => t.e === 'hecho').length; return `<div class="tarjeta"><div class="cabeza"><h3>${esc(x.n)}</h3><small>${h} de ${x.tareas.length}</small></div>${barra(pct(h, x.tareas.length))}<ul class="lista">${x.tareas.map(tk => `<li>${est(tk.e)}<span>${esc(tk.t)}</span></li>`).join('')}</ul></div>`; }).join('')}</div></section>
+
+  <section id="cuentas"><h2>Cuentas de la empresa</h2>
+    <div class="rejilla cuentas">${(P.cuentas || []).map(x => `<div class="tarjeta">${est(x.e)}<b>${esc(x.s)}</b><span class="p">${esc(x.p)}</span></div>`).join('')}</div>
+    <p class="nota">${esc(P.nota_claves || '')}</p></section>
+
+  <section id="mas" class="mas"><h2>Más</h2>
+    ${mas.map(([t, n, html]) => `<details><summary>${esc(t)}${n ? `<small>${esc(n)}</small>` : ''}</summary><div class="cuerpo">${html}</div></details>`).join('')}</section>
+  <p class="pie">Actualizado: ${hora(d.generado)}</p>
   </main>`;
 })();
 </script>
