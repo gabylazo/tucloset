@@ -371,3 +371,7 @@ html.at .at-insp-lista button, html.at .at-insp-lista span { text-align: center;
 html.at .at-ropa h1:focus { outline: none; }
 html.at #at-ropa-sel .at-insp-g { margin: 6px 0 4px; }
 html.at .at-insp .x svg { width: 20px; height: 20px; }
+/* 04/11: ver la app como Gratis, Básico o Pro (va en la cuenta; al cambiar no se pierde nada) */
+html.at #yo-ver{text-align:center;margin:0 0 6px}
+html.at #yo-ver .es-tit{margin:22px 0 10px}
+html.at .yo-ver-n, html.at .at-gratis{font-size:13px;color:var(--sec);text-align:center;margin:12px 16px 0;line-height:1.45}

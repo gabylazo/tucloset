@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Básico y Pro</title>
+<title>Gratis, Básico y Pro</title>
 <link rel="stylesheet" href="fuentes.css?v=0.123">
 <!-- 0.111 (Gabriela, 28/10: «el resto de funciones de la app en versión pro ¿dónde salen? quiero una comparación general de la app en esas dos versiones»; «y mi cuenta ábrelo también»):
      las dos versiones a la vez con la cuenta de quien la abre (mismo dominio que la app) y, debajo, qué trae cada plan, dónde está y en qué punto está -->
@@ -35,50 +35,58 @@ tr.grupo td{font-family:Bellefair,serif;font-size:19px;font-weight:400;padding-t
 .nota b{color:var(--nogal);font-weight:500}
 @media (max-width:640px){table{font-size:12.5px}td,th{padding:9px 6px}td:first-child{width:auto}}
 </style></head><body>
-<h1>Básico y Pro, con tu clóset</h1>
-<p class="sub">Tu cuenta en las dos versiones. Toca una pestaña de arriba y cambian las dos pantallas.</p>
+<h1>Gratis, Básico y Pro, con tu clóset</h1>
+<p class="sub">Tu cuenta en las tres versiones. Toca una pestaña de arriba y cambian las tres pantallas. Cambiar de versión no borra nada: todo sigue en tu cuenta.</p>
 <p class="sub" id="modo"><label><input type="checkbox" id="p012" checked> Con el diseño nuevo</label></p>
-<nav id="nav"><button data-p="hoy" class="on">Hoy</button><button data-p="closet">Clóset</button><button data-p="looks">Looks</button><button data-p="cal">Calendario</button><button data-p="yo">Yo</button></nav>
+<nav id="nav"><button data-p="closet" class="on">Clóset</button><button data-p="hoy">Hoy</button><button data-p="looks">Looks</button><button data-p="cal">Calendario</button><button data-p="yo">Yo</button></nav>
 <div class="par">
+  <figure><figcaption>Gratis<span>7 días · hasta 10 prendas</span></figcaption><iframe id="fg" title="Gratis"></iframe></figure>
   <figure><figcaption>Básico<span>1,99 € al mes · tu armario, en orden y a tu estilo</span></figcaption><iframe id="fb" title="Básico"></iframe></figure>
   <figure><figcaption>Pro<span>4,99 € al mes · tu asesora de imagen</span></figcaption><iframe id="fp" title="Pro"></iframe></figure>
 </div>
 
-<h2>Qué trae cada plan y dónde está</h2>
-<p class="sub">El punto marca el plan que la incluye; el estado dice si ya funciona en la app.</p>
+<h2>Qué trae cada versión y cómo está</h2>
+<p class="sub">El punto marca la versión que la incluye. Es la propuesta de partida: con lo que veáis, decidimos qué se añade o se quita en cada una.</p>
 <table>
-<thead><tr><th>Función</th><th>Básico</th><th>Pro</th><th>Dónde está</th><th>Estado</th></tr></thead>
+<thead><tr><th>Función</th><th>Gratis</th><th>Básico</th><th>Pro</th><th>Estado</th></tr></thead>
 <tbody>
-<tr class="grupo"><td colspan="5">Básico (y también en el Pro)</td></tr>
-<tr><td>Armario digital</td><td class="si"></td><td class="si"></td><td>Clóset: todas tus prendas, buscador y filtros</td><td class="est"><b>Funciona</b></td></tr>
-<tr><td>Subir con recorte</td><td class="si"></td><td class="si"></td><td>Subir: la foto queda recortada, con tipo, color, tiro y estación</td><td class="est"><b>Funciona</b></td></tr>
-<tr><td>Look del día</td><td class="si"></td><td class="si"></td><td>Hoy: según el tiempo y tu plan del día</td><td class="est"><b>Funciona</b></td></tr>
-<tr><td>Looks de estilista</td><td class="si"></td><td class="si"></td><td>Hoy e Ideas para hoy: salen primero los que diseña la estilista</td><td class="est"><b>Funciona</b> desde la 0.109</td></tr>
-<tr><td>Generador de looks</td><td class="si"></td><td class="si"></td><td>Looks › Ideas para hoy</td><td class="est"><b>Funciona</b></td></tr>
-<tr><td>Paleta y estilo del look</td><td class="si"></td><td class="si"></td><td>Debajo de cada look, en Hoy y en Looks</td><td class="est"><b>Funciona</b> desde la 0.111</td></tr>
-<tr><td>Calendario con agenda</td><td class="si"></td><td class="si"></td><td>Looks › Calendario: eventos que se repiten y un look para cada evento</td><td class="est"><b>Funciona</b> desde la 0.111</td></tr>
-<tr><td>Análisis de uso</td><td class="si"></td><td class="si"></td><td>Ficha de cada prenda («puesta N veces») y filtro de uso del clóset</td><td class="est"><b>Funciona</b></td></tr>
-<tr><td>Perfil de estilo</td><td class="si"></td><td class="si"></td><td>Yo › Mi estilo: los 13 estilos</td><td class="est"><b>Funciona</b></td></tr>
-<tr><td>Coste por puesta</td><td class="si"></td><td class="si"></td><td>Ficha de cada prenda, si pones el precio</td><td class="est"><b>Funciona</b> desde la 0.105</td></tr>
+<tr class="grupo"><td colspan="5">En las tres</td></tr>
+<tr><td>Clóset por categorías, buscador y filtros</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est"><b>Funciona</b>. En la gratis, hasta 10 prendas</td></tr>
+<tr><td>Subir ropa con el fondo quitado</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est"><b>Funciona</b></td></tr>
+<tr><td>Look del día con el tiempo</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est"><b>Funciona</b></td></tr>
+<tr><td>Ideas por ocasión</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est"><b>Funciona</b></td></tr>
+<tr><td>Calendario con agenda</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est"><b>Funciona</b>. Falta poner hora y tipo a cada evento</td></tr>
+<tr><td>Mi estilo y «¿Qué ropa llevas?»</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est"><b>Funciona</b></td></tr>
+<tr><td>Tus colores y tu tipo de cuerpo, sacados de tus dos fotos</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est"><b>Funciona</b>. Ya no se eligen a mano</td></tr>
+<tr><td>Cómo cuidarla y dónde donarla cerca</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est"><b>Funciona</b></td></tr>
+<tr class="grupo"><td colspan="5">Básico y Pro</td></tr>
+<tr><td>Prendas sin tope</td><td class="no"></td><td class="si"></td><td class="si"></td><td class="est"><b>Funciona</b></td></tr>
+<tr><td>Uso de cada prenda y coste por puesta</td><td class="no"></td><td class="si"></td><td class="si"></td><td class="est"><b>Funciona</b>. Hoy también sale en la gratis</td></tr>
+<tr><td>Mi cápsula</td><td class="no"></td><td class="si"></td><td class="si"></td><td class="est"><b>Funciona</b>. Hoy también sale en la gratis</td></tr>
 <tr class="grupo"><td colspan="5">Solo en el Pro</td></tr>
-<tr><td>Colorimetría</td><td class="no"></td><td class="si"></td><td>Yo › Tu diagnóstico</td><td class="est"><b>Funciona</b> desde la 0.118: la app analiza tu selfie en el móvil (piel, pelo, ojos y contraste) y te da tu estación de las 12. En el Básico quedan las 4 preguntas y la tarjeta del diagnóstico con la marca «Pro»</td></tr>
-<tr><td>Morfología corporal</td><td class="no"></td><td class="si"></td><td>Yo › Tu diagnóstico</td><td class="est"><b>Funciona</b> desde la 0.118: la app mide hombros, cintura, cadera y piernas en la foto de cuerpo entero y ordena los looks por lo que te favorece. En el Básico, la silueta se elige a mano</td></tr>
-<tr><td>Probador virtual</td><td class="no"></td><td class="si"></td><td>Hoy y Looks: el look puesto en tu avatar</td><td class="est falta"><b>Por construir:</b> solo existe en 4 looks de ejemplo; falta el generador del avatar</td></tr>
-<tr><td>Estilismo por ocasión</td><td class="no"></td><td class="si"></td><td>Hoy («¿Qué planes tienes hoy?») y Calendario</td><td class="est falta"><b>Funciona, pero en los dos planes:</b> hoy no hay diferencia</td></tr>
-<tr><td>Sácale partido</td><td class="no"></td><td class="si"></td><td>Ficha de cada prenda: lo que le falta para sacarle más looks</td><td class="est"><b>Funciona</b> desde la 0.107</td></tr>
-<tr><td>Inspírate en…</td><td class="no"></td><td class="si"></td><td>Yo › Mi estilo (previsto)</td><td class="est falta"><b>Por construir:</b> Moda tiene el estudio de 11 referencias</td></tr>
-<tr><td>Planning Travel</td><td class="no"></td><td class="si"></td><td>Looks › Calendario, en un evento de viaje (previsto)</td><td class="est falta"><b>Por construir</b></td></tr>
+<tr><td>Looks elegidos también por tu silueta y qué prendas te favorecen</td><td class="no"></td><td class="no"></td><td class="si"></td><td class="est"><b>Funciona</b></td></tr>
+<tr><td>Sácale partido</td><td class="no"></td><td class="no"></td><td class="si"></td><td class="est"><b>Funciona</b></td></tr>
+<tr><td>Inspírate en…</td><td class="no"></td><td class="no"></td><td class="si"></td><td class="est"><b>Funciona</b>: 19 referencias, 14 con imagen. Faltan 5 imágenes de hombre y que lo mire un abogado</td></tr>
+<tr><td>Planning Travel</td><td class="no"></td><td class="no"></td><td class="si"></td><td class="est"><b>Funciona</b></td></tr>
+<tr><td>Probador: el look puesto en ti</td><td class="no"></td><td class="no"></td><td class="si"></td><td class="est falta"><b>Por construir</b>. Solo hay 4 looks de ejemplo hechos a mano con la foto de Sheila. Hace falta la clave de la API de Gemini</td></tr>
+<tr class="grupo"><td colspan="5">Por construir, para todas</td></tr>
+<tr><td>Foto de catálogo automática de cada prenda</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est falta"><b>Por construir</b>. Misma clave de Gemini; hoy la hace la Dirección a mano</td></tr>
+<tr><td>Importar de Pinterest</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est falta"><b>Por construir</b></td></tr>
+<tr><td>Entrar con Google o Apple</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est falta"><b>Por construir</b></td></tr>
+<tr><td>Pagar y gestionar la suscripción</td><td class="no"></td><td class="si"></td><td class="si"></td><td class="est falta"><b>Por construir</b>. Va en el plan de lanzamiento</td></tr>
+<tr><td>Aviso legal y privacidad</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est falta"><b>Por redactar</b></td></tr>
+<tr><td>App en App Store y Google Play, con avisos</td><td class="si"></td><td class="si"></td><td class="si"></td><td class="est falta"><b>Por decidir</b> en el plan de lanzamiento. Hoy es una web que se instala en el móvil</td></tr>
 </tbody></table>
-<p class="nota">Desde la 0.118 lo que distingue al Pro es <b>Tu diagnóstico</b> (la app te escanea la cara y el cuerpo y ordena los looks por tus colores y tu silueta) y <b>Sácale partido</b>. <b>Qué ve el Básico en esos huecos</b> (vuestra pregunta 11): en Yo, la tarjeta «Tu diagnóstico» con la marca Pro y el botón «Ver el plan Pro»; Mis colores con las 4 preguntas a mano y Mi silueta elegida a mano, sin que ordenen los looks. Así cada plan se ve completo y la diferencia se nota. Con la casilla de arriba veis los dos planes con el diseño nuevo o con el de antes.</p>
+<p class="nota">En la app, Yo › «Ver la app como» cambia entre Gratis, Básico y Pro en tu cuenta. En la gratis se ven tus 10 primeras prendas; las demás siguen guardadas y vuelven al pasar a Básico o Pro.</p>
 <script>
 const base = new URL('index.html', location.href).href + '?repaso=0';
 const ir = p => {
   const pr = document.getElementById('p012').checked, q = (pr ? 'ver=atelier&' : 'ver=clasico&') + (p === 'cal' ? 'pantalla=looks&lk=cal' : p === 'looks' ? 'pantalla=looks&lk=ideas' : 'pantalla=' + p);
-  fb.src = base + '&plan=basico&' + q; fp.src = base + '&plan=pro&' + q;
+  fg.src = base + '&plan=gratis&' + q; fb.src = base + '&plan=basico&' + q; fp.src = base + '&plan=pro&' + q;
   nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
 };
 nav.onclick = e => { const b = e.target.closest('button'); if (b) ir(b.dataset.p); };
-document.getElementById('p012').onchange = () => ir(nav.querySelector('.on')?.dataset.p || 'hoy');
-ir('hoy');
+document.getElementById('p012').onchange = () => ir(nav.querySelector('.on')?.dataset.p || 'closet');
+ir('closet');
 </script>
 </body></html>

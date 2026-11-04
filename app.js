@@ -34,7 +34,7 @@ const COLORES = [['Negro', '#1B1B1B'], ['Blanco', '#F4F4F4'], ['Gris', '#8E8E8E'
 const T = {
   ac_crear: ['Crea tu clóset', 'Create your closet'], ac_nombre: ['Tu nombre', 'Your name'], ac_ciudad: ['Tu ciudad', 'Your city'], ac_ubic: ['Usar mi ubicación', 'Use my location'],
   ac_nota: ['La ciudad es solo para el tiempo. Con correo, tu clóset se guarda en tu cuenta; tu selfie y tu foto de cuerpo, nunca.', 'The city is only for the weather. With an email your closet is saved to your account; your selfie and body photo, never.'], ac_clave_pista: ['mínimo 8 caracteres', 'at least 8 characters'],
-  ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Dos fotos para verte con tu ropa puesta, conocer tu tipo de cuerpo y tus colores.', 'Two photos to see yourself in your clothes and learn your body type and colours.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_estilo: ['Tu estilo', 'Your style'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
+  ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Con estas dos fotos la app saca tu tipo de cuerpo y tus colores. Sirven para todo: no te las volverá a pedir.', 'With these two photos the app works out your body type and colours. They are used for everything: you will not be asked again.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_estilo: ['Tu estilo', 'Your style'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
   ac_entrar: ['Hola de nuevo', 'Welcome back'], ac_correo: ['Correo', 'Email'], ac_clave: ['Contraseña', 'Password'], ac_olvido: ['¿La has olvidado?', 'Forgot it?'], ac_entrar_bt: ['Entrar', 'Sign in'], ac_o: ['o', 'or'],
   ac_apple: ['Continuar con Apple', 'Continue with Apple'], ac_google: ['Continuar con Google', 'Continue with Google'], ac_no_tengo: ['¿Aún no tienes cuenta? Crea tu clóset', 'No account yet? Create your closet'],
   lema: ['Optimiza tu estilo', 'Make the most of your style'], crear: ['Crear mi clóset', 'Create my closet'], ya_tengo: ['Ya tengo cuenta', 'I already have one'],
@@ -80,7 +80,7 @@ function confirmar(titulo, texto, si, no) { return new Promise(res => { $('dlg-t
 const urlsCat = new Map(); function urlCat(p) { if (!p) return ''; if (!p.cat) return urlFoto(p); if (!urlsCat.has(p.id)) urlsCat.set(p.id, URL.createObjectURL(p.cat)); return urlsCat.get(p.id); } // 0.121
 function urlFoto(p) { if (!p) return ''; if (p.src) return p.src; if (!p.foto) return ''; if (!urls.has(p.id)) urls.set(p.id, URL.createObjectURL(p.foto)); return urls.get(p.id); }
 const P = id => E.prendas.find(p => p.id === id);
-const activas = () => E.prendas.filter(p => !['guardada', 'donar'].includes(p.estado));
+const activas = () => verPrendas().filter(p => !['guardada', 'donar'].includes(p.estado));
 async function guardar() { await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda); programarNube(); }
 
 /* ---------- mis colores (0.73): colorimetría ligera de la primera versión, sin foto ---------- */
@@ -344,7 +344,13 @@ const DIS_URL = {};
 const dis = k => DIS_URL[k] || localStorage.getItem('tc_' + k) || DIS[k].def;
 const TEMAS = DIS.tema.vals;
 const tema = () => dis('tema');
-const planDemo = () => PLAN_URL || localStorage.getItem('tc_plan') || 'pro';
+// 04/11 (Gabriela: «danos la opción de elegir la versión gratis, básica y luego la pro… desde nuestras cuentas… de una versión a otra no se puede perder nada»):
+// la versión elegida va en la cuenta (perfil.verComo); cambiarla no toca la ropa ni los looks. En la gratis se usan las 10 primeras prendas que subió; las demás siguen guardadas
+const VERSIONES = ['gratis', 'basico', 'pro'], TOPE_GRATIS = 10;
+const planDemo = () => PLAN_URL || (VERSIONES.includes(E.perfil?.verComo) && E.perfil.verComo) || localStorage.getItem('tc_plan') || 'pro';
+const enGratis = () => planDemo() === 'gratis';
+const verPrendas = () => enGratis() ? E.prendas.slice(-TOPE_GRATIS) : E.prendas;
+const nomPlan = k => k === 'pro' ? 'Pro' : k === 'basico' ? t('Básico', 'Basic') : t('Gratis', 'Free');
 const temaNombre = x => DIS.tema.nom[x];
 function aplicarDiseno() { const r = document.documentElement; for (const k of Object.keys(DIS)) r.dataset[k] = dis(k); }
 const aplicarTema = aplicarDiseno;
@@ -1776,6 +1782,7 @@ const REGLAS_FOTO = [
 const reglasFoto = () => `<details class="s-reglas"><summary>${t('Cómo hacer una buena foto', 'How to take a good photo')}</summary><ol>${REGLAS_FOTO.map(r => `<li><b>${t(r[0], r[2])}</b>${t(r[1], r[3])}</li>`).join('')}</ol></details>`;
 // 03/11 (Gabriela: «tengo 29» en el móvil y 25 en la cuenta; va a subir toda su ropa): sin cuenta abierta, o en el clóset de pruebas, lo subido se queda solo en este móvil; se avisa antes de subir
 function avisoSinNube() {
+  if (enGratis() && E.prendas.length >= TOPE_GRATIS) return `<div class="s-aviso s-nube"><b>${t(`En la versión gratis caben ${TOPE_GRATIS} prendas`, `The free version holds ${TOPE_GRATIS} garments`)}</b><span>${t('Tu ropa sigue guardada en tu cuenta. Con Básico o Pro no hay tope.', 'Your clothes stay saved in your account. Basic and Pro have no limit.')}</span><div><button class="boton" data-ir="yo">${t('Ver las versiones', 'See the versions')}</button></div></div>`;
   if (!NUBE) return '';
   if (CLOSET_ACT) return `<div class="s-aviso s-nube"><b>${t('Estás en el clóset de pruebas', 'You are in the test closet')}</b><span>${t('Lo que subas aquí no se guarda en tu cuenta.', 'What you upload here is not saved to your account.')}</span><div><button class="boton" data-cambio="">${t('Pasar a mi ropa', 'Switch to my clothes')}</button></div></div>`;
   if (!cuenta()) return `<div class="s-aviso s-nube"><b>${t('Entra en tu cuenta antes de subir', 'Sign in before uploading')}</b><span>${t('Sin cuenta, tu ropa se queda solo en este móvil y no la verás en otros.', 'Without an account your clothes stay only on this phone.')}</span><div><button class="boton" data-ir="entrar">${t('Entrar', 'Sign in')}</button></div></div>`;
@@ -1840,6 +1847,7 @@ async function anadirFotos(files) {
 }
 async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
+  if (enGratis() && E.prendas.length + listos.length > TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas: te quedan ${Math.max(0, TOPE_GRATIS - E.prendas.length)}.`, `The free version holds ${TOPE_GRATIS} garments: ${Math.max(0, TOPE_GRATIS - E.prendas.length)} left.`));
   listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1 }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet'); setTimeout(enderezarTodas, 2500);
@@ -1990,6 +1998,7 @@ async function guardarPrenda(otra) {
   if (!p && !fotoNueva) return toast(t('Falta la foto de la prenda', 'The garment photo is missing'));
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
+  if (!p && enGratis() && E.prendas.length >= TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas.`, `The free version holds ${TOPE_GRATIS} garments.`));
   if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value) }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
   else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   const tiro = tipo === 'Abajo' && $('an-tiro').dataset.sel, pr = p || E.prendas[0]; if (tiro) pr.est = { ...(pr.est || {}), tiro };
@@ -2380,14 +2389,12 @@ function pintarPanelYo() {
       + filaP({ ic: 'info', tit: t('Versión', 'Version'), val: ($('yo-version')?.textContent || '').split(' · ')[0].replace('TuCloset web ', ''), flecha: false, tag: 'div' }))
     + `<details class="pn-pruebas"><summary>${t('Herramientas de prueba', 'Test tools')}</summary><div class="pn-c">`
       + filaP({ attr: 'data-ir="diseno"', ic: 'probar', tit: t('Diseño (para decidir)', 'Design (to decide)'), val: `${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}` })
-      + filaP({ id: 'yo-plan', ic: 'probar', tit: t('Ver como', 'View as'), val: planDemo() === 'pro' ? 'Pro' : t('Básico', 'Basic'), flecha: false })
       + filaP({ id: 'yo-closet', ic: 'probar', tit: t('Clóset', 'Closet'), val: CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes'), flecha: false })
       + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))
       + `</div></details>`;
   $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
   $('yo-avisos').onclick = () => toast(t('Las notificaciones llegarán con la app del móvil', 'Notifications will come with the mobile app'));
   $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
-  $('yo-plan').onclick = () => { PLAN_URL = null; localStorage.setItem('tc_plan', planDemo() === 'pro' ? 'basico' : 'pro'); pintarYo(); toast(planDemo() === 'pro' ? t('Viendo la app como Pro', 'Viewing the app as Pro') : t('Viendo la app como Básico', 'Viewing the app as Basic')); };
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
 }
 function panelIdioma() {
@@ -2454,7 +2461,7 @@ function puntosDiag(ps) {
   return s;
 }
 async function hacerDiagnostico(estado) {
-  const pf = E.perfil || {}, { D, R } = await diagMod(), res = { fecha: hoyISO(), avisos: {} };
+  const pf = E.perfil || {}, { D, R } = await diagMod(), res = { fecha: hoyISO(), avisos: {}, fotos: firmaFotos() };
   estado(t('Preparando el análisis (la primera vez tarda un poco más)…', 'Getting the analysis ready (slower the first time)…')); await D.cargar();
   if (pf.selfie) {
     estado(t('Mirando tus colores…', 'Looking at your colours…')); const c = await D.analizarCara(pf.selfie); res.avisos.cara = c.prob.map(p => ({ k: p.k, fatal: p.fatal }));
@@ -2473,18 +2480,25 @@ async function hacerDiagnostico(estado) {
   if (res.cuerpo) E.perfil.tipoCuerpo = res.cuerpo.k;
   E.propuestas = []; E.generados = []; await guardar(); return { res, R };
 }
+// 04/11 (Gabriela: «una foto te tiene que servir para todo… tú no puedes seleccionar tu tipo de cuerpo, lo tienes que hacer en la aplicación en función de la foto»):
+// las dos fotos del alta se analizan solas, en todas las versiones, cada vez que cambia una; el Pro aplica el resultado a sus looks y a su clóset
+const firmaFotos = () => ({ selfie: E.perfil?.selfie?.size || 0, cuerpo: E.perfil?.cuerpo?.size || 0 });
+const diagPendiente = () => { const f = E.perfil?.diag?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo)); };
+let diagCorriendo = null, diagFallo = 0;
+const diagAuto = () => diagCorriendo || (diagCorriendo = hacerDiagnostico(() => { }).catch(() => { diagFallo++; return null; }).finally(() => { diagCorriendo = null; }));
+async function diagHastaAlDia() { let r = null; for (let i = 0; i < 3 && diagPendiente() && !diagFallo; i++) r = await diagAuto(); return r; }
 const textoProb = (R, k) => (R?.problemas?.[k] || R?.problemas?.error || ['', ''])[idioma() === 'en' ? 1 : 0];
 function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; en el Pro, las fotos o el resultado
   const pf = E.perfil || {}, dg = pf.diag, es = idioma() === 'en' ? 1 : 0, pro = planDemo() === 'pro';
   const mini = (k, ic) => `<span class="dg-mini${pf[k] ? ' hecha' : ''}">${pf[k] ? `<img src="${URL.createObjectURL(pf[k])}" alt="">` : `<svg><use href="#${ic}"/></svg>`}</span>`;
-  if (!pro) return `<section class="dg-tarjeta"><div class="dg-cab"><h2>${t('Tu diagnóstico', 'Your analysis')}</h2><span class="dg-pro">Pro</span></div><p>${AT ? t('Tus colores y tu silueta, a partir de dos fotos.', 'Your colours and figure, from two photos.') : t('Con una foto de tu cara y otra de cuerpo entero, la app analiza tus colores, tu silueta y la ropa que te favorece.', 'From a face photo and a full-body photo, the app analyses your colours, your figure and the clothes that suit you.')}</p><button class="boton linea" data-diag="plan">${t('Ver el plan Pro', 'See the Pro plan')}</button></section>`;
+  if (!pro) return `<section class="dg-tarjeta"><div class="dg-cab"><h2>${t('Tu asesora de imagen', 'Your image adviser')}</h2><span class="dg-pro">Pro</span></div><p>${t('Con tus mismas fotos, el Pro elige tus looks también según tu silueta y te dice qué prendas de tu clóset te favorecen.', 'With the same photos, Pro also picks your looks for your figure and shows which of your clothes suit you most.')}</p><button class="boton linea" data-diag="plan">${t('Ver el plan Pro', 'See the Pro plan')}</button></section>`;
   if (dg?.color || dg?.cuerpo) return `<section class="dg-tarjeta hecho" data-diag="ver" role="button" tabindex="0"><div class="dg-cab"><h2>${t('Tu diagnóstico', 'Your analysis')}</h2><span class="dg-pro">Pro</span></div>
     ${dg.color ? `<div class="dg-tela">${dg.color.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>` : ''}
     <p class="dg-res">${[dg.color?.n[es], dg.cuerpo?.n[es]].filter(Boolean).join(' · ')}</p><span class="dg-ver">${t('Ver mi diagnóstico', 'See my analysis')}<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span></section>`;
   return `<section class="dg-tarjeta"><div class="dg-cab"><h2>${t('Tu diagnóstico', 'Your analysis')}</h2><span class="dg-pro">Pro</span></div>
     <div class="dg-fotos">${mini('selfie', 'ic-camara')}${mini('cuerpo', 'ic-cuerpo')}</div>
     <p>${AT ? t('Dos fotos para tus colores y tu silueta. Se quedan en tu móvil.', 'Two photos for your colours and figure. They stay on your phone.') : t('Una foto de tu cara y otra de cuerpo entero: la app analiza tus colores, tu silueta y la ropa que te favorece. Las fotos no salen de tu móvil.', 'A face photo and a full-body photo: the app analyses your colours, your figure and the clothes that suit you. Photos never leave your phone.')}</p>
-    <button class="boton" data-diag="fotos">${pf.selfie || pf.cuerpo ? t('Hacer mi diagnóstico', 'Get my analysis') : t('Hacer las fotos', 'Take the photos')}</button></section>`;
+    ${pf.selfie || pf.cuerpo ? `<p class="dg-d">${diagPendiente() && !diagFallo ? t('Analizando tus fotos…', 'Analysing your photos…') : t('No he podido leer tus fotos. Prueba con otras.', 'I could not read your photos. Try others.')}</p><button class="boton linea" data-diag="fotos">${t('Ver mis fotos', 'See my photos')}</button>` : `<button class="boton" data-diag="fotos">${t('Hacer las fotos', 'Take the photos')}</button>`}</section>`;
 }
 function panelDiagFotos() {
   const pf = E.perfil || {};
@@ -2505,13 +2519,13 @@ function panelDiagFotos() {
   });
 }
 async function panelDiag(pendientes = []) {
-  const dg = E.perfil?.diag || {}, es = idioma() === 'en' ? 1 : 0, m = medidasLocales(), c = dg.color, b = dg.cuerpo;
+  const dg = E.perfil?.diag || {}, es = idioma() === 'en' ? 1 : 0, m = medidasLocales(), c = dg.color, b = dg.cuerpo, pro = planDemo() === 'pro';
   let R = null; try { R = (await diagMod()).R; } catch (e) { }
   const conf = x => x >= .75 ? t('alta', 'high') : x >= .5 ? t('media', 'medium') : t('baja', 'low');
   const subt = c ? (c.ejes.t > .2 ? t('cálido', 'warm') : c.ejes.t < -.2 ? t('frío', 'cool') : t('neutro', 'neutral')) : '';
   const contr = m ? (m.contraste >= 45 ? t('alto', 'high') : m.contraste >= 28 ? t('medio', 'medium') : t('bajo', 'low')) : '';
-  const deMio = c ? E.prendas.filter(p => c.si.includes(p.color) && ['Arriba', 'Vestidos', 'Abrigo'].includes(p.tipo)).slice(0, 6) : [];
-  const favor = b ? E.prendas.filter(p => ['Arriba', 'Abajo', 'Vestidos'].includes(p.tipo)).map(p => [p, puntosDiag([p])]).filter(x => x[1] > 0).sort((x, y) => y[1] - x[1]).slice(0, 6).map(x => x[0]) : [];
+  const deMio = c && pro ? E.prendas.filter(p => c.si.includes(p.color) && ['Arriba', 'Vestidos', 'Abrigo'].includes(p.tipo)).slice(0, 6) : [];
+  const favor = b && pro ? E.prendas.filter(p => ['Arriba', 'Abajo', 'Vestidos'].includes(p.tipo)).map(p => [p, puntosDiag([p])]).filter(x => x[1] > 0).sort((x, y) => y[1] - x[1]).slice(0, 6).map(x => x[0]) : [];
   const avisos = [...pendientes, ...[...(dg.avisos?.cara || []), ...(dg.avisos?.cuerpo || [])].filter(p => !p.fatal).map(p => textoProb(R, p.k))].filter(Boolean);
   const html = `${c ? `<section class="dg-sec"><h2 class="dg-h">${t('Tus colores', 'Your colours')}</h2><div class="dg-tela grande">${c.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>
       <h3 class="dg-nom">${c.n[es]}</h3><p class="dg-d">${c.d[es]}</p>
@@ -2523,12 +2537,14 @@ async function panelDiag(pendientes = []) {
     ${b ? `<section class="dg-sec"><h2 class="dg-h">${t('Tu silueta', 'Your figure')}</h2><div class="dg-sil">${siluetaSVG([Math.round(42 * b.ratios.hombros_cadera), Math.round(42 * b.ratios.cintura_cadera), 42])}<div><h3 class="dg-nom">${b.n[es]}</h3><p class="dg-d">${b.d[es]}</p><p class="dg-d">${b.propN[es]}: ${b.propD[es].charAt(0).toLowerCase() + b.propD[es].slice(1)}</p></div></div>
       <div class="dg-dos"><div><h4>${t('Te favorece', 'Flatters you')}</h4><ul>${b.favorece[es].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>${t('Mejor evitar', 'Better avoid')}</h4><ul>${b.evitar[es].map(x => `<li>${x}</li>`).join('')}</ul></div></div>
       ${favor.length ? `<h4>${t('De tu clóset, lo que más te favorece', 'From your closet, what suits you most')}</h4><div class="co-mias">${favor.map(p => `<button data-ficha="${p.id}"><img src="${urlFoto(p)}" alt=""></button>`).join('')}</div>` : ''}</section>` : ''}
-    <section class="dg-sec"><p class="dg-d">${t('Hoy y tus looks ya tienen en cuenta este diagnóstico.', 'Today and your looks already use this analysis.')}${c ? ` ${t('Confianza en los colores', 'Colour confidence')}: ${conf(c.confianza)}.` : ''}${b ? ` ${t('En la silueta', 'Figure')}: ${conf(b.confianza)}.` : ''}</p>
+    <section class="dg-sec"><p class="dg-d">${pro ? t('Hoy y tus looks ya tienen en cuenta este diagnóstico.', 'Today and your looks already use this analysis.') : t('Tus looks ya tienen en cuenta tus colores. Con el Pro, también tu silueta, y ves qué prendas de tu clóset te favorecen.', 'Your looks already use your colours. With Pro, your figure too, and you see which of your clothes suit you.')}${c ? ` ${t('Confianza en los colores', 'Colour confidence')}: ${conf(c.confianza)}.` : ''}${b ? ` ${t('En la silueta', 'Figure')}: ${conf(b.confianza)}.` : ''}</p>
       ${avisos.length ? `<ul class="dg-avisos">${avisos.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
-      ${grupoP('', filaP({ attr: 'data-diag="fotos"', ic: 'camara', tit: t('Repetir con otras fotos', 'Redo with other photos') }) + filaP({ attr: 'data-ir="colores"', ic: 'ok', tit: t('Ajustar mis colores a mano', 'Adjust my colours by hand') }) + filaP({ attr: 'data-ir="cuerpo"', ic: 'ok', tit: t('Elegir mi silueta a mano', 'Choose my figure by hand') }))}
+      ${grupoP('', filaP({ attr: 'data-diag="fotos"', ic: 'camara', tit: t('Cambiar mis fotos', 'Change my photos') }))}
       <p class="pn-nota">${t('Es una orientación, no una regla: si algo te hace feliz, póntelo. Tus fotos y los colores medidos se quedan en este móvil; en tu cuenta solo se guarda el resultado.', 'A guide, not a rule: if something makes you happy, wear it. Your photos and measured colours stay on this phone; only the result is saved to your account.')}</p></section>`;
   abrirPanel(t('Tu diagnóstico', 'Your analysis'), html, cap => cap.addEventListener('click', e => { if (e.target.closest('[data-ir],[data-ficha],[data-diag]')) setTimeout(() => cap.remove(), 0); }));
 }
+document.addEventListener('click', async e => { const b = e.target.closest('[data-vercomo]'); if (!b) return; const k = b.dataset.vercomo; PLAN_URL = null; try { localStorage.setItem('tc_plan', k); } catch (er) { }
+  E.perfil = E.perfil || {}; E.perfil.verComo = k; E.propuestas = []; E.generados = []; await guardar(); pintarYo(); toast(t(`Viendo la app como ${nomPlan(k)}. Tu ropa y tus looks siguen igual.`, `Viewing the app as ${nomPlan(k)}. Your clothes and looks stay the same.`)); });
 document.addEventListener('click', e => { const b = e.target.closest('[data-diag]'); if (!b) return; const k = b.dataset.diag; if (k === 'plan') panelPlan(); else if (k === 'fotos') panelDiagFotos(); else panelDiag(); });
 function pintarYo() {
   const pf = E.perfil || {}, es = idioma() === 'en' ? 1 : 0;
@@ -2548,13 +2564,16 @@ function pintarYo() {
   const sil = pf.selfie && pf.cuerpo ? t('fotos listas', 'photos ready') : pf.selfie || pf.cuerpo ? t('falta una foto', 'one photo missing') : t('por descubrir', 'to discover');
   const ests = (pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).slice(0, 2), colO = pf.colores?.est ? EST_COLOR[pf.colores.est] : null;
   const ent = (attr, tit, val) => `<button class="y3-a" ${attr}>${tit}<small>${val}</small></button>`;
-  const dg = pf.diag, dgSil = dg?.cuerpo && planDemo() === 'pro', dgCol = dg?.color && planDemo() === 'pro';
-  $('yo-lista').innerHTML = ent(dgSil ? 'data-diag="ver"' : 'data-ir="silueta"', t('Mi silueta', 'My figure'), dgSil ? min(dg.cuerpo.n[es]) : sil)
+  const dg = pf.diag, pend = diagPendiente() && !diagFallo, mira = (k, f) => dg?.[k] ? min(dg[k].n[es]) : pf[f] ? (pend ? t('analizando…', 'analysing…') : t('repite la foto', 'retake the photo')) : t('falta la foto', 'photo missing');
+  $('yo-lista').innerHTML = ent(dg?.cuerpo ? 'data-diag="ver"' : 'data-diag="fotos"', t('Mi silueta', 'My figure'), mira('cuerpo', 'cuerpo'))
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? ests.map(min).join(t(' y ', ' and ')) : t('elígelo', 'choose it'))
-    + ent(dgCol ? 'data-diag="ver"' : 'id="yo-colores"', t('Mis colores', 'My colours'), dgCol ? min(dg.color.n[es]) : colO ? min(colO.n[es]) : t('por descubrir', 'to discover'));
-  let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; $('yo-lista').after(td); } td.innerHTML = tarjetaDiag();
+    + ent(dg?.color ? 'data-diag="ver"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
+  let ver = $('yo-ver'); if (!ver) { ver = document.createElement('div'); ver.id = 'yo-ver'; $('yo-lista').after(ver); }
+  ver.innerHTML = `<h3 class="es-tit">${t('Ver la app como', 'View the app as')}</h3><div class="at-fila at-vj-ops">${VERSIONES.map(k => `<button class="${planDemo() === k ? 'on' : ''}" data-vercomo="${k}" aria-pressed="${planDemo() === k}">${nomPlan(k)}<span class="at-dos" aria-hidden="true"></span></button>`).join('')}</div>`
+    + (enGratis() && E.prendas.length > TOPE_GRATIS ? `<p class="yo-ver-n">${t(`En la gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`)}</p>` : '');
+  let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; ver.after(td); } td.innerHTML = tarjetaDiag();
   pintarPanelYo();
-  if ($('yo-colores')) $('yo-colores').onclick = () => ir('colores');
+  if (pend && !diagCorriendo) diagHastaAlDia().then(() => { if (E.pantalla === 'yo') pintarYo(); });
 }
 // 0.45 (Sheila, 22/10: «necesito seguir trabajando con mi misma base de datos… que cada vez que actualizas la versión guarde mi base de datos»):
 // recuperar la copia en otro navegador o móvil; se suma a lo que haya, sin duplicar (por id), y no toca lo que ya existe
@@ -2605,7 +2624,7 @@ function pintarSilueta() {
 async function guardarFotoPerfil(k, file) {
   try { const r = await procesarFoto(file); E.perfil = E.perfil || {}; E.perfil[k] = r.blob; await guardar(); pintarSilueta(); toast(k === 'selfie' ? t('Selfie guardada', 'Selfie saved') : t('Foto de cuerpo guardada', 'Body photo saved'));
     // 0.12: con las dos fotos del alta, el diagnóstico se hace solo, por detrás («no son cosas aisladas, las fotos del inicio con las opciones que pones en Yo»)
-    if (E.perfil.selfie && E.perfil.cuerpo && planDemo() === 'pro') hacerDiagnostico(() => { }).then(({ res }) => { if (res.color || res.cuerpo) toast(t('Tu diagnóstico está listo: lo tienes en Yo', 'Your analysis is ready: find it in Me')); }).catch(() => { }); }
+    diagFallo = 0; diagHastaAlDia().then(r => { if (E.pantalla === 'cuerpo') pintarCuerpo(); if (r && (r.res.color || r.res.cuerpo)) toast(t('Listo: tus colores y tu tipo de cuerpo están en Yo', 'Done: your colours and body type are in Me')); }); }
   catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); }
 }
 
@@ -2633,7 +2652,7 @@ $('mc-grupos').onclick = e => { const b = e.target.closest('[data-fil]'); if (!b
 if ($('c-buscar')) $('c-buscar').onclick = () => { const c = $('busca-caja'); c.classList.toggle('oculto'); if (!c.classList.contains('oculto')) $('busca').focus(); else { E.busca = ''; $('busca').value = ''; pintarCloset(); } };
 $('a-seguir').onclick = guardarAlta;
 // «Ya tengo cuenta» (0.11): en esta versión el clóset vive en el móvil, así que entrar te lleva a él; las cuentas llegarán con la versión en la nube
-const entrarYa = async () => { if (!NUBE) { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } return ir('hoy'); } const b = $('e-entrar'), txt = b.textContent; b.disabled = true; b.textContent = t('Entrando y trayendo tu clóset…', 'Signing in and fetching your closet…'); const ok = await abrirCuenta('entrar', $('e-correo').value.trim(), $('e-clave').value); b.disabled = false; b.textContent = txt; if (!ok) return; if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } ir('hoy'); toast(t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); };
+const entrarYa = async () => { if (!NUBE) { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } return ir('hoy'); } const b = $('e-entrar'), txt = b.textContent; b.disabled = true; b.textContent = t('Entrando y trayendo tu clóset…', 'Signing in and fetching your closet…'); const ok = await abrirCuenta('entrar', $('e-correo').value.trim(), $('e-clave').value); b.disabled = false; b.textContent = txt; if (!ok) return; if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } ir('closet'); toast(t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); };
 $('e-entrar').onclick = entrarYa;
 // 0.94 (Gabriela, 24/10: «pon visible como opción la contraseña»): botón para ver u ocultar lo escrito
 function ojos() { document.querySelectorAll('input[type=password]:not([data-ojo])').forEach(i => { i.dataset.ojo = 1; const b = document.createElement('button'); b.type = 'button'; b.className = 'ac-ver'; const pinta = () => { const v = i.type === 'text'; b.textContent = v ? t('Ocultar', 'Hide') : t('Ver', 'Show'); b.setAttribute('aria-label', v ? t('Ocultar contraseña', 'Hide password') : t('Ver contraseña', 'Show password')); }; pinta(); b.onclick = e => { e.preventDefault(); i.type = i.type === 'password' ? 'text' : 'password'; pinta(); i.focus(); }; const caja = document.createElement('span'); caja.className = 'ac-clave'; i.replaceWith(caja); caja.append(i, b); }); }
@@ -2711,14 +2730,14 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   const q = new URLSearchParams(location.search);
   for (const k of Object.keys(DIS)) if (DIS[k].vals.includes(q.get(k))) DIS_URL[k] = q.get(k);
   if (PROTOS[q.get('proto')]) Object.assign(DIS_URL, PROTOS[q.get('proto')]);
-  if (['pro', 'basico'].includes(q.get('plan'))) PLAN_URL = q.get('plan');
+  if (VERSIONES.includes(q.get('plan'))) PLAN_URL = q.get('plan');
   aplicarDiseno();
   if (q.get('ejemplo') && !E.prendas.length && !PUBLICA) await cargarEjemplo();
   // 0.96 (Gabriela, 24/10: «se sigue demorando en abrir la app»): con sesión o con prendas se entra directa en Hoy; el repaso de la bienvenida, solo con ?repaso=1
   const REPASO = q.get('repaso') === '1' || (q.get('repaso') !== '0' && !cuenta() && !E.prendas.length); // 0.48 (Gabriela, 22/10: «cada vez que abra la app, salgan todos los pasos con posibilidad de siguiente página»): mientras diseñamos, se entra siempre por la bienvenida y los pasos del alta; ?repaso=0 vuelve a lo de una usuaria real (directo a Hoy)
-  const destino = q.get('pantalla') || (REPASO || !(E.perfil?.alta || E.prendas.length) ? 'inicio' : 'hoy');
+  const destino = q.get('pantalla') || (REPASO || !(E.perfil?.alta || E.prendas.length) ? 'inicio' : 'closet'); // 04/11 (Gabriela: «cuando una persona entre por su cuenta salga abriendo tu clóset»)
   if (E.perfil) { if (E.perfil.nombre) $('a-nombre').value = E.perfil.nombre; if (E.perfil.ciudad) $('a-ciudad').value = E.perfil.ciudad; } // en el repaso no se pierde lo ya puesto
-  if (destino !== 'inicio') { const tc = cargarTiempo(); await Promise.race([tc, new Promise(r => setTimeout(r, 1200))]); tc.then(() => cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); })).catch(() => { }); } // 0.96: no se espera al tiempo más de 1,2 s; cuando llega, se repinta Hoy
+  if (destino !== 'inicio') { const tc = cargarTiempo(); if (destino === 'hoy') await Promise.race([tc, new Promise(r => setTimeout(r, 1200))]); tc.then(() => cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); })).catch(() => { }); } // 0.96: no se espera al tiempo más de 1,2 s; cuando llega, se repinta Hoy
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
@@ -2740,11 +2759,14 @@ function siluetaSVG([s, w, h]) {
   const d = `M${L(s)} 27Q${L(s) - 1} 40 ${L(w)} 58Q${L(h) - 1} 70 ${L(h)} 80L${L(h) + 6} 116M${R(s)} 27Q${R(s) + 1} 40 ${R(w)} 58Q${R(h) + 1} 70 ${R(h)} 80L${R(h) - 6} 116M27 21V25Q${L(s) + 4} 25 ${L(s)} 27M33 21V25Q${R(s) - 4} 25 ${R(s)} 27M30 88V116`;
   return `<svg viewBox="0 0 60 120"><circle cx="30" cy="12" r="7"/><path d="${d}"/></svg>`;
 }
-function pintarCuerpo() {
-  const el = E.perfil?.tipoCuerpo, c = CUERPOS.find(x => x.k === el), es = idioma() === 'en' ? 1 : 0;
-  $('tc-sub').textContent = E.perfil?.cuerpo ? t('Elige el que más se parezca a ti. Puedes cambiarlo cuando quieras.', 'Pick the one closest to you. You can change it any time.') : t('Elige el que más se parezca a ti. Puedes cambiarlo cuando quieras.', 'Pick the one closest to you. You can change it any time.');
-  $('tc-siluetas').innerHTML = CUERPOS.map(x => `<button class="${x.k === el ? 'on' : ''}" data-tcuerpo="${x.k}">${siluetaSVG(x.a)}<span>${x.n[es]}</span></button>`).join('');
-  $('tc-favorece').innerHTML = c ? `<p class="tc-d">${c.d[es]}</p><p class="tc-t">${t('Te favorece', 'Flatters you')}</p><ul class="tc-l">${c.f[es].map(x => `<li>${x}</li>`).join('')}</ul>` : '';
+function pintarCuerpo() { // 04/11: ya no se elige a mano; sale de la foto de cuerpo entero (Gabriela: «tú no puedes seleccionar tu tipo de cuerpo»)
+  const pf = E.perfil || {}, b = pf.diag?.cuerpo, es = idioma() === 'en' ? 1 : 0, sil = $('tc-siluetas'), fav = $('tc-favorece'), sub = $('tc-sub'); sil.classList.add('uno');
+  if (!pf.cuerpo) { sub.textContent = t('Con la foto de cuerpo entero, la app te dice tu tipo de cuerpo. Puedes hacerla ahora o más tarde en Yo.', 'With the full-body photo, the app tells you your body type. Take it now or later in Me.'); sil.innerHTML = ''; fav.innerHTML = `<button class="boton linea" data-ir="silueta">${t('Hacer la foto', 'Take the photo')}</button>`; return; }
+  if (diagPendiente() && !diagFallo) { sub.textContent = t('Midiendo tu silueta en la foto…', 'Measuring your figure in the photo…'); sil.innerHTML = ''; fav.innerHTML = ''; diagHastaAlDia().then(() => { if (E.pantalla === 'cuerpo') pintarCuerpo(); }); return; }
+  if (!b) { sub.textContent = t('No he podido medir tu silueta en esa foto. Prueba con otra de pie, de frente y hasta los pies.', 'I could not measure your figure in that photo. Try another one standing, facing the camera, head to toe.'); sil.innerHTML = ''; fav.innerHTML = `<button class="boton linea" data-ir="silueta">${t('Cambiar la foto', 'Change the photo')}</button>`; return; }
+  sub.textContent = t('Lo ha medido la app en tu foto de cuerpo entero.', 'Measured by the app in your full-body photo.');
+  sil.innerHTML = `<div>${siluetaSVG([Math.round(42 * b.ratios.hombros_cadera), Math.round(42 * b.ratios.cintura_cadera), 42])}<span>${b.n[es]}</span></div>`;
+  fav.innerHTML = `<p class="tc-d">${b.d[es]}</p><p class="tc-t">${t('Te favorece', 'Flatters you')}</p><ul class="tc-l">${b.favorece[es].map(x => `<li>${x}</li>`).join('')}</ul>`;
 }
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-tcuerpo]'); if (!b) return;
