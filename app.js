@@ -1772,17 +1772,17 @@ async function revisarGuardadas() {
 // Solo cambia la foto recortada: el nombre, el tipo y lo que ella haya escrito se quedan. Si había elegido la foto original, no se toca.
 async function recortarOtraVez() {
   if (window.top !== window) return;
-  const pend = E.prendas.filter(p => !p.src && !p.ejemplo && p.original instanceof Blob && !p.originalRota && (p.cv || 1) < 4 && (p.creada || '') >= '2026-11-04').slice(0, 30); if (!pend.length) return;
+  const pend = E.prendas.filter(p => !p.src && !p.ejemplo && p.original instanceof Blob && !p.originalRota && !p.recMano && (p.cv || 1) < 5 && (p.creada || '') >= '2026-11-04').slice(0, 30); if (!pend.length) return;
   let hechas = 0;
   for (const p of pend) {
     await new Promise(r => (window.requestIdleCallback || setTimeout)(r, { timeout: 800 }));
     try {
-      if (p.foto && p.foto.size === p.original.size) { p.cv = 4; continue; } // usaba la foto original
+      if (p.foto && p.foto.size === p.original.size) { p.cv = 5; continue; } // usaba la foto original
       const r = await procesarPrenda(p.original, { sinReconocer: true });
-      if (r.cv !== 4) break; // 0.157: solo se cambia por el recorte del servidor; sin cuenta o sin red, otra vez en la próxima apertura (0.159: cv 4, sin pies ni trozos sueltos)
+      if (r.cv !== 5) break; // 0.157: solo se cambia por el recorte del servidor; sin cuenta o sin red, otra vez en la próxima apertura (0.159: cv 4, sin pies ni trozos sueltos; 0.162: cv 5, sin perder tirantes; lo recortado a mano, recMano, no se toca)
       if (r.recortada) { p.foto = r.blob; urls.delete(p.id); alfa.delete(p.id); p.caja = null; hechas++; }
       if (r.dudoso) p.dudoso = 1; else delete p.dudoso;
-      p.cv = 4;
+      p.cv = 5;
     } catch (e) { break; } // sin modelo o sin red: se reintenta en la próxima apertura
   }
   await guardar(); programarNube();
@@ -1867,12 +1867,13 @@ function soloLaPrenda(m, w, h) {
   const pc = document.createElement('canvas'); pc.width = sw; pc.height = sh; const px = pc.getContext('2d', { willReadFrequently: true }); px.drawImage(m, 0, 0, sw, sh);
   const pd = px.getImageData(0, 0, sw, sh), al = new Uint8Array(sw * sh); for (let q = 0; q < sw * sh; q++) al[q] = pd.data[q * 4 + 3];
   const antes = al.slice(); piezaMayor(al, sw, sh);
-  let quitado = 0; for (let q = 0; q < sw * sh; q++) if (antes[q] >= 64 && !al[q]) quitado++;
+  // solo se borran las piezas que se quitan (los pies), no lo que queda fuera: un tirante fino casi desaparece al reducir la foto y se perdía (Gabriela, 06/11: «un top corto de volantes, que quitó un tirante»)
+  const fuera = new Uint8Array(sw * sh); let quitado = 0; for (let q = 0; q < sw * sh; q++) if (antes[q] >= 64 && !al[q]) { fuera[q] = 1; quitado++; }
   if (!quitado) return 0;
-  const k = ensanchar(Uint8Array.from(al, v => v ? 1 : 0), sw, 2);
+  const k = ensanchar(fuera, sw, 2);
   for (let q = 0; q < sw * sh; q++) { pd.data[q * 4] = pd.data[q * 4 + 1] = pd.data[q * 4 + 2] = 0; pd.data[q * 4 + 3] = k[q] ? 255 : 0; }
   px.putImageData(pd, 0, 0);
-  const mx = m.getContext('2d'); mx.globalCompositeOperation = 'destination-in'; mx.drawImage(pc, 0, 0, w, h); mx.globalCompositeOperation = 'source-over';
+  const mx = m.getContext('2d'); mx.globalCompositeOperation = 'destination-out'; mx.drawImage(pc, 0, 0, w, h); mx.globalCompositeOperation = 'source-over';
   return quitado;
 }
 async function recorteNube(img) {
@@ -1886,7 +1887,11 @@ async function recorteNube(img) {
   try {
     const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
     const m = document.createElement('canvas'); m.width = w; m.height = h; const mx = m.getContext('2d', { willReadFrequently: true }); mx.drawImage(im, 0, 0, w, h); soloLaPrenda(m, w, h);
-    const d = mx.getImageData(0, 0, w, h).data; let area = 0; const borde = [0, 0, 0, 0];
+    // 06/11 (Gabriela: «hay piezas que tienen una sombra, también hay que quitarla»): la sombra suave queda como un halo medio transparente;
+    // por debajo de 96 de opacidad se borra y por encima de 200 queda entera (el borde de la prenda sigue suave entre medias)
+    const id = mx.getImageData(0, 0, w, h), d = id.data;
+    for (let k = 3; k < d.length; k += 4) { const a = d[k]; d[k] = a < 96 ? 0 : a > 200 ? 255 : Math.round((a - 96) * 255 / 104); }
+    mx.putImageData(id, 0, 0); let area = 0; const borde = [0, 0, 0, 0];
     for (let p = 0, k = 3; p < w * h; p++, k += 4) { if (d[k] < 128) continue; area++; const x = p % w, y = (p / w) | 0; if (y < 3) borde[0]++; if (x >= w - 3) borde[1]++; if (y >= h - 3) borde[2]++; if (x < 3) borde[3]++; }
     area /= w * h; if (area < .02) return null; // no ha encontrado nada: mejor el recorte del móvil
     m.dudoso = area > .85 || borde.filter((n, i) => n > (i % 2 ? h : w) * 3 * .15).length >= 3; return m;
@@ -1927,7 +1932,7 @@ async function procesarPrenda(file, op = {}) {
     } catch (e) { /* sin modelo: por la forma */ }
     const fondo = fondoIrregular(orig);
     const aBlob = (cv, q) => new Promise(r => cv.toBlob(r, 'image/jpeg', q));
-    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, x, rec: cat ? 1 : 0, recortada, noPrenda, fondo, giro, dudoso: !recortada || dudoso, cv: nube && recortada ? 4 : 2 };
+    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, x, rec: cat ? 1 : 0, recortada, noPrenda, fondo, giro, dudoso: !recortada || dudoso, cv: nube && recortada ? 5 : 2 };
   } finally { URL.revokeObjectURL(u); }
 }
 // nombre automático legible: «Top negro», «Pantalón azul claro», «Zapatos blancos»
@@ -2005,6 +2010,8 @@ const ESTAMPADOS = { Rayas: ['de rayas', 'Stripes'], Cuadros: ['de cuadros', 'Ch
 const INVARIABLE = /^(Beige|Crema|Camel|Burdeos|Mostaza|Caqui|Nude|Terracota)$|\s/; // «rayas azul claro», «cuadros burdeos»
 const plColor = (c, fem) => { let pl = PLURAL_COLOR[c] || (INVARIABLE.test(c) ? c.toLowerCase() : /[aeo]$/i.test(c) ? c.toLowerCase() + 's' : c.toLowerCase()); return fem ? pl.replace(/os$/, 'as') : pl; };
 const nomEstampado = (x, e, c2) => `${NOM_X[x][0]} ${ESTAMPADOS[e][0]}${c2 && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(e) ? ' ' + plColor(c2, e === 'Rayas' || e === 'Flores') : ''}`;
+// 06/11 (Gabriela: «hay también piezas de encaje, transparentes… hay que tener ese tipo de detalles»): se marcan al subir; van a la ficha y a las notas (los cuidados las leen)
+const DETALLES = { Encaje: 'Lace', Transparente: 'Sheer', Volantes: 'Ruffles', Satén: 'Satin', Lentejuelas: 'Sequins', Terciopelo: 'Velvet', Piel: 'Leather', Punto: 'Knit' };
 function prepararSubir() { E.subida = []; E.sDet = null; pintarSubida(); }
 // Subir (Gabriela, 20/10): una sola prenda → su ficha (3B); varias → rejilla (3A) con lo general a la vista y, al tocar una, su ficha
 function pintarSubida() {
@@ -2025,6 +2032,7 @@ function pintarSubida() {
       <div class="gr"><p class="mini-et">${t('Color', 'Colour')}</p><div class="ops col">${COLORES.map(([c, h]) => `<button type="button" class="${c === det.color ? 'on' : ''}" data-scolor="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>
       ${det.color === 'Estampado' ? `<div class="gr"><p class="mini-et">${t('Estampado', 'Pattern')}</p>${ops(Object.keys(ESTAMPADOS), det.estampado, 'estp', k => t(k, ESTAMPADOS[k][1]))}</div>` : ''}
       ${det.color === 'Estampado' && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(det.estampado) ? `<div class="gr"><p class="mini-et">${t('Color del estampado', 'Pattern colour')}</p><div class="ops col">${COLORES.filter(([c]) => c !== 'Estampado').map(([c, h]) => `<button type="button" class="${c === det.color2 ? 'on' : ''}" data-scolor2="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>` : ''}
+      <div class="gr"><p class="mini-et">${t('Detalles', 'Details')}</p><div class="ops">${Object.keys(DETALLES).map(k => `<button type="button" class="${(det.detalles || []).includes(k) ? 'on' : ''}" data-sdeta="${k}" aria-pressed="${(det.detalles || []).includes(k)}">${t(k, DETALLES[k])}</button>`).join('')}</div></div>
       <div class="gr"><p class="mini-et">${t('Estación', 'Season')}</p>${ops(ESTACIONES, det.estacion, 'est', estNombre)}</div>
       <button class="txt sub-l" data-sgirar>${t('Girar la foto', 'Rotate the photo')}</button>
       ${det.recortada ? `<button class="txt sub-l" data-sorig>${det.usaOriginal ? t('Usar el fondo blanco', 'Use white background') : t('Usar la foto original', 'Use the original photo')}</button>` : ''}` : ''}
@@ -2039,7 +2047,7 @@ function pintarSubida() {
   }
   raiz.querySelectorAll('[data-sfotos]').forEach(inp => inp.onchange = e => { anadirFotos([...e.target.files]); e.target.value = ''; });
   raiz.onclick = async ev => {
-    const b = ev.target.closest('[data-sdet],[data-svolver],[data-squita],[data-ssi],[data-sguardar],[data-stipo],[data-scolor],[data-sest],[data-sorig],[data-sgirar],[data-srecortar],[data-sestp],[data-scolor2]'); if (!b || b.disabled) return;
+    const b = ev.target.closest('[data-sdet],[data-svolver],[data-squita],[data-ssi],[data-sguardar],[data-stipo],[data-scolor],[data-sest],[data-sorig],[data-sgirar],[data-srecortar],[data-sestp],[data-scolor2],[data-sdeta]'); if (!b || b.disabled) return;
     const d = b.dataset, auto = det && det.nombre === nombreAuto(det.tipo, det.color), prev = det?.color;
     if (d.sdet) { E.sDet = d.sdet; pintarSubida(); raiz.scrollTop = 0; }
     else if (d.svolver !== undefined) { E.sDet = null; pintarSubida(); }
@@ -2048,10 +2056,11 @@ function pintarSubida() {
     else if (d.sguardar !== undefined) guardarSubida();
     else if (d.scolor) { const c = catDe(det); det.color = d.scolor; if (det.x && NOMBRE_AUTO.test(det.nombre) && SUBCATS[c]?.includes(det.x)) det.nombre = nombreReconocido(det.x, det.color); else if (auto || (c === 'Faldas' && det.nombre === nombreSubida(Object.assign({}, det, { color: prev }), c))) det.nombre = nombreSubida(det, c); pintarSubida(); }
     else if (d.sest) { det.estacion = d.sest; pintarSubida(); }
+    else if (d.sdeta) { const l = new Set(det.detalles || []); l.has(d.sdeta) ? l.delete(d.sdeta) : l.add(d.sdeta); det.detalles = [...l]; pintarSubida(); }
     else if (d.sestp) { const propio = !NOMBRE_AUTO.test(det.nombre) && !/ (de rayas|de cuadros|de lunares|de flores|animal print|estampad[oa])$/.test(det.nombre); det.estampado = d.sestp; if (!propio && det.x && NOM_X[det.x]) det.nombre = nomEstampado(det.x, d.sestp, det.color2); pintarSubida(); }
     else if (d.scolor2) { const propio = !NOMBRE_AUTO.test(det.nombre) && !/ (de rayas|de cuadros|de lunares|de flores)( [a-záéíóú ]+)?$/.test(det.nombre); det.color2 = d.scolor2; if (!propio && det.x && NOM_X[det.x]) det.nombre = nomEstampado(det.x, det.estampado, det.color2); pintarSubida(); }
     // 06/11 (Gabriela: «el icono de recortar tiene que ser mientras estás subiendo, no después, porque me siguen saliendo los pies en un vestido negro corto»)
-    else if (d.srecortar !== undefined) { const k = det.usaOriginal ? 'original' : 'blob', r = await recortarAMano(det[k]); if (!r) return; det[k] = r; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(r); pintarSubida(); }
+    else if (d.srecortar !== undefined) { const k = det.usaOriginal ? 'original' : 'blob', r = await recortarAMano(det[k]); if (!r) return; det[k] = r; det.recMano = 1; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(r); pintarSubida(); }
     else if (d.sgirar !== undefined) { b.disabled = true; det.blob = await girarBlob(det.blob); if (det.original) det.original = await girarBlob(det.original); URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(det.usaOriginal ? det.original : det.blob); pintarSubida(); }
     else if (d.sorig !== undefined) { det.usaOriginal = !det.usaOriginal; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(det.usaOriginal ? det.original : det.blob); pintarSubida(); }
   };
@@ -2075,7 +2084,8 @@ async function anadirFotos(files) {
 async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
   if (enGratis() && E.prendas.length + listos.length > TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas: te quedan ${Math.max(0, TOPE_GRATIS - E.prendas.length)}.`, `The free version holds ${TOPE_GRATIS} garments: ${Math.max(0, TOPE_GRATIS - E.prendas.length)} left.`));
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 4 : it.cv || 1, catM: it.catM || undefined, estampado: it.estampado || undefined, color2: it.color2 || undefined, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined }));
+  listos.forEach(it => { if (it.detalles?.length) it.notas = it.detalles.join(', ').toLowerCase().replace(/^./, c => c.toUpperCase()); });
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: it.notas || '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 5 : it.cv || 1, recMano: it.recMano || undefined, detalles: it.detalles?.length ? it.detalles : undefined, catM: it.catM || undefined, estampado: it.estampado || undefined, color2: it.color2 || undefined, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 600); }).catch(() => { });
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet'); setTimeout(enderezarTodas, 2500);
@@ -2090,7 +2100,7 @@ function pintarHerr() {
   const h = $('an-herr'); if (!h) return; const hay = !!(fotoNueva || E.editando?.foto || E.editando?.src), orig = fotoOriginal || E.editando?.original;
   h.innerHTML = hay ? `<button type="button" class="txt sub-l" id="an-recortar">${t('Recortar', 'Crop')}</button><button type="button" class="txt sub-l" id="an-enderezar">${t('Enderezar', 'Straighten')}</button><button type="button" class="txt sub-l" id="an-fondo">${t('Quitar el fondo', 'Remove background')}</button>${orig ? `<button type="button" class="txt sub-l" id="an-orig">${t('Volver a la original', 'Back to original')}</button>` : ''}` : '';
   if (!hay) return;
-  $('an-recortar').onclick = async () => { const b = await fotoActual(); if (!b) return; const r = await recortarAMano(b); if (!r) return; if (!fotoOriginal && !E.editando?.original) fotoOriginal = b; fotoNueva = r; pintarPrevia(URL.createObjectURL(r)); };
+  $('an-recortar').onclick = async () => { const b = await fotoActual(); if (!b) return; const r = await recortarAMano(b); if (!r) return; E.recManoEdit = 1; if (!fotoOriginal && !E.editando?.original) fotoOriginal = b; fotoNueva = r; pintarPrevia(URL.createObjectURL(r)); };
   $('an-enderezar').onclick = async () => { const b = await fotoActual(); if (!b) return; const r = await enderezar(b); if (!r) return; if (!fotoOriginal && !E.editando?.original) fotoOriginal = b; fotoNueva = r; pintarPrevia(URL.createObjectURL(r)); };
   $('an-fondo').onclick = async () => {
     const b = await fotoActual(); if (!b) return; const bt = $('an-fondo'); bt.disabled = true; bt.textContent = t('Quitando el fondo…', 'Removing background…');
@@ -2230,6 +2240,7 @@ async function guardarPrenda(otra) {
   if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value) }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.fotoRota; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
   else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   const tiro = tipo === 'Abajo' && $('an-tiro').dataset.sel, pr = p || E.prendas[0]; if (tiro) pr.est = { ...(pr.est || {}), tiro };
+  if (E.recManoEdit && fotoNueva) pr.recMano = 1; E.recManoEdit = 0; // recortada a mano: el repaso automático del recorte no la toca
   const largo = tipo === 'Arriba' && $('an-largo')?.dataset.sel; if (largo) pr.est = { ...(pr.est || {}), largo };
   await guardar(); E.propuestas = [];
   toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'));

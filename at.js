@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.160'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.162'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -310,6 +310,7 @@ if (AT) (() => {
     else if (/piel|cuero|polipiel|antelina|\bante\b/.test(n) || ['cazadora_cuero'].includes(st)) T('No va a la lavadora: límpiala con un paño húmedo y, si se mancha, a la tintorería.', 'No washing machine: wipe with a damp cloth; take stains to a dry cleaner.');
     else if (/pluma|plumífero|plumifero|acolchad/.test(n) || ['plumifero', 'chaleco_acolchado'].includes(st)) T('Programa delicado en frío y sin suavizante; sécalo a baja temperatura con dos pelotas de tenis para que no se apelmace.', 'Gentle cold cycle, no softener; tumble-dry low with two tennis balls so it doesn’t clump.');
     else if (['abrigo_lana', 'gabardina', 'americana', 'chaleco_traje', 'abrigo_generico'].includes(st)) T('Mejor a la tintorería; entre usos, cepíllalo y déjalo airear en una percha ancha.', 'Best dry-cleaned; between wears, brush it and air it on a wide hanger.');
+    else if (/encaje|transparen|\btul\b|gasa|lentejuela|terciopelo/.test(n)) T('A mano en agua fría o del revés en una bolsa de red, con programa delicado; sin secadora y tendida en plano.', 'Hand-wash cold or inside out in a mesh bag on a delicate cycle; no dryer, dry flat.'); // 06/11: detalles al subir
     else if (/seda|sat[eé]n/.test(n)) T('A mano en agua fría con jabón neutro, sin retorcer; plánchala del revés y a baja temperatura.', 'Hand-wash cold with mild soap, don’t wring; iron inside out on low.');
     else if (/lana|cachemir|cashmere|merino|alpaca|mohair/.test(n)) T('A mano o con el programa de lana, en frío; sécalo en plano sobre una toalla y guárdalo doblado: en percha se deforma.', 'Hand-wash or wool cycle, cold; dry flat on a towel and store folded: hangers stretch it.');
     else if (p.tipo === 'Abajo' && (st === 'vaquero' || /vaquer|jean|denim/.test(n))) T('Del revés, en frío (30 °C) y solo cuando haga falta; tendido, sin secadora: así no destiñe ni encoge.', 'Inside out, cold (30 °C) and only when needed; line-dry, no dryer, so it won’t fade or shrink.');
@@ -338,7 +339,7 @@ if (AT) (() => {
     const fz = Motor.ficha(p), TIRO = { alto: t('Tiro alto', 'High rise'), medio: t('Tiro medio', 'Mid rise'), bajo: t('Tiro bajo', 'Low rise') }, LARGO = { crop: t('Corto, sobre el ombligo', 'Cropped, above the navel'), cintura: t('A la cintura', 'Waist length'), cadera: t('A la cadera', 'Hip length'), largo: t('Largo', 'Long') };
     const forma = p.tipo === 'Abajo' ? TIRO[fz.tiro] : p.tipo === 'Arriba' ? LARGO[fz.largo] : '';
     // 06/11 (Gabriela: «con iconos, no tantas letras»): debajo del nombre, solo qué es; color, estación y puestas, cada uno con su icono
-    const datos = [sub, forma].filter(Boolean).map(esc).join(' · ');
+    const datos = [sub, forma, (p.detalles || []).join(', ').toLowerCase()].filter(Boolean).map(esc).join(' · ');
     const precio = p.precio ? `${dinero(p.precio)}${usos.length ? ` · ${dinero(p.precio / usos.length)}/${t('puesta', 'wear')}` : ''}` : '';
     const hex = (COLORES.find(([c]) => c === p.color) || [])[1];
     const chips = [p.color && `<li><i class="at-mancha"${hex ? ` style="background:${hex}"` : ''}></i>${esc(p.color)}</li>`, `<li>${I.cal}${esc(estNombre(p.estacion))}</li>`,
@@ -376,7 +377,7 @@ if (AT) (() => {
       if (k === 'editar') $('f-editar').click(); else if (k === 'hoy') $('f-hoy').click(); else if (k === 'borrar') borrarPrenda(p);
       // 06/11 (Gabriela: «la opción de poder recortar la foto una vez subida si no nos quedamos satisfechos con la eliminación del fondo»): el marco a mano de Editar,
       // a un toque desde la ficha; se guarda al aceptar y la foto sin tocar queda como original
-      else if (k === 'recortar') recortarAMano(p.foto).then(async b2 => { if (!b2) return; if (!p.original) p.original = p.foto; p.foto = b2; delete p.caja; urls.delete(p.id); alfa.delete(p.id); E.propuestas = []; await guardar(); abrirFicha(id); toast(t('Foto recortada', 'Photo cropped')); }).catch(() => toast(t('No he podido recortarla', 'Could not crop it')));
+      else if (k === 'recortar') recortarAMano(p.foto).then(async b2 => { if (!b2) return; if (!p.original) p.original = p.foto; p.foto = b2; p.recMano = 1; delete p.caja; urls.delete(p.id); alfa.delete(p.id); E.propuestas = []; await guardar(); abrirFicha(id); toast(t('Foto recortada', 'Photo cropped')); }).catch(() => toast(t('No he podido recortarla', 'Could not crop it')));
       else if (k === 'cuidar') { cuidarAbierta = cuidarAbierta === id ? null : id; const l = r.querySelector('.at-cuidar-l'), a = cuidarAbierta === id; l.hidden = !a; b.classList.toggle('on', a); b.setAttribute('aria-pressed', a); if (a) l.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
       else $('f-acciones').querySelector(`[data-accion="${k}"]`)?.click();
     };
