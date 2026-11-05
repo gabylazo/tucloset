@@ -1770,16 +1770,17 @@ async function revisarGuardadas() {
 // Solo cambia la foto recortada: el nombre, el tipo y lo que ella haya escrito se quedan. Si había elegido la foto original, no se toca.
 async function recortarOtraVez() {
   if (window.top !== window) return;
-  const pend = E.prendas.filter(p => !p.src && !p.ejemplo && p.original instanceof Blob && !p.originalRota && (p.cv || 1) < 2 && (p.creada || '') >= '2026-11-04').slice(0, 30); if (!pend.length) return;
+  const pend = E.prendas.filter(p => !p.src && !p.ejemplo && p.original instanceof Blob && !p.originalRota && (p.cv || 1) < 3 && (p.creada || '') >= '2026-11-04').slice(0, 30); if (!pend.length) return;
   let hechas = 0;
   for (const p of pend) {
     await new Promise(r => (window.requestIdleCallback || setTimeout)(r, { timeout: 800 }));
     try {
-      if (p.foto && p.foto.size === p.original.size) { p.cv = 2; continue; } // usaba la foto original
+      if (p.foto && p.foto.size === p.original.size) { p.cv = 3; continue; } // usaba la foto original
       const r = await procesarPrenda(p.original, { sinReconocer: true });
+      if (r.cv !== 3) break; // 0.157: solo se cambia por el recorte del servidor; sin cuenta o sin red, otra vez en la próxima apertura
       if (r.recortada) { p.foto = r.blob; urls.delete(p.id); alfa.delete(p.id); p.caja = null; hechas++; }
       if (r.dudoso) p.dudoso = 1; else delete p.dudoso;
-      p.cv = 2;
+      p.cv = 3;
     } catch (e) { break; } // sin modelo o sin red: se reintenta en la próxima apertura
   }
   await guardar(); programarNube();
@@ -1839,6 +1840,26 @@ function colorPrenda(d, od, w, h, [x0, y0, x1, y1]) {
   if (n2 / tot > .25 && n1 / tot < .7 && !parecidos.some(([a, b]) => (a === c1 && b === c2) || (a === c2 && b === c1))) return 'Estampado';
   return c1;
 }
+// 0.157 (Gabriela, 05/11: «la app es muy mala eliminando los fondos… de 20 piezas solo 1 salió bien»): con cuenta, el recorte lo hace
+// el servidor (Cloudflare Images, modelo BiRefNet). Con sus 20 fotos de la cama salen enteras las mangas, los tirantes y la blusa blanca
+// sobre la sábana blanca. Sin cuenta, sin red, si falla o si se acaba el cupo del mes, recorta el modelo pequeño del móvil, como antes.
+async function recorteNube(img) {
+  if (!cuenta()?.token) return null;
+  const esc = Math.min(1, 1024 / Math.max(img.width, img.height)), w = Math.round(img.width * esc), h = Math.round(img.height * esc);
+  const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h);
+  const b = await new Promise(r => c.toBlob(r, 'image/jpeg', .9)); if (!b) return null;
+  const r = await api('/api/recorte', { method: 'POST', body: b, headers: { 'Content-Type': 'image/jpeg' }, tiempo: 30000 });
+  if (!r.ok || !/png/.test(r.headers.get('Content-Type') || '')) return null;
+  const u = URL.createObjectURL(await r.blob());
+  try {
+    const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
+    const m = document.createElement('canvas'); m.width = w; m.height = h; const mx = m.getContext('2d', { willReadFrequently: true }); mx.drawImage(im, 0, 0, w, h);
+    const d = mx.getImageData(0, 0, w, h).data; let area = 0; const borde = [0, 0, 0, 0];
+    for (let p = 0, k = 3; p < w * h; p++, k += 4) { if (d[k] < 128) continue; area++; const x = p % w, y = (p / w) | 0; if (y < 3) borde[0]++; if (x >= w - 3) borde[1]++; if (y >= h - 3) borde[2]++; if (x < 3) borde[3]++; }
+    area /= w * h; if (area < .02) return null; // no ha encontrado nada: mejor el recorte del móvil
+    m.dudoso = area > .85 || borde.filter((n, i) => n > (i % 2 ? h : w) * 3 * .15).length >= 3; return m;
+  } finally { URL.revokeObjectURL(u); }
+}
 async function procesarPrenda(file, op = {}) {
   const u = URL.createObjectURL(file);
   try {
@@ -1846,9 +1867,10 @@ async function procesarPrenda(file, op = {}) {
     const esc = Math.min(1, 1000 / Math.max(img.width, img.height)), w = Math.round(img.width * esc), h = Math.round(img.height * esc);
     let orig = document.createElement('canvas'); orig.width = w; orig.height = h; const ox = orig.getContext('2d', { willReadFrequently: true }); ox.fillStyle = '#fff'; ox.fillRect(0, 0, w, h); ox.drawImage(img, 0, 0, w, h);
     const capa = document.createElement('canvas'); capa.width = w; capa.height = h; const cx = capa.getContext('2d', { willReadFrequently: true });
-    let caja = null, color = 'Gris', recortada = false, dudoso = false;
+    let caja = null, color = 'Gris', recortada = false, dudoso = false, nube = null;
     try {
       if (yaSinFondo(img)) cx.drawImage(img, 0, 0, w, h);
+      else if (!op.sinNube && (nube = await recorteNube(img).catch(() => null))) { cx.drawImage(nube, 0, 0, w, h); dudoso = nube.dudoso; }
       else { const masc = await mascaraU2(img); dudoso = !!masc.calidad?.dudoso; cx.drawImage(img, 0, 0, w, h); cx.globalCompositeOperation = 'destination-in'; cx.drawImage(masc, 0, 0, w, h); cx.globalCompositeOperation = 'source-over'; }
       const d = cx.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = 0, y1 = 0, R = 0, G = 0, B = 0, n = 0, opacos = 0;
       for (let p = 0, k = 0; p < w * h; p++, k += 4) { const a = d[k + 3]; if (a < 128) continue; opacos++; const px = p % w, py = (p / w) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; if (a > 220 && (p & 3) === 0) { R += d[k]; G += d[k + 1]; B += d[k + 2]; n++; } }
@@ -1871,7 +1893,7 @@ async function procesarPrenda(file, op = {}) {
     } catch (e) { /* sin modelo: por la forma */ }
     const fondo = fondoIrregular(orig);
     const aBlob = (cv, q) => new Promise(r => cv.toBlob(r, 'image/jpeg', q));
-    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, x, rec: cat ? 1 : 0, recortada, noPrenda, fondo, giro, dudoso: !recortada || dudoso, cv: 2 };
+    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, x, rec: cat ? 1 : 0, recortada, noPrenda, fondo, giro, dudoso: !recortada || dudoso, cv: nube && recortada ? 3 : 2 };
   } finally { URL.revokeObjectURL(u); }
 }
 // nombre automático legible: «Top negro», «Pantalón azul claro», «Zapatos blancos»
@@ -1957,7 +1979,7 @@ function pintarSubida() {
       <div class="foto">${det.url ? `<img src="${det.url}" alt="">` : `<p class="s-procesando">${t('Quitando el fondo y reconociendo la prenda…', 'Removing the background and recognising the garment…')}</p>`}</div>
       ${listo && det.noPrenda && !det.siPrenda ? `<div class="s-aviso"><b>${t('Esta foto no parece una prenda', 'This photo does not look like a garment')}</b><span>${t('No coincide con ninguna categoría de ropa. Si es una captura, un texto u otra cosa, quítala.', 'It does not match any clothing category. If it is a screenshot, text or something else, remove it.')}</span><div><button class="boton" data-squita>${t('Quitarla', 'Remove it')}</button><button class="txt sub-l" data-ssi>${t('Sí es una prenda', 'It is a garment')}</button></div></div>` : ''}
       ${listo && det.dudoso && !(det.noPrenda && !det.siPrenda) ? `<div class="s-aviso"><b>${t('Revisa el recorte', 'Check the cut-out')}</b><span>${t('Puede que le falte un trozo o que le sobre fondo. Si es así, repite la foto con la prenda sobre algo de otro color, como una toalla o el suelo. También puedes guardarla y arreglarla después en su ficha, con «Editar».', 'It may be missing a piece or keep some background. If so, take the photo again with the garment on something of another colour, like a towel or the floor. You can also save it and fix it later in its page, with «Edit».')}</span></div>` : ''}
-      ${listo && det.fondo && !det.dudoso && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso y el recorte puede salir con restos. Para un recorte limpio, haz la foto sobre un fondo de un solo color.', 'The background is not plain, so the cut-out may keep bits of it. For a clean cut-out, shoot on a single-colour background.')}</p>${reglasFoto()}` : ''}
+      ${listo && det.fondo && !det.dudoso && det.cv !== 3 && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso y el recorte puede salir con restos. Para un recorte limpio, haz la foto sobre un fondo de un solo color.', 'The background is not plain, so the cut-out may keep bits of it. For a clean cut-out, shoot on a single-colour background.')}</p>${reglasFoto()}` : ''}
       ${listo ? `<input class="nom" value="${det.nombre}" data-snom aria-label="${t('Nombre', 'Name')}">
       <div class="fila2 s-cat"><label class="campo"><span>${t('Categoría', 'Category')}</span><select data-scat>${opsCat(catDe(det))}</select></label><label class="campo"><span>${t('Tipo', 'Type')}</span><select data-ssub>${opsSub(catDe(det), subDe(catDe(det), det.x, det.nombre))}</select></label></div>
       <div class="gr"><p class="mini-et">${t('Color', 'Colour')}</p><div class="ops col">${COLORES.map(([c, h]) => `<button type="button" class="${c === det.color ? 'on' : ''}" data-scolor="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>
@@ -2005,7 +2027,7 @@ async function anadirFotos(files) {
 async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
   if (enGratis() && E.prendas.length + listos.length > TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas: te quedan ${Math.max(0, TOPE_GRATIS - E.prendas.length)}.`, `The free version holds ${TOPE_GRATIS} garments: ${Math.max(0, TOPE_GRATIS - E.prendas.length)} left.`));
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 2 : it.cv || 1, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined }));
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 3 : it.cv || 1, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 600); }).catch(() => { });
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet'); setTimeout(enderezarTodas, 2500);
