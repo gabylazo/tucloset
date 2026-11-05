@@ -20,7 +20,8 @@ if (AT) (() => {
     chubasquero: 'Abrigos', parka: 'Abrigos', plumifero: 'Abrigos', gabardina: 'Abrigos', abrigo_lana: 'Abrigos', abrigo_generico: 'Abrigos', kimono: 'Abrigos', chaqueta: 'Abrigos',
     vaquero: 'Vaqueros', shorts: 'Shorts', bermudas: 'Shorts', mono: 'Vestidos' };
   const ARRIBA = ['Camisetas', 'Tops', 'Camisas y blusas', 'Punto', 'Sudaderas'];
-  catPor = p => { if (!['Arriba', 'Abrigo', 'Abajo', 'Vestidos'].includes(p.tipo)) return null; const c = CAT_SUB[Motor.ficha(p).subtipo]; return c || (p.tipo === 'Arriba' ? 'Tops' : null); };
+  // 06/11 (Gabriela: «califica mal y no me deja corregir»): la categoría elegida a mano (catM, al subir o en Editar) manda sobre lo que se deduce del nombre
+  catPor = p => { if (!['Arriba', 'Abrigo', 'Abajo', 'Vestidos'].includes(p.tipo)) return null; if (p.catM && TIPO_DE_CAT[p.catM] === p.tipo) return p.catM; const c = CAT_SUB[Motor.ficha(p).subtipo]; return c || (p.tipo === 'Arriba' ? 'Tops' : null); };
   catArriba = p => catPor(p) || 'Tops';
   CATS_ORDEN.splice(0, CATS_ORDEN.length, ...ARRIBA, 'Abrigos', 'Pantalones', 'Vaqueros', 'Faldas', 'Shorts', 'Vestidos', 'Zapatos', 'Bolsos', 'Accesorios');
   Object.assign(CAT_ES, { Tops: 'Tops y bodies', Abrigos: 'Chaquetas y abrigos' });
@@ -56,6 +57,7 @@ if (AT) (() => {
     tina: svg('<path d="M3.5 8.5l2 10h13l2-10"/><path d="M3.5 8.5c1.5 1.3 2.9 1.3 4.3 0s2.9-1.3 4.2 0 2.9 1.3 4.2 0 2.9-1.3 4.3 0"/>'),
     girar: svg('<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/>'),
     cal: svg('<rect x="4" y="5.5" width="16" height="14" rx="1"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>'),
+    recorte: svg('<path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/>'),
   };
 
   /* ---------- barra de abajo: cinco secciones, en mayúsculas pequeñas; la activa, en nogal y con los dos agujeros ---------- */
@@ -351,8 +353,8 @@ if (AT) (() => {
     const hay = new Set([...$('f-acciones').querySelectorAll('[data-accion]')].map(b => b.dataset.accion)), largo = k => $('f-acciones').querySelector(`[data-accion="${k}"]`)?.textContent.trim() || '';
     const ACC = [['hoy', I.percha, t('Hoy', 'Today'), t('Me la pongo hoy', 'Wearing it today')], ['conjunto', I.mas, 'Look', t('Crear un look', 'Create a look')], ['partido', I.chispa, t('Ideas', 'Ideas')],
       ['cuidar', I.tina, t('Cuidar', 'Care'), t('Cómo cuidarla', 'How to care for it')], ['lavar', I.cesto, t('Sucia', 'Dirty'), t('Está sucia: que no salga en los looks', 'In the wash: keep it out of looks')], ['guardada', I.caja, t('Guardar', 'Store'), t('Guardar hasta la próxima estación', 'Store until next season')],
-      ['donar', I.bolsa, t('Donar', 'Donate'), t('Donar o vender', 'Donate or sell')], ['donde', I.pin, t('Cerca', 'Nearby')], ['girar', I.girar, t('Girar', 'Rotate')]]
-      .filter(([k]) => ['hoy', 'cuidar'].includes(k) || hay.has(k));
+      ['donar', I.bolsa, t('Donar', 'Donate'), t('Donar o vender', 'Donate or sell')], ['donde', I.pin, t('Cerca', 'Nearby')], ['girar', I.girar, t('Girar', 'Rotate')], ['recortar', I.recorte, t('Recortar', 'Crop'), t('Recortar la foto', 'Crop the photo')]]
+      .filter(([k]) => ['hoy', 'cuidar'].includes(k) || hay.has(k) || (k === 'recortar' && p.foto instanceof Blob && !conCat(p)));
     const on = k => k === p.estado || (k === 'cuidar' && cuidarAbierta === id), MARCA = ['cuidar', 'lavar', 'guardada', 'donar'];
     const nombre = (w, l) => l.toLowerCase().includes(w.toLowerCase()) ? l : `${w}. ${l}`; // el nombre que se lee contiene la palabra que se ve
     r.innerHTML = `<div class="at-barra-sup"><button class="at-volver" data-ir="closet" aria-label="${t('Volver', 'Back')}">${I.iz}</button><span class="at-der2"><button class="at-ico" data-atfacc="editar" aria-label="${t('Editar', 'Edit')}">${I.lapiz}</button><button class="at-ico" data-atfacc="borrar" aria-label="${t('Borrar la prenda', 'Delete the garment')}">${I.papelera}</button></span></div>
@@ -368,6 +370,9 @@ if (AT) (() => {
       if (b.dataset.atcrear) { e.stopPropagation(); return ir('nuevo-look', b.dataset.atcrear.split(',')); }
       const k = b.dataset.atfacc;
       if (k === 'editar') $('f-editar').click(); else if (k === 'hoy') $('f-hoy').click(); else if (k === 'borrar') borrarPrenda(p);
+      // 06/11 (Gabriela: «la opción de poder recortar la foto una vez subida si no nos quedamos satisfechos con la eliminación del fondo»): el marco a mano de Editar,
+      // a un toque desde la ficha; se guarda al aceptar y la foto sin tocar queda como original
+      else if (k === 'recortar') recortarAMano(p.foto).then(async b2 => { if (!b2) return; if (!p.original) p.original = p.foto; p.foto = b2; delete p.caja; urls.delete(p.id); alfa.delete(p.id); E.propuestas = []; await guardar(); abrirFicha(id); toast(t('Foto recortada', 'Photo cropped')); }).catch(() => toast(t('No he podido recortarla', 'Could not crop it')));
       else if (k === 'cuidar') { cuidarAbierta = cuidarAbierta === id ? null : id; const l = r.querySelector('.at-cuidar-l'), a = cuidarAbierta === id; l.hidden = !a; b.classList.toggle('on', a); b.setAttribute('aria-pressed', a); if (a) l.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
       else $('f-acciones').querySelector(`[data-accion="${k}"]`)?.click();
     };
