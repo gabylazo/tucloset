@@ -2011,7 +2011,7 @@ const INVARIABLE = /^(Beige|Crema|Camel|Burdeos|Mostaza|Caqui|Nude|Terracota)$|\
 const plColor = (c, fem) => { let pl = PLURAL_COLOR[c] || (INVARIABLE.test(c) ? c.toLowerCase() : /[aeo]$/i.test(c) ? c.toLowerCase() + 's' : c.toLowerCase()); return fem ? pl.replace(/os$/, 'as') : pl; };
 const nomEstampado = (x, e, c2) => `${NOM_X[x][0]} ${ESTAMPADOS[e][0]}${c2 && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(e) ? ' ' + plColor(c2, e === 'Rayas' || e === 'Flores') : ''}`;
 // 06/11 (Gabriela: «hay también piezas de encaje, transparentes… hay que tener ese tipo de detalles»): se marcan al subir; van a la ficha y a las notas (los cuidados las leen)
-const DETALLES = { Encaje: 'Lace', Transparente: 'Sheer', Volantes: 'Ruffles', Satén: 'Satin', Lentejuelas: 'Sequins', Terciopelo: 'Velvet', Piel: 'Leather', Punto: 'Knit' };
+const DETALLES = { Vaquero: 'Denim', Encaje: 'Lace', Transparente: 'Sheer', Volantes: 'Ruffles', Satén: 'Satin', Lentejuelas: 'Sequins', Terciopelo: 'Velvet', Piel: 'Leather', Punto: 'Knit' }; // Vaquero (Gabriela: «¿qué hacemos con la mezclilla, una falda de mezclilla larga?»)
 function prepararSubir() { E.subida = []; E.sDet = null; pintarSubida(); }
 // Subir (Gabriela, 20/10): una sola prenda → su ficha (3B); varias → rejilla (3A) con lo general a la vista y, al tocar una, su ficha
 function pintarSubida() {
