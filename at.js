@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.158'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.160'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -36,6 +36,10 @@ if (AT) (() => {
   const DOS = '<span class="at-dos" aria-hidden="true"></span>';
   // los botones (Gabriela, 03/11: «son muy grandes… generan ruido visual, prueba dorados u otra forma, proponme varias opciones»): ?boton=1…4 elige uno en este navegador
   // (1 contorno nogal fino, 2 contorno dorado, 3 dorado lleno, 4 solo letra con raya dorada); sin elegir, el 1. Decide ella
+  // 06/11 (Gabriela: «queda horrible ese borde cuadrado y dentro el icono, propónme opciones… cambiando los colores de la app o dejando solo los iconos»; «el icono de subir
+  // con el cuadrado transparente queda feo, igual que los botones para seleccionar, que apenas se nota que los estás seleccionando»): ?iconos=1…4 (se guarda en ese
+  // navegador; ?iconos=0 vuelve a lo de ahora). 1 solo iconos en nogal; 2 círculos suaves; 3 dorado; 4 solo iconos, sin palabras
+  { const q = new URLSearchParams(location.search).get('iconos'); let b = null; try { if (/^[0-4]$/.test(q || '')) localStorage.setItem('tc_iconos', q); b = localStorage.getItem('tc_iconos'); } catch (e) {} const v = /^[0-4]$/.test(q || '') ? q : b || '0'; if (v !== '0') document.documentElement.dataset.iconos = v; }
   { const q = new URLSearchParams(location.search).get('boton'); let b = null; try { if (/^[1-4]$/.test(q || '')) localStorage.setItem('tc_boton', q); b = localStorage.getItem('tc_boton'); } catch (e) {} document.documentElement.dataset.boton = /^[1-4]$/.test(q || '') ? q : b || '1'; }
   const svg = d => `<svg class="at-ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
   const I = {
