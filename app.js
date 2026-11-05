@@ -1667,22 +1667,59 @@ async function mascaraU2(img) { // máscara 320×320 en el canal alfa de un lien
   const m = sal[ses.outputNames[0]].data; let lo = Infinity, hi = -Infinity; for (let i = 0; i < m.length; i++) { if (m[i] < lo) lo = m[i]; if (m[i] > hi) hi = m[i]; }
   const mc = document.createElement('canvas'); mc.width = S; mc.height = S; const mxc = mc.getContext('2d'); const md = mxc.createImageData(S, S);
   const al = new Uint8ClampedArray(S * S); for (let p = 0; p < S * S; p++) { const a = (m[p] - lo) / ((hi - lo) || 1); al[p] = Math.round(Math.max(0, Math.min(1, (a - .2) / .6)) * 255); }
-  piezaMayor(al, S, S); for (let p = 0; p < S * S; p++) md.data[p * 4 + 3] = al[p];
+  // 0.156 (Gabriela, 05/11: «los recortes de fondo han sido un desastre»): cuánto duda el modelo, antes de quitar las manchas sueltas
+  let vivos = 0, dudas = 0; for (let p = 0; p < S * S; p++) { const a = (m[p] - lo) / ((hi - lo) || 1); if (a > .1) { vivos++; if (a < .9) dudas++; } }
+  piezaMayor(al, S, S); const crece = crecerPorColor(al, d, S); for (let p = 0; p < S * S; p++) md.data[p * 4 + 3] = al[p];
+  // y cuánto ocupa la prenda y cuántos bordes de la foto toca (una prenda bien separada casi nunca llena la foto ni toca tres bordes)
+  let area = 0; const borde = [0, 0, 0, 0]; for (let p = 0; p < S * S; p++) { if (al[p] < 128) continue; area++; const x = p % S, y = (p / S) | 0; if (y < 3) borde[0]++; if (x >= S - 3) borde[1]++; if (y >= S - 3) borde[2]++; if (x < 3) borde[3]++; }
+  const q = { area: area / (S * S), bordes: borde.filter(b => b > S * 3 * .15).length, duda: vivos ? dudas / vivos : 1, crece };
+  // dudoso: el modelo duda en más de una cuarta parte de la máscara y el color no lo ha completado, o la máscara se come la foto.
+  // Con sus 45 fotos de la cama y las 12 de Sheila avisa de la blusa beige sin mangas, la falda blanca sobre la sábana blanca y el jersey de rayas cortado; una falsa alarma (el chaleco negro)
+  q.dudoso = (q.duda > .25 && crece < .05) || q.area > .8 || q.bordes >= 3; mc.calidad = q;
   mxc.putImageData(md, 0, 0); return mc;
 }
-// 0.56 (Sheila, 22/10: «no me toma bien las prendas»): se queda solo con la pieza más grande de la máscara y un borde de 2 px;
-// quita las manchas sueltas de sábana, pared o lámpara que el modelo deja alrededor
+// 0.56 (Sheila, 22/10: «no me toma bien las prendas»): se queda con la pieza más grande de la máscara y un borde de 2 px;
+// quita las manchas sueltas de sábana, pared o lámpara que el modelo deja alrededor.
+// 0.156 (Gabriela, 05/11: «los recortes de fondo han sido un desastre»): quedarse solo con la mayor tiraba las mangas que el modelo
+// separa del cuerpo y uno de los dos zapatos del par. Ahora también se quedan las piezas pegadas (a 6 px o menos) y las grandes
+// (un 25 % de la mayor, a 40 px o menos), salvo las que entran cortadas por el borde de la foto (unos vaqueros, una lámpara)
+const ensanchar = (m, W, r) => { let c = m.slice(); for (let k = 0; k < r; k++) { const c2 = c.slice(); for (let i = 0; i < c.length; i++) if (!c[i]) { const x = i % W; if ((x > 0 && c[i - 1]) || (x < W - 1 && c[i + 1]) || c[i - W] || c[i + W]) c2[i] = 1; } c = c2; } return c; };
 function piezaMayor(a, W, H) {
-  const et = new Int32Array(W * H), pila = []; let n = 0, mejor = 0, tam = 0;
+  const et = new Int32Array(W * H), pila = [], tams = [0]; let n = 0;
   for (let i = 0; i < a.length; i++) {
-    if (a[i] < 128 || et[i]) continue; n++; let t = 0; pila.push(i); et[i] = n;
-    while (pila.length) { const j = pila.pop(); t++; const x = j % W; for (const k of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (k >= 0 && k < a.length && !et[k] && a[k] >= 128) { et[k] = n; pila.push(k); } }
-    if (t > tam) { tam = t; mejor = n; }
+    if (a[i] < 64 || et[i]) continue; n++; let t = 0; pila.push(i); et[i] = n;
+    while (pila.length) { const j = pila.pop(); t++; const x = j % W; for (const k of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, j - W, j + W]) if (k >= 0 && k < a.length && !et[k] && a[k] >= 64) { et[k] = n; pila.push(k); } }
+    tams.push(t);
   }
-  if (!mejor) return;
-  let cerca = new Uint8Array(W * H); for (let i = 0; i < a.length; i++) cerca[i] = et[i] === mejor ? 1 : 0;
-  for (let r = 0; r < 2; r++) { const c2 = cerca.slice(); for (let i = 0; i < a.length; i++) if (!cerca[i]) { const x = i % W; if ((x > 0 && cerca[i - 1]) || (x < W - 1 && cerca[i + 1]) || cerca[i - W] || cerca[i + W]) c2[i] = 1; } cerca = c2; }
-  for (let i = 0; i < a.length; i++) if (!cerca[i]) a[i] = 0;
+  if (!n) return;
+  let mejor = 1; for (let c = 2; c <= n; c++) if (tams[c] > tams[mejor]) mejor = c;
+  const mayor = new Uint8Array(W * H); for (let i = 0; i < a.length; i++) mayor[i] = et[i] === mejor ? 1 : 0;
+  const c6 = ensanchar(mayor, W, 6), c40 = ensanchar(mayor, W, 40), borde = new Uint8Array(n + 1), a6 = new Uint8Array(n + 1), a40 = new Uint8Array(n + 1);
+  for (let i = 0; i < a.length; i++) { const c = et[i]; if (!c) continue; const x = i % W, y = (i / W) | 0; if (x < 2 || y < 2 || x >= W - 2 || y >= H - 2) borde[c] = 1; if (c6[i]) a6[c] = 1; if (c40[i]) a40[c] = 1; }
+  const vale = new Uint8Array(n + 1); vale[mejor] = 1;
+  for (let c = 1; c <= n; c++) if (c !== mejor && !borde[c] && ((a40[c] && tams[c] >= tams[mejor] * .25) || (a6[c] && tams[c] >= tams[mejor] * .005))) vale[c] = 1;
+  let k = new Uint8Array(W * H); for (let i = 0; i < a.length; i++) k[i] = vale[et[i]] ? 1 : 0;
+  k = ensanchar(k, W, 2);
+  for (let i = 0; i < a.length; i++) if (!k[i]) a[i] = 0; else if (vale[et[i]]) a[i] = Math.max(a[i], Math.min(255, a[i] * 2));
+}
+// 0.156: las mangas finas y oscuras sobre la sábana el modelo casi no las ve; la máscara crece por color desde la prenda:
+// entra lo que está pegado, a 48 px o menos, y se parece a la prenda y no a la sábana. Solo con un fondo liso y una prenda
+// que se distinga bien de él (con la prenda beige sobre la cama beige se llevaba el cabecero)
+function crecerPorColor(al, d, S) {
+  const K = new Uint8Array(S * S); let nK = 0; for (let p = 0; p < S * S; p++) if (al[p] >= 128) { K[p] = 1; nK++; }
+  if (nK < S * S * .01) return 0;
+  const lejos = ensanchar(K, S, 14), cerca = ensanchar(K, S, 3), anillo = []; let g = [0, 0, 0], ng = 0;
+  for (let p = 0; p < S * S; p++) { const k = p * 4; if (K[p] && al[p] > 220) { g[0] += d[k]; g[1] += d[k + 1]; g[2] += d[k + 2]; ng++; } else if (lejos[p] && !cerca[p]) anillo.push(p); }
+  if (!ng || anillo.length < 50) return 0; g = g.map(v => v / ng);
+  // la sábana, por la mediana del anillo de alrededor: las mangas que faltan caen en él y no deben contar
+  const med = v => { v.sort((x, y) => x - y); return v[v.length >> 1]; };
+  const f = [0, 1, 2].map(ch => med(anillo.map(p => d[p * 4 + ch]))), df = med(anillo.map(p => Math.hypot(d[p * 4] - f[0], d[p * 4 + 1] - f[1], d[p * 4 + 2] - f[2]))), sep = Math.hypot(g[0] - f[0], g[1] - f[1], g[2] - f[2]);
+  if (df > 25 || sep < 120) return 0;
+  const banda = ensanchar(K, S, 48), pila = []; let mas = 0;
+  const parece = p => { const k = p * 4, x = Math.hypot(d[k] - g[0], d[k + 1] - g[1], d[k + 2] - g[2]), y = Math.hypot(d[k] - f[0], d[k + 1] - f[1], d[k + 2] - f[2]); return y > Math.max(45, df * 3) && x < y * .8 && x < sep * .45; };
+  for (let p = 0; p < S * S; p++) if (K[p]) pila.push(p);
+  while (pila.length) { const j = pila.pop(), x = j % S; for (const k of [x > 0 ? j - 1 : -1, x < S - 1 ? j + 1 : -1, j - S, j + S]) if (k >= 0 && k < S * S && !K[k] && banda[k] && parece(k)) { K[k] = 1; al[k] = 255; mas++; pila.push(k); } }
+  return mas / nK;
 }
 // 0.56: si la foto ya llega sin fondo (en el iPhone, «Levantar el sujeto» en Fotos y guardar; en Android, «Recortar»), se usa su transparencia tal cual
 function yaSinFondo(img) {
@@ -1727,6 +1764,26 @@ async function revisarGuardadas() {
   await guardar(); E.propuestas = []; E.generados = [];
   if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset();
   if (giradas || corregidas) toast(t(`He revisado tus prendas: ${giradas} enderezadas y ${corregidas} con tipo o color corregido`, `I checked your garments: ${giradas} straightened, ${corregidas} fixed`));
+}
+// 0.156 (Gabriela, 05/11: «los recortes de fondo han sido un desastre»): las prendas subidas desde el 04/11 con el recorte de antes
+// (el que tiraba las mangas y un zapato del par) se recortan otra vez, una vez y solas, solo con el modelo de recorte (4,5 MB, sin el reconocedor).
+// Solo cambia la foto recortada: el nombre, el tipo y lo que ella haya escrito se quedan. Si había elegido la foto original, no se toca.
+async function recortarOtraVez() {
+  if (window.top !== window) return;
+  const pend = E.prendas.filter(p => !p.src && !p.ejemplo && p.original instanceof Blob && !p.originalRota && (p.cv || 1) < 2 && (p.creada || '') >= '2026-11-04').slice(0, 30); if (!pend.length) return;
+  let hechas = 0;
+  for (const p of pend) {
+    await new Promise(r => (window.requestIdleCallback || setTimeout)(r, { timeout: 800 }));
+    try {
+      if (p.foto && p.foto.size === p.original.size) { p.cv = 2; continue; } // usaba la foto original
+      const r = await procesarPrenda(p.original, { sinReconocer: true });
+      if (r.recortada) { p.foto = r.blob; urls.delete(p.id); alfa.delete(p.id); p.caja = null; hechas++; }
+      if (r.dudoso) p.dudoso = 1; else delete p.dudoso;
+      p.cv = 2;
+    } catch (e) { break; } // sin modelo o sin red: se reintenta en la próxima apertura
+  }
+  await guardar(); programarNube();
+  if (hechas) { E.propuestas = []; E.generados = []; cuandoQuieto(() => { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'hoy') pintarHoy(); }); toast(t(`He rehecho el recorte de ${hechas} ${hechas === 1 ? 'prenda' : 'prendas'} con el recorte nuevo`, `I redid the cut-out of ${hechas} garment${hechas === 1 ? '' : 's'}`)); }
 }
 async function reconocerGuardadas() {
   // 0.46 (Sheila, 22/10: un top peplum salió como vestido y Hoy lo proponía sin pantalón): los vestidos ya guardados se revisan una vez más con las descripciones nuevas
@@ -1782,17 +1839,17 @@ function colorPrenda(d, od, w, h, [x0, y0, x1, y1]) {
   if (n2 / tot > .25 && n1 / tot < .7 && !parecidos.some(([a, b]) => (a === c1 && b === c2) || (a === c2 && b === c1))) return 'Estampado';
   return c1;
 }
-async function procesarPrenda(file) {
+async function procesarPrenda(file, op = {}) {
   const u = URL.createObjectURL(file);
   try {
     const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; });
     const esc = Math.min(1, 1000 / Math.max(img.width, img.height)), w = Math.round(img.width * esc), h = Math.round(img.height * esc);
     let orig = document.createElement('canvas'); orig.width = w; orig.height = h; const ox = orig.getContext('2d', { willReadFrequently: true }); ox.fillStyle = '#fff'; ox.fillRect(0, 0, w, h); ox.drawImage(img, 0, 0, w, h);
     const capa = document.createElement('canvas'); capa.width = w; capa.height = h; const cx = capa.getContext('2d', { willReadFrequently: true });
-    let caja = null, color = 'Gris', recortada = false;
+    let caja = null, color = 'Gris', recortada = false, dudoso = false;
     try {
       if (yaSinFondo(img)) cx.drawImage(img, 0, 0, w, h);
-      else { const masc = await mascaraU2(img); cx.drawImage(img, 0, 0, w, h); cx.globalCompositeOperation = 'destination-in'; cx.drawImage(masc, 0, 0, w, h); cx.globalCompositeOperation = 'source-over'; }
+      else { const masc = await mascaraU2(img); dudoso = !!masc.calidad?.dudoso; cx.drawImage(img, 0, 0, w, h); cx.globalCompositeOperation = 'destination-in'; cx.drawImage(masc, 0, 0, w, h); cx.globalCompositeOperation = 'source-over'; }
       const d = cx.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = 0, y1 = 0, R = 0, G = 0, B = 0, n = 0, opacos = 0;
       for (let p = 0, k = 0; p < w * h; p++, k += 4) { const a = d[k + 3]; if (a < 128) continue; opacos++; const px = p % w, py = (p / w) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; if (a > 220 && (p & 3) === 0) { R += d[k]; G += d[k + 1]; B += d[k + 2]; n++; } }
       if (opacos > w * h * .03) {
@@ -1807,14 +1864,14 @@ async function procesarPrenda(file) {
     let out = lienzo(pieza), giro = 0;
     let tipo = pieza.height / pieza.width < .75 ? 'Calzado' : pieza.height / pieza.width < 1.55 ? 'Arriba' : 'Abajo', cat = null;
     let x = null, noPrenda = false;
-    try {
+    if (!op.sinReconocer) try {
       ({ cat, x, giro } = await mejorGiro(pieza, lienzo));
       if (giro) { pieza = girarCanvas(pieza, giro); out = lienzo(pieza); orig = girarCanvas(orig, giro); }
       tipo = TIPO_DE_CAT[cat]; noPrenda = (await reconocerPrenda(orig)).noPrenda;
     } catch (e) { /* sin modelo: por la forma */ }
     const fondo = fondoIrregular(orig);
     const aBlob = (cv, q) => new Promise(r => cv.toBlob(r, 'image/jpeg', q));
-    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, x, rec: cat ? 1 : 0, recortada, noPrenda, fondo, giro };
+    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, x, rec: cat ? 1 : 0, recortada, noPrenda, fondo, giro, dudoso: !recortada || dudoso, cv: 2 };
   } finally { URL.revokeObjectURL(u); }
 }
 // nombre automático legible: «Top negro», «Pantalón azul claro», «Zapatos blancos»
@@ -1899,7 +1956,8 @@ function pintarSubida() {
     raiz.innerHTML = `<div class="sb uno">${n === 1 ? X : `<button class="x" data-svolver aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>`}<div class="tit"><h1>${t('Revisa tu prenda', 'Check your garment')}</h1>${n > 1 ? `<div class="mini-et">${i + 1} ${t('de', 'of')} ${n}</div>` : ''}</div>
       <div class="foto">${det.url ? `<img src="${det.url}" alt="">` : `<p class="s-procesando">${t('Quitando el fondo y reconociendo la prenda…', 'Removing the background and recognising the garment…')}</p>`}</div>
       ${listo && det.noPrenda && !det.siPrenda ? `<div class="s-aviso"><b>${t('Esta foto no parece una prenda', 'This photo does not look like a garment')}</b><span>${t('No coincide con ninguna categoría de ropa. Si es una captura, un texto u otra cosa, quítala.', 'It does not match any clothing category. If it is a screenshot, text or something else, remove it.')}</span><div><button class="boton" data-squita>${t('Quitarla', 'Remove it')}</button><button class="txt sub-l" data-ssi>${t('Sí es una prenda', 'It is a garment')}</button></div></div>` : ''}
-      ${listo && det.fondo && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso y el recorte puede salir con restos. Para un recorte limpio, haz la foto sobre un fondo de un solo color.', 'The background is not plain, so the cut-out may keep bits of it. For a clean cut-out, shoot on a single-colour background.')}</p>${reglasFoto()}` : ''}
+      ${listo && det.dudoso && !(det.noPrenda && !det.siPrenda) ? `<div class="s-aviso"><b>${t('Revisa el recorte', 'Check the cut-out')}</b><span>${t('Puede que le falte un trozo o que le sobre fondo. Si es así, repite la foto con la prenda sobre algo de otro color, como una toalla o el suelo. También puedes guardarla y arreglarla después en su ficha, con «Editar».', 'It may be missing a piece or keep some background. If so, take the photo again with the garment on something of another colour, like a towel or the floor. You can also save it and fix it later in its page, with «Edit».')}</span></div>` : ''}
+      ${listo && det.fondo && !det.dudoso && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso y el recorte puede salir con restos. Para un recorte limpio, haz la foto sobre un fondo de un solo color.', 'The background is not plain, so the cut-out may keep bits of it. For a clean cut-out, shoot on a single-colour background.')}</p>${reglasFoto()}` : ''}
       ${listo ? `<input class="nom" value="${det.nombre}" data-snom aria-label="${t('Nombre', 'Name')}">
       <div class="fila2 s-cat"><label class="campo"><span>${t('Categoría', 'Category')}</span><select data-scat>${opsCat(catDe(det))}</select></label><label class="campo"><span>${t('Tipo', 'Type')}</span><select data-ssub>${opsSub(catDe(det), subDe(catDe(det), det.x, det.nombre))}</select></label></div>
       <div class="gr"><p class="mini-et">${t('Color', 'Colour')}</p><div class="ops col">${COLORES.map(([c, h]) => `<button type="button" class="${c === det.color ? 'on' : ''}" data-scolor="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>
@@ -1910,7 +1968,8 @@ function pintarSubida() {
   } else {
     const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)).length, nop = E.subida.filter(i => i.noPrenda && !i.siPrenda).length;
     raiz.innerHTML = `<div class="sb rv">${X}<div class="tit"><h1>${n} ${t('prendas', 'garments')}</h1><div class="mini-et">${E.subida.some(i => i.estado !== 'listo') ? t('Quitando los fondos…', 'Removing backgrounds…') : t('Revisa y guarda', 'Check and save')}</div></div>
-      <div class="rej">${E.subida.map(it => `<button type="button" data-sdet="${it.id}">${it.url ? `<img src="${it.url}" alt="">` : ''}${it.estado === 'listo' && it.noPrenda && !it.siPrenda ? `<p class="no">${t('No es una prenda', 'Not a garment')}<small>${t('Toca para revisarla', 'Tap to check')}</small></p>` : it.estado === 'listo' ? `<em></em><p>${it.nombre}<small>${catTxt(catDe(it))} · ${it.color}</small></p>` : `<p><small>${t('Quitando el fondo…', 'Removing the background…')}</small></p>`}</button>`).join('')}${n < 20 ? mas(`<svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><small>${t('Añadir más', 'Add more')}</small>`, 'mas') : ''}</div>
+      <div class="rej">${E.subida.map(it => `<button type="button" data-sdet="${it.id}">${it.url ? `<img src="${it.url}" alt="">` : ''}${it.estado === 'listo' && it.noPrenda && !it.siPrenda ? `<p class="no">${t('No es una prenda', 'Not a garment')}<small>${t('Toca para revisarla', 'Tap to check')}</small></p>` : it.estado === 'listo' ? `<em></em><p>${it.nombre}<small>${it.dudoso ? t('Revisa el recorte', 'Check the cut-out') : `${catTxt(catDe(it))} · ${it.color}`}</small></p>` : `<p><small>${t('Quitando el fondo…', 'Removing the background…')}</small></p>`}</button>`).join('')}${n < 20 ? mas(`<svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><small>${t('Añadir más', 'Add more')}</small>`, 'mas') : ''}</div>
+      ${E.subida.some(i => i.estado === 'listo' && i.dudoso && !(i.noPrenda && !i.siPrenda)) ? `<p class="s-aviso-l">${t('Las que dicen «Revisa el recorte» pueden haber salido mal: tócalas para verlas.', 'The ones that say «Check the cut-out» may have come out wrong: tap them to see.')}</p>` : ''}
       ${nop ? `<p class="s-aviso-l">${nop === 1 ? t('Hay 1 foto que no coincide con ninguna categoría de prenda: no se guardará.', '1 photo does not match any clothing category: it will not be saved.') : t(`Hay ${nop} fotos que no coinciden con ninguna categoría de prenda: no se guardarán.`, `${nop} photos do not match any clothing category: they will not be saved.`)}</p>` : ''}
       <div class="bts"><button class="boton" data-sguardar ${listos ? '' : 'disabled'}>${listos === 1 ? t('Guardar 1 prenda', 'Save 1 garment') : t(`Guardar ${listos} prendas`, `Save ${listos} garments`)}</button><span class="txt">${t('Toca una prenda para ver su ficha y cambiar nombre, tipo, color o estación', 'Tap a garment to open its card and change name, type, colour or season')}</span></div></div>`;
   }
@@ -1946,7 +2005,7 @@ async function anadirFotos(files) {
 async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
   if (enGratis() && E.prendas.length + listos.length > TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas: te quedan ${Math.max(0, TOPE_GRATIS - E.prendas.length)}.`, `The free version holds ${TOPE_GRATIS} garments: ${Math.max(0, TOPE_GRATIS - E.prendas.length)} left.`));
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1 }));
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 2 : it.cv || 1, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 600); }).catch(() => { });
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet'); setTimeout(enderezarTodas, 2500);
@@ -2848,6 +2907,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha'));
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
+  setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
