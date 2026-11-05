@@ -2001,6 +2001,10 @@ function avisoSinNube() {
 }
 // 06/11 (Gabriela: «cómo me va a poner estampado solo, hay tantos estampados»): con el color «Estampado», al subir se elige cuál; va al nombre, que es lo que lee el motor
 const ESTAMPADOS = { Rayas: ['de rayas', 'Stripes'], Cuadros: ['de cuadros', 'Checks'], Lunares: ['de lunares', 'Polka dots'], Flores: ['de flores', 'Floral'], Animal: ['animal print', 'Animal print'], Otro: ['estampado', 'Other'] };
+// y de qué color (Gabriela: «además vienen con colores… dos son de rayas azules y rosas»; «un top negro corto de puntos, hay que ser más específico»): «Camisa de rayas azules»
+const INVARIABLE = /^(Beige|Crema|Camel|Burdeos|Mostaza|Caqui|Nude|Terracota)$|\s/; // «rayas azul claro», «cuadros burdeos»
+const plColor = (c, fem) => { let pl = PLURAL_COLOR[c] || (INVARIABLE.test(c) ? c.toLowerCase() : /[aeo]$/i.test(c) ? c.toLowerCase() + 's' : c.toLowerCase()); return fem ? pl.replace(/os$/, 'as') : pl; };
+const nomEstampado = (x, e, c2) => `${NOM_X[x][0]} ${ESTAMPADOS[e][0]}${c2 && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(e) ? ' ' + plColor(c2, e === 'Rayas' || e === 'Flores') : ''}`;
 function prepararSubir() { E.subida = []; E.sDet = null; pintarSubida(); }
 // Subir (Gabriela, 20/10): una sola prenda → su ficha (3B); varias → rejilla (3A) con lo general a la vista y, al tocar una, su ficha
 function pintarSubida() {
@@ -2020,6 +2024,7 @@ function pintarSubida() {
       <div class="fila2 s-cat"><label class="campo"><span>${t('Categoría', 'Category')}</span><select data-scat>${opsCat(catDe(det))}</select></label><label class="campo"><span>${t('Tipo', 'Type')}</span><select data-ssub>${opsSub(catDe(det), subDe(catDe(det), det.x, det.nombre))}</select></label></div>
       <div class="gr"><p class="mini-et">${t('Color', 'Colour')}</p><div class="ops col">${COLORES.map(([c, h]) => `<button type="button" class="${c === det.color ? 'on' : ''}" data-scolor="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>
       ${det.color === 'Estampado' ? `<div class="gr"><p class="mini-et">${t('Estampado', 'Pattern')}</p>${ops(Object.keys(ESTAMPADOS), det.estampado, 'estp', k => t(k, ESTAMPADOS[k][1]))}</div>` : ''}
+      ${det.color === 'Estampado' && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(det.estampado) ? `<div class="gr"><p class="mini-et">${t('Color del estampado', 'Pattern colour')}</p><div class="ops col">${COLORES.filter(([c]) => c !== 'Estampado').map(([c, h]) => `<button type="button" class="${c === det.color2 ? 'on' : ''}" data-scolor2="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>` : ''}
       <div class="gr"><p class="mini-et">${t('Estación', 'Season')}</p>${ops(ESTACIONES, det.estacion, 'est', estNombre)}</div>
       <button class="txt sub-l" data-sgirar>${t('Girar la foto', 'Rotate the photo')}</button>
       ${det.recortada ? `<button class="txt sub-l" data-sorig>${det.usaOriginal ? t('Usar el fondo blanco', 'Use white background') : t('Usar la foto original', 'Use the original photo')}</button>` : ''}` : ''}
@@ -2034,7 +2039,7 @@ function pintarSubida() {
   }
   raiz.querySelectorAll('[data-sfotos]').forEach(inp => inp.onchange = e => { anadirFotos([...e.target.files]); e.target.value = ''; });
   raiz.onclick = async ev => {
-    const b = ev.target.closest('[data-sdet],[data-svolver],[data-squita],[data-ssi],[data-sguardar],[data-stipo],[data-scolor],[data-sest],[data-sorig],[data-sgirar],[data-srecortar],[data-sestp]'); if (!b || b.disabled) return;
+    const b = ev.target.closest('[data-sdet],[data-svolver],[data-squita],[data-ssi],[data-sguardar],[data-stipo],[data-scolor],[data-sest],[data-sorig],[data-sgirar],[data-srecortar],[data-sestp],[data-scolor2]'); if (!b || b.disabled) return;
     const d = b.dataset, auto = det && det.nombre === nombreAuto(det.tipo, det.color), prev = det?.color;
     if (d.sdet) { E.sDet = d.sdet; pintarSubida(); raiz.scrollTop = 0; }
     else if (d.svolver !== undefined) { E.sDet = null; pintarSubida(); }
@@ -2043,7 +2048,8 @@ function pintarSubida() {
     else if (d.sguardar !== undefined) guardarSubida();
     else if (d.scolor) { const c = catDe(det); det.color = d.scolor; if (det.x && NOMBRE_AUTO.test(det.nombre) && SUBCATS[c]?.includes(det.x)) det.nombre = nombreReconocido(det.x, det.color); else if (auto || (c === 'Faldas' && det.nombre === nombreSubida(Object.assign({}, det, { color: prev }), c))) det.nombre = nombreSubida(det, c); pintarSubida(); }
     else if (d.sest) { det.estacion = d.sest; pintarSubida(); }
-    else if (d.sestp) { const propio = !NOMBRE_AUTO.test(det.nombre) && !/ (de rayas|de cuadros|de lunares|de flores|animal print|estampad[oa])$/.test(det.nombre); det.estampado = d.sestp; if (!propio && det.x && NOM_X[det.x]) det.nombre = `${NOM_X[det.x][0]} ${ESTAMPADOS[d.sestp][0]}`; pintarSubida(); }
+    else if (d.sestp) { const propio = !NOMBRE_AUTO.test(det.nombre) && !/ (de rayas|de cuadros|de lunares|de flores|animal print|estampad[oa])$/.test(det.nombre); det.estampado = d.sestp; if (!propio && det.x && NOM_X[det.x]) det.nombre = nomEstampado(det.x, d.sestp, det.color2); pintarSubida(); }
+    else if (d.scolor2) { const propio = !NOMBRE_AUTO.test(det.nombre) && !/ (de rayas|de cuadros|de lunares|de flores)( [a-záéíóú ]+)?$/.test(det.nombre); det.color2 = d.scolor2; if (!propio && det.x && NOM_X[det.x]) det.nombre = nomEstampado(det.x, det.estampado, det.color2); pintarSubida(); }
     // 06/11 (Gabriela: «el icono de recortar tiene que ser mientras estás subiendo, no después, porque me siguen saliendo los pies en un vestido negro corto»)
     else if (d.srecortar !== undefined) { const k = det.usaOriginal ? 'original' : 'blob', r = await recortarAMano(det[k]); if (!r) return; det[k] = r; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(r); pintarSubida(); }
     else if (d.sgirar !== undefined) { b.disabled = true; det.blob = await girarBlob(det.blob); if (det.original) det.original = await girarBlob(det.original); URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(det.usaOriginal ? det.original : det.blob); pintarSubida(); }
@@ -2069,7 +2075,7 @@ async function anadirFotos(files) {
 async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
   if (enGratis() && E.prendas.length + listos.length > TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas: te quedan ${Math.max(0, TOPE_GRATIS - E.prendas.length)}.`, `The free version holds ${TOPE_GRATIS} garments: ${Math.max(0, TOPE_GRATIS - E.prendas.length)} left.`));
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 4 : it.cv || 1, catM: it.catM || undefined, estampado: it.estampado || undefined, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined }));
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 4 : it.cv || 1, catM: it.catM || undefined, estampado: it.estampado || undefined, color2: it.color2 || undefined, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 600); }).catch(() => { });
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet'); setTimeout(enderezarTodas, 2500);
