@@ -9,6 +9,9 @@ const Motor = (() => {
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // palabra que termina en $ = palabra completa; si no, prefijo de palabra
   const re = w => { const q = norm(w), entera = q.endsWith('$'), t = entera ? q.slice(0, -1) : q; return new RegExp('(^|[^a-z0-9])' + esc(t) + (entera ? '($|[^a-z0-9])' : '')); };
+  // ropa de deporte (Gabriela, 06/11: «hay minifaldas que son de deporte»): por el nombre o por el detalle «Deporte» de la subida
+  const DEPORTE_RE = /(^|[^a-z0-9])(deporte|deportiv|tenis|padel|running|yoga|pilates|gimnasio|gym|fitness|entreno|entrenamiento)/;
+  const A_DEPORTE = { falda_mini: 'falda_deportiva', falda_midi: 'falda_deportiva', falda_plisada: 'falda_deportiva', falda_generica: 'falda_deportiva', camiseta: 'camiseta_tecnica', camiseta_tirantes: 'top_deportivo', top: 'top_deportivo', top_corto: 'top_deportivo', chaqueta: 'chaqueta_deportiva', pantalon_generico: 'jogger' };
   const SUB_EST = { pantalon_de_vestir: 'pantalon_vestir', camiseta_sin_mangas: 'camiseta_tirantes' }; // el vocabulario de la ficha de la estilista (28/10)
   const COLOR_FINO = ['Mostaza', 'Burdeos', 'Terracota', 'Camel', 'Crema', 'Caqui']; // si el nombre lo dice, manda sobre el color general de la app («body mostaza» guardado como Amarillo)
   const VOL = { ajuste: { regular: 1 }, corte: {} };
@@ -52,11 +55,13 @@ const Motor = (() => {
     const dicho = est.sub && I.subtipos.find(s => s.id === (SUB_EST[est.sub] || est.sub));
     if (dicho && !(sub && (sub.id.startsWith(dicho.id) || (dicho.id === 'camiseta' && sub.id === 'henley')))) { sub = dicho; conSub = true; }
     if (!sub) sub = I.por_defecto_si_nada_coincide[p.tipo] || I.por_defecto_si_nada_coincide.Arriba;
+    const det = (p.detalles || []).join(' '), dep = det.includes('Deporte') || DEPORTE_RE.test(norm(p.nombre || ''));
+    if (dep && A_DEPORTE[sub.id]) sub = I.subtipos.find(s => s.id === A_DEPORTE[sub.id]) || sub;
     const f = { ...I.defecto_atributos, ...sub.def, subtipo: sub.id, cat: sub.cat, conf: { subtipo: conSub ? 'nombre' : 'defecto' } };
-    const fijados = new Set();
+    const fijados = new Set(), nomM = det ? nom + ' ' + norm(det) : nom;
     for (const m of I.modificadores) {
       if (m.solo && !m.solo.includes(f.cat)) continue;
-      if (!m.re.some(r => r.test(nom)) || m.no.some(r => r.test(nom))) continue;
+      if (!m.re.some(r => r.test(nomM)) || m.no.some(r => r.test(nomM))) continue;
       const c = m.campo;
       if (c === 'form_mas') { f.form = Math.min(m.max, f.form + m.valor); continue; }
       if (c === 'form_menos') { f.form = Math.max(m.min, f.form - m.valor); continue; }
@@ -68,6 +73,7 @@ const Motor = (() => {
       if (m.tmax_max) f.tmax = Math.min(f.tmax, m.tmax_max);
       if (m.lluvia_mala) f.lluvia_mala = true; if (m.deportiva) f.deportiva = true;
     }
+    if (dep && ['arriba', 'abajo', 'capa', 'vestido'].includes(f.cat)) { f.deportiva = true; f.uso = 'deporte'; f.form = Math.min(f.form, 1); }
     // color: el de la app; si es «Estampado» o vacío, el del nombre; vaquero = neutro siempre
     let col = p.color && p.color !== 'Estampado' ? p.color : null;
     if (!col) for (const [c, rs] of Object.entries(I.color.palabras_en_el_nombre)) if (rs.some(r => r.test(nom))) { col = c; break; }
@@ -91,7 +97,7 @@ const Motor = (() => {
   }
   const CACHE = new WeakMap();
   function ficha(p, perfil) {
-    const sig = [p.nombre, p.tipo, p.color, p.estacion, p.x, JSON.stringify(p.est || 0), perfil.usoSolo?.has?.(p.id) ? 1 : 0].join('|'), c = CACHE.get(p);
+    const sig = [p.nombre, p.tipo, p.color, p.estacion, p.x, JSON.stringify(p.est || 0), (p.detalles || []).join(), perfil.usoSolo?.has?.(p.id) ? 1 : 0].join('|'), c = CACHE.get(p);
     if (c && c.sig === sig) return c.f;
     const f = inferir(p, perfil); CACHE.set(p, { sig, f }); return f;
   }

@@ -2011,7 +2011,7 @@ const INVARIABLE = /^(Beige|Crema|Camel|Burdeos|Mostaza|Caqui|Nude|Terracota)$|\
 const plColor = (c, fem) => { let pl = PLURAL_COLOR[c] || (INVARIABLE.test(c) ? c.toLowerCase() : /[aeo]$/i.test(c) ? c.toLowerCase() + 's' : c.toLowerCase()); return fem ? pl.replace(/os$/, 'as') : pl; };
 const nomEstampado = (x, e, c2) => `${NOM_X[x][0]} ${ESTAMPADOS[e][0]}${c2 && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(e) ? ' ' + plColor(c2, e === 'Rayas' || e === 'Flores') : ''}`;
 // 06/11 (Gabriela: «hay también piezas de encaje, transparentes… hay que tener ese tipo de detalles»): se marcan al subir; van a la ficha y a las notas (los cuidados las leen)
-const DETALLES = { Vaquero: 'Denim', Encaje: 'Lace', Transparente: 'Sheer', Volantes: 'Ruffles', Satén: 'Satin', Lentejuelas: 'Sequins', Terciopelo: 'Velvet', Piel: 'Leather', Punto: 'Knit' }; // Vaquero (Gabriela: «¿qué hacemos con la mezclilla, una falda de mezclilla larga?»)
+const DETALLES = { Deporte: 'Sport', Vaquero: 'Denim', Encaje: 'Lace', Transparente: 'Sheer', Volantes: 'Ruffles', Satén: 'Satin', Lentejuelas: 'Sequins', Terciopelo: 'Velvet', Piel: 'Leather', Punto: 'Knit' }; // Vaquero (Gabriela: «¿qué hacemos con la mezclilla, una falda de mezclilla larga?»)
 function prepararSubir() { E.subida = []; E.sDet = null; pintarSubida(); }
 // Subir (Gabriela, 20/10): una sola prenda → su ficha (3B); varias → rejilla (3A) con lo general a la vista y, al tocar una, su ficha
 function pintarSubida() {
@@ -2189,6 +2189,13 @@ function pintarTiro(sel) {
   c.innerHTML = [['alto', t('Alto', 'High')], ['medio', t('Medio', 'Mid')], ['bajo', t('Bajo', 'Low')]].map(([k, n]) => `<button type="button" data-tiro="${k}" class="${k === sel ? 'sel' : ''}">${TIRO_SVG[k]}<span>${n}</span></button>`).join('');
   $('an-tiro-c').classList.toggle('oculto', TIPO_DE_CAT[$('an-tipo').value] !== 'Abajo');
 }
+// detalles también al editar (06/11: las prendas ya subidas se marcan de deporte, vaqueras, de encaje…)
+const detaEd = () => { const l = JSON.parse($('an-deta')?.dataset.sel || '[]'); return l.length ? l : undefined; };
+function pintarDetaEd(sel) {
+  const c = $('an-deta'); if (!c) return; c.dataset.sel = JSON.stringify(sel || []); $('an-deta-t').textContent = t('Detalles', 'Details');
+  c.innerHTML = Object.keys(DETALLES).map(k => `<button type="button" data-adeta="${k}" class="${(sel || []).includes(k) ? 'on' : ''}" aria-pressed="${(sel || []).includes(k)}">${t(k, DETALLES[k])}</button>`).join('');
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-adeta]'); if (!b) return; const l = new Set(JSON.parse($('an-deta').dataset.sel || '[]')); l.has(b.dataset.adeta) ? l.delete(b.dataset.adeta) : l.add(b.dataset.adeta); pintarDetaEd([...l]); });
 document.addEventListener('click', e => { const b = e.target.closest('[data-tiro]'); if (!b) return; pintarTiro($('an-tiro').dataset.sel === b.dataset.tiro ? '' : b.dataset.tiro); });
 // el largo de lo de arriba (Gabriela, 03/11: «la clasificación de las prendas en plan tops por encima del ombligo»): el mismo cuerpo, el punto dorado en el ombligo y el bajo de la prenda a cuatro alturas
 const LARGO_Y = { crop: 70, cintura: 92, cadera: 116, largo: 138 };
@@ -2210,6 +2217,7 @@ function prepararAnadir(id) {
   $('an-tipo').onchange = () => { $('an-sub').innerHTML = opsSub($('an-tipo').value, ''); pintarTiro($('an-tiro').dataset.sel); pintarLargo($('an-largo')?.dataset.sel); };
   $('an-sub').onchange = () => { const k = $('an-sub').value, n = $('an-nombre').value.trim(); if (k && (!n || NOMBRE_AUTO.test(n))) $('an-nombre').value = nombreReconocido(k, $('an-colores').dataset.sel || 'Negro'); };
   $('an-estacion').innerHTML = ESTACIONES.map(x => `<option value="${x}">${estNombre(x)}</option>`).join('');
+  pintarDetaEd(p?.detalles || []);
   $('an-nombre').value = p?.nombre || ''; $('an-estacion').value = p?.estacion || 'Todo el año'; $('an-notas').value = p?.notas || ''; $('an-precio').value = p?.precio ? dinero(p.precio) : '';
   pintarColores(p?.color || '');
   pintarPrevia(p ? urlFoto(p) : '');
@@ -2237,8 +2245,8 @@ async function guardarPrenda(otra) {
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
   if (!p && enGratis() && E.prendas.length >= TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas.`, `The free version holds ${TOPE_GRATIS} garments.`));
-  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value) }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.fotoRota; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
-  else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
+  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), detalles: detaEd() }); if (fotoNueva) { p.foto = fotoNueva; delete p.src; delete p.fotoRota; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
+  else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), detalles: detaEd(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   const tiro = tipo === 'Abajo' && $('an-tiro').dataset.sel, pr = p || E.prendas[0]; if (tiro) pr.est = { ...(pr.est || {}), tiro };
   if (E.recManoEdit && fotoNueva) pr.recMano = 1; E.recManoEdit = 0; // recortada a mano: el repaso automático del recorte no la toca
   const largo = tipo === 'Arriba' && $('an-largo')?.dataset.sel; if (largo) pr.est = { ...(pr.est || {}), largo };
