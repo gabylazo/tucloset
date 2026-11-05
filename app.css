@@ -1148,8 +1148,10 @@ img{-webkit-user-drag:none}
 
 /* 0.94 · ver la contraseña */
 .ac-clave{position:relative;display:block}
-.ac-ver{position:absolute;right:0;top:50%;transform:translateY(-50%);background:none;border:0;padding:6px 2px;font:inherit;font-size:12px;letter-spacing:.06em;color:var(--oro);cursor:pointer}
-.ac-clave input{padding:0 64px}
+/* 06/11: el ojo clásico (antes «Ver» en dorado, que no llegaba al contraste) */
+.ac-ver{position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:none;border:0;padding:0;color:var(--sec);cursor:pointer}
+.ac-ver svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.ac-clave input{padding:0 44px}
 
 /* 0.97 · aviso de que faltan zapatos */
 .hz-zap{display:block;margin:10px auto 0;background:none;border:0;font:inherit;font-size:13px;font-weight:300;color:var(--oro);text-decoration:underline;text-underline-offset:3px;cursor:pointer}

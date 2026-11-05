@@ -2839,7 +2839,8 @@ $('a-seguir').onclick = guardarAlta;
 const entrarYa = async () => { if (!NUBE) { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } return ir('hoy'); } const b = $('e-entrar'), txt = b.textContent; b.disabled = true; b.textContent = t('Entrando y trayendo tu clóset…', 'Signing in and fetching your closet…'); const ok = await abrirCuenta('entrar', $('e-correo').value.trim(), $('e-clave').value); b.disabled = false; b.textContent = txt; if (!ok) return; if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } ir('closet'); toast(t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); };
 $('e-entrar').onclick = entrarYa;
 // 0.94 (Gabriela, 24/10: «pon visible como opción la contraseña»): botón para ver u ocultar lo escrito
-function ojos() { document.querySelectorAll('input[type=password]:not([data-ojo])').forEach(i => { i.dataset.ojo = 1; const b = document.createElement('button'); b.type = 'button'; b.className = 'ac-ver'; const pinta = () => { const v = i.type === 'text'; b.textContent = v ? t('Ocultar', 'Hide') : t('Ver', 'Show'); b.setAttribute('aria-label', v ? t('Ocultar contraseña', 'Hide password') : t('Ver contraseña', 'Show password')); }; pinta(); b.onclick = e => { e.preventDefault(); i.type = i.type === 'password' ? 'text' : 'password'; pinta(); i.focus(); }; const caja = document.createElement('span'); caja.className = 'ac-clave'; i.replaceWith(caja); caja.append(i, b); }); }
+// 06/11 (Gabriela: «que salga el icono clásico del ojo»): el ojo en vez de «Ver»; tachado cuando se ve, para volver a ocultarla
+function ojos() { document.querySelectorAll('input[type=password]:not([data-ojo])').forEach(i => { i.dataset.ojo = 1; const b = document.createElement('button'); b.type = 'button'; b.className = 'ac-ver'; const pinta = () => { const v = i.type === 'text'; b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>${v ? '<path d="M4 4l16 16"/>' : ''}</svg>`; b.setAttribute('aria-label', v ? t('Ocultar contraseña', 'Hide password') : t('Ver contraseña', 'Show password')); }; pinta(); b.onclick = e => { e.preventDefault(); i.type = i.type === 'password' ? 'text' : 'password'; pinta(); i.focus(); }; const caja = document.createElement('span'); caja.className = 'ac-clave'; i.replaceWith(caja); caja.append(i, b); }); }
 ojos();
 // planes (0.12): se elige plan y periodo; el cobro irá por App Store y Google Play, aquí solo se guarda la elección
 E.pl = { plan: 'basico', per: 'mes' };
@@ -2864,7 +2865,12 @@ $('f-selfie').onchange = e => e.target.files[0] && guardarFotoPerfil('selfie', e
 $('f-cuerpo').onchange = e => e.target.files[0] && guardarFotoPerfil('cuerpo', e.target.files[0]);
 $('an-guardar').onclick = () => guardarPrenda(false);
 $('an-otra').onclick = () => guardarPrenda(true);
-$('an-borrar').onclick = async () => { const p = E.editando; if (!p) return; if (await confirmar(t('¿Borrar esta prenda?', 'Delete this garment?'), t('Se quita del clóset y de sus conjuntos.', 'It is removed from the closet and its outfits.'), t('Borrar', 'Delete'))) { E.prendas = E.prendas.filter(x => x.id !== p.id); E.conjuntos.forEach(c => c.ids = c.ids.filter(id => id !== p.id)); E.conjuntos = E.conjuntos.filter(c => c.ids.length >= 1); await guardar(); E.propuestas = []; ir('closet'); } };
+// 06/11 (Gabriela: «la posibilidad visible de eliminar cualquier prenda subida»): la misma función para la papelera de la ficha y para Editar
+async function borrarPrenda(p) {
+  if (!p || !await confirmar(t('¿Borrar esta prenda?', 'Delete this garment?'), t('Se quita del clóset y de sus conjuntos.', 'It is removed from the closet and its outfits.'), t('Borrar', 'Delete'))) return;
+  E.prendas = E.prendas.filter(x => x.id !== p.id); E.conjuntos.forEach(c => c.ids = c.ids.filter(id => id !== p.id)); E.conjuntos = E.conjuntos.filter(c => c.ids.length >= 1); await guardar(); E.propuestas = []; ir('closet'); toast(t('Prenda borrada', 'Garment deleted'));
+}
+$('an-borrar').onclick = () => borrarPrenda(E.editando);
 $('nl-guardar').onclick = guardarLook;
 
 /* ---------- arranque ---------- */

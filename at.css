@@ -112,6 +112,25 @@ html.at .at-acciones { display: flex; flex-direction: column; align-items: cente
 html.at .at-lista { width: 100%; margin-top: 18px; border-top: 1px solid var(--raya); display: flex; flex-direction: column; }
 html.at .at-lista button { min-height: 50px; border-bottom: 1px solid var(--raya); font: 400 15px/1.2 var(--f); color: var(--tinta); text-align: center; }
 html.at .at-nota-fin { margin: 16px 0 0; font-size: 13px; color: var(--sec); }
+/* 06/11 (Gabriela: «con iconos, no tantas letras»; «visible eliminar cualquier prenda»): lápiz y papelera arriba; color, estación y puestas con icono;
+   las acciones en iconos cuadrados con una palabra debajo; lo marcado, relleno en nogal */
+html.at .at-der2 { display: flex; }
+html.at .at-ico { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--tinta); }
+html.at .at-chips { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; }
+html.at .at-chips li { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--sec); }
+html.at .at-chips .at-ic { width: 16px; height: 16px; color: var(--tinta); }
+html.at .at-mancha { width: 12px; height: 12px; border: 1px solid rgba(74, 53, 38, .3); }
+html.at .at-iconos { width: 100%; display: flex; flex-wrap: wrap; justify-content: center; row-gap: 16px; margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--raya); }
+html.at .at-ib { flex: 0 0 25%; display: flex; flex-direction: column; align-items: center; gap: 7px; min-height: 44px; font: 400 12px/1.2 var(--f); color: var(--sec); }
+html.at .at-ib-c { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(74, 53, 38, .35); color: var(--tinta); transition: background .15s, color .15s, transform .1s; }
+html.at .at-ib.on .at-ib-c { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+html.at .at-ib.on { color: var(--tinta); }
+html.at .at-ib:active .at-ib-c { transform: scale(.94); }
+html.at .at-ib:focus-visible { outline: none; }
+html.at .at-ib:focus-visible .at-ib-c { outline: 2px solid var(--tinta); outline-offset: 2px; }
+html.at .at-cuidar-l { list-style: none; margin: 18px 20px 0; padding: 14px 8px 4px; border-top: 1px solid var(--raya); }
+html.at .at-cuidar-l li { font: 400 13px/1.5 var(--f); color: var(--sec); padding: 0 0 6px; text-wrap: balance; }
+@media (prefers-reduced-motion: reduce) { html.at .at-ib-c { transition: none; } html.at .at-ib:active .at-ib-c { transform: none; } }
 
 /* ---------- Look abierto ---------- */
 html.at #p-look > :not(#at-look) { display: none !important; }
