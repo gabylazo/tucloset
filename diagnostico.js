@@ -15,7 +15,7 @@ export async function cargar() {
     const [cara, partes, pose] = await Promise.all([
       V.FaceLandmarker.createFromOptions(fs, op('face_landmarker.task', { numFaces: 2 })),
       V.ImageSegmenter.createFromOptions(fs, op('selfie_multiclass_256x256.tflite', { outputCategoryMask: true, outputConfidenceMasks: false })),
-      V.PoseLandmarker.createFromOptions(fs, op('pose_landmarker_lite.task', { numPoses: 2, outputSegmentationMasks: true }))]);
+      V.PoseLandmarker.createFromOptions(fs, op('pose_landmarker_lite.task', { numPoses: 2 }))]);
     return { cara, partes, pose };
   })();
   try { return await tareas; } catch (e) { tareas = null; throw e; }
@@ -30,8 +30,8 @@ async function lienzo(blob, max = 1024) {
 }
 const lin = v => { v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; };
 const LIN = Float32Array.from({ length: 256 }, (_, i) => lin(i));
-function lab(r, g, b) { // sRGB → CIELAB (D65)
-  const R = LIN[r], G = LIN[g], B = LIN[b];
+function lab(r, g, b) { return labLin([LIN[r], LIN[g], LIN[b]]); }
+function labLin([R, G, B]) { // RGB lineal → CIELAB (D65)
   const f = t => t > 216 / 24389 ? Math.cbrt(t) : (24389 / 27 * t + 16) / 116;
   const X = f((R * .4124 + G * .3576 + B * .1805) / .95047), Y = f(R * .2126 + G * .7152 + B * .0722), Z = f((R * .0193 + G * .1192 + B * .9505) / 1.08883);
   return [116 * Y - 16, 500 * (X - Y), 200 * (Y - Z)];
@@ -44,6 +44,20 @@ function colorDe(muestras) {
   const ok = muestras.filter(m => m[0] >= lo && m[0] <= hi); if (ok.length < 20) return null;
   const L = mediana(ok.map(m => m[0])), a = mediana(ok.map(m => m[1])), b = mediana(ok.map(m => m[2]));
   return { L: +L.toFixed(1), a: +a.toFixed(1), b: +b.toFixed(1), C: +Math.hypot(a, b).toFixed(1), h: +((Math.atan2(b, a) * 180 / Math.PI + 360) % 360).toFixed(1), n: ok.length, hex: hexDe(L, a, b) };
+}
+// color natural del blanco del ojo con luz neutra (CIELAB 80, 2, 6) en RGB lineal: R 0,60 · G 0,56 · B 0,49
+const BLANCO_OJO = [.60, .56, .49];
+// contorno de cada ojo en Face Mesh (lo que se ve entre los párpados)
+const OJO_A = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246], OJO_B = [263, 249, 390, 373, 374, 380, 381, 382, 362, 398, 384, 385, 386, 387, 388, 466];
+const dentro = (pg, x, y) => { let c = false; for (let i = 0, j = pg.length - 1; i < pg.length; j = i++) { const [xi, yi] = pg[i], [xj, yj] = pg[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+// nombre del color de ojos a partir del tono (h) y la saturación (C) en CIELAB, ya sin el tinte de la luz
+export function nombreOjos({ L, C, h }) {
+  const verdoso = h >= 95 && h < 180, azulado = h >= 180 && h < 300;
+  if (C < 4) return L >= 40 ? 'gris' : 'marron_oscuro';
+  if (azulado) return C < 9 ? 'gris' : 'azul';
+  if (verdoso) return C < 5 && L < 25 ? 'marron_oscuro' : 'verde';
+  if (h >= 72 && h < 95) return 'avellana';
+  return L < 30 ? 'marron_oscuro' : 'marron';
 }
 function hexDe(L, a, b) { // CIELAB → sRGB, para enseñar el color medido
   const fy = (L + 16) / 116, fx = fy + a / 500, fz = fy - b / 200, inv = t => t ** 3 > 216 / 24389 ? t ** 3 : (116 * t - 16) / (24389 / 27);
@@ -94,16 +108,31 @@ async function caraSin(blob) {
   const pelo = [], bx0 = Math.max(0, x0 - fw * .8), bx1 = Math.min(W, x1 + fw * .8), by0 = Math.max(0, y0 - fw * .8), by1 = Math.min(H, y1 + fw * 1.2);
   for (let y = by0 | 0; y < by1; y += 2) for (let x = bx0 | 0; x < bx1; x += 2) if (parte(x, y) === 1) { const k = (y * W + x) * 4; pelo.push(lab(px[k], px[k + 1], px[k + 2])); }
   const hr = pelo.length > (fw * fw) * .04 ? colorDe(pelo) : null; if (!hr) aviso('pelo_no_visible');
-  // ojos: anillo del iris (puntos 468–477), sin la pupila ni los reflejos
-  const ojos = [];
+  // ojos (06/11, Gabriela: «mis ojos son verdes y los pone marrón»): antes se tomaba todo el anillo del iris y entraban la sombra del párpado de arriba, el anillo
+  // ámbar que muchos ojos verdes tienen junto a la pupila y el tinte amarillo de la luz de casa. Ahora: solo lo que se ve entre los párpados (contorno del ojo), la parte
+  // de fuera del iris sin el borde oscuro, sin la franja de arriba; y el blanco del ojo, que es casi neutro, sirve de referencia para quitar el tinte de la luz.
+  const iris = [], blanco = [];
   for (const [cI, bI] of [[468, 469], [473, 474]]) {
     const [cx, cy] = P(cI), R = Math.hypot(P(bI)[0] - cx, P(bI)[1] - cy); if (R < 2.5) continue;
-    for (let y = cy - R | 0; y <= cy + R; y++) for (let x = cx - R | 0; x <= cx + R; x++) {
-      const d = Math.hypot(x - cx, y - cy); if (d < R * .38 || d > R * .85) continue;
-      const k = (y * W + x) * 4, v = lab(px[k], px[k + 1], px[k + 2]); if (v[0] < 88) ojos.push(v);
+    const pg = [OJO_A, OJO_B].map(o => o.map(P)).find(q => dentro(q, cx, cy)); if (!pg) continue;
+    const gx = pg.map(q => q[0]), gy = pg.map(q => q[1]);
+    for (let y = Math.min(...gy) | 0; y <= Math.max(...gy); y++) for (let x = Math.min(...gx) | 0; x <= Math.max(...gx); x++) {
+      if (x < 0 || y < 0 || x >= W || y >= H || !dentro(pg, x, y)) continue;
+      const d = Math.hypot(x - cx, y - cy), k = (y * W + x) * 4, rgb = [LIN[px[k]], LIN[px[k + 1]], LIN[px[k + 2]]];
+      if (d > R * 1.2) { blanco.push(rgb); continue; }
+      if (d < R * .5 || d > R * .88 || y < cy - R * .45) continue;
+      iris.push(rgb);
     }
   }
-  const ey = colorDe(ojos); if (!ey) aviso('ojos_no_visibles');
+  // balance de blancos con el blanco del ojo (en RGB lineal, como actúa la luz): la mitad más clara y poco saturada; su color natural es un blanco algo cálido
+  let gan = [1, 1, 1];
+  const bl = blanco.filter(c => { const v = labLin(c); return v[0] > 45 && Math.hypot(v[1], v[2]) < 30; }).sort((p, q) => (q[0] + q[1] + q[2]) - (p[0] + p[1] + p[2]));
+  if (bl.length >= 12) { const top = bl.slice(0, Math.max(12, bl.length >> 1)), m = [0, 1, 2].map(c => mediana(top.map(v => v[c]))), obj = BLANCO_OJO;
+    gan = [0, 1, 2].map(c => Math.max(.6, Math.min(1.6, (obj[c] / obj[1]) / (m[c] / m[1])))); }
+  const ojos = iris.map(c => labLin([c[0] * gan[0], c[1] * gan[1], c[2] * gan[2]])).filter(v => v[0] < 88);
+  let ey = colorDe(ojos); if (ey) ey.luz = gan.map(g => +g.toFixed(2));
+  if (ey) ey.nombre = nombreOjos(ey);
+  if (!ey) aviso('ojos_no_visibles');
   if (prob.some(p => p.fatal)) return { ok: false, prob };
   const contraste = Math.max(hr ? Math.abs(hr.L - sk.L) : 0, ey ? Math.abs(ey.L - sk.L) : 0);
   return { ok: true, prob, piel: sk, pelo: hr, ojos: ey, contraste: +contraste.toFixed(1), calidad: Math.max(.3, 1 - prob.length * .18) };
@@ -119,10 +148,13 @@ async function cuerpoSin(blob) {
   const lm = poses[0], P = i => [lm[i].x * W, lm[i].y * H], vis = i => (lm[i].visibility ?? 1) > .5 && lm[i].y > 0 && lm[i].y < 1;
   if (![11, 12, 23, 24].every(vis)) { r.close?.(); return { ok: false, prob: [{ k: 'sin_tronco', fatal: true }] }; }
   if (![27, 28].every(vis)) fatal('sin_pies');
-  const sm = r.segmentationMasks?.[0]; let mask = null, mW = W, mH = H;
-  if (sm) { mW = sm.width; mH = sm.height; mask = sm.getAsFloat32Array().slice(); sm.close?.(); } r.close?.();
-  if (!mask) return { ok: false, prob: [{ k: 'sin_silueta', fatal: true }] };
-  const persona = (x, y) => mask[Math.min(mH - 1, Math.max(0, Math.round(y / H * mH))) * mW + Math.min(mW - 1, Math.max(0, Math.round(x / W * mW)))] > .5;
+  r.close?.();
+  // 06/11 (Gabriela: «me dice una y otra vez que no me coge la foto de cuerpo entero»): la máscara de silueta de PoseLandmarker abortaba MediaPipe
+  // en el móvil con cualquier foto real de cuerpo entero («Check failed: 1 == ChannelSize()»); la silueta sale ahora del segmentador de la cara
+  // (selfie_multiclass, ya cargado): todo lo que no es fondo (categoría 0) es la persona
+  const seg = T.partes.segment(c), cm = seg.categoryMask; if (!cm) { seg.close?.(); return { ok: false, prob: [{ k: 'sin_silueta', fatal: true }] }; }
+  const mW = cm.width, mH = cm.height, mask = cm.getAsUint8Array().slice(); cm.close?.(); seg.close?.();
+  const persona = (x, y) => mask[Math.min(mH - 1, Math.max(0, Math.round(y / H * mH))) * mW + Math.min(mW - 1, Math.max(0, Math.round(x / W * mW)))] > 0;
   const hI = P(11), hD = P(12), cI = P(23), cD = P(24), yS = (hI[1] + hD[1]) / 2, yC = (cI[1] + cD[1]) / 2, Tr = yC - yS, xC = (cI[0] + cD[0]) / 2;
   if (Tr < H * .12) fatal('cuerpo_lejos');
   if (Math.abs(Math.atan2(hD[1] - hI[1], hD[0] - hI[0]) % Math.PI) > .12 && Math.abs(Math.abs(Math.atan2(hD[1] - hI[1], hD[0] - hI[0])) - Math.PI) > .12) aviso('hombros_torcidos');

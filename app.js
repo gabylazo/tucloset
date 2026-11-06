@@ -2719,13 +2719,13 @@ function puntosDiag(ps) {
   return s;
 }
 async function hacerDiagnostico(estado) {
-  const pf = E.perfil || {}, { D, R } = await diagMod(), res = { fecha: hoyISO(), avisos: {}, fotos: firmaFotos() };
+  const pf = E.perfil || {}, { D, R } = await diagMod(), res = { fecha: hoyISO(), avisos: {}, fotos: firmaFotos(), v: DIAG_V };
   estado(t('Preparando el análisis (la primera vez tarda un poco más)…', 'Getting the analysis ready (slower the first time)…')); await D.cargar();
   if (pf.selfie) {
     estado(t('Mirando tus colores…', 'Looking at your colours…')); const c = await D.analizarCara(pf.selfie); res.avisos.cara = c.prob.map(p => ({ k: p.k, fatal: p.fatal }));
     if (c.ok) { const e = D.estacion(c, R, pf.colores?.r || {}), S = R.colorimetria.estaciones[e.k];
       res.color = { k: e.k, familia: e.familia, n: S.n, d: S.d, hex: S.hex, si: S.si, no: S.no, metal: S.metal, consejo: S.consejo, ejes: e.ejes, confianza: e.confianza };
-      try { localStorage.setItem('tc_diag_medidas', JSON.stringify({ piel: c.piel.hex, pelo: c.pelo?.hex, ojos: c.ojos?.hex, contraste: c.contraste })); } catch (er) { } }
+      try { localStorage.setItem('tc_diag_medidas', JSON.stringify({ piel: c.piel.hex, pelo: c.pelo?.hex, ojos: c.ojos?.hex, ojosN: c.ojos?.nombre, contraste: c.contraste })); } catch (er) { } }
   }
   if (pf.cuerpo) {
     estado(t('Midiendo tu silueta…', 'Measuring your figure…')); const b = await D.analizarCuerpo(pf.cuerpo); res.avisos.cuerpo = b.prob.map(p => ({ k: p.k, fatal: p.fatal }));
@@ -2741,7 +2741,10 @@ async function hacerDiagnostico(estado) {
 // 04/11 (Gabriela: «una foto te tiene que servir para todo… tú no puedes seleccionar tu tipo de cuerpo, lo tienes que hacer en la aplicación en función de la foto»):
 // las dos fotos del alta se analizan solas, en todas las versiones, cada vez que cambia una; el Pro aplica el resultado a sus looks y a su clóset
 const firmaFotos = () => ({ selfie: E.perfil?.selfie?.size || 0, cuerpo: E.perfil?.cuerpo?.size || 0 });
-const diagPendiente = () => { const f = E.perfil?.diag?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo)); };
+// DIAG_V sube cuando cambia el análisis: las fotos guardadas en el móvil se vuelven a analizar solas, sin subirlas otra vez
+// (2, 06/11: la foto de cuerpo entero ya no hace caer el análisis y el color de los ojos se mide con el blanco del ojo como referencia)
+const DIAG_V = 2;
+const diagPendiente = () => { const d = E.perfil?.diag, f = d?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo) || ((a.selfie || a.cuerpo) && (d?.v || 1) < DIAG_V)); };
 let diagCorriendo = null, diagFallo = 0;
 const diagAuto = () => diagCorriendo || (diagCorriendo = hacerDiagnostico(() => { }).catch(() => { diagFallo++; return null; }).finally(() => { diagCorriendo = null; }));
 async function diagHastaAlDia() { let r = null; for (let i = 0; i < 3 && diagPendiente() && !diagFallo; i++) r = await diagAuto(); return r; }
@@ -2779,6 +2782,7 @@ function panelDiagFotos() {
     };
   });
 }
+const OJOS_N = { verde: ['verdes', 'Green'], azul: ['azules', 'Blue'], gris: ['grises', 'Grey'], avellana: ['avellana', 'Hazel'], marron: ['marrones', 'Brown'], marron_oscuro: ['marrón oscuro', 'Dark brown'] };
 async function panelDiag(pendientes = []) {
   const dg = E.perfil?.diag || {}, es = idioma() === 'en' ? 1 : 0, m = medidasLocales(), c = dg.color, b = dg.cuerpo, pro = planDemo() === 'pro';
   let R = null; try { R = (await diagMod()).R; } catch (e) { }
@@ -2790,7 +2794,7 @@ async function panelDiag(pendientes = []) {
   const avisos = [...pendientes, ...[...(dg.avisos?.cara || []), ...(dg.avisos?.cuerpo || [])].filter(p => !p.fatal).map(p => textoProb(R, p.k))].filter(Boolean);
   const html = `${c ? `<section class="dg-sec"><h2 class="dg-h">${t('Tus colores', 'Your colours')}</h2><div class="dg-tela grande">${c.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>
       <h3 class="dg-nom">${c.n[es]}</h3><p class="dg-d">${c.d[es]}</p>
-      ${m ? `<div class="dg-medido">${[['piel', t('Piel', 'Skin')], ['pelo', t('Pelo', 'Hair')], ['ojos', t('Ojos', 'Eyes')]].filter(([k]) => m[k]).map(([k, n]) => `<span><i style="background:${m[k]}"></i>${n}</span>`).join('')}</div>
+      ${m ? `<div class="dg-medido">${[['piel', t('Piel', 'Skin')], ['pelo', t('Pelo', 'Hair')], ['ojos', OJOS_N[m.ojosN] ? t('Ojos ' + OJOS_N[m.ojosN][0], OJOS_N[m.ojosN][1] + ' eyes') : t('Ojos', 'Eyes')]].filter(([k]) => m[k]).map(([k, n]) => `<span><i style="background:${m[k]}"></i>${n}</span>`).join('')}</div>
         <p class="dg-d">${t(`Subtono ${subt} y contraste ${contr}.`, `${cap(subt)} undertone and ${contr} contrast.`)}</p>` : ''}
       <div class="dg-dos"><div><h4>${t('Te favorecen', 'Suit you')}</h4><p>${c.si.map(colNom).join(', ')}</p></div><div><h4>${t('Mejor lejos de la cara', 'Better away from your face')}</h4><p>${c.no.map(colNom).join(', ')}</p></div></div>
       <p class="dg-d"><b>${t('Metal', 'Metal')}:</b> ${c.metal}. ${es ? '' : c.consejo}</p>

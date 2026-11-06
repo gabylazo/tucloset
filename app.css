@@ -752,7 +752,7 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .ac-fotos label b{position:absolute;width:16px;height:16px;border:0 solid var(--oro);z-index:1}
 .ac-fotos label b:nth-of-type(1){left:8px;top:8px;border-left-width:1.3px;border-top-width:1.3px}.ac-fotos label b:nth-of-type(2){right:8px;top:8px;border-right-width:1.3px;border-top-width:1.3px}
 .ac-fotos label b:nth-of-type(3){left:8px;bottom:8px;border-left-width:1.3px;border-bottom-width:1.3px}.ac-fotos label b:nth-of-type(4){right:8px;bottom:8px;border-right-width:1.3px;border-bottom-width:1.3px}
-.ac-fotos label>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ac-fotos label>img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .ac-consejo{font-size:12px;color:var(--sec);font-weight:300;margin-top:16px}
 
 /* 0.12 · planes al final del alta (21/10) */
@@ -1450,7 +1450,7 @@ img{-webkit-user-drag:none}
 .dg-fotos{display:flex;gap:10px;margin:4px 0 12px}
 .dg-mini{width:56px;height:70px;border:1px dashed #CFC5BA;display:grid;place-items:center;overflow:hidden}
 .dg-mini.hecha{border-style:solid}
-.dg-mini img{width:100%;height:100%;object-fit:cover}
+.dg-mini img{width:100%;height:100%;object-fit:contain}
 .dg-mini svg,.dg-hueco svg{width:24px;height:24px;fill:none;stroke:var(--ter,#76665A);stroke-width:1.4}
 .dg-tela{display:flex;height:22px}
 .dg-tela i{flex:1}
@@ -1459,7 +1459,8 @@ img{-webkit-user-drag:none}
 /* 06/11 (Gabriela: «el texto sale muy arriba, tiene que ir centrado») */
 .dg-hueco{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px dashed #CFC5BA;padding:14px 10px;text-align:center;cursor:pointer;min-height:220px}
 .dg-hueco.hecha{border-style:solid;border-color:var(--nogal,#4A3526)}
-.dg-hueco img{width:100%;height:130px;object-fit:cover}
+/* 06/11 (Gabriela: «creo que es porque recortas las fotos y no la tomas completa»): la foto se analiza entera; la miniatura también la enseña entera */
+.dg-hueco img{width:100%;height:150px;object-fit:contain;background:#F4F3F1}
 .dg-hueco b{font-weight:500;font-size:14px;color:var(--nogal,#4A3526)}
 .dg-hueco small{font-size:12px;line-height:1.4;color:var(--sec,#57473B)}
 .dg-hueco input{position:absolute;inset:0;opacity:0;cursor:pointer}
