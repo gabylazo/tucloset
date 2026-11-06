@@ -10,7 +10,7 @@ const Motor = (() => {
   // palabra que termina en $ = palabra completa; si no, prefijo de palabra
   const re = w => { const q = norm(w), entera = q.endsWith('$'), t = entera ? q.slice(0, -1) : q; return new RegExp('(^|[^a-z0-9])' + esc(t) + (entera ? '($|[^a-z0-9])' : '')); };
   // ropa de deporte (Gabriela, 06/11: «hay minifaldas que son de deporte»): por el nombre o por el detalle «Deporte» de la subida
-  const TOP_ESP = /lencer|peplum|halter|cruzad|volant|babydoll|encaje|saten|seda/;
+  const TOP_ESP = /lencer|peplum|halter|cruzad|volant|babydoll|encaje|saten|seda|vuelo|asimetric|un hombro|abullon/;
   const DEPORTE_RE = /(^|[^a-z0-9])(deporte|deportiv|tenis|padel|running|yoga|pilates|gimnasio|gym|fitness|entreno|entrenamiento)/;
   const A_DEPORTE = { falda_mini: 'falda_deportiva', falda_midi: 'falda_deportiva', falda_plisada: 'falda_deportiva', falda_generica: 'falda_deportiva', camiseta: 'camiseta_tecnica', camiseta_tirantes: 'top_deportivo', top: 'top_deportivo', top_corto: 'top_deportivo', chaqueta: 'chaqueta_deportiva', pantalon_generico: 'jogger' };
   const SUB_EST = { pantalon_de_vestir: 'pantalon_vestir', camiseta_sin_mangas: 'camiseta_tirantes' }; // el vocabulario de la ficha de la estilista (28/10)
@@ -77,6 +77,10 @@ const Motor = (() => {
       if (m.lluvia_mala) f.lluvia_mala = true; if (m.deportiva) f.deportiva = true;
     }
     if (dep && ['arriba', 'abajo', 'capa', 'vestido'].includes(f.cat)) { f.deportiva = true; f.uso = 'deporte'; f.form = Math.min(f.form, 1); }
+    // 06/11 (Moda, revisión del clóset real): las zapatillas de deporte son deportivas (solo ellas van a Deporte) pero también valen para el día a día, sin «uso: deporte»
+    if (dep && f.cat === 'calzado') { f.deportiva = true; f.form = Math.min(f.form, 1); }
+    // lo que hace protagonista a una pieza aunque su color sea neutro (cuenta una vez por pieza en n_focos)
+    f.foco = /encaje|transparen|lentejuel|abullon|peplum|asimetric|un hombro|volant/.test(nomM);
     // color: el de la app; si es «Estampado» o vacío, el del nombre; vaquero = neutro siempre
     let col = p.color && p.color !== 'Estampado' ? p.color : null;
     if (!col) for (const [c, rs] of Object.entries(I.color.palabras_en_el_nombre)) if (rs.some(r => r.test(nom))) { col = c; break; }
@@ -187,14 +191,14 @@ const Motor = (() => {
     return { vol_arriba: A?.volumen ?? 1, vol_abajo: B?.volumen ?? 1, form_max: fmax, form_min: fmin, form_dif: fmax - fmin, form_media: media, form_media_menos_1: media - 1, form_media_menos_2: media - 2, form_media_mas_1: media + 1, form_media_mas_2: media + 2,
       n_estampados: hayConjunto ? 1 : estamp.length, conjunto_estampado: hayConjunto, n_acentos: acentos.length, n_colores: colores.length, colores,
       pareja_no: pares.some(([a, b]) => esPar(R.color.pares_no, a, b) && !(claros(a) && claros(b))), pareja_si: pares.some(([a, b]) => esPar(R.color.pares_si, a, b)), pareja_dudosa: pares.some(([a, b]) => esPar(R.color.pares_dudosos, a, b)),
-      clo_total: clo, clo_fuera: fuera, clo_en_rango: fuera === 0, capa_manga_larga: !!(C && C.manga !== 'sin_mangas'), tiene_abrigo: C?.rol === 'abrigo', capa_quitable: !!(C && C.rol !== 'abrigo'),
+      clo_total: clo, clo_fuera: fuera, clo_en_rango: fuera === 0, capa_manga_larga: !!(C && C.manga !== 'sin_mangas'), capa_cubre_hombros: !!(C && !String(C.subtipo).startsWith('chaleco')), tiene_abrigo: C?.rol === 'abrigo', capa_quitable: !!(C && C.rol !== 'abrigo'),
       n_capas: [l.capa, l.base_interior && l.base_interior._f.rol === 'capa_ligera'].filter(Boolean).length, capa_sin_base: !l.vestido && l.arriba?._f.rol === 'capa_ligera' && !l.base_interior, n_bases_arriba: bases,
       n_deportivas: ropa.filter(f => f.deportiva).length + (l.calzado?._f.deportiva ? 1 : 0), tonal: !!(A && B && A.familia === B.familia), contraste_valor: !!(A && B && ((A.valor === 'claro' && B.valor === 'oscuro') || (A.valor === 'oscuro' && B.valor === 'claro'))),
       cintura_al_aire: !!(A && B && l.como !== 'por_dentro' && ((A.largo === 'crop' && A.subtipo !== 'body' && (B.tiro === 'bajo' || (B.tiro === 'medio' && pf.cintura === 'no') || (B.tiro === 'medio' && pf.cintura == null))) || (A.largo === 'cintura' && B.tiro === 'bajo'))),
       cintura_marcada: !!(A && B && B.tiro === 'alto' && (['crop', 'cintura'].includes(A.largo) || l.como === 'por_dentro')),
       como: l.como || 'suelta', n_abajos, dos_denim_distintos: denim.length >= 2 && new Set(denim.map(f => f.color)).size > 1, usa_color_vetado: ropa.some(f => pf.evitarColores.includes(f.color)),
       pareja_rechazada_3: no.some(k => g.no[k] >= 3), parejas_gustadas: si, parejas_rechazadas: no.length, es_favorito: (g.fav || []).includes(ids2),
-      n_focos: ropa.filter(f => ['acento', 'vivo', 'suave'].includes(f.color_clase) || !['liso', 'rayas_finas'].includes(f.estampado) || ['brillo', 'cuero', 'volantes'].includes(f.tejido)).length,
+      n_focos: ropa.filter(f => ['acento', 'vivo', 'suave'].includes(f.color_clase) || !['liso', 'rayas_finas'].includes(f.estampado) || ['brillo', 'cuero', 'volantes'].includes(f.tejido) || f.foco).length,
       texturas_distintas: texturas.size, estilos_en_comun: Object.values(cuenta).filter(n => n >= 2).length, estilos_perfil_coinciden: pf.estilos.filter(e => estilos.has(e)).length, estilo_contrario: contrario,
       puntos_diag: Math.max(-.4, Math.min(.4, diag)), dias_desde_ultimo_uso: dias, usos_medios: usos, prenda_nueva_14d: ropaP.some(p => p.p?.creada && diasDesde(p.p.creada, hoy) <= 14),
       hay_estampado_fuerte: ropa.some(f => !['liso', 'rayas_finas'].includes(f.estampado)), acento_fuera_del_estampado: acentos.length > 0 && ropa.some(f => !['liso', 'rayas_finas'].includes(f.estampado)),
@@ -243,6 +247,7 @@ const Motor = (() => {
     if (pf.tacon_num != null && z.tacon_num > pf.tacon_num) s -= .6;
     if (B?.corte === 'acampanado') s += z.tacon === 'plano' ? -1 : .5;
     if (z.color === 'Negro' && ['Negro', 'Gris', 'Azul'].some(x => cols.has(x))) s += .4;
+    const V = B || l.vestido?._f; if (V && z.color === V.color) s += .1; if (Math.abs((z.form ?? 3) - media) <= 1) s += .1; // tono sobre tono y mismo registro (Moda, 06/11)
     if (z.color === 'Blanco') { if ((denim || cols.has('Gris') || cols.has('Blanco')) && media < 3) s += .45; if (media >= 3) s -= .3; if (ctx.lluvia) s -= .3; }
     if (['Marrón', 'Camel'].includes(z.color)) { if (fam.has('tierra') || denim || cols.has('Azul')) s += .4; if (cols.has('Negro')) s -= .3; }
     if (z.color === 'Beige' && fam.has('tierra')) s += .2;
@@ -264,12 +269,12 @@ const Motor = (() => {
   const soloDeporte = f => f.uso === 'deporte' && ['arriba', 'abajo', 'vestido', 'capa'].includes(f.cat);
   // 06/11 (Gabriela: «¿cómo vas a combinar un short de deporte con un top de verano rosa de volantes?»): al revés también; un look de deporte solo lleva ropa de deporte
   // o básicos lisos de algodón (camiseta, sudadera); nada con volantes, encaje, brillo, transparencias… Abajo, siempre ropa de deporte; la capa, deportiva o de abrigo técnico.
-  const ARREGLADO_RE = /volant|encaje|lencer|sat[eé]n|seda|lentejuel|transparen|terciopelo|brillo|peplum|halter|palabra de honor|asim[eé]tric|ganchillo|crochet|cors[eé]|fruncid|drapead|lazo|lunares|flores|cuadros|rayas/;
+  const ARREGLADO_RE = /volant|encaje|lencer|sat[eé]n|seda|lentejuel|transparen|terciopelo|brillo|peplum|halter|palabra de honor|asim[eé]tric|ganchillo|crochet|cors[eé]|fruncid|drapead|lazo|lunares|flores|cuadros|rayas|abullon|vuelo/;
   const aptoDeporte = p => { const f = p._f; if (f.uso === 'deporte') return true; const n = norm((p.p.nombre || '') + ' ' + (p.p.detalles || []).join(' ') + ' ' + (p.p.notas || ''));
     if (f.cat === 'abajo') return ['jogger', 'malla', 'falda_deportiva'].includes(f.subtipo);
     if (f.cat === 'capa') return ['chaqueta_deportiva', 'forro_polar', 'sudadera', 'plumifero', 'cortavientos'].includes(f.subtipo);
     if (f.cat === 'arriba') return ['camiseta_tecnica', 'top_deportivo', 'sudadera'].includes(f.subtipo) || (['camiseta', 'camiseta_tirantes', 'henley'].includes(f.subtipo) && !ARREGLADO_RE.test(n) && f.form <= 3 && f.largo !== 'crop');
-    return f.cat !== 'vestido'; };
+    return f.cat === 'calzado' ? !!f.deportiva : f.cat !== 'vestido'; };
   // 06/11 (Gabriela: «siguen habiendo combinaciones espantosas»): la temperatura de cada prenda era solo un descuento de puntos (K15) y salían tops de verano bajo un abrigo
   // de paño o sandalias a 12°. Ahora es fija: lo que está a más de 3° de su rango (el de su estación, o el de su tipo) no entra en el look de hoy.
   const vaHoy = (p, ctx) => { const f = p._f; return !((f.tmin != null && ctx.t_ref < f.tmin - 3) || (f.tmax != null && ctx.t_ref > f.tmax + 3)); };
@@ -277,6 +282,7 @@ const Motor = (() => {
     const dep = formula.ocasiones.includes('Deporte');
     ents = ents.filter(p => vaHoy(p, ctx) && (dep ? aptoDeporte(p) : !soloDeporte(p._f)));
     const zHoy = zapatos.filter(p => p.muestra || vaHoy(p, ctx)); if (zHoy.length) zapatos = zHoy;
+    if (dep) zapatos = zapatos.filter(p => p.muestra || aptoDeporte(p)); // en Deporte, solo zapatillas de deporte (unas de ante no)
     const H = r => formula.huecos.filter(h => h.rol === r), salida = [], parejas = [];
     const [hv] = H('vestido');
     if (hv) for (const v of cands(hv, ents)) parejas.push({ vestido: v, n: 0 });
@@ -324,16 +330,16 @@ const Motor = (() => {
     const c = camposLook(l, ctx, pf, hoy), e = entorno(l, c, ctx, pf), veto = vetar(e), pts = puntuar(l, c, e);
     // un look puesto ayer no es la primera idea: el peso del grupo «variedad» solo no lo baja lo bastante
     const ayer = c.dias_desde_ultimo_uso === 1 || c.dias_desde_ultimo_uso === 0 ? (c.es_favorito ? .05 : .15) : 0;
-    return { ...l, ctx, campos: c, veto, pts, nota: pts.total + veto.p / 4 - ayer + huella(hoy + claveRopa(l)) * .04, casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
+    return { ...l, ctx, campos: c, veto, pts, nota: pts.total + veto.p / 2 - ayer + huella(hoy + claveRopa(l)) * .04, casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
   }
   function elegir(cs, n, excluir) {
-    const ok = cs.filter(l => !l.veto.duros.length && !l.casi && !excluir.has(claveLook(l))).sort((a, b) => b.nota - a.nota), sel = [], usoA = new Map(), usoB = new Map(), usoF = new Map(), vistos = new Set(), gemelos = new Set();
+    const ok = cs.filter(l => !l.veto.duros.length && !l.casi && !excluir.has(claveLook(l))).sort((a, b) => b.nota - a.nota), sel = [], usoA = new Map(), usoB = new Map(), usoF = new Map(), usoZ = new Map(), vistos = new Set(), gemelos = new Set();
     for (const tope of [1, 2]) for (const l of ok) {
       if (sel.length >= n) break; if (l.nota < R.puntos.umbrales.mostrar_minimo && sel.length) break;
       const a = (l.arriba || l.vestido).id, b = l.abajo?.id, k = claveRopa(l), fA = (l.arriba || l.vestido)._f, fB = l.abajo?._f, gem = [fB?.color, fB?.corte, fA.color, fA.estampado, fA.manga].join('|');
       if (tope === 1 && gemelos.has(gem)) continue; // una de abajo y una de arriba que se ven casi iguales: solo si no hay otra cosa
-      if (vistos.has(k) || (usoA.get(a) || 0) >= tope || (b && tope === 1 && (usoB.get(b) || 0) >= 2) || (b && (usoB.get(b) || 0) >= Math.max(3, Math.ceil(n / 2))) || (usoF.get(l.formula.id) || 0) >= 2) continue;
-      vistos.add(k); gemelos.add(gem); sel.push(l); usoA.set(a, (usoA.get(a) || 0) + 1); if (b) usoB.set(b, (usoB.get(b) || 0) + 1); usoF.set(l.formula.id, (usoF.get(l.formula.id) || 0) + 1);
+      if (vistos.has(k) || (usoA.get(a) || 0) >= tope || (b && tope === 1 && (usoB.get(b) || 0) >= 2) || (b && (usoB.get(b) || 0) >= Math.max(3, Math.ceil(n / 2))) || (usoF.get(l.formula.id) || 0) >= 2 || (tope === 1 && l.calzado && (usoZ.get(l.calzado.id) || 0) >= Math.max(2, Math.ceil(n / 3)))) continue; // ningún zapato en más de un tercio, si hay otro
+      vistos.add(k); gemelos.add(gem); sel.push(l); usoA.set(a, (usoA.get(a) || 0) + 1); if (b) usoB.set(b, (usoB.get(b) || 0) + 1); usoF.set(l.formula.id, (usoF.get(l.formula.id) || 0) + 1); if (l.calzado) usoZ.set(l.calzado.id, (usoZ.get(l.calzado.id) || 0) + 1);
     }
     // sin dos seguidos con la misma prenda de arriba
     const out = [], resto = [...sel];
