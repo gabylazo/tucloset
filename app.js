@@ -2800,7 +2800,7 @@ function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; e
 // dónde se mide; las fotos se tocan para verlas en grande y se cambian con su propio botón (antes el selector de fotos tapaba la lupa y en el iPhone abría «subir
 // otra foto»); el diagnóstico en dos pestañas, Colores y Silueta, con la paleta en cuadros, los tres ejes del color en reglas, la silueta en barras a escala y una
 // sola columna de lo que favorece; el detalle, plegado. Propuesta de Producto: equipo/producto/diseno/diagnostico-referencias/INFORME.md, apdo. 4
-const FIG_MED = `<svg class="dx-fig" viewBox="0 0 80 156" aria-hidden="true"><circle cx="40" cy="13" r="9"/><path d="M36 23v6Q22 30 20 36Q21 48 24 56Q28 66 28 72Q20 84 19 96L26 152M44 23v6Q58 30 60 36Q59 48 56 56Q52 66 52 72Q60 84 61 96L54 152M40 104V152"/><path class="dx-l" data-l="pecho" d="M12 47H68"/><path class="dx-l" data-l="cintura" d="M18 70H62"/><path class="dx-l" data-l="cadera" d="M10 95H70"/></svg>`;
+const FIG_MED = `<svg class="dx-fig" viewBox="0 0 80 156" aria-hidden="true"><circle cx="40" cy="13" r="9"/><path d="M36 23v6Q22 30 20 36Q21 48 24 56Q28 66 28 72Q20 84 19 96L26 152M44 23v6Q58 30 60 36Q59 48 56 56Q52 66 52 72Q60 84 61 96L54 152M40 104V152"/><path class="dx-l" data-l="pecho" d="M20 47a20 4 0 1 0 40 0a20 4 0 1 0 -40 0"/><path class="dx-l" data-l="cintura" d="M26 70a14 3.5 0 1 0 28 0a14 3.5 0 1 0 -28 0"/><path class="dx-l" data-l="cadera" d="M17 95a23 4.5 0 1 0 46 0a23 4.5 0 1 0 -46 0"/></svg>`;
 const IC_CANDADO = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 const IC_BIEN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
 function panelDiagFotos() {
@@ -2815,7 +2815,8 @@ function panelDiagFotos() {
     <section class="dx-sec"><h2 class="dx-h">${t('Tus medidas', 'Your measurements')}</h2>${FIG_MED}
       <div class="dx-campos dos">${campo('altura', t('Altura', 'Height'), 'cm')}${campo('peso', t('Peso', 'Weight'), 'kg')}</div>
       <div class="dx-campos tres">${campo('pecho', t('Pecho', 'Bust'), 'cm')}${campo('cintura', t('Cintura', 'Waist'), 'cm')}${campo('cadera', t('Cadera', 'Hips'), 'cm')}</div>
-      <p class="dx-nota">${t('Con cinta métrica. Con pecho, cintura y cadera, tu silueta sale exacta.', 'With a tape measure. With bust, waist and hips, your figure comes out exact.')}</p></section>
+      <p class="dx-error" id="dx-med-error" aria-live="polite"></p>
+      <p class="dx-nota">${t('Rodea el cuerpo con la cinta: el pecho por lo más saliente, la cintura por lo más estrecho y la cadera por lo más ancho.', 'Wrap the tape around your body: bust at the fullest point, waist at the narrowest, hips at the widest.')}</p></section>
     <section class="dx-sec"><h2 class="dx-h">${t('Tus fotos', 'Your photos')}</h2>
       <div class="dx-fotos">${foto('selfie', t('Tu cara', 'Your face'), 'ic-camara')}${foto('cuerpo', t('Cuerpo entero', 'Full body'), 'ic-cuerpo')}</div>
       <details class="dx-mas"><summary>${t('Cómo hacer las fotos', 'How to take the photos')}</summary><div class="dx-cons">${consejos.map(([h, l]) => `<div><h3>${h}</h3><ul>${l.map(x => `<li>${IC_BIEN}${x}</li>`).join('')}</ul></div>`).join('')}</div></details></section>
@@ -2829,7 +2830,13 @@ function panelDiagFotos() {
       inp.oninput = () => {
         // la altura también en metros («1,65»): antes se rechazaba sin decir nada y no se guardaba
         const k = inp.dataset.med, txt = inp.value.trim().replace(',', '.'), v0 = parseFloat(txt), v = k === 'altura' && v0 > 1 && v0 < 2.5 ? Math.round(v0 * 100) : v0, ok = !txt || (v >= LIM[k][0] && v <= LIM[k][1]);
-        inp.setAttribute('aria-invalid', ok ? 'false' : 'true'); if (!ok) return;
+        inp.setAttribute('aria-invalid', ok ? 'false' : 'true');
+        // 06/11 (Gabriela: «las estoy poniendo en cm: pecho 28, cintura 27 y cadera 38»): eran anchos, no contornos; antes se ignoraban sin avisar
+        const malos = [...cap.querySelectorAll('[data-med][aria-invalid="true"]')].map(i => i.dataset.med), err = cap.querySelector('#dx-med-error');
+        err.textContent = !malos.length ? '' : malos.includes('altura') ? t('La altura, en cm (165) o en metros (1,65).', 'Height in cm (165) or metres (1.65).')
+          : malos.some(m => +(cap.querySelector(`[data-med="${m}"]`).value.replace(',', '.')) < LIM[m][0]) ? t('Parece el ancho: mide el contorno, con la cinta alrededor del cuerpo (una cintura suele medir entre 55 y 110 cm).', 'That looks like a width: measure all the way round with the tape (a waist is usually 55–110 cm).')
+          : t('Revisa esa cifra: parece demasiado grande.', 'Check that number: it looks too large.');
+        if (!ok) return;
         E.perfil = E.perfil || {}; const m = { ...(E.perfil.medidas || {}) }; if (txt) m[k] = v; else delete m[k]; E.perfil.medidas = m;
         clearTimeout(medT); medT = setTimeout(guardar, 400); $('dg-analizar').disabled = !(E.perfil.selfie || E.perfil.cuerpo || firmaMed());
       };

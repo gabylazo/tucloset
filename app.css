@@ -1636,3 +1636,7 @@ html{touch-action:manipulation}
 #p-estilo .es-cint button.on::after{content:none}
 .es-cuenta b{display:block;font-weight:400;color:var(--tinta);margin-bottom:4px}
 .es-cuenta{font-size:15px}
+
+/* 06/11: aviso de medidas que no son contornos (antes se ignoraban sin decir nada) */
+.dx-error{font-size:15px;line-height:1.45;color:#B3261E;margin:12px auto 0;max-width:300px}
+.dx-error:empty{display:none}
