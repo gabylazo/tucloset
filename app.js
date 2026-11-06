@@ -115,10 +115,11 @@ function pintarMisColores() {
   const mios = e ? [...new Set(E.prendas.filter(p => e.si.includes(p.color) && ['Arriba', 'Vestidos', 'Abrigo'].includes(p.tipo)).map(p => p.id))].slice(0, 6) : [];
   $('co-raiz').innerHTML = `<p class="co-sub">${t('Cuatro preguntas para saber qué colores te favorecen cerca de la cara. Mírate a la luz del día, sin maquillaje fuerte.', 'Four questions to find the colours that suit you near your face. Look in daylight, without heavy make-up.')}</p>`
     + PREG_COLOR.map(([k, q, ops]) => `<div class="co-preg"><b>${q[es]}</b><div class="co-ops">${ops.map(([v, a, b]) => `<button class="${r[k] === v ? 'on' : ''}" data-copreg="${k}" data-coval="${v}">${es ? b : a}</button>`).join('')}</div></div>`).join('')
-    + (e ? `<div class="co-res"><span class="mini-et">${t('Tu estación', 'Your season')}</span><h2>${e.n[es]}</h2><p>${e.d[es]}</p>
+    // 06/11: con la foto de la cara, las respuestas afinan el diagnóstico (no dan otra estación aparte)
+    + (E.perfil?.selfie && E.perfil?.diag?.color ? (listo ? `<div class="co-res dx-volver"><p>${t('Tus respuestas ya cuentan en tu diagnóstico.', 'Your answers now count in your analysis.')}</p><button class="boton" data-diag="ver-color">${t('Ver mis colores', 'See my colours')}</button></div>` : '') : e ? `<div class="co-res"><span class="mini-et">${t('Tu estación', 'Your season')}</span><h2>${e.n[es]}</h2><p>${e.d[es]}</p>
       <div class="co-tela">${e.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>
       <div class="co-dos"><div><span class="mini-et">${t('Te favorecen', 'Suit you')}</span><p>${e.si.map(x => colNom(x)).join(', ')}</p></div><div><span class="mini-et">${t('Mejor lejos de la cara', 'Better away from your face')}</span><p>${e.no.map(x => colNom(x)).join(', ')}</p></div></div>
-      ${mios.length ? `<span class="mini-et">${t('De tu clóset, para la cara', 'From your closet, for your face')}</span><div class="co-mias">${mios.map(id => `<button data-ficha="${id}"><img src="${urlFoto(P(id))}" alt=""></button>`).join('')}</div>` : ''}
+      ${mios.length ? `<span class="mini-et">${t('De tu clóset, para la cara', 'From your closet, for your face')}</span><div class="co-mias">${mios.map(id => `<button data-ficha="${id}"><img src="${urlCat(P(id))}" alt=""></button>`).join('')}</div>` : ''}
       <p class="co-nota">${t('Es una orientación, no una regla: si un color te hace feliz, póntelo. Hoy ya tiene en cuenta tus colores.', 'A guide, not a rule: if a colour makes you happy, wear it. Today already takes your colours into account.')}</p></div>` : '');
 }
 const colNom = c => idioma() === 'en' ? ({ Negro: 'black', Blanco: 'white', Gris: 'grey', Beige: 'beige', Camel: 'camel', Marrón: 'brown', Rojo: 'red', Rosa: 'pink', Naranja: 'orange', Amarillo: 'yellow', Verde: 'green', 'Azul claro': 'light blue', Azul: 'blue', Morado: 'purple' }[c] || c) : c.toLowerCase();
@@ -2746,7 +2747,8 @@ async function hacerDiagnostico(estado) {
 // 04/11 (Gabriela: «una foto te tiene que servir para todo… tú no puedes seleccionar tu tipo de cuerpo, lo tienes que hacer en la aplicación en función de la foto»):
 // las dos fotos del alta se analizan solas, en todas las versiones, cada vez que cambia una; el Pro aplica el resultado a sus looks y a su clóset
 const firmaMed = () => { const m = E.perfil?.medidas || {}; return m.pecho > 0 && m.cintura > 0 && m.cadera > 0 ? [m.pecho, m.cintura, m.cadera].join('-') : ''; };
-const firmaFotos = () => ({ selfie: E.perfil?.selfie?.size || 0, cuerpo: E.perfil?.cuerpo?.size || 0, med: firmaMed() });
+const firmaResp = () => { const r = E.perfil?.colores?.r || {}; return ['venas', 'metal', 'tono', 'contraste'].map(k => r[k] || '-').join(''); }; // al cambiar una respuesta de Mis colores se vuelve a calcular
+const firmaFotos = () => ({ selfie: E.perfil?.selfie?.size || 0, cuerpo: E.perfil?.cuerpo?.size || 0, med: firmaMed(), resp: firmaResp() });
 // las últimas 5 selfies analizadas (solo sus colores medidos, en este móvil, nunca en la cuenta): la estación sale de su media
 function carasGuardadas(c) {
   const f = firmaFotos().selfie, x = o => o && { L: o.L, a: o.a, b: o.b }; let h = [];
@@ -2757,9 +2759,10 @@ function carasGuardadas(c) {
 }
 // DIAG_V sube cuando cambia el análisis: las fotos guardadas en el móvil se vuelven a analizar solas, sin subirlas otra vez
 // (2, 06/11: la foto de cuerpo entero ya no hace caer el análisis y el color de los ojos se mide con el blanco del ojo como referencia;
-//  3, 06/11: piel y pelo con el mismo balance de blancos, las cuatro respuestas de Mis colores, media de las selfies, pies opcionales y medidas con cinta)
-const DIAG_V = 3;
-const diagPendiente = () => { const d = E.perfil?.diag, f = d?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo) || (a.med && a.med !== f.med) || ((a.selfie || a.cuerpo || a.med) && (d?.v || 1) < DIAG_V)); };
+//  3, 06/11: piel y pelo con el mismo balance de blancos, las cuatro respuestas de Mis colores, media de las selfies, pies opcionales y medidas con cinta;
+//  4, 06/11: en la silueta ya no cuentan el brazo que sujeta el móvil, los bolsos ni la mano en la cadera)
+const DIAG_V = 4;
+const diagPendiente = () => { const d = E.perfil?.diag, f = d?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo) || (a.med && a.med !== f.med) || (a.selfie && f.resp != null && a.resp !== f.resp) || ((a.selfie || a.cuerpo || a.med) && (d?.v || 1) < DIAG_V)); };
 let diagCorriendo = null, diagFallo = 0;
 const diagAuto = () => diagCorriendo || (diagCorriendo = hacerDiagnostico(() => { }).catch(() => { diagFallo++; return null; }).finally(() => { diagCorriendo = null; }));
 async function diagHastaAlDia() { let r = null; for (let i = 0; i < 3 && diagPendiente() && !diagFallo; i++) r = await diagAuto(); return r; }
@@ -2779,24 +2782,43 @@ function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; e
     <p>${AT ? t('Dos fotos para tus colores y tu silueta. Se quedan en tu móvil.', 'Two photos for your colours and figure. They stay on your phone.') : t('Una foto de tu cara y otra de cuerpo entero: la app analiza tus colores, tu silueta y la ropa que te favorece. Las fotos no salen de tu móvil.', 'A face photo and a full-body photo: the app analyses your colours, your figure and the clothes that suit you. Photos never leave your phone.')}</p>
     ${pf.selfie || pf.cuerpo ? `<p class="dg-d">${diagPendiente() && !diagFallo ? t('Analizando tus fotos…', 'Analysing your photos…') : t('No he podido leer tus fotos. Prueba con otras.', 'I could not read your photos. Try others.')}</p><button class="boton linea" data-diag="fotos">${t('Ver mis fotos', 'See my photos')}</button>` : `<button class="boton" data-diag="fotos">${t('Hacer las fotos', 'Take the photos')}</button>`}</section>`;
 }
+// 06/11 (Gabriela: «sigo esperando que rediseñes todo lo del perfil de tus medidas y fotos, tu diagnóstico, está horrible, lleno de texto, ya te expliqué cómo debe ser»;
+// «todo lo que favorece, la distribución espacial, la colorimetría, necesita un buen diseño de interface»): menos texto y gráficos. Medidas con una figura que enseña
+// dónde se mide; las fotos se tocan para verlas en grande y se cambian con su propio botón (antes el selector de fotos tapaba la lupa y en el iPhone abría «subir
+// otra foto»); el diagnóstico en dos pestañas, Colores y Silueta, con la paleta en cuadros, los tres ejes del color en reglas, la silueta en barras a escala y una
+// sola columna de lo que favorece; el detalle, plegado. Propuesta de Producto: equipo/producto/diseno/diagnostico-referencias/INFORME.md, apdo. 4
+const FIG_MED = `<svg class="dx-fig" viewBox="0 0 80 156" aria-hidden="true"><circle cx="40" cy="13" r="9"/><path d="M36 23v6Q22 30 20 36Q21 48 24 56Q28 66 28 72Q20 84 19 96L26 152M44 23v6Q58 30 60 36Q59 48 56 56Q52 66 52 72Q60 84 61 96L54 152M40 104V152"/><path class="dx-l" data-l="pecho" d="M12 47H68"/><path class="dx-l" data-l="cintura" d="M18 70H62"/><path class="dx-l" data-l="cadera" d="M10 95H70"/></svg>`;
+const IC_CANDADO = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const IC_BIEN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
 function panelDiagFotos() {
-  const pf = E.perfil || {};
-  const hueco = (k, tit, consejos) => `<label class="dg-hueco${pf[k] ? ' hecha' : ''}" data-k="${k}">${pf[k] ? `<img src="${URL.createObjectURL(pf[k])}" alt=""><button type="button" class="dg-ampliar" data-ampliar-diag="${k}" aria-label="${t('Ampliar la foto', 'Enlarge the photo')}"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5M10.5 8v5M8 10.5h5"/></svg></button>` : `<svg><use href="#${k === 'selfie' ? 'ic-camara' : 'ic-cuerpo'}"/></svg>`}<b>${tit}</b><small>${consejos}</small><input type="file" accept="image/*" data-dgfoto="${k}"></label>`;
-  // 06/11 (Gabriela: «te debe primero preguntar características físicas de peso, altura y tal, y las fotos son para clasificar tu silueta»): primero las medidas, después las fotos
-  const md = pf.medidas || {}, campo = (k, et, ay) => `<label class="dg-campo"><span>${et}</span><input type="text" inputmode="decimal" autocomplete="off" data-med="${k}" value="${md[k] ? String(md[k]).replace('.', idioma() === 'en' ? '.' : ',') : ''}" aria-describedby="dgm-${k}"><small id="dgm-${k}">${ay}</small></label>`;
-  const cap = abrirPanel(t('Tus medidas y tus fotos', 'Your measurements and photos'), `<p class="pn-lema">${t('Primero tus medidas y después dos fotos. Todo se queda en tu móvil.', 'First your measurements, then two photos. Everything stays on your phone.')}</p>
-    <h3 class="dg-sub">${t('Tus medidas', 'Your measurements')}</h3><p class="dg-d">${t('Con cinta métrica y ropa fina. Con pecho, cintura y cadera, tu silueta sale exacta.', 'With a tape measure over thin clothes. With bust, waist and hips, your figure comes out exact.')}</p>
-    <div class="dg-campos">${campo('altura', t('Altura (cm)', 'Height (cm)'), t('Descalza', 'Barefoot'))}${campo('peso', t('Peso (kg)', 'Weight (kg)'), t('Opcional', 'Optional'))}${campo('pecho', t('Pecho (cm)', 'Bust (cm)'), t('Por lo más ancho', 'At the fullest part'))}${campo('cintura', t('Cintura (cm)', 'Waist (cm)'), t('Por lo más estrecho', 'At the narrowest part'))}${campo('cadera', t('Cadera (cm)', 'Hips (cm)'), t('Por lo más ancho', 'At the fullest part'))}</div>
-    <h3 class="dg-sub">${t('Tus fotos', 'Your photos')}</h3>
-    <div class="dg-huecos">${hueco('selfie', t('Tu cara', 'Your face'), t('De frente, con luz natural, sin filtros ni gafas, el pelo suelto.', 'Facing the camera, in daylight, no filters or glasses, hair down.'))}${hueco('cuerpo', t('Cuerpo entero', 'Full body'), t('De pie y de frente, con ropa ajustada y los brazos un poco separados. Si salen los pies, mido también tus piernas.', 'Standing, facing the camera, fitted clothes, arms slightly apart. If your feet show, I also measure your legs.'))}</div>
+  const pf = E.perfil || {}, md = pf.medidas || {}, en = idioma() === 'en';
+  const campo = (k, et, ud) => `<label class="dx-campo"><span>${et}</span><span class="dx-in"><input type="text" inputmode="decimal" autocomplete="off" data-med="${k}" value="${md[k] ? String(md[k]).replace('.', en ? '.' : ',') : ''}"><i>${ud}</i></span></label>`;
+  const foto = (k, tit, ic) => pf[k]
+    ? `<div class="dx-foto"><button type="button" class="dx-ver" data-ampliar-diag="${k}" aria-label="${t('Ver en grande', 'View larger')}: ${tit}"><img src="${URL.createObjectURL(pf[k])}" alt=""><span class="dx-lupa" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></svg></span></button><b>${tit}</b><label class="dx-acc"><svg aria-hidden="true"><use href="#ic-camara"/></svg>${t('Cambiar', 'Change')}<input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label></div>`
+    : `<label class="dx-foto dx-sin"><span class="dx-caja"><svg aria-hidden="true"><use href="#${ic}"/></svg></span><b>${tit}</b><span class="dx-acc">${t('Añadir', 'Add')}</span><input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label>`;
+  const consejos = [[t('Tu cara', 'Your face'), [t('De frente', 'Facing the camera'), t('Con luz de día', 'In daylight'), t('Sin filtros ni gafas', 'No filters or glasses'), t('El pelo suelto', 'Hair down')]],
+    [t('Cuerpo entero', 'Full body'), [t('De pie y de frente', 'Standing, facing the camera'), t('Con ropa ajustada', 'In fitted clothes'), t('Los brazos un poco separados', 'Arms slightly away from your body'), t('Si salen los pies, mido también tus piernas', 'If your feet show, I also measure your legs')]]];
+  abrirPanel(t('Tus medidas y tus fotos', 'Your measurements and photos'), `<div class="dx">
+    <section class="dx-sec"><h2 class="dx-h">${t('Tus medidas', 'Your measurements')}</h2>${FIG_MED}
+      <div class="dx-campos dos">${campo('altura', t('Altura', 'Height'), 'cm')}${campo('peso', t('Peso', 'Weight'), 'kg')}</div>
+      <div class="dx-campos tres">${campo('pecho', t('Pecho', 'Bust'), 'cm')}${campo('cintura', t('Cintura', 'Waist'), 'cm')}${campo('cadera', t('Cadera', 'Hips'), 'cm')}</div>
+      <p class="dx-nota">${t('Con cinta métrica. Con pecho, cintura y cadera, tu silueta sale exacta.', 'With a tape measure. With bust, waist and hips, your figure comes out exact.')}</p></section>
+    <section class="dx-sec"><h2 class="dx-h">${t('Tus fotos', 'Your photos')}</h2>
+      <div class="dx-fotos">${foto('selfie', t('Tu cara', 'Your face'), 'ic-camara')}${foto('cuerpo', t('Cuerpo entero', 'Full body'), 'ic-cuerpo')}</div>
+      <details class="dx-mas"><summary>${t('Cómo hacer las fotos', 'How to take the photos')}</summary><div class="dx-cons">${consejos.map(([h, l]) => `<div><h3>${h}</h3><ul>${l.map(x => `<li>${IC_BIEN}${x}</li>`).join('')}</ul></div>`).join('')}</div></details></section>
     <div class="dg-estado" id="dg-estado" aria-live="polite"></div>
-    <button class="boton" id="dg-analizar" ${pf.selfie || pf.cuerpo || firmaMed() ? '' : 'disabled'}>${t('Analizar', 'Analyse')}</button>`, cap => {
+    <button class="boton dx-boton" id="dg-analizar" ${pf.selfie || pf.cuerpo || firmaMed() ? '' : 'disabled'}>${t('Analizar', 'Analyse')}</button>
+    <p class="dx-priv">${IC_CANDADO}${t('Todo se queda en tu móvil', 'Everything stays on your phone')}</p></div>`, cap => {
     const LIM = { altura: [120, 220], peso: [30, 250], pecho: [60, 170], cintura: [45, 170], cadera: [60, 180] }; let medT = 0;
-    cap.querySelectorAll('[data-med]').forEach(inp => inp.oninput = () => {
-      const k = inp.dataset.med, txt = inp.value.trim().replace(',', '.'), v = parseFloat(txt), ok = !txt || (v >= LIM[k][0] && v <= LIM[k][1]);
-      inp.setAttribute('aria-invalid', ok ? 'false' : 'true'); if (!ok) return;
-      E.perfil = E.perfil || {}; const m = { ...(E.perfil.medidas || {}) }; if (txt) m[k] = v; else delete m[k]; E.perfil.medidas = m;
-      clearTimeout(medT); medT = setTimeout(guardar, 400); $('dg-analizar').disabled = !(E.perfil.selfie || E.perfil.cuerpo || firmaMed());
+    cap.querySelectorAll('[data-med]').forEach(inp => {
+      const l = cap.querySelector(`.dx-l[data-l="${inp.dataset.med}"]`);
+      if (l) { inp.onfocus = () => l.classList.add('on'); inp.onblur = () => l.classList.remove('on'); }
+      inp.oninput = () => {
+        const k = inp.dataset.med, txt = inp.value.trim().replace(',', '.'), v = parseFloat(txt), ok = !txt || (v >= LIM[k][0] && v <= LIM[k][1]);
+        inp.setAttribute('aria-invalid', ok ? 'false' : 'true'); if (!ok) return;
+        E.perfil = E.perfil || {}; const m = { ...(E.perfil.medidas || {}) }; if (txt) m[k] = v; else delete m[k]; E.perfil.medidas = m;
+        clearTimeout(medT); medT = setTimeout(guardar, 400); $('dg-analizar').disabled = !(E.perfil.selfie || E.perfil.cuerpo || firmaMed());
+      };
     });
     cap.querySelectorAll('[data-dgfoto]').forEach(inp => inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; try { const r = await procesarFoto(f); E.perfil = E.perfil || {}; E.perfil[inp.dataset.dgfoto] = r.blob; await guardar(); panelDiagFotos(); } catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); } });
     $('dg-analizar').onclick = async () => {
@@ -2812,34 +2834,79 @@ function panelDiagFotos() {
 const PIEL_N = { clara: ['clara', 'Fair'], media: ['media', 'Medium'], morena: ['morena', 'Tan'], oscura: ['oscura', 'Deep'] };
 const PELO_N = { negro: ['negro', 'Black'], castano_oscuro: ['castaño oscuro', 'Dark brown'], castano: ['castaño', 'Brown'], castano_claro: ['castaño claro', 'Light brown'], rubio_oscuro: ['rubio oscuro', 'Dark blonde'], rubio: ['rubio', 'Blonde'], pelirrojo: ['pelirrojo', 'Red'], canoso: ['canoso', 'Grey'] };
 const OJOS_N = { verde: ['verdes', 'Green'], azul: ['azules', 'Blue'], gris: ['grises', 'Grey'], avellana: ['avellana', 'Hazel'], marron: ['marrones', 'Brown'], marron_oscuro: ['marrón oscuro', 'Dark brown'] };
-async function panelDiag(pendientes = []) {
-  const dg = E.perfil?.diag || {}, es = idioma() === 'en' ? 1 : 0, m = medidasLocales(), c = dg.color, b = dg.cuerpo, pro = planDemo() === 'pro';
+const METALES = [['oro rosa', '#D9A38C', ['Oro rosa', 'Rose gold']], ['oro', '#C9A24B', ['Oro', 'Gold']], ['plata', '#B9BDC2', ['Plata', 'Silver']], ['bronce', '#9C6B3C', ['Bronce', 'Bronze']]];
+// la silueta en barras a escala: con la cinta, pecho, cintura y cadera en cm; con la foto, hombros, cintura y cadera en proporción
+function barrasSilueta(b) {
+  const md = E.perfil?.medidas || {}, cinta = b.fuente === 'medidas' && md.pecho > 0 && md.cintura > 0 && md.cadera > 0;
+  const filas = cinta ? [[t('Pecho', 'Bust'), md.pecho], [t('Cintura', 'Waist'), md.cintura], [t('Cadera', 'Hips'), md.cadera]]
+    : [[t('Hombros', 'Shoulders'), b.ratios.hombros_cadera || 1], [t('Cintura', 'Waist'), b.ratios.cintura_cadera || .7], [t('Cadera', 'Hips'), 1]];
+  const max = Math.max(...filas.map(f => f[1])), lect = filas.map(([n, v]) => cinta ? `${n} ${String(v).replace('.', ',')} cm` : n).join(', ');
+  return `<div class="dx-barras" role="img" aria-label="${lect}">${filas.map(([n, v]) => `<span>${n}</span><div><i style="width:${Math.round(v / max * 100)}%"></i></div><span>${cinta ? String(v).replace('.', ',') : ''}</span>`).join('')}</div>`;
+}
+const listaFavor = (l, cls = '') => `<ul class="dx-lista${cls}">${l.map(x => `<li>${cls ? '' : IC_BIEN}<span>${x}</span></li>`).join('')}</ul>`;
+const fotosCloset = ps => `<div class="dx-closet">${ps.map(p => `<button data-ficha="${p.id}" aria-label="${(p.nombre || '').replace(/"/g, '')}"><img src="${urlCat(p)}" alt=""></button>`).join('')}</div>`;
+async function panelDiag(pendientes = [], tab) {
+  const pf = E.perfil || {}, dg = pf.diag || {}, es = idioma() === 'en' ? 1 : 0, m = medidasLocales(), c = dg.color, b = dg.cuerpo, pro = planDemo() === 'pro';
   let R = null; try { R = (await diagMod()).R; } catch (e) { }
+  tab = tab || (c ? 'color' : 'silueta');
   const conf = x => x >= .75 ? t('alta', 'high') : x >= .5 ? t('media', 'medium') : t('baja', 'low');
-  const subt = c ? (c.ejes.t > .2 ? t('cálido', 'warm') : c.ejes.t < -.2 ? t('frío', 'cool') : t('neutro', 'neutral')) : '';
-  const contr = m ? (m.contraste >= 45 ? t('alto', 'high') : m.contraste >= 28 ? t('medio', 'medium') : t('bajo', 'low')) : '';
+  const pista = (frase, izq, der, v) => `<div class="dx-pista"><b>${frase}</b><div class="dx-raya" aria-hidden="true"><span>${izq}</span><div><i style="left:${Math.round((Math.max(-1, Math.min(1, v)) + 1) * 50)}%"></i></div><span>${der}</span></div></div>`;
+  const tres = (v, a, b2, c2) => v < -.2 ? a : v > .2 ? c2 : b2;
   const deMio = c && pro ? E.prendas.filter(p => c.si.includes(p.color) && ['Arriba', 'Vestidos', 'Abrigo'].includes(p.tipo)).slice(0, 6) : [];
   const favor = b && pro ? E.prendas.filter(p => ['Arriba', 'Abajo', 'Vestidos'].includes(p.tipo)).map(p => [p, puntosDiag([p])]).filter(x => x[1] > 0).sort((x, y) => y[1] - x[1]).slice(0, 6).map(x => x[0]) : [];
-  const avisos = [...pendientes, ...[...(dg.avisos?.cara || []), ...(dg.avisos?.cuerpo || [])].filter(p => !p.fatal).map(p => textoProb(R, p.k))].filter(Boolean);
-  const html = `${c ? `<section class="dg-sec"><h2 class="dg-h">${t('Tus colores', 'Your colours')}</h2><div class="dg-tela grande">${c.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>
-      <h3 class="dg-nom">${c.n[es]}</h3><p class="dg-d">${c.d[es]}</p>
-      ${m ? `<div class="dg-medido">${[['piel', PIEL_N[m.pielN] ? t('Piel ' + PIEL_N[m.pielN][0], PIEL_N[m.pielN][1] + ' skin') : t('Piel', 'Skin')], ['pelo', PELO_N[m.peloN] ? t('Pelo ' + PELO_N[m.peloN][0], PELO_N[m.peloN][1] + ' hair') : t('Pelo', 'Hair')], ['ojos', OJOS_N[m.ojosN] ? t('Ojos ' + OJOS_N[m.ojosN][0], OJOS_N[m.ojosN][1] + ' eyes') : t('Ojos', 'Eyes')]].filter(([k]) => m[k]).map(([k, n]) => `<span><i style="background:${m[k]}"></i>${n}</span>`).join('')}</div>
-        <p class="dg-d">${t(`Subtono ${subt} y contraste ${contr}.`, `${cap(subt)} undertone and ${contr} contrast.`)}${m.fotos > 1 ? ' ' + t(`Media de tus ${m.fotos} fotos de cara.`, `Average of your ${m.fotos} face photos.`) : ''}</p>` : ''}
-      <div class="dg-dos"><div><h4>${t('Te favorecen', 'Suit you')}</h4><p>${c.si.map(colNom).join(', ')}</p></div><div><h4>${t('Mejor lejos de la cara', 'Better away from your face')}</h4><p>${c.no.map(colNom).join(', ')}</p></div></div>
-      <p class="dg-d"><b>${t('Metal', 'Metal')}:</b> ${c.metal}. ${es ? '' : c.consejo}</p>
-      ${deMio.length ? `<h4>${t('De tu clóset, para la cara', 'From your closet, near your face')}</h4><div class="co-mias">${deMio.map(p => `<button data-ficha="${p.id}"><img src="${urlFoto(p)}" alt=""></button>`).join('')}</div>` : ''}</section>` : ''}
-    ${b ? `<section class="dg-sec"><h2 class="dg-h">${t('Tu silueta', 'Your figure')}</h2><div class="dg-sil">${siluetaSVG([Math.round(42 * b.ratios.hombros_cadera), Math.round(42 * b.ratios.cintura_cadera), 42])}<div><h3 class="dg-nom">${b.n[es]}</h3><p class="dg-d">${b.d[es]}</p>${b.propN ? `<p class="dg-d">${b.propN[es]}: ${b.propD[es].charAt(0).toLowerCase() + b.propD[es].slice(1)}</p>` : ''}<p class="dg-d">${b.fuente === 'medidas' ? t('Según tus medidas', 'From your measurements') + (b.foto && b.foto !== b.k && R ? '. ' + t('Tu foto da ', 'Your photo says ') + R.silueta.tipos[b.foto].n[es].toLowerCase() : '') : t('Según tu foto', 'From your photo')}${b.altura ? ' · ' + (b.altura / 100).toLocaleString(idioma() === 'en' ? 'en' : 'es', { minimumFractionDigits: 2 }) + ' m' : ''}.</p></div></div>
-      <div class="dg-dos"><div><h4>${t('Te favorece', 'Flatters you')}</h4><ul>${b.favorece[es].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>${t('Mejor evitar', 'Better avoid')}</h4><ul>${b.evitar[es].map(x => `<li>${x}</li>`).join('')}</ul></div></div>
-      ${favor.length ? `<h4>${t('De tu clóset, lo que más te favorece', 'From your closet, what suits you most')}</h4><div class="co-mias">${favor.map(p => `<button data-ficha="${p.id}"><img src="${urlFoto(p)}" alt=""></button>`).join('')}</div>` : ''}</section>` : ''}
-    <section class="dg-sec"><p class="dg-d">${pro ? t('Hoy y tus looks ya tienen en cuenta este diagnóstico.', 'Today and your looks already use this analysis.') : t('Tus looks ya tienen en cuenta tus colores. Con el Pro, también tu silueta, y ves qué prendas de tu clóset te favorecen.', 'Your looks already use your colours. With Pro, your figure too, and you see which of your clothes suit you.')}${c ? ` ${t('Confianza en los colores', 'Colour confidence')}: ${conf(c.confianza)}.` : ''}${b ? ` ${t('En la silueta', 'Figure')}: ${conf(b.confianza)}.` : ''}</p>
-      ${avisos.length ? `<ul class="dg-avisos">${avisos.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
-      ${grupoP('', filaP({ attr: 'data-diag="fotos"', ic: 'camara', tit: t('Cambiar mis medidas y fotos', 'Change my measurements and photos') }))}
-      <p class="pn-nota">${t('Es una orientación, no una regla: si algo te hace feliz, póntelo. Tus fotos y los colores medidos se quedan en este móvil; en tu cuenta solo se guarda el resultado.', 'A guide, not a rule: if something makes you happy, wear it. Your photos and measured colours stay on this phone; only the result is saved to your account.')}</p></section>`;
-  abrirPanel(t('Tu diagnóstico', 'Your analysis'), html, cap => cap.addEventListener('click', e => { if (e.target.closest('[data-ir],[data-ficha],[data-diag]')) setTimeout(() => cap.remove(), 0); }));
+  const avisosC = (dg.avisos?.cara || []).filter(p => !p.fatal).map(p => textoProb(R, p.k)), avisosB = (dg.avisos?.cuerpo || []).filter(p => !p.fatal).map(p => textoProb(R, p.k));
+  const falta = (txt) => `<div class="dx-falta"><p>${txt}</p><button class="boton linea" data-diag="fotos">${t('Añadir', 'Add')}</button></div>`;
+  let col = falta(t('Con una foto de tu cara, te digo qué colores te favorecen.', 'With a photo of your face, I tell you which colours suit you.'));
+  if (c) {
+    const metales = METALES.filter(([k]) => c.metal.includes(k)).filter(([k], i, a) => !(k === 'oro' && a.some(x => x[0] === 'oro rosa') && !/oro(?! rosa)/.test(c.metal.replace('oro rosa', ''))));
+    const rasgos = m ? [['piel', PIEL_N[m.pielN], t('Piel ', '') , t('', ' skin')], ['pelo', PELO_N[m.peloN], t('Pelo ', ''), t('', ' hair')], ['ojos', OJOS_N[m.ojosN], t('Ojos ', ''), t('', ' eyes')]].filter(([k]) => m[k]) : [];
+    col = `<div class="dx-cab"><span>${t('Tu estación', 'Your season')}</span><h2>${c.n[es]}</h2><p>${c.d[es]}</p></div>
+      <div class="dx-paleta" role="img" aria-label="${t('Tu paleta', 'Your palette')}">${c.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>
+      ${rasgos.length ? `<div class="dx-rasgos">${rasgos.map(([k, n, a, z]) => `<div><i style="background:${m[k]}"></i><span>${n ? (es ? n[1] + z : a + n[0]) : cap(k)}</span></div>`).join('')}</div>` : ''}
+      <div class="dx-pistas">${pista(tres(c.ejes.t, t('Subtono frío', 'Cool undertone'), t('Subtono neutro', 'Neutral undertone'), t('Subtono cálido', 'Warm undertone')), t('Frío', 'Cool'), t('Cálido', 'Warm'), c.ejes.t)}
+        ${pista(tres(-c.ejes.v, t('Tonos claros', 'Light tones'), t('Tonos medios', 'Medium tones'), t('Tonos profundos', 'Deep tones')), t('Claros', 'Light'), t('Profundos', 'Deep'), -c.ejes.v)}
+        ${pista(tres(c.ejes.i, t('Colores suaves', 'Soft colours'), t('Intensidad media', 'Medium intensity'), t('Colores vivos', 'Bright colours')), t('Suaves', 'Soft'), t('Vivos', 'Bright'), c.ejes.i)}</div>
+      <section class="dx-sec"><h3 class="dx-h3">${t('Mejor lejos de la cara', 'Better away from your face')}</h3><div class="dx-lejos">${c.no.map(x => `<div><i style="background:${COLORES.find(q => q[0] === x)?.[1] || '#ccc'}"></i><span>${cap(colNom(x))}</span></div>`).join('')}</div></section>
+      ${metales.length ? `<section class="dx-sec"><h3 class="dx-h3">${t('Tu metal', 'Your metal')}</h3><div class="dx-metal">${metales.map(([k, h, n]) => `<div><i style="background:radial-gradient(circle at 35% 30%,#fff 0,${h} 45%,${h} 100%)"></i><span>${n[es]}</span></div>`).join('')}</div>${!es && c.consejo ? `<p class="dx-consejo">${c.consejo}</p>` : ''}</section>` : ''}
+      ${deMio.length ? `<section class="dx-sec"><h3 class="dx-h3">${t('De tu clóset, para la cara', 'From your closet, near your face')}</h3>${fotosCloset(deMio)}</section>` : ''}
+      <details class="dx-mas"><summary>${t('Cómo lo he medido', 'How I measured it')}</summary><ul class="dx-det">
+        ${m?.fotos > 1 ? `<li>${t(`Media de tus ${m.fotos} fotos de cara`, `Average of your ${m.fotos} face photos`)}</li>` : ''}
+        ${m ? `<li>${t('Contraste', 'Contrast')}: ${m.contraste >= 45 ? t('alto', 'high') : m.contraste >= 28 ? t('medio', 'medium') : t('bajo', 'low')}</li>` : ''}
+        <li>${t('Fiabilidad', 'Confidence')}: ${conf(c.confianza)}</li>${avisosC.map(x => `<li>${x}</li>`).join('')}</ul>
+        <button class="dx-enl" data-ir="colores">${t('Afinar con cuatro preguntas', 'Fine-tune with four questions')}</button></details>`;
+  }
+  let sil = falta(t('Con tus medidas o una foto de cuerpo entero, te digo tu silueta.', 'With your measurements or a full-body photo, I tell you your figure.'));
+  if (b) {
+    const pr = b.ratios?.pierna, fotoDice = b.foto && b.foto !== b.k && R ? R.silueta.tipos[b.foto].n[es].toLowerCase() : '';
+    sil = `<div class="dx-cab"><span>${t('Tu silueta', 'Your figure')}</span><h2>${b.n[es]}</h2><p>${b.d[es]}</p></div>
+      ${barrasSilueta(b)}
+      ${b.prop && pr ? `<div class="dx-pistas">${pista(b.propN[es], t('Torso largo', 'Long torso'), t('Piernas largas', 'Long legs'), (pr - .47) / .06)}</div>` : ''}
+      <section class="dx-sec"><h3 class="dx-h3">${t('Te favorece', 'Flatters you')}</h3>${listaFavor(b.favorece[es])}</section>
+      ${favor.length ? `<section class="dx-sec"><h3 class="dx-h3">${t('De tu clóset, lo que más te favorece', 'From your closet, what suits you most')}</h3>${fotosCloset(favor)}</section>` : ''}
+      <details class="dx-mas"><summary>${t('Mejor evitar', 'Better avoid')}</summary>${listaFavor(b.evitar[es], ' sin')}</details>
+      <details class="dx-mas"><summary>${t('Cómo lo he medido', 'How I measured it')}</summary><ul class="dx-det">
+        <li>${b.fuente === 'medidas' ? t('Con tus medidas', 'With your measurements') : t('Con tu foto de cuerpo entero', 'With your full-body photo')}${b.altura ? ' (' + (b.altura / 100).toLocaleString(es ? 'en' : 'es', { minimumFractionDigits: 2 }) + ' m)' : ''}</li>
+        ${fotoDice ? `<li>${t('Tu foto da ', 'Your photo says ') + fotoDice}</li>` : ''}
+        <li>${t('Fiabilidad', 'Confidence')}: ${conf(b.confianza)}</li>${avisosB.map(x => `<li>${x}</li>`).join('')}</ul></details>`;
+  }
+  const html = `<div class="dx">${pendientes.length ? `<ul class="dx-avisos">${pendientes.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
+    <div class="dx-tabs" role="tablist">${[['color', t('Colores', 'Colours')], ['silueta', t('Silueta', 'Figure')]].map(([k, n]) => `<button role="tab" id="dxt-${k}" aria-controls="dxp-${k}" aria-selected="${tab === k}" data-dxtab="${k}">${n}</button>`).join('')}</div>
+    <div class="dx-panel" role="tabpanel" id="dxp-color" aria-labelledby="dxt-color" ${tab === 'color' ? '' : 'hidden'}>${col}</div>
+    <div class="dx-panel" role="tabpanel" id="dxp-silueta" aria-labelledby="dxt-silueta" ${tab === 'silueta' ? '' : 'hidden'}>${sil}</div>
+    ${!pro && (c || b) ? `<p class="dx-nota">${t('Con el Pro, tus looks usan también tu silueta y ves qué prendas de tu clóset te favorecen.', 'With Pro, your looks also use your figure and you see which of your clothes suit you.')}</p>` : ''}
+    <button class="dx-cambiar" data-diag="fotos"><svg aria-hidden="true"><use href="#ic-camara"/></svg>${t('Cambiar mis medidas y fotos', 'Change my measurements and photos')}</button>
+    <p class="dx-priv">${IC_CANDADO}${t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`;
+  abrirPanel(t('Tu diagnóstico', 'Your analysis'), html, cap => cap.addEventListener('click', e => {
+    const tb = e.target.closest('[data-dxtab]');
+    if (tb) { const k = tb.dataset.dxtab; cap.querySelectorAll('[data-dxtab]').forEach(x => x.setAttribute('aria-selected', x === tb)); cap.querySelectorAll('.dx-panel').forEach(p => { p.hidden = p.id !== 'dxp-' + k; }); cap.querySelector('.pn-cuerpo')?.scrollTo?.({ top: 0 }); return; }
+    if (e.target.closest('[data-ir],[data-ficha],[data-diag]')) setTimeout(() => cap.remove(), 0);
+  }));
 }
 document.addEventListener('click', async e => { const b = e.target.closest('[data-vercomo]'); if (!b) return; const k = b.dataset.vercomo; PLAN_URL = null; try { localStorage.setItem('tc_plan', k); } catch (er) { }
   E.perfil = E.perfil || {}; E.perfil.verComo = k; E.propuestas = []; E.generados = []; await guardar(); pintarYo(); toast(t(`Viendo la app como ${nomPlan(k)}. Tu ropa y tus looks siguen igual.`, `Viewing the app as ${nomPlan(k)}. Your clothes and looks stay the same.`)); });
-document.addEventListener('click', e => { const b = e.target.closest('[data-diag]'); if (!b) return; const k = b.dataset.diag; if (k === 'plan') panelPlan(); else if (k === 'fotos') panelDiagFotos(); else panelDiag(); });
+document.addEventListener('click', async e => { const b = e.target.closest('[data-diag]'); if (!b) return; const k = b.dataset.diag; if (k === 'plan') return panelPlan(); if (k === 'fotos') return panelDiagFotos();
+  if (diagPendiente() && !diagFallo) { toast(t('Analizando…', 'Analysing…')); await diagHastaAlDia(); }
+  const dg = E.perfil?.diag; if (!dg?.color && !dg?.cuerpo) return panelDiagFotos(); panelDiag([], k.split('-')[1]); });
 function pintarYo() {
   const pf = E.perfil || {}, es = idioma() === 'en' ? 1 : 0;
   const fila = (attr, tit, val, oro, flecha = true) => `<button class="item" ${attr}>${tit}<span class="valor${oro ? ' oro' : ''}">${val}${flecha ? '<svg><use href="#ic-flecha"/></svg>' : ''}</span></button>`;
@@ -2856,12 +2923,12 @@ function pintarYo() {
   $('yo-ley').textContent = !base.length ? '' : idioma() === 'en' ? 'The colours of your closet' : `Tu clóset es ${yy(base)}${luz.length ? `; ${luz.length > 1 ? 'el ' + min(luz[0]) + ' y el ' + min(luz[1]) + ' le dan' : 'el ' + min(luz[0]) + ' le da'} la luz` : ''}`;
   $('yo-pal').classList.toggle('oculto', !ord.length);
   const sil = pf.selfie && pf.cuerpo ? t('fotos listas', 'photos ready') : pf.selfie || pf.cuerpo ? t('falta una foto', 'one photo missing') : t('por descubrir', 'to discover');
-  const ests = (pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).slice(0, 2), colO = pf.colores?.est ? EST_COLOR[pf.colores.est] : null;
+  const ests = (pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean), colO = pf.colores?.est ? EST_COLOR[pf.colores.est] : null;
   const ent = (attr, tit, val) => `<button class="y3-a" ${attr}>${tit}<small>${val}</small></button>`;
   const dg = pf.diag, pend = diagPendiente() && !diagFallo, mira = (k, f) => dg?.[k] ? min(dg[k].n[es]) : pf[f] ? (pend ? t('analizando…', 'analysing…') : t('repite la foto', 'retake the photo')) : t('falta la foto', 'photo missing');
-  $('yo-lista').innerHTML = ent(dg?.cuerpo ? 'data-diag="ver"' : 'data-diag="fotos"', t('Mi silueta', 'My figure'), mira('cuerpo', 'cuerpo'))
-    + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? ests.map(min).join(t(' y ', ' and ')) : t('elígelo', 'choose it'))
-    + ent(dg?.color ? 'data-diag="ver"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
+  $('yo-lista').innerHTML = ent(dg?.cuerpo || pf.cuerpo ? 'data-diag="ver-silueta"' : 'data-diag="fotos"', t('Mi silueta', 'My figure'), mira('cuerpo', 'cuerpo'))
+    + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? (ests.length > 2 ? ests.slice(0, 2).map(min).join(', ') + ` +${ests.length - 2}` : ests.map(min).join(t(' y ', ' and '))) : t('elígelo', 'choose it'))
+    + ent(dg?.color || pf.selfie ? 'data-diag="ver-color"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
   let ver = $('yo-ver'); if (!ver) { ver = document.createElement('div'); ver.id = 'yo-ver'; $('yo-lista').after(ver); }
   ver.innerHTML = `<h2 class="es-tit">${t('Ver la app como', 'View the app as')}</h2><div class="at-fila at-vj-ops">${VERSIONES.map(k => `<button class="${planDemo() === k ? 'on' : ''}" data-vercomo="${k}" aria-pressed="${planDemo() === k}">${nomPlan(k)}<span class="at-dos" aria-hidden="true"></span></button>`).join('')}</div>`
     + (enGratis() && E.prendas.length > TOPE_GRATIS ? `<p class="yo-ver-n">${t(`En la gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`)}</p>` : '');
@@ -3115,9 +3182,11 @@ function pintarCuerpo() { // 04/11: ya no se elige a mano; sale de la foto de cu
   if (!pf.cuerpo) { sub.textContent = t('Con la foto de cuerpo entero, la app te dice tu tipo de cuerpo. Puedes hacerla ahora o más tarde en Yo.', 'With the full-body photo, the app tells you your body type. Take it now or later in Me.'); sil.innerHTML = ''; fav.innerHTML = `<button class="boton linea" data-ir="silueta">${t('Hacer la foto', 'Take the photo')}</button>`; return; }
   if (diagPendiente() && !diagFallo) { sub.textContent = t('Midiendo tu silueta en la foto…', 'Measuring your figure in the photo…'); sil.innerHTML = ''; fav.innerHTML = ''; diagHastaAlDia().then(() => { if (E.pantalla === 'cuerpo') pintarCuerpo(); }); return; }
   if (!b) { sub.textContent = t('No he podido medir tu silueta en esa foto. Prueba con otra de pie, de frente y hasta los pies.', 'I could not measure your figure in that photo. Try another one standing, facing the camera, head to toe.'); sil.innerHTML = ''; fav.innerHTML = `<button class="boton linea" data-ir="silueta">${t('Cambiar la foto', 'Change the photo')}</button>`; return; }
-  sub.textContent = t('Lo ha medido la app en tu foto de cuerpo entero.', 'Measured by the app in your full-body photo.');
-  sil.innerHTML = `<div>${siluetaSVG([Math.round(42 * b.ratios.hombros_cadera), Math.round(42 * b.ratios.cintura_cadera), 42])}<span>${b.n[es]}</span></div>`;
-  fav.innerHTML = `<p class="tc-d">${b.d[es]}</p><p class="tc-t">${t('Te favorece', 'Flatters you')}</p><ul class="tc-l">${b.favorece[es].map(x => `<li>${x}</li>`).join('')}</ul>`;
+  // 06/11 (Gabriela: «en tu tipo de cuerpo, el desglose de lo que te favorece está suelto en dos columnas y no se entiende bien, está regado»): las barras de la
+  // silueta y una sola columna, como en el diagnóstico
+  sub.textContent = b.fuente === 'medidas' ? t('Según tus medidas.', 'From your measurements.') : t('Medido en tu foto de cuerpo entero.', 'Measured in your full-body photo.');
+  sil.innerHTML = '';
+  fav.innerHTML = `<div class="dx tc-dx"><div class="dx-cab"><h2>${b.n[es]}</h2><p>${b.d[es]}</p></div>${barrasSilueta(b)}<h3 class="dx-h3">${t('Te favorece', 'Flatters you')}</h3>${listaFavor(b.favorece[es])}</div>`;
 }
 document.addEventListener('click', async e => {
   const b = e.target.closest('[data-tcuerpo]'); if (!b) return;
@@ -3160,15 +3229,23 @@ function puntosEstilo(ps, fuertes, estamp) {
   }
   return s / el.length;
 }
+// 06/11 (Gabriela: «cuando selecciono mi estilo o mis estilos, debería dejarme guardar todas las que elija, máximo 5 para identificarse; no seleccionar y ya, no sé
+// qué pasa después con esa selección»): hasta cinco; lo elegido es un borrador hasta pulsar «Guardar» (desde Yo) o «Seguir» (en el alta), y al guardar se dice
+// para qué sirve. Antes, desde Yo, «Seguir» llevaba a los planes
+const MAX_ESTILOS = 5;
 function pintarEstilo() {
   const es = idioma() === 'en' ? 1 : 0;
   if (E.perfil?.estilos?.some(k => ESTILO_VIEJO[k])) { E.perfil.estilos = [...new Set(E.perfil.estilos.map(k => ESTILO_VIEJO[k] || k))]; guardar(); }
-  const el = E.perfil?.estilos || [];
+  if (E.pantalla !== 'estilo') { E.esDesde = ['cuerpo', 'planes', 'silueta', 'alta'].includes(E.pantalla) ? 'alta' : 'yo'; E.esBorr = [...(E.perfil?.estilos || [])]; }
+  const el = E.esBorr || [], yo = E.esDesde === 'yo';
   if (E.esFam == null) { const pri = ESTILOS.find(x => x.k === el[0]); E.esFam = pri ? pri.f : 0; }
-  $('es-sub').textContent = t('¿Con cuál te identificas? Elige uno o dos.', 'Which one feels like you? Pick one or two.');
+  $('es-sub').textContent = t('¿Con cuáles te identificas? Elige hasta cinco.', 'Which ones feel like you? Pick up to five.');
+  const sg = $('es-seguir'), lu = $('es-luego'), at = document.querySelector('#p-estilo .ac-atras');
+  sg.textContent = yo ? t('Guardar', 'Save') : t('Seguir', 'Continue'); sg.dataset.ir = yo ? 'yo' : 'planes'; lu.style.display = yo ? 'none' : ''; at.dataset.ir = yo ? 'yo' : 'cuerpo';
+  document.querySelector('#p-estilo .ac-pasos')?.toggleAttribute('hidden', yo);
   // 0.74 (Gabriela, 23/10: «hay 4 estilos solamente, ¿no debería haber más?»): los 13 a la vista, por familias, sin pestañas
   $('es-lista').innerHTML = FAMILIAS.map((f, i) => `<h3 class="es-tit">${f[es]}</h3><div class="es-rej">${ESTILOS.filter(x => x.f === i).map(x => `<button class="${el.includes(x.k) ? 'on' : ''}" data-estilo="${x.k}"><span class="es-tela">${x.c.map(c => `<i style="background:${c}"></i>`).join('')}</span><b>${x.n[es]}</b><span class="es-d">${x.d[es]}</span></button>`).join('')}</div>`).join('')
-    + `<p class="es-cuenta">${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(t(' y ', ' and ')) || '&nbsp;'}</p>`
+    + `<p class="es-cuenta" aria-live="polite">${el.length ? `<b>${el.length} ${t('de', 'of')} ${MAX_ESTILOS}</b>${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(', ')}` : '&nbsp;'}</p>`
     // 0.108 · «Enseñar la cintura» (Gabriela, 28/10: «12. sí»): preferencia de estilo, saltable, guardada solo en este móvil
     + `<div class="es-cint"><h3 class="es-tit">${t('Un detalle más', 'One more thing')}</h3><p>${t('¿Te gusta enseñar la cintura?', 'Do you like showing your waist?')}</p><div>${[['1', t('Sí', 'Yes')], ['0', t('No', 'No')]].map(([v, n]) => `<button data-cintura="${v}" class="${cinturaPref() === v ? 'on' : ''}">${n}</button>`).join('')}</div><span class="es-d">${t('Así sabemos si proponerte tops cortos con pantalones de tiro bajo.', 'So we know whether to suggest crop tops with low-rise trousers.')}</span></div>`;
 }
@@ -3177,12 +3254,19 @@ const cinturaPref = () => { const v = E.perfil?.cintura; if (v === '1' || v === 
 const taconBajo = () => E.perfil?.tacon === 'bajo'; // 0.117 (Gabriela, 28/10: «6. a y b»: plano o hasta 3 cm)
 document.addEventListener('click', e => { const b = e.target.closest('[data-cintura]'); if (!b) return; const v = cinturaPref() === b.dataset.cintura ? '' : b.dataset.cintura; E.perfil.cintura = v; try { localStorage.setItem('tc_cintura', v); } catch (er) { } guardar(); E.propuestas = []; pintarEstilo(); });
 document.addEventListener('click', e => { const b = e.target.closest('[data-esfam]'); if (!b) return; E.esFam = +b.dataset.esfam; pintarEstilo(); });
-document.addEventListener('click', async e => {
+document.addEventListener('click', e => {
   const b = e.target.closest('[data-estilo]'); if (!b) return;
-  E.perfil = E.perfil || {}; let el = E.perfil.estilos || []; const k = b.dataset.estilo;
-  el = el.includes(k) ? el.filter(x => x !== k) : [...el, k].slice(-2);   // como mucho dos: el tercero sustituye al más antiguo
-  E.perfil.estilos = el; await guardar(); pintarEstilo();
+  const el = E.esBorr || [], k = b.dataset.estilo;
+  if (!el.includes(k) && el.length >= MAX_ESTILOS) return toast(t('Como mucho cinco. Quita uno para elegir otro.', 'Five at most. Remove one to pick another.'));
+  E.esBorr = el.includes(k) ? el.filter(x => x !== k) : [...el, k]; pintarEstilo();
 });
+// «Guardar» (desde Yo) y «Seguir» (alta) guardan; la flecha de volver y «Ahora no» no
+document.addEventListener('click', async e => {
+  if (!e.target.closest('#es-seguir')) return;
+  E.perfil = E.perfil || {}; const n = (E.esBorr || []).length, antes = (E.perfil.estilos || []).join();
+  E.perfil.estilos = [...(E.esBorr || [])]; if (antes !== E.perfil.estilos.join()) { E.propuestas = []; E.generados = []; await guardar(); }
+  if (E.esDesde === 'yo') toast(n ? t(`Guardado. Tus looks e ideas se eligen con ${n === 1 ? 'este estilo' : `estos ${n} estilos`}.`, `Saved. Your looks and ideas are now picked with ${n === 1 ? 'this style' : `these ${n} styles`}.`) : t('Guardado. Tus looks ya no se eligen por estilo.', 'Saved. Your looks are no longer picked by style.'));
+}, true);
 
 // 0.25: las funciones de cada plan se marcan con el botón dorado solo al tocarlas (Gabriela: «cuando las selecciones sí salga, pero como predeterminada no»)
 document.addEventListener('click', e => { const li = e.target.closest('.plb-fun li'); if (li) li.classList.toggle('on'); });

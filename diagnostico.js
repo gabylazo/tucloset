@@ -187,7 +187,7 @@ async function cuerpoSin(blob) {
   // (selfie_multiclass, ya cargado): todo lo que no es fondo (categoría 0) es la persona
   const seg = T.partes.segment(c), cm = seg.categoryMask; if (!cm) { seg.close?.(); return { ok: false, prob: [{ k: 'sin_silueta', fatal: true }] }; }
   const mW = cm.width, mH = cm.height, mask = cm.getAsUint8Array().slice(); cm.close?.(); seg.close?.();
-  const persona = (x, y) => mask[Math.min(mH - 1, Math.max(0, Math.round(y / H * mH))) * mW + Math.min(mW - 1, Math.max(0, Math.round(x / W * mW)))] > 0;
+  const cat = (x, y) => mask[Math.min(mH - 1, Math.max(0, Math.round(y / H * mH))) * mW + Math.min(mW - 1, Math.max(0, Math.round(x / W * mW)))], persona = (x, y) => cat(x, y) > 0;
   const hI = P(11), hD = P(12), cI = P(23), cD = P(24), yS = (hI[1] + hD[1]) / 2, yC = (cI[1] + cD[1]) / 2, Tr = yC - yS, xC = (cI[0] + cD[0]) / 2;
   if (Tr < H * .12) fatal('cuerpo_lejos');
   if (Math.abs(Math.atan2(hD[1] - hI[1], hD[0] - hI[0]) % Math.PI) > .12 && Math.abs(Math.abs(Math.atan2(hD[1] - hI[1], hD[0] - hI[0])) - Math.PI) > .12) aviso('hombros_torcidos');
@@ -195,13 +195,28 @@ async function cuerpoSin(blob) {
   // brazos: muñecas por encima de los hombros o pegadas al tronco a la altura de la cintura
   if (P(15)[1] < yS || P(16)[1] < yS) aviso('brazos_arriba');
   // ancho del tronco en una fila: el tramo de silueta que contiene el centro del cuerpo
-  const tramo = y => { if (!persona(xC, y)) return null; let a = xC, b = xC; while (a > 0 && persona(a - 1, y)) a--; while (b < W - 1 && persona(b + 1, y)) b++; return [a, b]; };
-  const ancho = y => { const t = tramo(y); return t ? t[1] - t[0] : null; };
+  // 06/11 (Gabriela: «mi cuerpo es más ancho de caderas que de hombros y se ve en la foto, y lo hace al revés»): lo que no es el cuerpo ya no cuenta.
+  //  · Bolsos, móviles y accesorios (categoría 5 del segmentador) que cuelgan por los lados se quitan siempre.
+  //  · En cintura y cadera, la piel que sobresale por fuera de la ropa son manos o brazos (la mano en la cadera, el brazo pegado): se quita si deja al menos el 75 %.
+  //  · En las fotos en el espejo el brazo que sujeta el móvil sale a la altura del hombro: el hombro se corta a 0,3 de la distancia entre hombros por fuera de cada
+  //    punto (el deltoides); la cadera, a 0,85 de la distancia entre caderas por fuera de cada punto (la cadera real mide unas 2 veces esa distancia: queda margen
+  //    para las caderas anchas de verdad).
+  //  · La cadera ya no es la fila más ancha (la que más se contamina con una mano o un bolso) sino la del percentil 75 de la franja.
+  const tramo = (y, lim, piel) => {
+    if (!persona(xC, y)) return null; let a = xC, b = xC; while (a > 0 && persona(a - 1, y)) a--; while (b < W - 1 && persona(b + 1, y)) b++;
+    while (a < b && cat(a, y) === 5) a++; while (b > a && cat(b, y) === 5) b--;
+    if (piel) { let a2 = a, b2 = b; while (a2 < b2 && cat(a2, y) === 2) a2++; while (b2 > a2 && cat(b2, y) === 2) b2--; if (b2 - a2 >= (b - a) * .75) { a = a2; b = b2; } }
+    return lim ? [Math.max(a, lim[0]), Math.min(b, lim[1])] : [a, b];
+  };
+  const dS = Math.abs(hD[0] - hI[0]), dH = Math.abs(cD[0] - cI[0]);
+  const limS = [Math.min(hI[0], hD[0]) - dS * .3, Math.max(hI[0], hD[0]) + dS * .3], limH = [Math.min(cI[0], cD[0]) - dH * .85, Math.max(cI[0], cD[0]) + dH * .85];
+  const ancho = (y, lim, piel) => { const t = tramo(y, lim, piel); return t ? t[1] - t[0] : null; };
   const pegados = [];
-  const fila = (f0, f1, cmp) => { let mejor = null, yM = null; for (let f = f0; f <= f1; f += .01) { const y = yS + Tr * f, w = ancho(y); if (w == null) continue; if (mejor == null || cmp(w, mejor)) { mejor = w; yM = y; } } return [mejor, yM]; };
-  const [hombros] = fila(.06, .14, (a, b) => a > b);
-  const [cintura, yW] = fila(.45, .85, (a, b) => a < b);
-  const [cadera, yH] = fila(.9, 1.3, (a, b) => a > b);
+  const fila = (f0, f1, cmp, lim, piel) => { let mejor = null, yM = null; for (let f = f0; f <= f1; f += .01) { const y = yS + Tr * f, w = ancho(y, lim, piel); if (w == null) continue; if (mejor == null || cmp(w, mejor)) { mejor = w; yM = y; } } return [mejor, yM]; };
+  const [hombros, yHo] = fila(.06, .14, (a, b) => a > b, limS);
+  const [cintura, yW] = fila(.45, .85, (a, b) => a < b, limH, true);
+  const filasC = []; for (let f = .9; f <= 1.3; f += .01) { const y = yS + Tr * f, w = ancho(y, limH, true); if (w != null) filasC.push([w, y]); }
+  filasC.sort((a, b) => a[0] - b[0]); const [cadera, yH] = filasC.length ? filasC[Math.floor((filasC.length - 1) * .75)] : [null, null];
   if (!hombros || !cintura || !cadera) return { ok: false, prob: [...prob, { k: 'sin_silueta', fatal: true }] };
   // si los brazos tocan el tronco en la cintura, el tramo los incluye: el ancho de la cintura se dispara frente al de las articulaciones
   for (const [i, y] of [[15, yW], [16, yW], [15, yH], [16, yH]]) { const t = tramo(y), x = P(i)[0]; if (t && x > t[0] - 4 && x < t[1] + 4 && Math.abs(P(i)[1] - y) < Tr * .25) pegados.push(i); }
@@ -210,7 +225,8 @@ async function cuerpoSin(blob) {
   const xN = P(0)[0]; let yTop = P(0)[1]; while (yTop > 0 && persona(xN, yTop - 1)) yTop--;
   const yTob = (P(27)[1] + P(28)[1]) / 2, alto = pies ? yTob - yTop : Tr * 3.3, pierna = pies ? +((yTob - yC) / alto).toFixed(3) : null;
   if (prob.some(p => p.fatal)) return { ok: false, prob };
-  return { ok: true, prob, medidas: { hombros: +(hombros / alto).toFixed(3), cintura: +(cintura / alto).toFixed(3), cadera: +(cadera / alto).toFixed(3), pierna, torso: +(Tr / alto).toFixed(3) },
+  const lin = (y, lim, piel) => { const t = tramo(y, lim, piel), u = tramo(y); return t && [Math.round(t[0]), Math.round(t[1]), Math.round(y), Math.round(u[0]), Math.round(u[1])]; };
+  return { ok: true, prob, lineas: { W, H, pts: [hI, hD, cI, cD].map(q => q.map(Math.round)), hombros: lin(yHo, limS), cintura: lin(yW, limH, true), cadera: lin(yH, limH, true) }, medidas: { hombros: +(hombros / alto).toFixed(3), cintura: +(cintura / alto).toFixed(3), cadera: +(cadera / alto).toFixed(3), pierna, torso: +(Tr / alto).toFixed(3) },
     calidad: Math.max(.3, 1 - prob.length * .2) };
 }
 
