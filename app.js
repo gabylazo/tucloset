@@ -2875,6 +2875,89 @@ function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; e
     <p>${AT ? t('Dos fotos para tus colores y tu silueta. Se quedan en tu móvil.', 'Two photos for your colours and figure. They stay on your phone.') : t('Una foto de tu cara y otra de cuerpo entero: la app analiza tus colores, tu silueta y la ropa que te favorece. Las fotos no salen de tu móvil.', 'A face photo and a full-body photo: the app analyses your colours, your figure and the clothes that suit you. Photos never leave your phone.')}</p>
     ${pf.selfie || pf.cuerpo ? `<p class="dg-d">${diagPendiente() && !diagFallo ? t('Analizando tus fotos…', 'Analysing your photos…') : t('No he podido leer tus fotos. Prueba con otras.', 'I could not read your photos. Try others.')}</p><button class="boton linea" data-diag="fotos">${t('Ver mis fotos', 'See my photos')}</button>` : `<button class="boton" data-diag="fotos">${t('Hacer las fotos', 'Take the photos')}</button>`}</section>`;
 }
+// 07/11 (Gabriela: «con la foto que yo puse de mi cara y la foto del cuerpo con la que me hicieron el diagnóstico se puede hacer un avatar… el objetivo es que subiendo
+// dos fotos te hagan todo el análisis y el avatar»): el avatar sale de esas dos fotos. Se envían una vez al servidor (Gemini) y no se guardan allí; el avatar se queda
+// solo en este móvil (perfil.avatar, como las fotos). «Puesto en mí» viste el avatar con las fotos de catálogo de un look; cada resultado se guarda aquí (BD «puestos»).
+const IC_PUESTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.8" r="2.4"/><path d="M8.2 21.5 9 13.8 7.3 10.6c-.4-.9.2-2.1 1.2-2.4L12 7.4l3.5.8c1 .3 1.6 1.5 1.2 2.4L15 13.8l.8 7.7"/></svg>';
+const firmaAvatar = () => [E.perfil?.selfie?.size || 0, E.perfil?.cuerpo?.size || 0].join(':');
+const tieneAvatar = () => E.perfil?.avatar instanceof Blob;
+let avatarEnCurso = false;
+async function jpegBlanco(b, max = 1024) {
+  const u = URL.createObjectURL(b);
+  try {
+    const im = await cargaImg(u), e = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.round(im.naturalWidth * e), h = Math.round(im.naturalHeight * e);
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(im, 0, 0, w, h);
+    return await new Promise(r => c.toBlob(r, 'image/jpeg', .9));
+  } finally { URL.revokeObjectURL(u); }
+}
+// lo medido en el diagnóstico va con las fotos, para que el avatar no salga más delgado ni más alto (en la prueba del 07/11 lo estilizaba)
+function siluetaTxt() {
+  const b = E.perfil?.diag?.cuerpo, m = E.perfil?.medidas || {}, x = [];
+  if (b?.n) x.push('body type ' + b.n[1]);
+  if (m.altura > 0) x.push(`height ${m.altura} cm`);
+  if (m.pecho > 0 && m.cintura > 0 && m.cadera > 0) x.push(`bust ${m.pecho} cm, waist ${m.cintura} cm, hips ${m.cadera} cm`);
+  else if (b?.ratios?.hombros_cadera) x.push(`shoulders to hips width ${(+b.ratios.hombros_cadera).toFixed(2)}, waist to hips width ${(+(b.ratios.cintura_cadera || .7)).toFixed(2)}`);
+  return x.join('; ');
+}
+const errorAvatar = (st, e, puesto) => st === 403 ? t('El avatar aún está en pruebas', 'The avatar is still being tested')
+  : e === 'tope' ? (puesto ? t('Por hoy ya no quedan más. Vuelve mañana', 'No more for today. Come back tomorrow') : t('Por hoy ya has creado tres avatares. Vuelve mañana', 'You’ve created three avatars today. Come back tomorrow'))
+  : e === 'tope-mes' ? t('Este mes ya no quedan. Vuelve el mes que viene', 'None left this month. Come back next month')
+  : st === 401 ? t('Entra en tu cuenta', 'Sign in') : t('No ha salido bien. Prueba otra vez', 'It didn’t work. Try again');
+async function crearAvatar() {
+  const pf = E.perfil || {}; if (avatarEnCurso) return;
+  if (!cuenta()) return toast(t('Entra en tu cuenta para crear tu avatar', 'Sign in to create your avatar'));
+  if (!(pf.selfie instanceof Blob) || !(pf.cuerpo instanceof Blob)) return panelDiagFotos();
+  avatarEnCurso = true; if (E.pantalla === 'yo') pintarYo();
+  try {
+    const fd = new FormData(); fd.append('cara', await jpegBlanco(pf.selfie), 'cara.jpg'); fd.append('cuerpo', await jpegBlanco(pf.cuerpo), 'cuerpo.jpg');
+    const sil = siluetaTxt(); if (sil) fd.append('silueta', sil);
+    const r = await api('/api/avatar?que=avatar', { method: 'POST', body: fd, tiempo: 150000 });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); return toast(errorAvatar(r.status, j.error)); }
+    const fin = await afinarCat(await r.blob()); if (!fin) return toast(errorAvatar(502));
+    Object.assign(E.perfil, { avatar: fin.blob, avatarAR: fin.ar, avatarDe: firmaAvatar(), avatarF: new Date().toISOString() });
+    E.puestos = {}; await BD.set('puestos', {}); await guardar(); toast(t('Tu avatar está listo', 'Your avatar is ready'));
+  } catch (e) { toast(t('Sin conexión: prueba otra vez', 'No connection: try again')); }
+  finally { avatarEnCurso = false; if (E.pantalla === 'yo') pintarYo(); }
+}
+async function borrarAvatar() {
+  if (!await confirmar(t('¿Borrar tu avatar?', 'Delete your avatar?'), t('Se borra de este móvil, con los looks que te has visto puestos.', 'It is deleted from this phone, with the looks you tried on.'), t('Borrar', 'Delete'))) return;
+  ['avatar', 'avatarAR', 'avatarDe', 'avatarF'].forEach(k => delete E.perfil[k]); E.puestos = {}; await BD.set('puestos', {}); await guardar(); pintarYo();
+}
+// el look puesto: el avatar y hasta 6 prendas (primero lo que se ve más), con la foto de catálogo si la hay; lo ya hecho sale de este móvil sin gastar
+async function puestoEnMi(ps, como, otra) {
+  const pf = E.perfil || {}; if (!tieneAvatar()) return { error: t('Primero crea tu avatar en Yo', 'First create your avatar in Me') };
+  const orden = ['Vestidos', 'Arriba', 'Abajo', 'Abrigo', 'Calzado', 'Bolsos', 'Accesorios'];
+  const sel = ps.filter(p => !p.muestra && (p.cat instanceof Blob || p.foto instanceof Blob)).sort((a, b) => orden.indexOf(a.tipo) - orden.indexOf(b.tipo)).slice(0, 6);
+  if (!sel.length) return { error: t('Este look aún no tiene fotos', 'This look has no photos yet') };
+  const k = sel.map(p => p.id).sort().join('+') + '|' + (pf.avatarF || '');
+  E.puestos = E.puestos || (await BD.get('puestos').catch(() => null)) || {};
+  if (!otra && E.puestos[k] instanceof Blob) return { blob: E.puestos[k], k };
+  try {
+    const fd = new FormData(); fd.append('avatar', await jpegBlanco(pf.avatar), 'avatar.jpg');
+    for (const [i, p] of sel.entries()) fd.append('p' + i, await jpegBlanco(p.cat instanceof Blob ? p.cat : p.foto, 768), `p${i}.jpg`);
+    fd.append('nombres', JSON.stringify(sel.map(p => p.nombre || ''))); if (como) fd.append('como', como);
+    const r = await api('/api/avatar?que=puesto' + (otra ? '&otra=1' : ''), { method: 'POST', body: fd, tiempo: 150000 });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); return { error: errorAvatar(r.status, j.error, true) }; }
+    const fin = await afinarCat(await r.blob()); if (!fin) return { error: errorAvatar(502) };
+    const ks = Object.keys(E.puestos); if (ks.length >= 30) delete E.puestos[ks[0]];
+    E.puestos[k] = fin.blob; await BD.set('puestos', E.puestos).catch(() => { }); return { blob: fin.blob, k };
+  } catch (e) { return { error: t('Sin conexión: prueba otra vez', 'No connection: try again') }; }
+}
+// la tarjeta de Yo, solo en el Pro: sin fotos, lleva a ponerlas; con fotos, «Crear mi avatar»; con avatar, el avatar (se toca para verlo), «Rehacer» y «Borrar»
+function tarjetaAvatar() {
+  if (planDemo() !== 'pro') return '';
+  const pf = E.perfil || {}, fotos = pf.selfie instanceof Blob && pf.cuerpo instanceof Blob, av = tieneAvatar(), viejas = av && pf.avatarDe && pf.avatarDe !== firmaAvatar();
+  const img = av ? `<button class="av-img" data-avatar="ver" aria-label="${t('Ver tu avatar', 'See your avatar')}"><img src="${URL.createObjectURL(pf.avatar)}" alt=""></button>` : `<span class="av-img av-vacio">${IC_PUESTO}</span>`;
+  const txt = avatarEnCurso ? t('Creando tu avatar… tarda unos 30 segundos.', 'Creating your avatar… it takes about 30 seconds.')
+    : av ? (viejas ? t('Tus fotos han cambiado.', 'Your photos have changed.') : t(`En Hoy, toca ${IC_PUESTO} para verte el look puesto.`, `In Today, tap ${IC_PUESTO} to see the look on you.`))
+    : fotos ? t('Con tus dos fotos, para verte los looks puestos.', 'From your two photos, to see the looks on you.') : t('Con una foto de tu cara y otra de cuerpo entero.', 'From a photo of your face and a full-body one.');
+  const bot = avatarEnCurso ? '' : av ? `<div class="av-acc"><button class="at-enlace" data-avatar="crear">${t('Rehacer', 'Redo')}</button><button class="at-enlace" data-avatar="borrar">${t('Borrar', 'Delete')}</button></div>`
+    : `<button class="at-btn" data-${fotos ? 'avatar="crear"' : 'diag="fotos"'}>${fotos ? t('Crear mi avatar', 'Create my avatar') : t('Añadir mis fotos', 'Add my photos')}</button>`;
+  return `<section class="av-tarjeta${avatarEnCurso ? ' creando' : ''}" aria-busy="${avatarEnCurso}"><h2 class="es-tit">${t('Tu avatar', 'Your avatar')}</h2>${img}<p class="av-p">${txt}</p>${bot}
+    ${!av && fotos && !avatarEnCurso ? `<p class="av-priv">${IC_CANDADO}${t('Tus fotos se envían una vez para crearlo y no se guardan. El avatar se queda en tu móvil.', 'Your photos are sent once to create it and are not stored. The avatar stays on your phone.')}</p>` : ''}</section>`;
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-avatar]'); if (!b) return; const k = b.dataset.avatar;
+  if (k === 'crear') crearAvatar(); else if (k === 'borrar') borrarAvatar(); else if (k === 'ver' && tieneAvatar()) verFoto([{ src: URL.createObjectURL(E.perfil.avatar), alt: t('Tu avatar', 'Your avatar') }]); });
 // 06/11 noche (Gabriela: «lo de cómo lo he medido sobra, o al menos ponlo más pequeña la explicación; y quita cambiar las medidas y las fotos si ya hay una opción para eso
 // en otra parte»): «Cómo lo he medido», en pequeño; fuera «Cambiar mis medidas y fotos» y «Apuntar mis medidas»: pasan a Yo → Ajustes → Medidas y fotos.
 // 06/11 (Gabriela: «sigo esperando que rediseñes todo lo del perfil de tus medidas y fotos, tu diagnóstico, está horrible, lleno de texto, ya te expliqué cómo debe ser»;
@@ -3035,7 +3118,7 @@ function pintarYo() {
   let ver = $('yo-ver'); if (!ver) { ver = document.createElement('div'); ver.id = 'yo-ver'; $('yo-lista').after(ver); }
   ver.innerHTML = `<h2 class="es-tit">${t('Ver la app como', 'View the app as')}</h2><div class="at-fila at-vj-ops">${VERSIONES.map(k => `<button class="${planDemo() === k ? 'on' : ''}" data-vercomo="${k}" aria-pressed="${planDemo() === k}">${nomPlan(k)}<span class="at-dos" aria-hidden="true"></span></button>`).join('')}</div>`
     + (enGratis() && E.prendas.length > TOPE_GRATIS ? `<p class="yo-ver-n">${t(`En la gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`)}</p>` : '');
-  let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; ver.after(td); } td.innerHTML = tarjetaDiag();
+  let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; ver.after(td); } td.innerHTML = tarjetaDiag() + tarjetaAvatar();
   pintarPanelYo();
   if (pend && !diagCorriendo) diagHastaAlDia().then(() => { if (E.pantalla === 'yo') pintarYo(); });
 }

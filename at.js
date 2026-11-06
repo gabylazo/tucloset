@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.185'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.190'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -228,6 +228,25 @@ if (AT) (() => {
   };
   const nomLook = c => c?.nombre && !/^(hoy|today|favorito|favourite)\b|\d+$/i.test(c.nombre.trim()) ? c.nombre : '';
 
+  /* ---------- 07/11, «Puesto en mí» (Pro, con avatar; Gabriela: «subiendo dos fotos te hagan todo el análisis y el avatar»): el look se ve puesto en tu avatar
+     en lugar del collage; otra vez el mismo botón, vuelve el collage. Lo ya hecho sale del móvil al momento; lo nuevo tarda unos 20 segundos ---------- */
+  const botonPuesto = () => planDemo() === 'pro' && tieneAvatar() ? `<button class="at-puestob" data-puesto aria-pressed="false" aria-label="${t('Verlo puesto en mí', 'See it on me')}">${IC_PUESTO}</button>` : '';
+  async function verPuesto(b, zona, ps, como, otra) {
+    const fig = zona?.querySelector('.at-look'); if (!fig) return;
+    let capa = zona.querySelector('.at-puesto');
+    if (b.getAttribute('aria-pressed') === 'true' && !otra) { capa?.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); return; }
+    if (b.classList.contains('cargando')) return;
+    const alto = fig.offsetHeight || capa?.offsetHeight || 320;
+    if (!capa) { capa = document.createElement('div'); capa.className = 'at-puesto'; fig.after(capa); }
+    capa.style.height = alto + 'px'; capa.innerHTML = `<p class="at-puesto-esp" role="status">${t('Vistiéndote…', 'Dressing you…')}</p>`; fig.style.display = 'none';
+    b.setAttribute('aria-pressed', 'true'); b.classList.add('cargando');
+    const r = await puestoEnMi(ps, como, otra); b.classList.remove('cargando');
+    if (!capa.isConnected) return;
+    if (r.error) { capa.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); return toast(r.error); }
+    capa.innerHTML = `<img src="${URL.createObjectURL(r.blob)}" alt="${t('Tú con este look', 'You wearing this look')}"><button class="at-enlace at-puesto-otra">${t('No se parece: otra vez', 'Not right: try again')}</button>`;
+    capa.querySelector('.at-puesto-otra').onclick = e => { e.stopPropagation(); verPuesto(b, zona, ps, como, true); };
+  }
+
   /* ---------- HOY: el nombre, la fecha con el tiempo, el look grande y quieto; debajo, la ocasión y «Me lo pongo» ---------- */
   pintarHoy = function () {
     if (!E.perfil?.ropa && E.perfil?.alta) setTimeout(preguntarRopa, 400);
@@ -268,7 +287,7 @@ if (AT) (() => {
     const nota = E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'With your coat on top: add it and it will show here' : `Con ${pr.capaFalta && pr.capaFalta !== 'abrigo' ? (pr.capaFalta === 'chaqueta' ? 'tu chaqueta' : 'tu ' + pr.capaFalta) : 'tu abrigo'} encima: súbelo y saldrá aquí`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : '';
     const ocB = ocBoton(oc);
     pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocB + '</header>')}${ocs}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}${nota}</div>
-      <div class="at-pie"><button class="at-fav${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button></div></div>`;
+      <div class="at-pie"><button class="at-fav${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button>${botonPuesto()}</div></div>`;
     // el look ocupa el hueco que de verdad queda entre la cabecera y el botón (en cada móvil es distinto)
     const z = $('at-hoy'), ajustar = () => { const fig = z.querySelector('.at-look'); if (!fig || !z.clientHeight) return;
       const resto = [...z.children].filter(x => x !== fig && !x.classList.contains('at-flecha')).reduce((s, x) => s + x.offsetHeight + 6, 0), libre = Math.floor(z.clientHeight - resto - 12);
@@ -276,6 +295,7 @@ if (AT) (() => {
     ajustar(); requestAnimationFrame(ajustar); // la primera vez la pantalla aún no se ve: se mide en el siguiente fotograma
     const mover = d => { E.hoyIdx = ((E.hoyIdx || 0) + d + lista.length) % lista.length; E.hzPreg = false; pintarHoy(); };
     pant.querySelectorAll('[data-atmov]').forEach(b => b.onclick = () => mover(+b.dataset.atmov));
+    const bp = pant.querySelector('[data-puesto]'); if (bp) bp.onclick = () => verPuesto(bp, z, ps, pr.como);
     $('at-pongo').onclick = async e => { const b = e.currentTarget; await ponerse(pr.ids, pr.c); await datosLook(pr); b.classList.add('hecho'); b.setAttribute('aria-pressed', 'true'); b.textContent = t('Puesto hoy', 'Worn today'); };
     // el corazón, y el doble toque sobre el look como en Instagram (un toque sobre una prenda abre su ficha, un instante después para distinguirlos)
     const fv = $('at-fav'), alternar = async quiero => { if (quiero != null && esFav(pr.ids) === quiero) { fv.classList.remove('late'); void fv.offsetWidth; fv.classList.add('late'); return; }
@@ -459,7 +479,7 @@ if (AT) (() => {
       <h1 class="at-h1">${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</h1>
       <div class="at-centro">${figura(psDe(c), W, H, true)}</div>
       <div class="at-acciones"><button class="at-btn" data-atl="pongo">${t('Me lo pongo', 'I’ll wear it')}</button>
-        <div class="at-enlaces"><button class="at-enlace" data-atl="cal" aria-expanded="${!!E.atCal}">${t('Al calendario', 'To the calendar')}</button><button class="at-enlace" data-atl="borrar">${t('Borrar', 'Delete')}</button></div>
+        <div class="at-enlaces">${botonPuesto() ? `<button class="at-enlace" data-atl="puesto" data-puesto aria-pressed="false">${t('Verlo puesto', 'See it on me')}</button>` : ''}<button class="at-enlace" data-atl="cal" aria-expanded="${!!E.atCal}">${t('Al calendario', 'To the calendar')}</button><button class="at-enlace" data-atl="borrar">${t('Borrar', 'Delete')}</button></div>
         ${E.atCal ? `<div class="at-fila at-dias">${dias.map(([d, n]) => `<button data-atdia="${d}">${n}</button>`).join('')}</div>` : ''}</div>`;
     r.onclick = async e => {
       const b = e.target.closest('[data-atl],[data-atfav],[data-atdia]'); if (!b) return;
@@ -471,6 +491,7 @@ if (AT) (() => {
         toast(t(`Guardado para ${b.textContent.trim().toLowerCase()}`, `Saved for ${b.textContent.trim()}`)); return abrirLook(id);
       }
       const k = b.dataset.atl;
+      if (k === 'puesto') return verPuesto(b, r.querySelector('.at-centro'), psDe(c), c.como);
       if (k === 'pongo') $('lk-pongo').click(); else if (k === 'borrar') $('lk-borrar').click(); else { E.atCal = !E.atCal; abrirLook(id); }
     };
   };

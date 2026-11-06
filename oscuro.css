@@ -966,6 +966,17 @@ html.at.oscuro[data-iconos="1"] .tabs button.subir .at-ic{border:0}
 html.at.oscuro[data-iconos="1"] #s-raiz .uno .ops:not(.col) button.on{background:var(--tinta);color:var(--accion-t)}
 html.at.oscuro[data-iconos="1"] #s-raiz .uno .ops.col button.on{outline:2px solid var(--tinta);outline-offset:3px}
 html.at.oscuro .ac-fotos label .mini-et{color:var(--tinta)}
+html.at.oscuro .av-img{background:var(--baldosa);border:0}
+html.at.oscuro .av-vacio svg{fill:none;stroke:var(--sec)}
+html.at.oscuro .av-p{color:var(--sec)}
+html.at.oscuro .av-p svg{fill:none;stroke:var(--tinta)}
+html.at.oscuro .av-priv{color:var(--sec)}
+html.at.oscuro .av-priv svg{fill:none;stroke:currentColor}
+html.at.oscuro .at-puestob{color:var(--tinta)}
+html.at.oscuro .at-puestob svg{fill:none;stroke:currentColor}
+html.at.oscuro .at-puestob[aria-pressed="true"]{box-shadow:inset 0 -2px 0 var(--oro)}
+html.at.oscuro .at-puesto-esp{color:var(--sec)}
+html.at.oscuro .at-enlace[data-puesto][aria-pressed="true"]{color:var(--tinta);text-decoration-color:var(--oro)}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz
@@ -999,4 +1010,6 @@ html.at.oscuro .at-lz .pz, html.at.oscuro .at-lz img, html.at.oscuro .at-bal img
 /* las fotos que aún no tienen la de catálogo (recorte sobre blanco) siguen sobre tarjeta clara hasta que se estilicen */
 html.at.oscuro .at-cel.sin-cat, html.at.oscuro .at-foto.sin-cat, html.at.oscuro #pared .at-cel.sin-cat { background: #ECE6DE; }
 html.at.oscuro .at-cel.sin-cat img, html.at.oscuro .at-foto.sin-cat img { mix-blend-mode: multiply; filter: none; }
+/* 07/11: el look puesto en el avatar, con el mismo filo de luz que las prendas */
+html.at.oscuro .at-puesto img, html.at.oscuro .av-img img { filter: drop-shadow(0 0 .7px rgba(241, 233, 222, .55)) drop-shadow(0 0 7px rgba(241, 233, 222, .07)); }
 

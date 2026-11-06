@@ -433,3 +433,28 @@ html.at[data-iconos="1"] #s-raiz .uno .ops.col button.on { outline: 2px solid va
 
 /* 06/11 (revisión de toda la app): textos con contraste AA sobre el gris de las fotos del alta (4,47:1 → 10:1) */
 html.at .ac-fotos label .mini-et { color: var(--tinta); }
+
+/* 07/11: el avatar (Yo, en el Pro) y «Puesto en mí» (Hoy y cada look) */
+html.at .av-tarjeta { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 0 20px 8px; }
+html.at .av-tarjeta .es-tit { margin: 22px 0 12px; }
+html.at .av-img { width: 96px; height: 128px; display: flex; align-items: center; justify-content: center; background: var(--baldosa); padding: 0; border: 0; }
+html.at .av-img img { width: 100%; height: 100%; object-fit: contain; }
+html.at .av-vacio svg { width: 44px; height: 44px; fill: none; stroke: var(--sec); stroke-width: 1.1; }
+html.at .av-p { font-size: 14px; color: var(--sec); line-height: 1.45; margin: 12px 0 10px; max-width: 30ch; }
+html.at .av-p svg { width: 18px; height: 18px; vertical-align: -4px; fill: none; stroke: var(--tinta); stroke-width: 1.4; }
+html.at .av-acc { display: flex; gap: 6px; justify-content: center; }
+html.at .av-priv { display: flex; gap: 6px; align-items: flex-start; font-size: 12.5px; color: var(--sec); margin: 12px 0 0; max-width: 34ch; text-align: left; line-height: 1.4; }
+html.at .av-priv svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.4; margin-top: 2px; }
+html.at .av-tarjeta.creando .av-img { animation: av-lat 1.6s ease-in-out infinite; }
+@keyframes av-lat { 50% { opacity: .45; } }
+html.at .at-pie:has(.at-puestob)::after { display: none; }
+html.at .at-puestob { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: var(--tinta); flex: none; }
+html.at .at-puestob svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+html.at .at-puestob[aria-pressed="true"] { box-shadow: inset 0 -2px 0 var(--oro); }
+html.at .at-puestob.cargando svg { animation: av-lat 1.2s ease-in-out infinite; }
+html.at .at-puesto { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+html.at .at-puesto img { flex: 1; min-height: 0; max-width: 100%; object-fit: contain; }
+html.at .at-puesto-esp { color: var(--sec); font-size: 14px; animation: av-lat 1.6s ease-in-out infinite; }
+html.at .at-puesto-otra { flex: none; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { html.at .av-tarjeta.creando .av-img, html.at .at-puestob.cargando svg, html.at .at-puesto-esp { animation: none; } }
+html.at .at-enlace[data-puesto][aria-pressed="true"] { color: var(--tinta); text-decoration-color: var(--oro); }
