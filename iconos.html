@@ -24,5 +24,8 @@ iframe{width:390px;height:780px;max-width:calc(100vw - 32px);border:1px solid #e
 const OP = [['0', 'Como ahora', 'cuadrado con borde'], ['1', 'Opción 1', 'solo iconos, nogal'], ['2', 'Opción 2', 'círculo suave · recomendada'], ['3', 'Opción 3', 'dorado'], ['4', 'Opción 4', 'sin palabras']];
 const pintar = p => { document.getElementById('fila').innerHTML = OP.map(([n, t, s]) => `<figure><figcaption>${t}<span>${s}</span></figcaption><iframe title="${t}" loading="eager" src="index.html?iconosVer=${n}&${p === 'ficha' ? 'ficha=primera' : 'pantalla=closet'}&intro=0"></iframe></figure>`).join(''); };
 document.querySelector('nav').onclick = e => { const b = e.target.closest('button'); if (!b) return; document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b)); pintar(b.dataset.p); };
+// en la ficha, cada móvil baja solo hasta los iconos (mismo dominio: se puede mirar dentro del marco)
+const bajar = f => { let n = 0; const t = setInterval(() => { try { const x = f.contentDocument.querySelector('.at-iconos'); if (x) { x.scrollIntoView({ block: 'center' }); clearInterval(t); } } catch (e) { } if (++n > 40) clearInterval(t); }, 500); };
+new MutationObserver(() => document.querySelectorAll('iframe').forEach(f => { if (!f.dataset.v) { f.dataset.v = 1; f.addEventListener('load', () => bajar(f)); } })).observe(document.getElementById('fila'), { childList: true });
 pintar('ficha');
 </script></body></html>
