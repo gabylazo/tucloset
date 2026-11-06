@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Estilos de iconos</title>
+<link rel="stylesheet" href="fuentes.css?v=0.123">
+<!-- 06/11 (Gabriela: «abre todos los botones en una sola pestaña»): las cinco opciones de ?iconos a la vez, con la cuenta de quien la abre; ?iconosVer no guarda nada -->
+<style>
+*{box-sizing:border-box;margin:0}
+body{background:#fff;color:#4A3526;font-family:Jost,system-ui,sans-serif;font-weight:300;padding:24px 16px 40px}
+h1{font-family:Bellefair,serif;font-weight:400;font-size:32px;text-align:center}
+nav{display:flex;justify-content:center;gap:22px;margin:16px 0 20px}
+nav button{font:inherit;font-size:12px;letter-spacing:.16em;text-transform:uppercase;background:none;border:0;border-bottom:1px solid transparent;padding:6px 2px;color:#6B5A4E;cursor:pointer;min-height:44px}
+nav button.on{color:#4A3526;border-bottom-color:#C9A24B}
+.fila{display:flex;justify-content:center;gap:22px;flex-wrap:wrap}
+figure{display:grid;justify-items:center;gap:10px}
+figcaption{font-family:Bellefair,serif;font-size:26px;text-align:center}
+figcaption span{display:block;font-family:Jost,sans-serif;font-size:12px;color:#6B5A4E}
+iframe{width:390px;height:780px;max-width:calc(100vw - 32px);border:1px solid #e6dfd6;background:#fff}
+</style></head><body>
+<h1>Estilos de iconos</h1>
+<nav aria-label="Pantalla"><button class="on" data-p="ficha">Ficha de prenda</button><button data-p="closet">Clóset y barra</button></nav>
+<div class="fila" id="fila"></div>
+<script>
+const OP = [['0', 'Como ahora', 'cuadrado con borde'], ['1', 'Opción 1', 'solo iconos, nogal'], ['2', 'Opción 2', 'círculo suave · recomendada'], ['3', 'Opción 3', 'dorado'], ['4', 'Opción 4', 'sin palabras']];
+const pintar = p => { document.getElementById('fila').innerHTML = OP.map(([n, t, s]) => `<figure><figcaption>${t}<span>${s}</span></figcaption><iframe title="${t}" loading="eager" src="index.html?iconosVer=${n}&${p === 'ficha' ? 'ficha=primera' : 'pantalla=closet'}&intro=0"></iframe></figure>`).join(''); };
+document.querySelector('nav').onclick = e => { const b = e.target.closest('button'); if (!b) return; document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b)); pintar(b.dataset.p); };
+pintar('ficha');
+</script></body></html>

@@ -3000,7 +3000,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (E.perfil) { if (E.perfil.nombre) $('a-nombre').value = E.perfil.nombre; if (E.perfil.ciudad) $('a-ciudad').value = E.perfil.ciudad; } // en el repaso no se pierde lo ya puesto
   if (destino !== 'inicio') { const tc = cargarTiempo(); if (destino === 'hoy') await Promise.race([tc, new Promise(r => setTimeout(r, 1200))]); tc.then(() => cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); })).catch(() => { }); } // 0.96: no se espera al tiempo más de 1,2 s; cuando llega, se repinta Hoy
   ir(destino);
-  if (q.get('ficha')) abrirFicha(q.get('ficha'));
+  if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa

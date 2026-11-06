@@ -39,7 +39,8 @@ if (AT) (() => {
   // 06/11 (Gabriela: «queda horrible ese borde cuadrado y dentro el icono, propónme opciones… cambiando los colores de la app o dejando solo los iconos»; «el icono de subir
   // con el cuadrado transparente queda feo, igual que los botones para seleccionar, que apenas se nota que los estás seleccionando»): ?iconos=1…4 (se guarda en ese
   // navegador; ?iconos=0 vuelve a lo de ahora). 1 solo iconos en nogal; 2 círculos suaves; 3 dorado; 4 solo iconos, sin palabras
-  { const q = new URLSearchParams(location.search).get('iconos'); let b = null; try { if (/^[0-4]$/.test(q || '')) localStorage.setItem('tc_iconos', q); b = localStorage.getItem('tc_iconos'); } catch (e) {} const v = /^[0-4]$/.test(q || '') ? q : b || '0'; if (v !== '0') document.documentElement.dataset.iconos = v; }
+  // ?iconosVer=N: solo esa vez, sin guardar (lo usa iconos.html)
+  { const sp = new URLSearchParams(location.search), qv = sp.get('iconosVer'), q = /^[0-4]$/.test(qv || '') ? null : sp.get('iconos'); let b = null; try { if (/^[0-4]$/.test(q || '')) localStorage.setItem('tc_iconos', q); b = localStorage.getItem('tc_iconos'); } catch (e) {} const v = /^[0-4]$/.test(qv || '') ? qv : /^[0-4]$/.test(q || '') ? q : b || '0'; if (v !== '0') document.documentElement.dataset.iconos = v; }
   { const q = new URLSearchParams(location.search).get('boton'); let b = null; try { if (/^[1-4]$/.test(q || '')) localStorage.setItem('tc_boton', q); b = localStorage.getItem('tc_boton'); } catch (e) {} document.documentElement.dataset.boton = /^[1-4]$/.test(q || '') ? q : b || '1'; }
   const svg = d => `<svg class="at-ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
   const I = {
