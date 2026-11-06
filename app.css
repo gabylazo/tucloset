@@ -1453,9 +1453,17 @@ img{-webkit-user-drag:none}
 .dg-mini img{width:100%;height:100%;object-fit:contain}
 .dg-mini svg,.dg-hueco svg{width:24px;height:24px;fill:none;stroke:var(--ter,#76665A);stroke-width:1.4}
 .dg-tela{display:flex;height:22px}
-.dg-tela i{flex:1}
+.dg-tela i{flex:1;box-shadow:inset 0 0 0 1px rgba(74,53,38,.12)} /* el blanco de la paleta se ve sobre el fondo blanco */
 .dg-tela.grande{height:44px;margin:4px 0 14px}
 .dg-huecos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+/* 06/11: tus medidas antes de las fotos */
+.dg-sub{font-weight:500;font-size:15px;color:var(--nogal,#4A3526);margin:22px 0 4px}
+.dg-campos{display:grid;grid-template-columns:1fr 1fr;gap:16px 16px;margin:10px 0 4px}
+.dg-campo{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--sec,#57473B)}
+.dg-campo input{height:44px;border:0;border-bottom:1px solid #CFC5BA;border-radius:0;background:transparent;font:inherit;font-size:16px;color:var(--nogal,#4A3526);padding:0 2px}
+.dg-campo input:focus-visible{outline:2px solid var(--nogal,#4A3526);outline-offset:2px}
+.dg-campo input[aria-invalid=true]{border-bottom-color:#B3261E}
+.dg-campo small{font-size:12px;color:var(--sec,#57473B)}
 /* 06/11 (Gabriela: «el texto sale muy arriba, tiene que ir centrado») */
 .dg-hueco{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px dashed #CFC5BA;padding:14px 10px;text-align:center;cursor:pointer;min-height:220px}
 .dg-hueco.hecha{border-style:solid;border-color:var(--nogal,#4A3526)}

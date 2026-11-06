@@ -876,6 +876,13 @@
     ],
     "puntos": []
    }
+  },
+  "cinta": {
+   "fuente": "FFIT for Apparel (Lee, Istook, Nam y Park, 2007), pulgadas pasadas a cm; óvalo: la cintura llega al 90 % del pecho y de la cadera",
+   "dif": 9,
+   "reloj_pecho": 23,
+   "reloj_cadera": 25,
+   "ovalo": 0.9
   }
  },
  "problemas": {
@@ -940,8 +947,8 @@
    "Shoulders and hips must be visible."
   ],
   "sin_pies": [
-   "Tiene que verse el cuerpo entero, hasta los pies.",
-   "Your whole body must be visible, down to your feet."
+   "No se ven los pies: mido tu silueta, pero no el largo de tus piernas.",
+   "Your feet aren’t visible: I measure your figure, but not your leg length."
   ],
   "cuerpo_lejos": [
    "Sales muy pequeña: acércate un poco, sin que se corte nada.",

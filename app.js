@@ -176,7 +176,7 @@ async function aptaNube(b) {
 // si algo falla al guardar en la nube, se avisa al servidor con el paso y el error (sin datos de la prenda), para poder arreglarlo
 const avisarFallo = (paso, e, b) => { try { fetch(API + '/api/aviso?d=' + encodeURIComponent(`${paso}|${String(e?.message || e).slice(0, 160)}|${b ? (b.type || '?') + ':' + b.size : ''}`)).catch(() => { }); } catch (x) { } };
 function docLocal() {
-  return { perfil: sinBlobs(E.perfil), conjuntos: E.conjuntos, agenda: E.agenda, borradas: JSON.parse(LS.get('tc_nube_borradas') || '[]'),
+  return { perfil: sinBlobs({ ...E.perfil, medidas: undefined }), conjuntos: E.conjuntos, agenda: E.agenda, borradas: JSON.parse(LS.get('tc_nube_borradas') || '[]'),
     prendas: E.prendas.filter(p => !p.ejemplo).map(p => ({ ...sinBlobs(p), conFoto: !!p.foto, conOriginal: !!p.original })) };
 }
 E.nube = { estado: '', cuando: LS.get('tc_nube_cuando') || '' };
@@ -282,7 +282,7 @@ async function bajarNube() {
   E.prendas = nuevas;
   const cj = new Map((doc.conjuntos || []).map(c => [c.id, c])); E.conjuntos.forEach(c => { if (!cj.has(c.id)) cj.set(c.id, c); }); E.conjuntos = [...cj.values()];
   E.agenda = { ...E.agenda, ...(doc.agenda || {}) };
-  E.perfil = { ...(doc.perfil || {}), ...Object.fromEntries(Object.entries(E.perfil || {}).filter(([, v]) => v instanceof Blob)) };
+  E.perfil = { ...(doc.perfil || {}), ...Object.fromEntries(Object.entries(E.perfil || {}).filter(([k, v]) => v instanceof Blob || k === 'medidas')) }; // fotos y medidas: solo en el móvil
   LS.set('tc_nube_ver', version); LS.set('tc_nube_ids', JSON.stringify((doc.prendas || []).map(p => p.id)));
   await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda);
   if (estacionesAuto()) await guardar(); // 0.101: estación por tipo, también para lo que llega de otros móviles
@@ -2723,28 +2723,43 @@ async function hacerDiagnostico(estado) {
   estado(t('Preparando el análisis (la primera vez tarda un poco más)…', 'Getting the analysis ready (slower the first time)…')); await D.cargar();
   if (pf.selfie) {
     estado(t('Mirando tus colores…', 'Looking at your colours…')); const c = await D.analizarCara(pf.selfie); res.avisos.cara = c.prob.map(p => ({ k: p.k, fatal: p.fatal }));
-    if (c.ok) { const e = D.estacion(c, R, pf.colores?.r || {}), S = R.colorimetria.estaciones[e.k];
-      res.color = { k: e.k, familia: e.familia, n: S.n, d: S.d, hex: S.hex, si: S.si, no: S.no, metal: S.metal, consejo: S.consejo, ejes: e.ejes, confianza: e.confianza };
-      try { localStorage.setItem('tc_diag_medidas', JSON.stringify({ piel: c.piel.hex, pelo: c.pelo?.hex, ojos: c.ojos?.hex, ojosN: c.ojos?.nombre, contraste: c.contraste })); } catch (er) { } }
+    if (c.ok) { const cm = D.mediaCaras(carasGuardadas(c)), e = D.estacion(cm, R, pf.colores?.r || {}), S = R.colorimetria.estaciones[e.k];
+      res.color = { k: e.k, familia: e.familia, n: S.n, d: S.d, hex: S.hex, si: S.si, no: S.no, metal: S.metal, consejo: S.consejo, ejes: e.ejes, confianza: e.confianza, fotos: cm.n };
+      try { localStorage.setItem('tc_diag_medidas', JSON.stringify({ piel: cm.piel.hex, pielN: cm.piel.nombre, pelo: cm.pelo?.hex, peloN: cm.pelo?.nombre, ojos: cm.ojos?.hex, ojosN: cm.ojos?.nombre, contraste: cm.contraste, fotos: cm.n })); } catch (er) { } }
   }
+  // 06/11 (Gabriela: «te debe primero preguntar características físicas… y las fotos son para clasificar tu silueta»): con pecho, cintura y cadera manda la cinta
+  // (es más exacta); la foto la confirma y da el largo de las piernas si salen los pies
+  const md = pf.medidas || {}, cinta = md.pecho > 0 && md.cintura > 0 && md.cadera > 0; let si = null;
   if (pf.cuerpo) {
     estado(t('Midiendo tu silueta…', 'Measuring your figure…')); const b = await D.analizarCuerpo(pf.cuerpo); res.avisos.cuerpo = b.prob.map(p => ({ k: p.k, fatal: p.fatal }));
-    if (b.ok) { const si = D.silueta(b, R), T = R.silueta.tipos[si.k], Pp = R.silueta.proporciones[si.prop];
-      res.cuerpo = { k: si.k, prop: si.prop, ratios: si.ratios, confianza: si.confianza, n: T.n, d: T.d, favorece: T.favorece, evitar: T.evitar, propN: Pp.n, propD: Pp.d, puntos: [...T.puntos, ...Pp.puntos] }; }
+    if (b.ok) si = { ...D.silueta(b, R), fuente: 'foto' };
   }
+  if (cinta) { const sc = D.siluetaCinta(md, R); si = { ...sc, prop: si?.prop || null, ratios: { ...(si?.ratios || {}), ...sc.ratios }, fuente: 'medidas', foto: si?.k || null }; if (res.avisos.cuerpo) res.avisos.cuerpo = res.avisos.cuerpo.filter(p => !p.fatal); }
+  if (si) { const T = R.silueta.tipos[si.k], Pp = si.prop ? R.silueta.proporciones[si.prop] : null;
+    res.cuerpo = { k: si.k, prop: si.prop, ratios: si.ratios, confianza: si.confianza, fuente: si.fuente, foto: si.foto || null, altura: md.altura || null, n: T.n, d: T.d, favorece: T.favorece, evitar: T.evitar, propN: Pp ? Pp.n : null, propD: Pp ? Pp.d : null, puntos: [...T.puntos, ...(Pp ? Pp.puntos : [])] }; }
   E.perfil = E.perfil || {}; const ant = E.perfil.diag || {};
-  E.perfil.diag = { ...ant, ...res, color: res.color || (pf.selfie ? null : ant.color), cuerpo: res.cuerpo || (pf.cuerpo ? null : ant.cuerpo) };
+  E.perfil.diag = { ...ant, ...res, color: res.color || (pf.selfie ? null : ant.color), cuerpo: res.cuerpo || (pf.cuerpo || cinta ? null : ant.cuerpo) };
   if (res.color) E.perfil.colores = { ...(E.perfil.colores || { r: {} }), est: res.color.familia, sub: res.color.k, fuente: 'foto' };
   if (res.cuerpo) E.perfil.tipoCuerpo = res.cuerpo.k;
   E.propuestas = []; E.generados = []; await guardar(); return { res, R };
 }
 // 04/11 (Gabriela: «una foto te tiene que servir para todo… tú no puedes seleccionar tu tipo de cuerpo, lo tienes que hacer en la aplicación en función de la foto»):
 // las dos fotos del alta se analizan solas, en todas las versiones, cada vez que cambia una; el Pro aplica el resultado a sus looks y a su clóset
-const firmaFotos = () => ({ selfie: E.perfil?.selfie?.size || 0, cuerpo: E.perfil?.cuerpo?.size || 0 });
+const firmaMed = () => { const m = E.perfil?.medidas || {}; return m.pecho > 0 && m.cintura > 0 && m.cadera > 0 ? [m.pecho, m.cintura, m.cadera].join('-') : ''; };
+const firmaFotos = () => ({ selfie: E.perfil?.selfie?.size || 0, cuerpo: E.perfil?.cuerpo?.size || 0, med: firmaMed() });
+// las últimas 5 selfies analizadas (solo sus colores medidos, en este móvil, nunca en la cuenta): la estación sale de su media
+function carasGuardadas(c) {
+  const f = firmaFotos().selfie, x = o => o && { L: o.L, a: o.a, b: o.b }; let h = [];
+  try { h = JSON.parse(localStorage.getItem('tc_diag_caras') || '[]'); } catch (e) { }
+  h = h.filter(q => q.v === DIAG_V && q.f !== f).concat({ v: DIAG_V, f, piel: x(c.piel), pelo: x(c.pelo), ojos: x(c.ojos), contraste: c.contraste, calidad: c.calidad }).slice(-5);
+  try { localStorage.setItem('tc_diag_caras', JSON.stringify(h)); } catch (e) { }
+  return h;
+}
 // DIAG_V sube cuando cambia el análisis: las fotos guardadas en el móvil se vuelven a analizar solas, sin subirlas otra vez
-// (2, 06/11: la foto de cuerpo entero ya no hace caer el análisis y el color de los ojos se mide con el blanco del ojo como referencia)
-const DIAG_V = 2;
-const diagPendiente = () => { const d = E.perfil?.diag, f = d?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo) || ((a.selfie || a.cuerpo) && (d?.v || 1) < DIAG_V)); };
+// (2, 06/11: la foto de cuerpo entero ya no hace caer el análisis y el color de los ojos se mide con el blanco del ojo como referencia;
+//  3, 06/11: piel y pelo con el mismo balance de blancos, las cuatro respuestas de Mis colores, media de las selfies, pies opcionales y medidas con cinta)
+const DIAG_V = 3;
+const diagPendiente = () => { const d = E.perfil?.diag, f = d?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo) || (a.med && a.med !== f.med) || ((a.selfie || a.cuerpo || a.med) && (d?.v || 1) < DIAG_V)); };
 let diagCorriendo = null, diagFallo = 0;
 const diagAuto = () => diagCorriendo || (diagCorriendo = hacerDiagnostico(() => { }).catch(() => { diagFallo++; return null; }).finally(() => { diagCorriendo = null; }));
 async function diagHastaAlDia() { let r = null; for (let i = 0; i < 3 && diagPendiente() && !diagFallo; i++) r = await diagAuto(); return r; }
@@ -2767,10 +2782,22 @@ function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; e
 function panelDiagFotos() {
   const pf = E.perfil || {};
   const hueco = (k, tit, consejos) => `<label class="dg-hueco${pf[k] ? ' hecha' : ''}" data-k="${k}">${pf[k] ? `<img src="${URL.createObjectURL(pf[k])}" alt="">` : `<svg><use href="#${k === 'selfie' ? 'ic-camara' : 'ic-cuerpo'}"/></svg>`}<b>${tit}</b><small>${consejos}</small><input type="file" accept="image/*" data-dgfoto="${k}"></label>`;
-  const cap = abrirPanel(t('Tus fotos', 'Your photos'), `<p class="pn-lema">${t('Dos fotos y la app hace el resto. Se analizan aquí mismo: no salen de tu móvil.', 'Two photos and the app does the rest. They’re analysed right here and never leave your phone.')}</p>
-    <div class="dg-huecos">${hueco('selfie', t('Tu cara', 'Your face'), t('De frente, con luz natural, sin filtros ni gafas, el pelo suelto.', 'Facing the camera, in daylight, no filters or glasses, hair down.'))}${hueco('cuerpo', t('Cuerpo entero', 'Full body'), t('De pie y de frente, hasta los pies, con ropa ajustada y los brazos un poco separados.', 'Standing, facing the camera, head to toe, fitted clothes, arms slightly apart.'))}</div>
+  // 06/11 (Gabriela: «te debe primero preguntar características físicas de peso, altura y tal, y las fotos son para clasificar tu silueta»): primero las medidas, después las fotos
+  const md = pf.medidas || {}, campo = (k, et, ay) => `<label class="dg-campo"><span>${et}</span><input type="text" inputmode="decimal" autocomplete="off" data-med="${k}" value="${md[k] ? String(md[k]).replace('.', idioma() === 'en' ? '.' : ',') : ''}" aria-describedby="dgm-${k}"><small id="dgm-${k}">${ay}</small></label>`;
+  const cap = abrirPanel(t('Tus medidas y tus fotos', 'Your measurements and photos'), `<p class="pn-lema">${t('Primero tus medidas y después dos fotos. Todo se queda en tu móvil.', 'First your measurements, then two photos. Everything stays on your phone.')}</p>
+    <h3 class="dg-sub">${t('Tus medidas', 'Your measurements')}</h3><p class="dg-d">${t('Con cinta métrica y ropa fina. Con pecho, cintura y cadera, tu silueta sale exacta.', 'With a tape measure over thin clothes. With bust, waist and hips, your figure comes out exact.')}</p>
+    <div class="dg-campos">${campo('altura', t('Altura (cm)', 'Height (cm)'), t('Descalza', 'Barefoot'))}${campo('peso', t('Peso (kg)', 'Weight (kg)'), t('Opcional', 'Optional'))}${campo('pecho', t('Pecho (cm)', 'Bust (cm)'), t('Por lo más ancho', 'At the fullest part'))}${campo('cintura', t('Cintura (cm)', 'Waist (cm)'), t('Por lo más estrecho', 'At the narrowest part'))}${campo('cadera', t('Cadera (cm)', 'Hips (cm)'), t('Por lo más ancho', 'At the fullest part'))}</div>
+    <h3 class="dg-sub">${t('Tus fotos', 'Your photos')}</h3>
+    <div class="dg-huecos">${hueco('selfie', t('Tu cara', 'Your face'), t('De frente, con luz natural, sin filtros ni gafas, el pelo suelto.', 'Facing the camera, in daylight, no filters or glasses, hair down.'))}${hueco('cuerpo', t('Cuerpo entero', 'Full body'), t('De pie y de frente, con ropa ajustada y los brazos un poco separados. Si salen los pies, mido también tus piernas.', 'Standing, facing the camera, fitted clothes, arms slightly apart. If your feet show, I also measure your legs.'))}</div>
     <div class="dg-estado" id="dg-estado" aria-live="polite"></div>
-    <button class="boton" id="dg-analizar" ${pf.selfie || pf.cuerpo ? '' : 'disabled'}>${t('Analizar mis fotos', 'Analyse my photos')}</button>`, cap => {
+    <button class="boton" id="dg-analizar" ${pf.selfie || pf.cuerpo || firmaMed() ? '' : 'disabled'}>${t('Analizar', 'Analyse')}</button>`, cap => {
+    const LIM = { altura: [120, 220], peso: [30, 250], pecho: [60, 170], cintura: [45, 170], cadera: [60, 180] }; let medT = 0;
+    cap.querySelectorAll('[data-med]').forEach(inp => inp.oninput = () => {
+      const k = inp.dataset.med, txt = inp.value.trim().replace(',', '.'), v = parseFloat(txt), ok = !txt || (v >= LIM[k][0] && v <= LIM[k][1]);
+      inp.setAttribute('aria-invalid', ok ? 'false' : 'true'); if (!ok) return;
+      E.perfil = E.perfil || {}; const m = { ...(E.perfil.medidas || {}) }; if (txt) m[k] = v; else delete m[k]; E.perfil.medidas = m;
+      clearTimeout(medT); medT = setTimeout(guardar, 400); $('dg-analizar').disabled = !(E.perfil.selfie || E.perfil.cuerpo || firmaMed());
+    });
     cap.querySelectorAll('[data-dgfoto]').forEach(inp => inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; try { const r = await procesarFoto(f); E.perfil = E.perfil || {}; E.perfil[inp.dataset.dgfoto] = r.blob; await guardar(); panelDiagFotos(); } catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); } });
     $('dg-analizar').onclick = async () => {
       const b = $('dg-analizar'), est = $('dg-estado'); b.disabled = true;
@@ -2782,6 +2809,8 @@ function panelDiagFotos() {
     };
   });
 }
+const PIEL_N = { clara: ['clara', 'Fair'], media: ['media', 'Medium'], morena: ['morena', 'Tan'], oscura: ['oscura', 'Deep'] };
+const PELO_N = { negro: ['negro', 'Black'], castano_oscuro: ['castaño oscuro', 'Dark brown'], castano: ['castaño', 'Brown'], castano_claro: ['castaño claro', 'Light brown'], rubio_oscuro: ['rubio oscuro', 'Dark blonde'], rubio: ['rubio', 'Blonde'], pelirrojo: ['pelirrojo', 'Red'], canoso: ['canoso', 'Grey'] };
 const OJOS_N = { verde: ['verdes', 'Green'], azul: ['azules', 'Blue'], gris: ['grises', 'Grey'], avellana: ['avellana', 'Hazel'], marron: ['marrones', 'Brown'], marron_oscuro: ['marrón oscuro', 'Dark brown'] };
 async function panelDiag(pendientes = []) {
   const dg = E.perfil?.diag || {}, es = idioma() === 'en' ? 1 : 0, m = medidasLocales(), c = dg.color, b = dg.cuerpo, pro = planDemo() === 'pro';
@@ -2794,17 +2823,17 @@ async function panelDiag(pendientes = []) {
   const avisos = [...pendientes, ...[...(dg.avisos?.cara || []), ...(dg.avisos?.cuerpo || [])].filter(p => !p.fatal).map(p => textoProb(R, p.k))].filter(Boolean);
   const html = `${c ? `<section class="dg-sec"><h2 class="dg-h">${t('Tus colores', 'Your colours')}</h2><div class="dg-tela grande">${c.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>
       <h3 class="dg-nom">${c.n[es]}</h3><p class="dg-d">${c.d[es]}</p>
-      ${m ? `<div class="dg-medido">${[['piel', t('Piel', 'Skin')], ['pelo', t('Pelo', 'Hair')], ['ojos', OJOS_N[m.ojosN] ? t('Ojos ' + OJOS_N[m.ojosN][0], OJOS_N[m.ojosN][1] + ' eyes') : t('Ojos', 'Eyes')]].filter(([k]) => m[k]).map(([k, n]) => `<span><i style="background:${m[k]}"></i>${n}</span>`).join('')}</div>
-        <p class="dg-d">${t(`Subtono ${subt} y contraste ${contr}.`, `${cap(subt)} undertone and ${contr} contrast.`)}</p>` : ''}
+      ${m ? `<div class="dg-medido">${[['piel', PIEL_N[m.pielN] ? t('Piel ' + PIEL_N[m.pielN][0], PIEL_N[m.pielN][1] + ' skin') : t('Piel', 'Skin')], ['pelo', PELO_N[m.peloN] ? t('Pelo ' + PELO_N[m.peloN][0], PELO_N[m.peloN][1] + ' hair') : t('Pelo', 'Hair')], ['ojos', OJOS_N[m.ojosN] ? t('Ojos ' + OJOS_N[m.ojosN][0], OJOS_N[m.ojosN][1] + ' eyes') : t('Ojos', 'Eyes')]].filter(([k]) => m[k]).map(([k, n]) => `<span><i style="background:${m[k]}"></i>${n}</span>`).join('')}</div>
+        <p class="dg-d">${t(`Subtono ${subt} y contraste ${contr}.`, `${cap(subt)} undertone and ${contr} contrast.`)}${m.fotos > 1 ? ' ' + t(`Media de tus ${m.fotos} fotos de cara.`, `Average of your ${m.fotos} face photos.`) : ''}</p>` : ''}
       <div class="dg-dos"><div><h4>${t('Te favorecen', 'Suit you')}</h4><p>${c.si.map(colNom).join(', ')}</p></div><div><h4>${t('Mejor lejos de la cara', 'Better away from your face')}</h4><p>${c.no.map(colNom).join(', ')}</p></div></div>
       <p class="dg-d"><b>${t('Metal', 'Metal')}:</b> ${c.metal}. ${es ? '' : c.consejo}</p>
       ${deMio.length ? `<h4>${t('De tu clóset, para la cara', 'From your closet, near your face')}</h4><div class="co-mias">${deMio.map(p => `<button data-ficha="${p.id}"><img src="${urlFoto(p)}" alt=""></button>`).join('')}</div>` : ''}</section>` : ''}
-    ${b ? `<section class="dg-sec"><h2 class="dg-h">${t('Tu silueta', 'Your figure')}</h2><div class="dg-sil">${siluetaSVG([Math.round(42 * b.ratios.hombros_cadera), Math.round(42 * b.ratios.cintura_cadera), 42])}<div><h3 class="dg-nom">${b.n[es]}</h3><p class="dg-d">${b.d[es]}</p><p class="dg-d">${b.propN[es]}: ${b.propD[es].charAt(0).toLowerCase() + b.propD[es].slice(1)}</p></div></div>
+    ${b ? `<section class="dg-sec"><h2 class="dg-h">${t('Tu silueta', 'Your figure')}</h2><div class="dg-sil">${siluetaSVG([Math.round(42 * b.ratios.hombros_cadera), Math.round(42 * b.ratios.cintura_cadera), 42])}<div><h3 class="dg-nom">${b.n[es]}</h3><p class="dg-d">${b.d[es]}</p>${b.propN ? `<p class="dg-d">${b.propN[es]}: ${b.propD[es].charAt(0).toLowerCase() + b.propD[es].slice(1)}</p>` : ''}<p class="dg-d">${b.fuente === 'medidas' ? t('Según tus medidas', 'From your measurements') + (b.foto && b.foto !== b.k && R ? '. ' + t('Tu foto da ', 'Your photo says ') + R.silueta.tipos[b.foto].n[es].toLowerCase() : '') : t('Según tu foto', 'From your photo')}${b.altura ? ' · ' + (b.altura / 100).toLocaleString(idioma() === 'en' ? 'en' : 'es', { minimumFractionDigits: 2 }) + ' m' : ''}.</p></div></div>
       <div class="dg-dos"><div><h4>${t('Te favorece', 'Flatters you')}</h4><ul>${b.favorece[es].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>${t('Mejor evitar', 'Better avoid')}</h4><ul>${b.evitar[es].map(x => `<li>${x}</li>`).join('')}</ul></div></div>
       ${favor.length ? `<h4>${t('De tu clóset, lo que más te favorece', 'From your closet, what suits you most')}</h4><div class="co-mias">${favor.map(p => `<button data-ficha="${p.id}"><img src="${urlFoto(p)}" alt=""></button>`).join('')}</div>` : ''}</section>` : ''}
     <section class="dg-sec"><p class="dg-d">${pro ? t('Hoy y tus looks ya tienen en cuenta este diagnóstico.', 'Today and your looks already use this analysis.') : t('Tus looks ya tienen en cuenta tus colores. Con el Pro, también tu silueta, y ves qué prendas de tu clóset te favorecen.', 'Your looks already use your colours. With Pro, your figure too, and you see which of your clothes suit you.')}${c ? ` ${t('Confianza en los colores', 'Colour confidence')}: ${conf(c.confianza)}.` : ''}${b ? ` ${t('En la silueta', 'Figure')}: ${conf(b.confianza)}.` : ''}</p>
       ${avisos.length ? `<ul class="dg-avisos">${avisos.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
-      ${grupoP('', filaP({ attr: 'data-diag="fotos"', ic: 'camara', tit: t('Cambiar mis fotos', 'Change my photos') }))}
+      ${grupoP('', filaP({ attr: 'data-diag="fotos"', ic: 'camara', tit: t('Cambiar mis medidas y fotos', 'Change my measurements and photos') }))}
       <p class="pn-nota">${t('Es una orientación, no una regla: si algo te hace feliz, póntelo. Tus fotos y los colores medidos se quedan en este móvil; en tu cuenta solo se guarda el resultado.', 'A guide, not a rule: if something makes you happy, wear it. Your photos and measured colours stay on this phone; only the result is saved to your account.')}</p></section>`;
   abrirPanel(t('Tu diagnóstico', 'Your analysis'), html, cap => cap.addEventListener('click', e => { if (e.target.closest('[data-ir],[data-ficha],[data-diag]')) setTimeout(() => cap.remove(), 0); }));
 }
