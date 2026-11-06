@@ -179,7 +179,9 @@ async function aptaNube(b) {
 // si algo falla al guardar en la nube, se avisa al servidor con el paso y el error (sin datos de la prenda), para poder arreglarlo
 const avisarFallo = (paso, e, b) => { try { fetch(API + '/api/aviso?d=' + encodeURIComponent(`${paso}|${String(e?.message || e).slice(0, 160)}|${b ? (b.type || '?') + ':' + b.size : ''}`)).catch(() => { }); } catch (x) { } };
 function docLocal() {
-  return { perfil: sinBlobs({ ...E.perfil, medidas: undefined }), conjuntos: E.conjuntos, agenda: E.agenda, borradas: JSON.parse(LS.get('tc_nube_borradas') || '[]'),
+  // 06/11 (Gabriela: «no se guardan las medidas»): las medidas solo vivían en el móvil donde se apuntaban; entraba desde tres sitios (Safari, la app del inicio
+  // y el ordenador) y en los otros no estaban. Ahora van con la cuenta, como el diagnóstico; las fotos siguen solo en el móvil
+  return { perfil: sinBlobs({ ...E.perfil }), conjuntos: E.conjuntos, agenda: E.agenda, borradas: JSON.parse(LS.get('tc_nube_borradas') || '[]'),
     prendas: E.prendas.filter(p => !p.ejemplo).map(p => ({ ...sinBlobs(p), conFoto: !!p.foto, conOriginal: !!p.original })) };
 }
 E.nube = { estado: '', cuando: LS.get('tc_nube_cuando') || '' };
@@ -292,7 +294,7 @@ async function bajarNube() {
   // que solo viven en este móvil; si al subir había conflicto con la nube (409), la bajada pisaba el diagnóstico recién hecho con el viejo de la nube y volvía
   // «según tu foto». Ahora, en el móvil que tiene las fotos o las medidas, manda su diagnóstico (y lo que sale de él)
   const pl = E.perfil || {}, mio = (pl.selfie instanceof Blob || pl.cuerpo instanceof Blob || pl.medidas) && pl.diag;
-  E.perfil = { ...(doc.perfil || {}), ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => v instanceof Blob || k === 'medidas' || (mio && ['diag', 'tipoCuerpo'].includes(k)))) }; // fotos y medidas: solo en el móvil
+  E.perfil = { ...(doc.perfil || {}), ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => v instanceof Blob || (k === 'medidas' && v && Object.keys(v).length) || (mio && ['diag', 'tipoCuerpo'].includes(k)))) }; // fotos y medidas: solo en el móvil
   if (mio && pl.colores?.fuente === 'foto') E.perfil.colores = { ...(E.perfil.colores || {}), est: pl.colores.est, sub: pl.colores.sub, fuente: 'foto' };
   LS.set('tc_nube_ver', version); LS.set('tc_nube_ids', JSON.stringify((doc.prendas || []).map(p => p.id)));
   await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda);
@@ -2819,13 +2821,14 @@ function panelDiagFotos() {
       <details class="dx-mas"><summary>${t('Cómo hacer las fotos', 'How to take the photos')}</summary><div class="dx-cons">${consejos.map(([h, l]) => `<div><h3>${h}</h3><ul>${l.map(x => `<li>${IC_BIEN}${x}</li>`).join('')}</ul></div>`).join('')}</div></details></section>
     <div class="dg-estado" id="dg-estado" aria-live="polite"></div>
     <button class="boton dx-boton" id="dg-analizar" ${pf.selfie || pf.cuerpo || firmaMed() ? '' : 'disabled'}>${t('Analizar', 'Analyse')}</button>
-    <p class="dx-priv">${IC_CANDADO}${t('Todo se queda en tu móvil', 'Everything stays on your phone')}</p></div>`, cap => {
+    <p class="dx-priv">${IC_CANDADO}${t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`, cap => {
     const LIM = { altura: [120, 220], peso: [30, 250], pecho: [60, 170], cintura: [45, 170], cadera: [60, 180] }; let medT = 0;
     cap.querySelectorAll('[data-med]').forEach(inp => {
       const l = cap.querySelector(`.dx-l[data-l="${inp.dataset.med}"]`);
       if (l) { inp.onfocus = () => l.classList.add('on'); inp.onblur = () => l.classList.remove('on'); }
       inp.oninput = () => {
-        const k = inp.dataset.med, txt = inp.value.trim().replace(',', '.'), v = parseFloat(txt), ok = !txt || (v >= LIM[k][0] && v <= LIM[k][1]);
+        // la altura también en metros («1,65»): antes se rechazaba sin decir nada y no se guardaba
+        const k = inp.dataset.med, txt = inp.value.trim().replace(',', '.'), v0 = parseFloat(txt), v = k === 'altura' && v0 > 1 && v0 < 2.5 ? Math.round(v0 * 100) : v0, ok = !txt || (v >= LIM[k][0] && v <= LIM[k][1]);
         inp.setAttribute('aria-invalid', ok ? 'false' : 'true'); if (!ok) return;
         E.perfil = E.perfil || {}; const m = { ...(E.perfil.medidas || {}) }; if (txt) m[k] = v; else delete m[k]; E.perfil.medidas = m;
         clearTimeout(medT); medT = setTimeout(guardar, 400); $('dg-analizar').disabled = !(E.perfil.selfie || E.perfil.cuerpo || firmaMed());
