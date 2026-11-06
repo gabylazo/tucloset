@@ -1456,7 +1456,8 @@ img{-webkit-user-drag:none}
 .dg-tela i{flex:1}
 .dg-tela.grande{height:44px;margin:4px 0 14px}
 .dg-huecos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
-.dg-hueco{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;border:1px dashed #CFC5BA;padding:14px 10px;text-align:center;cursor:pointer;min-height:220px}
+/* 06/11 (Gabriela: «el texto sale muy arriba, tiene que ir centrado») */
+.dg-hueco{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px dashed #CFC5BA;padding:14px 10px;text-align:center;cursor:pointer;min-height:220px}
 .dg-hueco.hecha{border-style:solid;border-color:var(--nogal,#4A3526)}
 .dg-hueco img{width:100%;height:130px;object-fit:cover}
 .dg-hueco b{font-weight:500;font-size:14px;color:var(--nogal,#4A3526)}
