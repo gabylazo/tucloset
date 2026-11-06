@@ -2380,11 +2380,29 @@ function resumenCloset() {
     return { looks: buenos.length, dias };
   } finally { Math.random = rnd; SIN_HISTORIAL = false; }
 }
+// 06/11 (Gabriela: «todavía sigo viendo combinaciones con ropa de deporte»; «esos looks que salen en cada prenda muchos son un horror»): «Ya puedes
+// ponértela así» salía del generador viejo (combosCon), que no conoce las reglas de la estilista. Con el motor cargado salen del motor: el mejor look de cada
+// ocasión en la que cabe la prenda, con el tiempo de hoy y, si la prenda no es de esta temperatura, con el de su estación; solo los que pasan todos los vetos.
+function looksMotorCon(p) {
+  const f = Motor.ficha(p, {}), w = E.tiempo?.t != null ? E.tiempo : { t: 18, max: 21, min: 12 }, ocs = Motor.ocasionesDe(p), min = Motor.R.puntos.umbrales.pasable;
+  // con el tiempo de hoy; si así salen menos de dos, también con el de la mitad de su estación (un top de verano en noviembre)
+  const m = Math.round((Math.max(f.tmin ?? 5, 5) + Math.min(f.tmax ?? 28, 28)) / 2), tiempos = [w, ...(Math.abs(m - w.t) >= 4 ? [{ t: m, max: m + 3, min: m - 6 }] : [])];
+  // la prenda, fija: de su misma categoría solo entra ella (el motor solo prueba las 12 mejores parejas de cada fórmula y muchas prendas no llegaban nunca)
+  const pool = activas().filter(x => x.id === p.id || Motor.ficha(x, {}).cat !== f.cat);
+  const vistos = new Set(), out = [];
+  for (const tiempo of tiempos) { if (out.length >= 2) break; for (const plan of ['Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].filter(o => ocs.includes(o) && !out.some(x => x.plan === o))) {
+    const r = Motor.looks({ prendas: pool, tiempo, plan, perfil: E.perfil, n: 6, hoy: hoyISO(), hora: plan === 'Noche' ? 20 : 13, pro: true, depurar: true });
+    const l = (r.todos || []).filter(l => !l.veto.duros.length && !l.casi && l.nota >= min && Motor.claveLook(l).split(',').includes(p.id) && !vistos.has(Motor.claveLook(l))).sort((a, b) => b.nota - a.nota)[0];
+    if (!l) continue; vistos.add(Motor.claveLook(l));
+    const ps = Motor.aPropuesta(l).ids.map(id => E.prendas.find(x => x.id === id)).filter(Boolean); if (ps.length > 1) out.push({ ps, pts: l.nota, plan });
+  } }
+  return out.sort((a, b) => b.pts - a.pts);
+}
 function calcularPartido(p) {
   const rnd = Math.random; Math.random = () => .5; // sin azar: el mismo clóset da siempre la misma respuesta
   try {
     const pool = activas().filter(x => x.id !== p.id);
-    const ya = combosCon([p], pool).sort((a, b) => b.pts - a.pts);
+    const ya = typeof Motor !== 'undefined' ? looksMotorCon(p) : combosCon([p], pool).sort((a, b) => b.pts - a.pts);
     // «look nuevo» = una base (vestido, o arriba y abajo) que con la pieza pasa a ser buena y sin ella no lo era
     const antes = {}; for (const l of ya) antes[l.base] = Math.max(antes[l.base] ?? -99, l.pts);
     const tengo = (v, cat) => E.prendas.some(x => x.color === v.color && catDe(x) === cat && estilo(x) === estilo(v)), cand = [];
@@ -2397,7 +2415,7 @@ function calcularPartido(p) {
     }
         const porCat = new Map(); for (const x of cand.sort((a, b) => b.n - a.n || b.pts - a.pts)) if (!porCat.has(x.cat)) porCat.set(x.cat, x); // una por categoría
     const sug = [...porCat.values()].slice(0, 4);
-    return { ya: ya.filter(l => l.pts >= LOOK_BUENO).slice(0, 2), sug };
+    return { ya: typeof Motor !== 'undefined' ? ya.slice(0, 4) : ya.filter(l => l.pts >= LOOK_BUENO).slice(0, 2), sug };
   } finally { Math.random = rnd; }
 }
 function sacalePartido(p) {
