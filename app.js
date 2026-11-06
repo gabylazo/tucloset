@@ -1549,7 +1549,7 @@ function formEvento() {
   const f = E.cal.form, en = idioma() === 'en', L = en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
   return `<div class="ag-form"><input id="ag-nom" type="text" maxlength="40" placeholder="${t('Añade un título: oficina, pilates, cena…', 'Add a title: office, pilates, dinner…')}" value="${(f.nombre || '').replace(/"/g, '&quot;')}" autocomplete="off">
     <label class="ag-hora">${t('Hora', 'Time')}<input id="ag-hora" type="time" value="${f.hora || ''}"></label>
-    <input id="ag-url" class="ag-url" type="url" inputmode="url" autocomplete="off" placeholder="${t('Enlace del sitio: Google Maps, su web o Instagram', 'Link to the place: Google Maps, website or Instagram')}" value="${escH(f.url || '')}">
+    <input id="ag-url" class="ag-url" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="${t('Enlace del sitio: Google Maps, su web o Instagram', 'Link to the place: Google Maps, website or Instagram')}" value="${escH(f.url || '')}">
     <textarea id="ag-desc" class="ag-desc" rows="2" maxlength="240" placeholder="${t('Cuéntame el plan: qué haréis, si es dentro o fuera, si hay que ir arreglada…', 'Tell me the plan: what you’ll do, indoors or out, dressy or not…')}">${escH(f.desc || '')}</textarea>
     <div class="cal-ops">${OCASIONES.map(o => `<button class="${o === f.oc ? 'on' : ''}" data-agoc="${o}">${ocNombre(o)}</button>`).join('')}</div>
     ${f.edita ? '' : `<div class="cal-ops ag-rep">${REPITE.map(([k, es, i]) => `<button class="${k === f.rep ? 'on' : ''}" data-agrep="${k}">${k === 'semana' ? (en ? `Every ${new Date(f.dia + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long' })}` : `Cada ${new Date(f.dia + 'T12:00').toLocaleDateString('es-ES', { weekday: 'long' })}`) : en ? i : es}</button>`).join('')}</div>`}
@@ -1626,12 +1626,16 @@ function pintarAgenda(raiz) {
     else if (q.agdia) { E.cal.dia = q.agdia; E.cal.ev = null; E.cal.form = null; E.cal.idea = 0; }
     else if (q.agnuevo !== undefined) { E.cal.form = { dia: d, oc: 'Diario', hora: '', rep: 'una', dias: [sel.getDay()], nombre: '' }; E.cal.ev = null; }
     else if (q.agoc) { f.oc = q.agoc; f.ocTocada = true; raiz.querySelectorAll('[data-agoc]').forEach(x => x.classList.toggle('on', x.dataset.agoc === f.oc)); return; }
-    else if (q.agrep) { f.nombre = $('ag-nom')?.value || f.nombre; f.hora = $('ag-hora')?.value || f.hora; f.rep = q.agrep; }
+    else if (q.agrep) { f.nombre = $('ag-nom')?.value || f.nombre; f.hora = $('ag-hora')?.value || f.hora; f.url = $('ag-url')?.value ?? f.url; f.desc = $('ag-desc')?.value ?? f.desc; f.rep = q.agrep; } // el enlace y la descripción tampoco se pierden al elegir cómo se repite
     else if (q.agdow) { const x = +q.agdow; f.dias = f.dias.includes(x) ? f.dias.filter(y => y !== x) : [...f.dias, x]; b.classList.toggle('on'); return; }
     else if (q.agcancela !== undefined) E.cal.form = null;
     else if (q.agguarda !== undefined) {
-      const nombre = ($('ag-nom')?.value || '').trim(), hora = $('ag-hora')?.value || '', url = ($('ag-url')?.value || '').trim(), desc = ($('ag-desc')?.value || '').trim();
-      if (url && !/^https?:\/\/\S+\.\S+/i.test(url)) { toast(t('Ese enlace no se puede abrir: cópialo entero, con https://', 'That link won’t open: copy it whole, with https://')); return; }
+      // 07/11 (Gabriela: «no me deja guardar, el botón no funciona»): al compartir desde Google Maps, el iPhone pega el nombre del sitio y después el enlace,
+      // y a veces el enlace llega sin https://. Antes eso paraba el guardado con un aviso; ahora se saca el enlace de donde esté y lo demás es el nombre del sitio
+      const crudo = ($('ag-url')?.value || '').trim(), mu = crudo.match(/https?:\/\/[^\s"<>]+/i) || crudo.match(/(?:^|\s)((?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\/[^\s"<>]*)/i);
+      const url = mu ? (mu[1] ? 'https://' + mu[1] : mu[0]).replace(/[).,;]+$/, '') : '', sitioTxt = (mu ? crudo.replace(mu[0], ' ') : crudo).replace(/\s+/g, ' ').trim();
+      const nombre = ($('ag-nom')?.value || '').trim(), hora = $('ag-hora')?.value || '', desc0 = ($('ag-desc')?.value || '').trim();
+      const desc = sitioTxt && !desc0.toLowerCase().includes(sitioTxt.toLowerCase()) ? [sitioTxt, desc0].filter(Boolean).join(' · ') : desc0;
       if (!f.ocTocada && !OC_POR_NOMBRE.some(([r]) => r.test(nombre))) { const o = OC_POR_NOMBRE.find(([r]) => r.test(desc)); if (o) f.oc = o[1]; }
       const extra = { url: url || undefined, desc: desc || undefined }, dias = f.edita ? null : { semana: [sel.getDay()], laborables: [1, 2, 3, 4, 5], diario: [0, 1, 2, 3, 4, 5, 6], dias: f.dias }[f.rep];
       let obj;
@@ -2103,7 +2107,7 @@ const INVARIABLE = /^(Beige|Crema|Camel|Burdeos|Mostaza|Caqui|Nude|Terracota)$|\
 const plColor = (c, fem) => { let pl = PLURAL_COLOR[c] || (INVARIABLE.test(c) ? c.toLowerCase() : /[aeo]$/i.test(c) ? c.toLowerCase() + 's' : c.toLowerCase()); return fem ? pl.replace(/os$/, 'as') : pl; };
 const nomEstampado = (x, e, c2) => `${NOM_X[x][0]} ${ESTAMPADOS[e][0]}${c2 && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(e) ? ' ' + plColor(c2, e === 'Rayas' || e === 'Flores') : ''}`;
 // 06/11 (Gabriela: «hay también piezas de encaje, transparentes… hay que tener ese tipo de detalles»): se marcan al subir; van a la ficha y a las notas (los cuidados las leen)
-const DETALLES = { Deporte: 'Sport', Vaquero: 'Denim', Encaje: 'Lace', Transparente: 'Sheer', Volantes: 'Ruffles', Satén: 'Satin', Lentejuelas: 'Sequins', Terciopelo: 'Velvet', Piel: 'Leather', Punto: 'Knit' }; // Vaquero (Gabriela: «¿qué hacemos con la mezclilla, una falda de mezclilla larga?»)
+const DETALLES = { Deporte: 'Sport', Vaquero: 'Denim', Encaje: 'Lace', Transparente: 'Sheer', Volantes: 'Ruffles', Satén: 'Satin', Lentejuelas: 'Sequins', Terciopelo: 'Velvet', Piel: 'Leather', Punto: 'Knit', 'Hombros al aire': 'Off-shoulder' }; // Vaquero (Gabriela: «¿qué hacemos con la mezclilla, una falda de mezclilla larga?»)
 function prepararSubir() { E.subida = []; E.sDet = null; pintarSubida(); }
 // Subir (Gabriela, 20/10): una sola prenda → su ficha (3B); varias → rejilla (3A) con lo general a la vista y, al tocar una, su ficha
 function pintarSubida() {

@@ -81,6 +81,8 @@ const Motor = (() => {
     if (dep && f.cat === 'calzado') { f.deportiva = true; f.form = Math.min(f.form, 1); }
     // lo que hace protagonista a una pieza aunque su color sea neutro (cuenta una vez por pieza en n_focos)
     f.foco = /encaje|transparen|lentejuel|abullon|peplum|asimetric|un hombro|volant/.test(nomM);
+    // 07/11 (Gabriela: «un jersey que es por los hombros abiertos con una camisa abajo, no tiene sentido»): escotes que no admiten nada debajo
+    f.hombros = /hombros? al aire|hombros? descubierto|hombros? abierto|off.?shoulder|bardot|palabra de honor|sin tirantes|un hombro|asimetric|halter|espalda al aire|espalda abierta|escote barco caido|cut.?out|recortes/.test(nomM) ? 'al_aire' : undefined;
     // color: el de la app; si es «Estampado» o vacío, el del nombre; vaquero = neutro siempre
     let col = p.color && p.color !== 'Estampado' ? p.color : null;
     if (!col) for (const [c, rs] of Object.entries(I.color.palabras_en_el_nombre)) if (rs.some(r => r.test(nom))) { col = c; break; }
@@ -367,7 +369,9 @@ const Motor = (() => {
       for (const r of ['capa', 'base_interior']) {
         const [hc] = H(r); if (!hc) continue;
         // lo de debajo: una camisa que asoma, o una prenda neutra si de verdad hace frío (una camiseta roja bajo un jersey de rayas no aporta nada)
-        const debajo = p => r !== 'base_interior' || (p._f.largo !== 'crop' && (p._f.subtipo === 'camisa' || (['T5', 'T6', 'T7'].includes(ctx.tramo.id) && ['neutro', 'neutro_suave'].includes(p._f.color_clase))));
+        // y lo de encima tiene que admitirlo: con mangas, sin hombros al aire y que sea de punto, sudadera o chaleco (07/11, Gabriela: el jersey de hombros abiertos con una camisa debajo «no tiene sentido»)
+        const fA = par.arriba?._f, encima = !fA || (!fA.hombros && (String(fA.subtipo).startsWith('chaleco') || !['sin_mangas', 'tirantes'].includes(fA.manga)) && (R.grupos['@punto'].includes(fA.subtipo) || ['cardigan', 'sudadera', 'chaleco_punto', 'chaleco_traje'].includes(fA.subtipo)));
+        const debajo = p => r !== 'base_interior' || (encima && p._f.largo !== 'crop' && (p._f.subtipo === 'camisa' || (['T5', 'T6', 'T7'].includes(ctx.tramo.id) && ['neutro', 'neutro_suave'].includes(p._f.color_clase))));
         const cs = cands(hc, ents).filter(p => !PIEZAS.some(k => par[k] === p) && debajo(p)).sort((a, b) => cercania(b, par, ctx) + AF.capa * afin(b) - cercania(a, par, ctx) - AF.capa * afin(a)).slice(0, 2);
         if (!cs.length && !hc.opcional) { faltaHueco = { rol: r, h: hc }; continue; }
         looks = looks.flatMap(l => cs.map(c => ({ ...l, [r]: c })).concat(hc.opcional ? [l] : []));
