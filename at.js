@@ -139,7 +139,7 @@ if (AT) (() => {
      - una columna sin nada abajo (sin zapatos) va centrada en altura;
      - a igualdad, gana el reparto con las piezas más cerca de su tamaño y el cuerpo entero en una columna. Medidas en cm; figura() las lleva a la caja. ---------- */
   const COL_G = 3, COL_GC = 4, COL_CACHE = new Map();
-  const RANGO = { A: [1.5, 3, 1.9], C: [.9, 1.3, 1.05], T: [.88, 1.12, 1], B: [.88, 1.12, 1], V: [.88, 1.12, 1], G: [1.2, 2.2, 1.5], Z: [1.1, 2, 1.35] };
+  const RANGO = { A: [1.5, 3.2, 1.9], C: [.9, 1.42, 1.05], T: [.88, 1.12, 1], B: [.88, 1.12, 1], V: [.88, 1.12, 1], G: [1.2, 2.6, 1.5], Z: [1.1, 2.4, 1.35] }; // 07/11 (Gabriela: «todavía siguen habiendo espacios vacíos»): la capa, el calzado y el bolso pueden crecer más para tapar el hueco de su columna
   const ORDEN = { A: 0, C: 1, T: 2, G: 3, B: 4, V: 4, Z: 5 }, ROPA = new Set(['C', 'T', 'B', 'V']);
   function collage(ps, asp = .8) {
     const rol = r => ps.filter(p => r.includes(p.tipo)), arriba = rol(['Arriba']), grande = rol(['Abajo', 'Vestidos'])[0], top = arriba[arriba.length - 1] || null;
@@ -197,7 +197,7 @@ if (AT) (() => {
         let hueco = 0, xc = 0;
         cols.forEach((col, j) => { const os = out.filter(o => col.includes(L.indexOf(o[5]))).sort((u, v) => u[2] - v[2]); let y = 0;
           for (const o of os) { hueco = Math.max(hueco, (o[2] - y - (y ? COL_G : 0)) * anchos[j]); y = o[2] + o[4]; } hueco = Math.max(hueco, (H - y) * anchos[j]); xc += anchos[j] + COL_GC; });
-        let p = out.reduce((t, o) => t + o[3] * o[4], 0) / (Wb * Hb) - .8 * hueco / (Wb * Hb);
+        let p = out.reduce((t, o) => t + o[3] * o[4], 0) / (Wb * Hb) - 1.6 * hueco / (Wb * Hb);
         for (const [x, s] of sc) p -= (ROPA.has(x.r) ? .25 : .06) * Math.abs(Math.log(s / x.pref));
         if (T && B && colDe(T) !== colDe(B)) p -= .015;
         p -= .002 * cb + .001 * f;
