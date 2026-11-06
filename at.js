@@ -302,7 +302,7 @@ if (AT) (() => {
   /* ---------- cómo cuidar cada prenda (Gabriela, 03/11: «esa opción era para dar instrucciones de lavado de cada prenda, cómo tienes que lavarla para cuidarla»).
      Pautas generales por tejido y tipo, sacadas del nombre; la etiqueta manda ---------- */
   function cuidados(p) {
-    const n = ((p.nombre || '') + ' ' + (p.notas || '')).toLowerCase(), f = typeof Motor !== 'undefined' ? Motor.ficha(p) : {}, st = f.subtipo || '', out = [];
+    const n = ((p.nombre || '') + ' ' + (p.notas || '') + ' ' + (p.detalles || []).join(' ')).toLowerCase(), f = typeof Motor !== 'undefined' ? Motor.ficha(p) : {}, st = f.subtipo || '', out = [];
     const T = (es, en_) => out.push(t(es, en_));
     if (p.tipo === 'Calzado') { /piel|cuero|ante\b|antelina/.test(n) || !/lona|tela|deportiv|zapatilla/.test(n) ? T('Cepíllalos y dales crema de su color; si se mojan, sécalos con papel dentro y lejos del radiador.', 'Brush them and use matching cream; if they get wet, stuff with paper and dry away from heat.') : T('A mano, con agua tibia y jabón neutro; sécalas al aire, nunca en la secadora.', 'By hand with lukewarm water and mild soap; air-dry, never tumble-dry.'); }
     else if (p.tipo === 'Bolsos') T('Límpialo con un paño seco y guárdalo relleno de papel, para que no pierda la forma.', 'Wipe with a dry cloth and store it stuffed with paper so it keeps its shape.');
