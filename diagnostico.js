@@ -199,9 +199,8 @@ async function cuerpoSin(blob) {
   //  · Bolsos, móviles y accesorios (categoría 5 del segmentador) que cuelgan por los lados se quitan siempre.
   //  · En cintura y cadera, la piel que sobresale por fuera de la ropa son manos o brazos (la mano en la cadera, el brazo pegado): se quita si deja al menos el 75 %.
   //  · En las fotos en el espejo el brazo que sujeta el móvil sale a la altura del hombro: el hombro se corta a 0,3 de la distancia entre hombros por fuera de cada
-  //    punto (el deltoides); la cadera, a 0,85 de la distancia entre caderas por fuera de cada punto (la cadera real mide unas 2 veces esa distancia: queda margen
-  //    para las caderas anchas de verdad).
-  //  · La cadera ya no es la fila más ancha (la que más se contamina con una mano o un bolso) sino la del percentil 75 de la franja.
+  //    punto (el deltoides); la cadera, con margen para las caderas anchas de verdad.
+  //  · La cadera es la fila más ancha del perfil suavizado (una mano o un bolso en pocas filas no la mueven); tope de 0,95 de la distancia entre caderas por fuera de cada punto.
   const tramo = (y, lim, piel) => {
     if (!persona(xC, y)) return null; let a = xC, b = xC; while (a > 0 && persona(a - 1, y)) a--; while (b < W - 1 && persona(b + 1, y)) b++;
     while (a < b && cat(a, y) === 5) a++; while (b > a && cat(b, y) === 5) b--;
@@ -209,14 +208,16 @@ async function cuerpoSin(blob) {
     return lim ? [Math.max(a, lim[0]), Math.min(b, lim[1])] : [a, b];
   };
   const dS = Math.abs(hD[0] - hI[0]), dH = Math.abs(cD[0] - cI[0]);
-  const limS = [Math.min(hI[0], hD[0]) - dS * .3, Math.max(hI[0], hD[0]) + dS * .3], limH = [Math.min(cI[0], cD[0]) - dH * .85, Math.max(cI[0], cD[0]) + dH * .85];
+  const limS = [Math.min(hI[0], hD[0]) - dS * .3, Math.max(hI[0], hD[0]) + dS * .3], limH = [Math.min(cI[0], cD[0]) - dH * .95, Math.max(cI[0], cD[0]) + dH * .95];
   const ancho = (y, lim, piel) => { const t = tramo(y, lim, piel); return t ? t[1] - t[0] : null; };
   const pegados = [];
   const fila = (f0, f1, cmp, lim, piel) => { let mejor = null, yM = null; for (let f = f0; f <= f1; f += .01) { const y = yS + Tr * f, w = ancho(y, lim, piel); if (w == null) continue; if (mejor == null || cmp(w, mejor)) { mejor = w; yM = y; } } return [mejor, yM]; };
   const [hombros, yHo] = fila(.06, .14, (a, b) => a > b, limS);
   const [cintura, yW] = fila(.45, .85, (a, b) => a < b, limH, true);
-  const filasC = []; for (let f = .9; f <= 1.3; f += .01) { const y = yS + Tr * f, w = ancho(y, limH, true); if (w != null) filasC.push([w, y]); }
-  filasC.sort((a, b) => a[0] - b[0]); const [cadera, yH] = filasC.length ? filasC[Math.floor((filasC.length - 1) * .75)] : [null, null];
+  // la cadera: la fila más ancha del perfil suavizado (mediana de 5 filas), hasta 1,35 del torso para alcanzar lo más ancho en las caderas en pera
+  const filasC = []; for (let f = .9; f <= 1.35; f += .01) { const y = yS + Tr * f, w = ancho(y, limH, true); if (w != null) filasC.push([w, y]); }
+  const suave = filasC.map((q, i) => [filasC.slice(Math.max(0, i - 2), i + 3).map(x => x[0]).sort((a, b) => a - b)[Math.min(2, Math.floor(filasC.slice(Math.max(0, i - 2), i + 3).length / 2))], q[1]]);
+  const [cadera, yH] = suave.length ? suave.reduce((m, q) => q[0] > m[0] ? q : m) : [null, null];
   if (!hombros || !cintura || !cadera) return { ok: false, prob: [...prob, { k: 'sin_silueta', fatal: true }] };
   // si los brazos tocan el tronco en la cintura, el tramo los incluye: el ancho de la cintura se dispara frente al de las articulaciones
   for (const [i, y] of [[15, yW], [16, yW], [15, yH], [16, yH]]) { const t = tramo(y), x = P(i)[0]; if (t && x > t[0] - 4 && x < t[1] + 4 && Math.abs(P(i)[1] - y) < Tr * .25) pegados.push(i); }

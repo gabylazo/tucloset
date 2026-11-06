@@ -2760,8 +2760,9 @@ function carasGuardadas(c) {
 // DIAG_V sube cuando cambia el análisis: las fotos guardadas en el móvil se vuelven a analizar solas, sin subirlas otra vez
 // (2, 06/11: la foto de cuerpo entero ya no hace caer el análisis y el color de los ojos se mide con el blanco del ojo como referencia;
 //  3, 06/11: piel y pelo con el mismo balance de blancos, las cuatro respuestas de Mis colores, media de las selfies, pies opcionales y medidas con cinta;
-//  4, 06/11: en la silueta ya no cuentan el brazo que sujeta el móvil, los bolsos ni la mano en la cadera)
-const DIAG_V = 4;
+//  4, 06/11: en la silueta ya no cuentan el brazo que sujeta el móvil, los bolsos ni la mano en la cadera;
+//  5, 06/11: con la 4 Gabriela seguía saliendo con hombros más anchos que la cadera; la cadera se mide más abajo y sin recortar las caderas anchas)
+const DIAG_V = 5;
 const diagPendiente = () => { const d = E.perfil?.diag, f = d?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo) || (a.med && a.med !== f.med) || (a.selfie && f.resp != null && a.resp !== f.resp) || ((a.selfie || a.cuerpo || a.med) && (d?.v || 1) < DIAG_V)); };
 let diagCorriendo = null, diagFallo = 0;
 const diagAuto = () => diagCorriendo || (diagCorriendo = hacerDiagnostico(() => { }).catch(() => { diagFallo++; return null; }).finally(() => { diagCorriendo = null; }));
