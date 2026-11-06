@@ -248,7 +248,7 @@ if (AT) (() => {
   pintarEstilo = function () {
     pintarEstiloViejo();
     $('at-ropa-sel')?.remove(); const ro = E.perfil?.ropa;
-    $('es-sub').insertAdjacentHTML('beforebegin', `<div id="at-ropa-sel"><h3 class="es-tit">${t('Ropa que llevas', 'What you wear')}</h3><div class="at-fila at-vj-ops at-insp-g">${ROPAS.map(([v, n]) => `<button class="${ro === v ? 'on' : ''}" data-ropasel="${v}" aria-pressed="${ro === v}">${n[en() ? 1 : 0].replace(/^Ropa de /, '').replace(/^\w/, c => c.toUpperCase())}${DOS}</button>`).join('')}</div></div>`);
+    $('es-sub').insertAdjacentHTML('beforebegin', `<div id="at-ropa-sel"><h2 class="es-tit">${t('Ropa que llevas', 'What you wear')}</h2><div class="at-fila at-vj-ops at-insp-g">${ROPAS.map(([v, n]) => `<button class="${ro === v ? 'on' : ''}" data-ropasel="${v}" aria-pressed="${ro === v}">${n[en() ? 1 : 0].replace(/^Ropa de /, '').replace(/^\w/, c => c.toUpperCase())}${DOS}</button>`).join('')}</div></div>`);
     $('at-ropa-sel').onclick = async e => { const b = e.target.closest('[data-ropasel]'); if (!b) return; await ponerRopa(b.dataset.ropasel); pintarEstilo(); };
     document.querySelectorAll('#es-lista [data-estilo]').forEach(b => { if (!FOTO_ESTILO.has(b.dataset.estilo)) return; const tela = b.querySelector('.es-tela'); tela.insertAdjacentHTML('beforebegin', `<img class="es-foto" src="estilos/${b.dataset.estilo}.webp?v=1" alt="">`); tela.classList.add('es-mini'); });
   };
