@@ -968,17 +968,18 @@ html.at.oscuro[data-iconos="1"] #s-raiz .uno .ops.col button.on{outline:2px soli
 html.at.oscuro .ac-fotos label .mini-et{color:var(--tinta)}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
-   «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas van siempre sobre tarjetas claras (si no, la ropa negra desaparece). */
+   «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz
+   muy fino alrededor, para que la ropa negra no se pierda (07/11, Gabriela: «no me gustan los fondos blancos de la ropa»; antes iban sobre tarjeta clara). */
 html.oscuro { color-scheme: dark; --o-fondo: #1A1410; --o-sup: #241C16; --fondo: #1A1410; --tinta: #F1E9DE; --sec: #C9BAAB; --ter: #B3A393; --suave2: #B3A393;
   --linea: rgba(241, 233, 222, .16); --linea2: rgba(241, 233, 222, .3); --raya: rgba(241, 233, 222, .16); --oro: #C9A24B; --oro-g: #D2AE5C; --oro-t: #D8B76A; --oro-tinta: #D8B76A;
-  --accion: #F1E9DE; --accion-t: #241B14; --acento: #F1E9DE; --suave: #2A211A; --gris: #ECE6DE; --baldosa: #ECE6DE; --nogal: #F1E9DE; --o-nogal-claro: #DCC6AC; }
-html.at.oscuro { --sec: #C9BAAB; --ter: #B3A393; --suave2: #B3A393; --baldosa: #ECE6DE; --raya: rgba(241, 233, 222, .16); --oro-tinta: #D8B76A; --linea: rgba(241, 233, 222, .16); }
+  --accion: #F1E9DE; --accion-t: #241B14; --acento: #F1E9DE; --suave: #2A211A; --gris: #2B221C; --baldosa: #2B221C; --nogal: #F1E9DE; --o-nogal-claro: #DCC6AC; }
+html.at.oscuro { --sec: #C9BAAB; --ter: #B3A393; --suave2: #B3A393; --baldosa: #2B221C; --raya: rgba(241, 233, 222, .16); --oro-tinta: #D8B76A; --linea: rgba(241, 233, 222, .16); }
 html.oscuro, html.oscuro body { background: #1A1410; }
 /* la marca: «Tu» en nogal claro, «Closet» en dorado */
 html.oscuro .at-marca, html.oscuro .marca { color: var(--o-nogal-claro); }
-/* el look de Hoy, sobre su tarjeta clara */
+/* el look de Hoy, sobre su tarjeta */
 html.at.oscuro .at-hoy .at-look { background: var(--baldosa); }
-/* tarjetas claras de prendas que venían en blanco */
+/* tarjetas de prendas que venían en blanco */
 html.oscuro .prenda .cuadro { background: var(--baldosa); }
 /* lo que usaba el gris claro y no lleva prendas: superficie oscura */
 html.oscuro .mc-busca, html.oscuro .cal-rej button.on, html.oscuro .ac-fotos label, html.oscuro .cal-mios button { background: var(--o-sup); }
@@ -987,8 +988,15 @@ html.at.oscuro .at-fav { color: #E5545E; }
 html.at.oscuro .at-fav.on svg { fill: #E5545E; stroke: #E5545E; }
 /* las fotos sin catálogo (recorte sobre blanco) se mezclan con la tarjeta clara, no con el fondo */
 html.at.oscuro .at-look, html.at.oscuro .at-bal, html.at.oscuro .at-cel, html.at.oscuro .at-foto { isolation: isolate; }
-/* la ficha: volver, editar y borrar van sobre la foto clara → en nogal, como en el modo claro */
-html.at.oscuro .at-barra-sup:has(+ .at-foto) button, html.at.oscuro .at-foto .at-ampliar { color: #4A3526; }
+/* la ficha: volver, editar y borrar, en marfil sobre la tarjeta; solo en nogal si la foto aún va sobre tarjeta clara */
+html.at.oscuro .at-barra-sup:has(+ .at-foto.sin-cat) button { color: #4A3526; }
 /* muestras de color: un filo claro para que el negro y los marrones oscuros no se pierdan en el fondo */
 html.oscuro .dx-lejos i, html.oscuro .at-mancha, html.oscuro .dx-paleta i, html.oscuro .dx-rasgos i, html.oscuro .dx-metal i { box-shadow: 0 0 0 1px rgba(241, 233, 222, .28); }
+/* la ropa sobre el nogal: sin fundido con la tarjeta (en oscuro la oscurecería) y con un filo de luz que dibuja su contorno */
+html.oscuro .lienzo .pz, html.oscuro .lienzo img, html.oscuro .lk-fig .lienzo img, html.oscuro .mc-rejilla img, html.oscuro #s-raiz .rej img, html.oscuro #s-raiz .uno .foto img,
+html.at.oscuro .at-lz .pz, html.at.oscuro .at-lz img, html.at.oscuro .at-bal img, html.at.oscuro .at-cel img, html.at.oscuro .at-foto img, html.at.oscuro #nl-prendas img, html.at.oscuro .at-cap-p img, html.at.oscuro .dx-closet img {
+  mix-blend-mode: normal; filter: drop-shadow(0 0 .7px rgba(241, 233, 222, .55)) drop-shadow(0 0 7px rgba(241, 233, 222, .07)); }
+/* las fotos que aún no tienen la de catálogo (recorte sobre blanco) siguen sobre tarjeta clara hasta que se estilicen */
+html.at.oscuro .at-cel.sin-cat, html.at.oscuro .at-foto.sin-cat, html.at.oscuro #pared .at-cel.sin-cat { background: #ECE6DE; }
+html.at.oscuro .at-cel.sin-cat img, html.at.oscuro .at-foto.sin-cat img { mix-blend-mode: multiply; filter: none; }
 

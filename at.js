@@ -61,6 +61,7 @@ if (AT) (() => {
     girar: svg('<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/>'),
     cal: svg('<rect x="4" y="5.5" width="16" height="14" rx="1"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>'),
     recorte: svg('<path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/>'),
+    deshacer: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'),
   };
 
   /* ---------- barra de abajo: cinco secciones, en mayúsculas pequeñas; la activa, en nogal y con los dos agujeros ---------- */
@@ -414,9 +415,10 @@ if (AT) (() => {
     const hay = new Set([...$('f-acciones').querySelectorAll('[data-accion]')].map(b => b.dataset.accion)), largo = k => $('f-acciones').querySelector(`[data-accion="${k}"]`)?.textContent.trim() || '';
     const ACC = [['hoy', I.percha, t('Hoy', 'Today'), t('Me la pongo hoy', 'Wearing it today')], ['conjunto', I.mas, 'Look', t('Crear un look', 'Create a look')], ['partido', I.chispa, t('Ideas', 'Ideas')],
       ['cuidar', I.tina, t('Cuidar', 'Care'), t('Cómo cuidarla', 'How to care for it')], ['lavar', I.cesto, t('Sucia', 'Dirty'), t('Está sucia: que no salga en los looks', 'In the wash: keep it out of looks')], ['guardada', I.caja, t('Guardar', 'Store'), t('Guardar hasta la próxima estación', 'Store until next season')],
-      ['donar', I.bolsa, t('Donar', 'Donate'), t('Donar o vender', 'Donate or sell')], ['donde', I.pin, t('Cerca', 'Nearby')], ['arreglar', I.recorte, t('Arreglar foto', 'Fix photo'), t('Arreglar la foto: marca la prenda y le quito el fondo otra vez', 'Fix the photo: frame the garment and I remove the background again')]]
+      ['donar', I.bolsa, t('Donar', 'Donate'), t('Donar o vender', 'Donate or sell')], ['donde', I.pin, t('Cerca', 'Nearby')], ['arreglar', I.recorte, t('Arreglar foto', 'Fix photo'), t('Arreglar la foto: marca la prenda y le quito el fondo otra vez', 'Fix the photo: frame the garment and I remove the background again')],
+      ['parecido', I.deshacer, t('No se parece', 'Not alike'), t('La foto de catálogo no se parece: probar otra vez o volver a mi foto', 'The catalogue photo does not look like it: try again or go back to my photo')]] // 07/11: la foto de catálogo se pone sola; hasta 7 días se puede deshacer
       // 06/11 (Gabriela: «el icono de girar… ¿para qué es? Es mejor rehacer»): «Girar» sale de la ficha (las fotos ya se enderezan solas al subir) y en su sitio, «Rehacer»: vuelve a quitar el fondo desde la foto original
-      .filter(([k]) => ['hoy', 'cuidar'].includes(k) || (hay.has(k) && k !== 'girar') || (k === 'arreglar' && p.foto instanceof Blob && !conCat(p)));
+      .filter(([k]) => ['hoy', 'cuidar'].includes(k) || (hay.has(k) && k !== 'girar') || (k === 'arreglar' && p.foto instanceof Blob && !conCat(p)) || (k === 'parecido' && puedeDeshacerCat(p)));
     const on = k => k === p.estado || (k === 'cuidar' && cuidarAbierta === id), MARCA = ['cuidar', 'lavar', 'guardada', 'donar'];
     const nombre = (w, l) => l.toLowerCase().includes(w.toLowerCase()) ? l : `${w}. ${l}`; // el nombre que se lee contiene la palabra que se ve
     r.innerHTML = `<div class="at-barra-sup"><button class="at-volver" data-ir="closet" aria-label="${t('Volver', 'Back')}">${I.iz}</button><span class="at-der2"><button class="at-ico" data-atfacc="editar" aria-label="${t('Editar', 'Edit')}">${I.lapiz}</button><button class="at-ico" data-atfacc="borrar" aria-label="${t('Borrar la prenda', 'Delete the garment')}">${I.papelera}</button></span></div>
@@ -440,6 +442,7 @@ if (AT) (() => {
         if ((q.cv || 1) < 5 && (p.cv || 1) >= 5) return toast(t('Para quitar bien el fondo hace falta conexión y tu cuenta. Prueba otra vez en un momento', 'Removing the background well needs a connection and your account. Try again in a moment'));
         p.foto = q.blob; p.cv = q.cv; p.recMano = 1; delete p.caja; if (q.dudoso) p.dudoso = 1; else delete p.dudoso; urls.delete(p.id); alfa.delete(p.id); E.propuestas = []; E.generados = [];
         await guardar(); programarNube(); medirTodas(); abrirFicha(id); toast(t('Foto arreglada', 'Photo fixed')); }).catch(() => toast(t('No he podido arreglarla. Prueba otra vez', 'Could not fix it. Try again')));
+      else if (k === 'parecido') noSeParece(p);
       else if (k === 'cuidar') { cuidarAbierta = cuidarAbierta === id ? null : id; const l = r.querySelector('.at-cuidar-l'), a = cuidarAbierta === id; l.hidden = !a; b.classList.toggle('on', a); b.setAttribute('aria-pressed', a); if (a) l.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
       else $('f-acciones').querySelector(`[data-accion="${k}"]`)?.click();
     };

@@ -625,9 +625,14 @@ function estilizarNuevas() {
     await 0; let hechas = 0;
     try {
       for (;;) {
-        const p = E.prendas.find(p => p.catAuto && !p.cat && !p.catProp && !p.catNo && !p.ejemplo && p.foto instanceof Blob && !p.fotoRota && (p.catFallos || 0) < 2);
+        // 07/11 (Gabriela: «a medida que uno vaya subiendo una pieza, pues se estiliza directamente y se elimina la foto original»; «lo de Sheila es exactamente
+        // todo igual a lo que hicimos con lo mío… es un usuario más»): ya no se pregunta «Usar esta / Dejar la mía»; la foto de catálogo se pone sola, y no solo
+        // en las prendas nuevas: también en las que se subieron antes de esto (las de Sheila). En esas, la recortada y la original se quedan en la nube hasta
+        // que su dueña diga que le gustan (decisión del 06/11); en las nuevas se borran, como pidió Gabriela.
+        const p = E.prendas.find(p => !p.cat && !p.conCat && !p.catNo && !p.ejemplo && (p.catProp instanceof Blob || (p.foto instanceof Blob && !p.fotoRota && (p.catFallos || 0) < 2)));
         if (!p) break;
-        const r = await pedirCatalogo(p); if (r === 'parar') break; if (r) hechas++;
+        const r = p.catProp instanceof Blob ? true : await pedirCatalogo(p); if (r === 'parar') break;
+        if (r && await usarCat(p, !p.catAuto)) hechas++;
         await BD.set('prendas', E.prendas).catch(() => { });
       }
     } finally { estilizando = null; }
@@ -636,8 +641,8 @@ function estilizarNuevas() {
   })();
   return estilizando;
 }
-async function pedirCatalogo(p, otra) {
-  const u = URL.createObjectURL(p.foto);
+async function pedirCatalogo(p, otra, fuente = p.foto) {
+  const u = URL.createObjectURL(fuente);
   try {
     const im = await cargaImg(u), e = Math.min(1, 1024 / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.round(im.naturalWidth * e), h = Math.round(im.naturalHeight * e);
     const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(im, 0, 0, w, h);
@@ -666,14 +671,42 @@ async function afinarCat(b) {
     return blob && { blob, ar: Math.round(o.width / o.height * 1e4) / 1e4 };
   } finally { URL.revokeObjectURL(u); }
 }
-async function usarCat(p) {
+async function usarCat(p, conservarNube) {
   const b = p.catProp; if (!b) return false;
-  try { await subirFoto('/api/foto/' + p.id + '-c', b); } catch (e) { toast(t('No he podido guardarla: mira tu conexión y vuelve a probar', 'Could not save it: check your connection and try again')); return false; }
+  try { await subirFoto('/api/foto/' + p.id + '-c', b); } catch (e) { return false; } // sin conexión: se vuelve a intentar la próxima vez
+  // la foto de antes se queda 7 días solo en este móvil, por si la de catálogo no se parece («No se parece» en la ficha); después se borra sola
+  if (p.foto instanceof Blob && !p.fCat && !p.fotoPrev) { p.fotoPrev = p.foto; p.fotoPrevT = Date.now(); }
   Object.assign(p, { cat: b, foto: b, conCat: 1, nubeC: Date.now().toString(36), catAR: p.catPropAR, fCat: 1, caja: null });
   for (const k of ['catProp', 'catPropAR', 'original', 'fotoSub', 'fotoSubO', 'cajaV', 'dudoso', 'recMano']) delete p[k];
   urls.delete(p.id); alfa.delete(p.id); urlsCat.delete(p.id);
-  for (const k of ['', '-o']) api('/api/foto/' + p.id + k, { method: 'DELETE' }).catch(() => { }); // la de catálogo es ya la única foto
+  if (conservarNube) p.nubeConserva = 1; else for (const k of ['', '-o']) api('/api/foto/' + p.id + k, { method: 'DELETE' }).catch(() => { }); // la de catálogo es ya la única foto
   E.propuestas = []; await guardar(); medirTodas(); return true;
+}
+const DIAS_PREV = 7 * 864e5, puedeDeshacerCat = p => p.fotoPrev instanceof Blob && p.fCat && Date.now() - (p.fotoPrevT || 0) < DIAS_PREV;
+async function limpiarFotoPrev() { let n = 0; for (const p of E.prendas) if (p.fotoPrev && Date.now() - (p.fotoPrevT || 0) >= DIAS_PREV) { delete p.fotoPrev; delete p.fotoPrevT; n++; } if (n) await BD.set('prendas', E.prendas).catch(() => { }); }
+// «No se parece» (ficha, hasta 7 días después): probar otra vez con el modelo bueno, desde la foto de antes, o volver a la foto de antes
+function noSeParece(p) {
+  $('cat-capa')?.remove(); if (!puedeDeshacerCat(p)) return;
+  const u0 = URL.createObjectURL(p.fotoPrev), nom = String(p.nombre || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const cap = document.createElement('div'); cap.id = 'cat-capa'; cap.className = 'ay-capa at-vj at-rep'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'cat-t');
+  cap.innerHTML = `<h1 id="cat-t" tabindex="-1">${nom}</h1><p class="at-vj-sub">${t('¿La foto de catálogo no se parece a tu prenda?', 'Doesn’t the catalogue photo look like your garment?')}</p>
+    <div class="rep-par">${[[u0, t('Tu foto', 'Your photo')], [urlCat(p), t('Catálogo', 'Catalogue')]].map(([u, et]) => `<figure><img src="${u}" alt=""><figcaption>${et}</figcaption></figure>`).join('')}</div>
+    <div class="at-ropa-ops">${p.catOtra ? '' : `<button class="at-btn" data-catu="otra">${t('Probar otra vez', 'Try again')}</button>`}<button class="at-btn" data-catu="mia">${t('Volver a mi foto', 'Back to my photo')}</button></div>
+    <button class="at-enlace" data-catu="">${t('Dejarla así', 'Leave it')}</button>`;
+  document.body.append(cap); $('cat-t').focus({ preventScroll: true });
+  const fin = () => { URL.revokeObjectURL(u0); cap.remove(); if (E.pantalla === 'ficha' && $('at-ficha')?.dataset.id === p.id) abrirFicha(p.id); };
+  cap.onclick = async e => { const b = e.target.closest('[data-catu]'); if (!b || cap.dataset.ocupado) return; const k = b.dataset.catu; if (k === '') return fin();
+    cap.dataset.ocupado = 1; cap.querySelectorAll('button').forEach(x => x.disabled = true);
+    if (k === 'otra') { b.textContent = t('Haciendo otra… unos 20 segundos', 'Making another… about 20 seconds');
+      const r = await pedirCatalogo(p, true, p.fotoPrev); const ok = r === true && await usarCat(p, !!p.nubeConserva);
+      toast(ok ? t('Foto de catálogo nueva puesta', 'New catalogue photo set') : r === 'parar' ? t('Por hoy no puedo hacer más fotos de catálogo', 'No more catalogue photos today') : t('No ha salido. Puedes volver a tu foto', 'It did not work. You can go back to your photo'));
+      return fin(); }
+    if (k === 'mia') { const prev = p.fotoPrev;
+      try { await subirFoto('/api/foto/' + p.id, prev); } catch (e2) { toast(t('Hace falta conexión para volver a tu foto', 'You need a connection to go back to your photo')); delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; }
+      for (const k2 of ['cat', 'conCat', 'nubeC', 'catAR', 'fCat', 'fotoPrev', 'fotoPrevT', 'catOtra']) delete p[k2];
+      Object.assign(p, { foto: prev, catNo: 1, nube: Date.now().toString(36), fotoSub: firma(prev) }); urls.delete(p.id); alfa.delete(p.id); urlsCat.delete(p.id);
+      api('/api/foto/' + p.id + '-c', { method: 'DELETE' }).catch(() => { }); E.propuestas = []; await guardar(); medirTodas(); toast(t('Vuelve a tener tu foto', 'Your photo is back')); return fin(); }
+  };
 }
 function abrirCatalogo(id) {
   const lista = catPend(), p = (id && lista.find(x => x.id === id)) || lista[0]; $('cat-capa')?.remove();
@@ -3224,7 +3257,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
-  setTimeout(() => estilizarNuevas().catch(() => { }), cuenta() ? 15000 : 0); // 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
+  limpiarFotoPrev().catch(() => { }); setTimeout(() => estilizarNuevas().catch(() => { }), cuenta() ? 15000 : 0); // 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
