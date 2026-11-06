@@ -41,6 +41,7 @@ html.at .at-look { position: relative; display: flex; align-items: center; justi
 html.at .at-lz { position: relative; flex: none; }
 html.at .at-lz > * { position: absolute; display: block; object-fit: contain; }
 html.at .at-lz .pz { background-repeat: no-repeat; mix-blend-mode: multiply; }
+html.at .at-lz img[data-pzi]:not(.op) { mix-blend-mode: multiply; } /* 06/11: mientras se quita el blanco de la foto, que no tape lo de debajo */
 html.at .at-lz [data-ficha] { cursor: pointer; }
 html.at .at-bal { display: flex; align-items: center; justify-content: center; background: var(--baldosa); border: 0; padding: 0; flex: none; }
 @media (prefers-reduced-motion: no-preference) { html.at .at-hoy .at-lz > * { animation: at-entra 240ms cubic-bezier(.2, .7, .2, 1) both; } }

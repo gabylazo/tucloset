@@ -621,7 +621,8 @@ function alfasTodas() {
     await 0; // 0.97: el mismo fallo que en medirTodas (con nada pendiente, «alfando» se quedaba ocupado para siempre)
     // 0.117 (Gabriela, 28/10: «no sé si le di a un botón o no»): antes se redibujaba la pantalla entera y, si coincidía con un toque, el toque se perdía;
     // ahora solo se cambia la foto de cada pieza que ya está en pantalla
-    const repinta = () => { for (const el of document.querySelectorAll('.pz[data-pz]:not(.op)')) { const u = alfa.get(el.dataset.pz); if (u) { el.style.backgroundImage = `url('${u}')`; el.classList.add('op'); } } };
+    const repinta = () => { for (const el of document.querySelectorAll('.pz[data-pz]:not(.op)')) { const u = alfa.get(el.dataset.pz); if (u) { el.style.backgroundImage = `url('${u}')`; el.classList.add('op'); } }
+      for (const el of document.querySelectorAll('img[data-pzi]:not(.op)')) { const u = alfa.get(el.dataset.pzi); if (u) { el.src = u; el.classList.add('op'); } } };
     try {
       if (!alfaCache) { let o = null; try { o = await BD.get('alfas'); } catch (e) { } alfaCache = new Map(Object.entries(o || {})); }
       const pend = E.prendas.filter(p => !alfa.has(p.id) && (p.foto || p.src)).sort((a, b) => alfaPide.has(b.id) - alfaPide.has(a.id));
@@ -639,7 +640,7 @@ function alfasTodas() {
   return alfando;
 }
 const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:${y / H * 100}%;width:${w / W * 100}%;height:${h / H * 100}%`;
-  if (!p.caja) return `<img src="${urlFoto(p)}" alt="" style="${pos}">`;
+  if (!p.caja) { const u0 = alfa.get(p.id); if (!alfa.has(p.id)) { alfaPide.add(p.id); setTimeout(alfasTodas, 0); } return `<img${u0 ? ' class="op"' : ''} data-pzi="${p.id}" src="${u0 || urlFoto(p)}" alt="" style="${pos}">`; } // 06/11 (Gabriela: «hay piezas que tienen un cuadrado blanco detrás cuando se crean outfits»): sin caja, también sin el blanco
   const [a, b, c, d] = p.caja, cw = c - a, ch = d - b;
   const u = alfa.get(p.id); if (!alfa.has(p.id)) { alfaPide.add(p.id); setTimeout(alfasTodas, 0); }
   return `<i class="pz${u ? ' op' : ''}" data-pz="${p.id}" style="${pos};background-image:url('${u || urlFoto(p)}');background-size:${100 / cw}% ${100 / ch}%;background-position:${cw < 1 ? a / (1 - cw) * 100 : 0}% ${ch < 1 ? b / (1 - ch) * 100 : 0}%"></i>`; };
@@ -1772,7 +1773,7 @@ async function revisarGuardadas() {
 // Solo cambia la foto recortada: el nombre, el tipo y lo que ella haya escrito se quedan. Si había elegido la foto original, no se toca.
 async function recortarOtraVez() {
   if (window.top !== window) return;
-  const pend = E.prendas.filter(p => !p.src && !p.ejemplo && p.original instanceof Blob && !p.originalRota && !p.recMano && (p.cv || 1) < 5 && (p.creada || '') >= '2026-11-04').slice(0, 30); if (!pend.length) return;
+  const pend = E.prendas.filter(p => !p.src && !p.ejemplo && p.original instanceof Blob && !p.originalRota && !p.recMano && (p.cv || 1) < 5 && (p.creada || '') >= '2026-11-04').slice(0, 120); if (!pend.length) return;
   let hechas = 0;
   for (const p of pend) {
     await new Promise(r => (window.requestIdleCallback || setTimeout)(r, { timeout: 800 }));
@@ -1786,7 +1787,7 @@ async function recortarOtraVez() {
     } catch (e) { break; } // sin modelo o sin red: se reintenta en la próxima apertura
   }
   await guardar(); programarNube();
-  if (hechas) { E.propuestas = []; E.generados = []; cuandoQuieto(() => { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'hoy') pintarHoy(); }); toast(t(`He rehecho el recorte de ${hechas} ${hechas === 1 ? 'prenda' : 'prendas'} con el recorte nuevo`, `I redid the cut-out of ${hechas} garment${hechas === 1 ? '' : 's'}`)); }
+  if (hechas) { medirTodas(); E.propuestas = []; E.generados = []; cuandoQuieto(() => { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'hoy') pintarHoy(); }); toast(t(`He rehecho el recorte de ${hechas} ${hechas === 1 ? 'prenda' : 'prendas'} con el recorte nuevo`, `I redid the cut-out of ${hechas} garment${hechas === 1 ? '' : 's'}`)); }
 }
 async function reconocerGuardadas() {
   // 0.46 (Sheila, 22/10: un top peplum salió como vestido y Hoy lo proponía sin pantalón): los vestidos ya guardados se revisan una vez más con las descripciones nuevas

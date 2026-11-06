@@ -257,7 +257,10 @@ const Motor = (() => {
     const t = grupos.flatMap(g => R.grupos[g]), cs = ents.filter(p => t.includes(p._f.subtipo) && !PIEZAS.some(k => l[k] === p)).sort((a, b) => cercania(b, l, ctx) - cercania(a, l, ctx)).slice(0, 2);
     return cs.map(c => ({ ...l, capa: c }));
   }
+  // 06/11 (Gabriela: «¿cómo va a combinar una camiseta con un short de deporte y las alpargatas?»): la ropa de deporte (detalle «Deporte» o nombre) solo va en fórmulas de deporte
+  const soloDeporte = f => f.uso === 'deporte' && ['arriba', 'abajo', 'vestido', 'capa'].includes(f.cat);
   function rellenar(formula, ents, zapatos, ctx, pf, hoy, cacheP) {
+    if (!formula.ocasiones.includes('Deporte')) ents = ents.filter(p => !soloDeporte(p._f));
     const H = r => formula.huecos.filter(h => h.rol === r), salida = [], parejas = [];
     const [hv] = H('vestido');
     if (hv) for (const v of cands(hv, ents)) parejas.push({ vestido: v, n: 0 });
@@ -322,7 +325,7 @@ const Motor = (() => {
     return out;
   }
   // en qué ocasiones cabe una prenda (para el filtro del clóset): una fórmula de esa ocasión la admite en un hueco y la prenda no baja del nivel de la ocasión
-  const ocasionesDe = p => { const f0 = ficha(p, {}), e = [{ id: p.id, p, _f: f0 }]; return [...new Set(F.formulas.filter(f => f.huecos.some(h => cands(h, e).length)).flatMap(f => f.ocasiones))].filter(o => !(f0.form < (R.ocasiones[o]?.form_media_min ?? 0) - .5)); };
+  const ocasionesDe = p => { const f0 = ficha(p, {}), e = [{ id: p.id, p, _f: f0 }]; return [...new Set(F.formulas.filter(f => (!soloDeporte(f0) || f.ocasiones.includes('Deporte')) && f.huecos.some(h => cands(h, e).length)).flatMap(f => f.ocasiones))].filter(o => !(f0.form < (R.ocasiones[o]?.form_media_min ?? 0) - .5)); };
   const claveLook = l => PIEZAS.map(k => l[k]).filter(p => p && !p.muestra).map(p => p.id).sort().join();
 
   /* ---------- 6. fórmulas posibles, qué falta y la llamada de la app ---------- */
