@@ -2781,7 +2781,7 @@ function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; e
 }
 function panelDiagFotos() {
   const pf = E.perfil || {};
-  const hueco = (k, tit, consejos) => `<label class="dg-hueco${pf[k] ? ' hecha' : ''}" data-k="${k}">${pf[k] ? `<img src="${URL.createObjectURL(pf[k])}" alt="">` : `<svg><use href="#${k === 'selfie' ? 'ic-camara' : 'ic-cuerpo'}"/></svg>`}<b>${tit}</b><small>${consejos}</small><input type="file" accept="image/*" data-dgfoto="${k}"></label>`;
+  const hueco = (k, tit, consejos) => `<label class="dg-hueco${pf[k] ? ' hecha' : ''}" data-k="${k}">${pf[k] ? `<img src="${URL.createObjectURL(pf[k])}" alt=""><button type="button" class="dg-ampliar" data-ampliar-diag="${k}" aria-label="${t('Ampliar la foto', 'Enlarge the photo')}"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5M10.5 8v5M8 10.5h5"/></svg></button>` : `<svg><use href="#${k === 'selfie' ? 'ic-camara' : 'ic-cuerpo'}"/></svg>`}<b>${tit}</b><small>${consejos}</small><input type="file" accept="image/*" data-dgfoto="${k}"></label>`;
   // 06/11 (Gabriela: «te debe primero preguntar características físicas de peso, altura y tal, y las fotos son para clasificar tu silueta»): primero las medidas, después las fotos
   const md = pf.medidas || {}, campo = (k, et, ay) => `<label class="dg-campo"><span>${et}</span><input type="text" inputmode="decimal" autocomplete="off" data-med="${k}" value="${md[k] ? String(md[k]).replace('.', idioma() === 'en' ? '.' : ',') : ''}" aria-describedby="dgm-${k}"><small id="dgm-${k}">${ay}</small></label>`;
   const cap = abrirPanel(t('Tus medidas y tus fotos', 'Your measurements and photos'), `<p class="pn-lema">${t('Primero tus medidas y después dos fotos. Todo se queda en tu móvil.', 'First your measurements, then two photos. Everything stays on your phone.')}</p>
@@ -2921,6 +2921,51 @@ async function guardarFotoPerfil(k, file) {
     diagFallo = 0; diagHastaAlDia().then(r => { if (E.pantalla === 'cuerpo') pintarCuerpo(); if (r && (r.res.color || r.res.cuerpo)) toast(t('Listo: tus colores y tu tipo de cuerpo están en Yo', 'Done: your colours and body type are in Me')); }); }
   catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); }
 }
+
+/* ---------- visor de fotos (06/11, Gabriela: «la foto debería poder ampliarse para poder verla y acercarla») ----------
+   A pantalla completa; se acerca con dos dedos, con doble toque o con la rueda, y se mueve con un dedo. Con dos fotos (catálogo y original), se cambia abajo. */
+function verFoto(fotos, i = 0) {
+  document.querySelector('.vf-capa')?.remove(); fotos = fotos.filter(f => f && f.src); if (!fotos.length) return;
+  const ant = document.activeElement, cap = document.createElement('div'); cap.className = 'vf-capa'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-label', t('Foto ampliada', 'Enlarged photo'));
+  cap.innerHTML = `<div class="vf-zona"><img alt="" draggable="false"></div><button class="vf-cerrar" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    ${fotos.length > 1 ? `<div class="vf-tabs">${fotos.map((f, j) => `<button data-vf="${j}">${f.et}</button>`).join('')}</div>` : ''}<p class="vf-ayuda">${t('Acerca con dos dedos o con doble toque', 'Pinch or double-tap to zoom')}</p>`;
+  document.body.appendChild(cap);
+  const zona = cap.querySelector('.vf-zona'), img = cap.querySelector('img'); let s = 1, x = 0, y = 0;
+  const pinta = () => { img.style.transform = `translate(${x}px, ${y}px) scale(${s})`; cap.classList.toggle('cerca', s > 1); };
+  const limita = () => { s = Math.min(5, Math.max(1, s)); if (s === 1) { x = 0; y = 0; return; } const mx = Math.max(0, (img.offsetWidth * s - zona.clientWidth) / 2 + 40), my = Math.max(0, (img.offsetHeight * s - zona.clientHeight) / 2 + 40); x = Math.max(-mx, Math.min(mx, x)); y = Math.max(-my, Math.min(my, y)); };
+  const elige = j => { img.src = fotos[j].src; img.alt = fotos[j].alt || ''; s = 1; x = 0; y = 0; pinta(); cap.querySelectorAll('[data-vf]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.vf === j))); };
+  elige(Math.min(i, fotos.length - 1));
+  const pts = new Map(); let d0 = 0, s0 = 1, ult = 0, prev = null;
+  zona.addEventListener('pointerdown', e => {
+    zona.setPointerCapture?.(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); prev = [e.clientX, e.clientY];
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; d0 = Math.hypot(a[0] - b[0], a[1] - b[1]); s0 = s; ult = 0; return; }
+    const ahora = Date.now(); if (ahora - ult > 300) { ult = ahora; return; }
+    ult = 0; if (s > 1) s = 1; else { const r = zona.getBoundingClientRect(); s = 2.5; x = (r.left + r.width / 2 - e.clientX) * 1.5; y = (r.top + r.height / 2 - e.clientY) * 1.5; } limita(); pinta();
+  });
+  zona.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size >= 2) { const [a, b] = [...pts.values()]; s = s0 * Math.hypot(a[0] - b[0], a[1] - b[1]) / (d0 || 1); limita(); pinta(); }
+    else if (s > 1 && prev) { x += e.clientX - prev[0]; y += e.clientY - prev[1]; limita(); pinta(); }
+    prev = [e.clientX, e.clientY];
+  });
+  const suelta = e => { pts.delete(e.pointerId); prev = pts.size ? [...pts.values()][0] : null; };
+  zona.addEventListener('pointerup', suelta); zona.addEventListener('pointercancel', suelta);
+  zona.addEventListener('wheel', e => { e.preventDefault(); s *= e.deltaY < 0 ? 1.15 : 1 / 1.15; limita(); pinta(); }, { passive: false });
+  const tecla = e => { if (e.key === 'Escape') cerrar(); else if (e.key === '+' || e.key === '=') { s *= 1.3; limita(); pinta(); } else if (e.key === '-') { s /= 1.3; limita(); pinta(); } };
+  const cerrar = () => { cap.remove(); document.removeEventListener('keydown', tecla); ant?.focus?.(); };
+  document.addEventListener('keydown', tecla); cap.querySelector('.vf-cerrar').onclick = cerrar;
+  cap.querySelectorAll('[data-vf]').forEach(b => b.onclick = () => elige(+b.dataset.vf)); cap.querySelector('.vf-cerrar').focus();
+}
+const urlsOrig = new Map(); const urlOriginal = p => p?.original instanceof Blob && !p.originalRota ? (urlsOrig.get(p.id) || (urlsOrig.set(p.id, URL.createObjectURL(p.original)), urlsOrig.get(p.id))) : '';
+function ampliarPrenda(id) {
+  const p = E.prendas.find(q => q.id === id); if (!p) return; const o = urlOriginal(p);
+  verFoto([{ src: urlCat(p), alt: p.nombre, et: p.cat ? t('Catálogo', 'Catalogue') : t('Recortada', 'Cut out') }, o && { src: o, alt: p.nombre, et: t('Tu foto', 'Your photo') }]);
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-ampliar],[data-ampliar-diag]'); if (!a) return; e.preventDefault(); e.stopPropagation();
+  if (a.dataset.ampliar) return ampliarPrenda(a.dataset.ampliar);
+  const k = a.dataset.ampliarDiag, bl = E.perfil?.[k]; if (bl instanceof Blob) verFoto([{ src: URL.createObjectURL(bl), alt: k === 'selfie' ? t('Tu cara', 'Your face') : t('Cuerpo entero', 'Full body') }]);
+}, true);
 
 /* ---------- eventos ---------- */
 document.addEventListener('click', e => {

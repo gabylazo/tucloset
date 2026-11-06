@@ -104,6 +104,7 @@ html.at .at-fav.on svg { fill: #C1121F; stroke: #C1121F; }
 html.at .at-foto { flex: none; width: calc(100% + 36px); margin: 0 -18px; aspect-ratio: 3 / 4; max-height: 62dvh; background: var(--baldosa); position: relative; overflow: hidden; }
 html.at .at-foto img { position: absolute; left: 9%; top: max(7%, 54px); width: 82%; height: calc(95% - max(7%, 54px)); object-fit: contain; } /* 03/11 (Sheila, m. 1700): la foto empieza debajo de «Volver» y «Editar», sin taparlos */
 html.at .at-foto.sin-cat img { mix-blend-mode: multiply; }
+html.at .at-ampliar { position: absolute; left: 9%; top: max(7%, 54px); width: 82%; height: calc(95% - max(7%, 54px)); border: 0; background: transparent; cursor: zoom-in; } /* 06/11: toda la foto se toca para ampliarla */
 html.at .at-estado { margin-top: 16px; font: 400 11px/1 var(--f); letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
 html.at .at-h1 { font: 400 22px/1.2 var(--f-marca); letter-spacing: .06em; text-transform: uppercase; margin-top: 18px; text-wrap: balance; color: var(--tinta); }
 html.at .at-datos { margin-top: 6px; font-size: 13px; color: var(--sec); }
