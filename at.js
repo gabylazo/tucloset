@@ -125,42 +125,43 @@ if (AT) (() => {
       return attr ? html.replace(/^<(img|i) /, `<$1${attr} `) : html;
     }).join('');
   }
-  /* ---------- el look grande, repartido solo según las piezas que lleve (Gabriela, 03/11: «que se eligiera la distribución de las piezas automáticamente en función del número
-     de piezas que tenga el look»; «no entiendo por qué los zapatos están en ese lugar y hay tanto espacio en blanco libre arriba»). Se prueban todos los repartos en una o dos
-     columnas y gana el que deja la ropa más grande en la caja sin huecos: con dos piezas, una sobre otra; con tres, en diagonal (el pantalón a un lado; lo de arriba y los
-     zapatos al otro); con más, dos columnas parejas. Todas a la misma escala (real entre sí; bolso y accesorios, hasta un 60 % más; el calzado, un 15 %). Lo de arriba y lo
-     de abajo van juntos salvo que separarlos dé bastante más tamaño. Medidas en cm; figura() las lleva a la caja. ---------- */
-  function collage(ps, W, H) {
-    const rol = r => ps.filter(p => r.includes(p.tipo)), abrigo = rol(['Abrigo'])[0], sup = abrigo ? [abrigo, ...rol(['Arriba'])] : rol(['Arriba']); // de fuera hacia dentro
-    const top = sup[sup.length - 1] || null, grande = rol(['Abajo', 'Vestidos'])[0];
+  /* ---------- el look, siempre con la misma regla (Gabriela, 06/11: «hay tanto espacio entre uno y otro, otras superpuestas, otras no, está todo descoordinado»).
+     Antes cada look buscaba el reparto que dejaba la ropa más grande, el hueco que sobraba se repartía entre las prendas y lo de arriba montaba sobre lo de abajo,
+     pero las capas no: cada look salía distinto. Ahora:
+     - en el centro, el cuerpo: lo de arriba (la prenda de dentro) sobre lo de abajo, o el vestido; nada se monta y la separación es siempre la misma (3 cm);
+     - a la derecha, de arriba abajo: las capas (abrigo, chaqueta, el jersey de encima) a la altura de los hombros, el bolso y los accesorios en medio y el calzado
+       abajo, a la altura del bajo; si esa columna sale mucho más alta que el cuerpo, el bolso y los accesorios pasan a la izquierda;
+     - todo a la misma escala real (calzado un 25 % más, bolso un 40 % y accesorios un 60 %, para que se vean). Medidas en cm; figura() las lleva a la caja.
+     En una caja alta (Hoy: más de 1,5 veces más alta que ancha), el calzado va debajo de lo de abajo, como en una figura, para que el look se vea grande (Gabriela, 03/11). ---------- */
+  function collage(ps, alta) {
+    const rol = r => ps.filter(p => r.includes(p.tipo)), arriba = rol(['Arriba']), grande = rol(['Abajo', 'Vestidos'])[0], top = arriba[arriba.length - 1] || null;
     if (!top && !grande) return null;
-    const lista = [...rol(['Accesorios']).slice(0, 2), ...sup.slice(0, -1), top, rol(['Bolsos'])[0], grande, rol(['Calzado'])[0]].filter(Boolean), n = lista.length; // de arriba abajo
-    const dentro = ps.como === 'por dentro', larga = top && typeof Motor !== 'undefined' && Motor.ficha(top).manga === 'larga';
-    const k = p => ['Bolsos', 'Accesorios'].includes(p.tipo) ? 1.6 : p.tipo === 'Calzado' ? 1.15 : 1, med = new Map(lista.map(p => [p, medidas(p).map(v => v * k(p))]));
-    const G = 4, monta = () => med.get(top)[1] * (larga ? .13 : .07); // aire entre piezas; lo de abajo entra un poco bajo lo de arriba (con manga larga, algo más)
-    const columna = l => { let y = 0, w = 0; const pos = l.map((p, i) => { if (i) y += p === grande && l[i - 1] === top ? -monta() : G; const y0 = y; y += med.get(p)[1]; w = Math.max(w, med.get(p)[0]); return y0; }); return { l, pos, h: y, w }; };
-    let mejor = null;
-    for (let m = 0; m < 1 << n; m += 2) { // la primera pieza, siempre en la columna A: cada reparto se mira una vez
-      const A = columna(lista.filter((_, i) => !(m >> i & 1))), bl = lista.filter((_, i) => m >> i & 1), B = bl.length ? columna(bl) : null;
-      const s = Math.min(W / (A.w + (B ? B.w + 2 * G : 0)), H / Math.max(A.h, B ? B.h : 0));
-      const parejo = B ? Math.min(A.h, B.h) / Math.max(A.h, B.h) : 1, separa = B && top && grande && A.l.includes(top) !== A.l.includes(grande);
-      const nota = s * (.75 + .25 * parejo) * (separa ? .85 : 1);
-      if (!mejor || nota > mejor.nota) mejor = { nota, A, B };
-    }
-    const { A, B } = mejor, alto = Math.max(A.h, B ? B.h : 0), out = [];
-    const z = p => p === top ? (dentro ? 1 : 2) : p === grande ? (dentro ? 2 : 1) : 3;
-    const poner = (c, x0) => {
-      const sobra = alto - c.h, ys = c.l.length === 1 ? [c.l[0].tipo === 'Calzado' ? sobra : sobra / 2] // una sola: el calzado abajo; lo demás, en medio
-        : c.pos.map((y, i) => y + sobra * i / (c.l.length - 1)); // varias: de arriba abajo, repartiendo lo que sobra entre ellas (sin hueco encima de los zapatos)
-      c.l.forEach((p, i) => { const [w, h] = med.get(p); out.push([p, x0 + c.w / 2 - w * eje(p), ys[i], w, h, z(p)]); });
+    const capas = [...rol(['Abrigo']), ...arriba.slice(0, -1)], bolso = rol(['Bolsos'])[0], acc = rol(['Accesorios']).slice(0, 2), zap = rol(['Calzado'])[0];
+    const k = p => p.tipo === 'Accesorios' ? 1.6 : p.tipo === 'Bolsos' ? 1.4 : p.tipo === 'Calzado' ? 1.25 : 1, med = new Map(ps.map(p => [p, medidas(p).map(v => v * k(p))]));
+    const G = 3, GC = 5, alto = l => l.reduce((s, p) => s + med.get(p)[1], 0) + G * Math.max(0, l.length - 1), ancho = l => Math.max(0, ...l.map(p => med.get(p)[0]));
+    const M = [top, grande, alta ? zap : null].filter(Boolean), medio = [...acc, bolso].filter(Boolean), zD = alta ? null : zap;
+    let D = [...capas, ...medio, zD].filter(Boolean), I = [];
+    if (medio.length && alto(D) > alto(M) * 1.2) { I = medio; D = [...capas, zD].filter(Boolean); }
+    const H = Math.max(alto(M), alto(D), alto(I)), out = [];
+    // una columna: lo primero arriba y el calzado abajo; lo de en medio, centrado en el hueco que dejan (si no hay calzado ni capas, todo centrado)
+    const colocar = (l, x0, w) => {
+      if (!l.length) return;
+      const arr = l.filter(p => capas.includes(p)), med2 = l.filter(p => medio.includes(p)), z = zD && l.includes(zD) ? zD : null;
+      if (!arr.length && !z || l === M) { let y = (H - alto(l)) / 2; for (const p of l) { const [pw, ph] = med.get(p); out.push([p, x0 + w / 2 - pw * eje(p), y, pw, ph]); y += ph + G; } return; }
+      let y = 0; for (const p of arr) { const [pw, ph] = med.get(p); out.push([p, x0 + w / 2 - pw * eje(p), y, pw, ph]); y += ph + G; }
+      const fin = z ? H - med.get(z)[1] : H; if (z) { const [pw, ph] = med.get(z); out.push([z, x0 + w / 2 - pw * eje(z), fin, pw, ph]); }
+      let ym = y + Math.max(0, (fin - G - y - alto(med2)) / 2); for (const p of med2) { const [pw, ph] = med.get(p); out.push([p, x0 + w / 2 - pw * eje(p), ym, pw, ph]); ym += ph + G; }
     };
-    poner(A, 0); if (B) poner(B, A.w + 2 * G);
-    const x0 = Math.min(...out.map(o => o[1])), x1 = Math.max(...out.map(o => o[1] + o[3]));
-    return { out: out.sort((a, b) => a[5] - b[5]).map(([p, x, y, w, h]) => [p, x - x0, y, w, h]), W: x1 - x0, H: alto };
+    const wI = ancho(I), wM = ancho(M), wD = ancho(D); let x = 0;
+    if (I.length) { colocar(I, x, wI); x += wI + GC; }
+    colocar(M, x, wM); x += wM;
+    if (D.length) { x += GC; colocar(D, x, wD); }
+    const x0 = Math.min(...out.map(o => o[1])), x1 = Math.max(...out.map(o => o[1] + o[3])), y0 = Math.min(0, ...out.map(o => o[2])), y1 = Math.max(H, ...out.map(o => o[2] + o[4]));
+    return { out: out.map(([p, xx, y, w, h]) => [p, xx - x0, y - y0, w, h]), W: x1 - x0, H: y1 - y0 };
   }
   // el look dentro de una caja de W × H px, a la mayor escala que quepa y centrado
   function figura(ps, W, H, fichas) {
-    const c = collage(ps, W, H) || lookAt(ps); if (!c) return `<div class="at-look" style="width:${W}px;height:${H}px"></div>`;
+    const c = collage(ps, H > W * 1.5) || lookAt(ps); if (!c) return `<div class="at-look" style="width:${W}px;height:${H}px"></div>`;
     const s = Math.min(W / c.W, H / c.H);
     return `<div class="at-look" style="width:${W}px;height:${H}px"><div class="at-lz" style="width:${(c.W * s).toFixed(1)}px;height:${(c.H * s).toFixed(1)}px">${piezas(c, fichas)}</div></div>`;
   }
@@ -170,7 +171,7 @@ if (AT) (() => {
   // los demás sitios que pintan looks (calendario, «Sácale partido»…) usan la misma composición
   const maniquiViejo = maniqui;
   maniqui = function (ps, mini, modo) {
-    const c = lookAt(ps); if (!c) return maniquiViejo(ps, mini, modo);
+    const c = collage(ps) || lookAt(ps); if (!c) return maniquiViejo(ps, mini, modo);
     return `<div class="lienzo${mini ? ' mini' : ''} at-lienzo" style="aspect-ratio:${c.W.toFixed(1)}/${c.H.toFixed(1)}">${piezas(c)}</div>`;
   };
   const nomLook = c => c?.nombre && !/^(hoy|today|favorito|favourite)\b|\d+$/i.test(c.nombre.trim()) ? c.nombre : '';
