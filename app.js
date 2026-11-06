@@ -1819,7 +1819,7 @@ function fondoIrregular(cv) {
 // la foto se prueba en sus cuatro giros con el reconocedor y se queda el giro que mejor parece una prenda, solo si gana con margen
 // (probado con sus 25 fotos: endereza los 8 tops tumbados o del revés y no toca ninguna de las que estaban bien)
 function girarCanvas(cv, g) { const c = document.createElement('canvas'), r = g % 180; c.width = r ? cv.height : cv.width; c.height = r ? cv.width : cv.height; const x = c.getContext('2d'); x.translate(c.width / 2, c.height / 2); x.rotate(g * Math.PI / 180); x.drawImage(cv, -cv.width / 2, -cv.height / 2); return c; }
-async function girarBlob(b, g = 90) { const im = await createImageBitmap(b); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); const r = girarCanvas(c, g); return new Promise(res => r.toBlob(res, 'image/jpeg', .9)); }
+async function girarBlob(b, g = 90) { const im = await createImageBitmap(b); const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); const r = girarCanvas(c, g); return new Promise(res => r.toBlob(res, /png|webp/.test(b.type) ? 'image/png' : 'image/jpeg', .9)); }
 // 06/11 (Gabriela: «clasifica mal los vestidos cortos, los pone como faldas»): tumbado en la cama, un vestido corto de vuelo se parece a una falda de vuelo.
 // Una falda empieza por la cinturilla, ancha, y solo se ensancha. Un vestido tiene cuerpo: arriba tirantes o cuello halter, mucho más estrechos que el bajo;
 // o se estrecha en la cintura y vuelve a abrirse; o (palabra de honor) va recto un buen trozo y luego se abre. Medido con sus 6 vestidos y una falda de Sheila
