@@ -283,7 +283,12 @@ async function bajarNube() {
   E.prendas = nuevas;
   const cj = new Map((doc.conjuntos || []).map(c => [c.id, c])); E.conjuntos.forEach(c => { if (!cj.has(c.id)) cj.set(c.id, c); }); E.conjuntos = [...cj.values()];
   E.agenda = { ...E.agenda, ...(doc.agenda || {}) };
-  E.perfil = { ...(doc.perfil || {}), ...Object.fromEntries(Object.entries(E.perfil || {}).filter(([k, v]) => v instanceof Blob || k === 'medidas')) }; // fotos y medidas: solo en el móvil
+  // 06/11 (Gabriela: «apunto mis medidas 20 veces y no se guardan después de analizar, y además sigue analizando mal»): el diagnóstico sale de las fotos y las medidas,
+  // que solo viven en este móvil; si al subir había conflicto con la nube (409), la bajada pisaba el diagnóstico recién hecho con el viejo de la nube y volvía
+  // «según tu foto». Ahora, en el móvil que tiene las fotos o las medidas, manda su diagnóstico (y lo que sale de él)
+  const pl = E.perfil || {}, mio = (pl.selfie instanceof Blob || pl.cuerpo instanceof Blob || pl.medidas) && pl.diag;
+  E.perfil = { ...(doc.perfil || {}), ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => v instanceof Blob || k === 'medidas' || (mio && ['diag', 'tipoCuerpo'].includes(k)))) }; // fotos y medidas: solo en el móvil
+  if (mio && pl.colores?.fuente === 'foto') E.perfil.colores = { ...(E.perfil.colores || {}), est: pl.colores.est, sub: pl.colores.sub, fuente: 'foto' };
   LS.set('tc_nube_ver', version); LS.set('tc_nube_ids', JSON.stringify((doc.prendas || []).map(p => p.id)));
   await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda);
   if (estacionesAuto()) await guardar(); // 0.101: estación por tipo, también para lo que llega de otros móviles
