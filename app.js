@@ -264,6 +264,40 @@ function abrirEncuesta(previa) { // previa (?encuesta=1): para que la vean las s
     });
   });
 }
+// 06/11 noche (Gabriela: «las fotos no me cargan en mi móvil»): Safari a veces pierde el fichero de una foto guardada en el móvil (su iPhone avisó «The object can not be
+// found here»); la prenda seguía apuntando a una foto que ya no existe, bajarNube no la volvía a pedir (ya «tenía» foto) y se veía en blanco. Ahora, al abrir y cada
+// vez que una foto no carga, se comprueba si se puede leer y, si no, se baja otra vez de la nube; sin copia en la nube, la prenda queda como «Sin foto».
+const fotoLegible = async b => { if (!(b instanceof Blob)) return true; try { await b.slice(0, 16).arrayBuffer(); return true; } catch (e) { return false; } };
+let reparando = null;
+function repararFotos(soloIds) {
+  if (reparando) return reparando;
+  reparando = (async () => {
+    const tareas = [];
+    for (const p of E.prendas) {
+      if (p.ejemplo || p.muestra || (soloIds && !soloIds.has(p.id))) continue;
+      const catMal = p.cat instanceof Blob && !(await fotoLegible(p.cat)), fotoMal = p.foto instanceof Blob && p.foto !== p.cat && !(await fotoLegible(p.foto)), origMal = p.original instanceof Blob && !(await fotoLegible(p.original));
+      if (origMal) { p.original = null; p.originalRota = true; }
+      if (!catMal && !fotoMal) continue;
+      tareas.push(async () => {
+        const bajar = async suf => { if (!cuenta()) return null; try { const r = await api('/api/foto/' + p.id + suf, { tiempo: 30000 }); return r.ok ? await r.blob() : null; } catch (e) { return null; } };
+        if (catMal) { const b = p.conCat || p.nubeC ? await bajar('-c?v=' + (p.nubeC || '')) : null; p.cat = b; if (p.fCat) p.foto = b; if (!b && p.fCat) p.fotoRota = true; }
+        if (fotoMal) { const b = !p.fCat && p.nube ? await bajar('?v=' + p.nube) : null; if (b) { p.foto = b; delete p.fotoRota; } else { p.foto = p.cat || null; if (!p.cat) p.fotoRota = true; } }
+        urls.delete(p.id); urlsCat.delete(p.id); alfa.delete(p.id);
+      });
+    }
+    let i = 0; await Promise.all(Array.from({ length: Math.min(4, tareas.length) }, async () => { while (i < tareas.length) await tareas[i++](); }));
+    if (tareas.length) { await BD.set('prendas', E.prendas).catch(() => { }); avisarFallo('reparadas', new Error(tareas.length + ' fotos')); cuandoQuieto(() => { if (typeof stRepintar === 'function') stRepintar(); else if (E.pantalla === 'closet') pintarCloset(); }); }
+    return tareas.length;
+  })().finally(() => { reparando = null; });
+  return reparando;
+}
+// una foto del clóset que no carga (blob: de una prenda): se repara esa prenda
+let fotosMal = new Set(), fotosMalT = 0;
+document.addEventListener('error', e => {
+  const im = e.target; if (!(im instanceof HTMLImageElement) || !im.src.startsWith('blob:')) return;
+  for (const [id, u] of [...urls, ...urlsCat]) if (u === im.src) fotosMal.add(id);
+  if (!fotosMal.size) return; clearTimeout(fotosMalT); fotosMalT = setTimeout(() => { const ids = fotosMal; fotosMal = new Set(); repararFotos(ids).catch(() => { }); }, 800);
+}, true);
 async function bajarNube() {
   if (!cuenta()) return false;
   const r = await api('/api/datos', { tiempo: 30000 }); if (!r.ok) return false;
@@ -2598,7 +2632,7 @@ const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no
   ['Mi estilo', 'Cómo cambio mi estilo', 'En Yo → Mi estilo, elige hasta cinco estilos y toca «Guardar». Los looks que te propone la app se ordenan según ellos.'],
   ['Mi estilo', 'Cómo aprende la app lo que me gusta', 'En Yo → Mi estilo, «Looks que te encantan»: sube hasta cinco fotos de looks que te gusten (tuyos, de Pinterest o de Instagram). La app lee la ropa, sus colores y su estilo, y te propone más looks parecidos. La foto no se guarda.'],
   ['Mi estilo', 'Cómo copio el estilo de alguien', 'En el Pro, Looks → Ideas → «Inspírate en…»: elige una referencia y la app arma looks con tu ropa en ese estilo.'],
-  ['Mi estilo', 'Cómo funciona mi diagnóstico', 'En Yo → Mis medidas y fotos: apunta tus medidas con la cinta (el contorno de pecho, cintura y cadera) y sube una foto de cara y una de cuerpo entero. La app calcula tu silueta y tus colores. En el Pro, los looks los tienen en cuenta.'],
+  ['Mi estilo', 'Cómo funciona mi diagnóstico', 'En Yo → Ajustes → Medidas y fotos: apunta tus medidas con la cinta (el contorno de pecho, cintura y cadera) y sube una foto de cara y una de cuerpo entero. La app calcula tu silueta y tus colores. En el Pro, los looks los tienen en cuenta.'],
   ['Mi cuenta y datos', 'Dónde se guarda mi ropa', 'Con cuenta, tu ropa y tus looks se guardan en tu cuenta y los ves en cualquier móvil en el que entres. Tus fotos de cara y de cuerpo no se suben nunca: se quedan en tu móvil.'],
   ['Mi cuenta y datos', 'Cómo paso mi clóset a otro móvil', 'Entra con tu correo y tu contraseña en el otro móvil: tu clóset aparece solo. Sin cuenta, Yo → «Guardar una copia» y, en el otro móvil, «Recuperar una copia».'],
   ['Mi cuenta y datos', 'Qué incluye cada plan', 'Gratis: 7 días con hasta 10 prendas. Básico (1,99 €/mes o 14,99 €/año): tu clóset sin tope, el look de cada día, los looks de la estilista, Mi cápsula, el calendario y los cuidados. Pro (4,99 €/mes o 39,99 €/año): todo lo del Básico y además tu diagnóstico de colores y silueta aplicado a tus looks, «Inspírate en…», Planear un viaje e ideas con cada prenda.'],
@@ -2625,6 +2659,7 @@ const IC_Y = {
   idioma: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5s1.2-6.1 3.6-8.5z"/>',
   avisos: '<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   privacidad: '<rect x="5.5" y="10.5" width="13" height="9.5" rx="1"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+  medidas: '<path d="M3.5 9.5h17v5h-17z"/><path d="M7 9.5v2.5M10.5 9.5v1.5M14 9.5v2.5M17.5 9.5v1.5"/>',
   ayuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.6"/><circle cx="12" cy="16.8" r=".7"/>',
   correo: '<rect x="3.5" y="6" width="17" height="12" rx="1"/><path d="m4 7 8 6 8-6"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r=".7"/>',
@@ -2656,7 +2691,8 @@ function pintarPanelYo() {
       (NUBE ? filaP({ attr: 'data-ir="cuenta"', ic: 'cuenta', tit: t('Cuenta', 'Account'), val: c ? (c.correo || '') : t('Entrar o crear', 'Sign in or create') }) : '')
       + filaP({ id: 'yo-plan-info', ic: 'plan', tit: t('Plan', 'Plan'), val: t('Prueba gratis', 'Free trial'), oro: true }))
     + grupoP(t('Ajustes', 'Settings'),
-      filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
+      filaP({ attr: 'data-diag="fotos"', ic: 'medidas', tit: t('Medidas y fotos', 'Measurements and photos'), val: pf.selfie && pf.cuerpo ? t('2 fotos', '2 photos') : pf.selfie || pf.cuerpo ? t('1 foto', '1 photo') : '' })
+      + filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
       + filaP({ id: 'yo-idioma', ic: 'idioma', tit: t('Idioma', 'Language'), val: es ? 'English' : 'Español' })
       + filaP({ id: 'yo-avisos', ic: 'avisos', tit: t('Notificaciones', 'Notifications'), val: t('Pronto', 'Soon'), flecha: false, apagada: true }))
     + grupoP(t('Privacidad y datos', 'Privacy and data'),
@@ -2802,6 +2838,8 @@ function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; e
     <p>${AT ? t('Dos fotos para tus colores y tu silueta. Se quedan en tu móvil.', 'Two photos for your colours and figure. They stay on your phone.') : t('Una foto de tu cara y otra de cuerpo entero: la app analiza tus colores, tu silueta y la ropa que te favorece. Las fotos no salen de tu móvil.', 'A face photo and a full-body photo: the app analyses your colours, your figure and the clothes that suit you. Photos never leave your phone.')}</p>
     ${pf.selfie || pf.cuerpo ? `<p class="dg-d">${diagPendiente() && !diagFallo ? t('Analizando tus fotos…', 'Analysing your photos…') : t('No he podido leer tus fotos. Prueba con otras.', 'I could not read your photos. Try others.')}</p><button class="boton linea" data-diag="fotos">${t('Ver mis fotos', 'See my photos')}</button>` : `<button class="boton" data-diag="fotos">${t('Hacer las fotos', 'Take the photos')}</button>`}</section>`;
 }
+// 06/11 noche (Gabriela: «lo de cómo lo he medido sobra, o al menos ponlo más pequeña la explicación; y quita cambiar las medidas y las fotos si ya hay una opción para eso
+// en otra parte»): «Cómo lo he medido», en pequeño; fuera «Cambiar mis medidas y fotos» y «Apuntar mis medidas»: pasan a Yo → Ajustes → Medidas y fotos.
 // 06/11 (Gabriela: «sigo esperando que rediseñes todo lo del perfil de tus medidas y fotos, tu diagnóstico, está horrible, lleno de texto, ya te expliqué cómo debe ser»;
 // «todo lo que favorece, la distribución espacial, la colorimetría, necesita un buen diseño de interface»): menos texto y gráficos. Medidas con una figura que enseña
 // dónde se mide; las fotos se tocan para verlas en grande y se cambian con su propio botón (antes el selector de fotos tapaba la lupa y en el iPhone abría «subir
@@ -2897,7 +2935,7 @@ async function panelDiag(pendientes = [], tab) {
       <section class="dx-sec"><h3 class="dx-h3">${t('Mejor lejos de la cara', 'Better away from your face')}</h3><div class="dx-lejos">${c.no.map(x => `<div><i style="background:${COLORES.find(q => q[0] === x)?.[1] || '#ccc'}"></i><span>${cap(colNom(x))}</span></div>`).join('')}</div></section>
       ${metales.length ? `<section class="dx-sec"><h3 class="dx-h3">${t('Tu metal', 'Your metal')}</h3><div class="dx-metal">${metales.map(([k, h, n]) => `<div><i style="background:radial-gradient(circle at 35% 30%,#fff 0,${h} 45%,${h} 100%)"></i><span>${n[es]}</span></div>`).join('')}</div>${!es && c.consejo ? `<p class="dx-consejo">${c.consejo}</p>` : ''}</section>` : ''}
       ${deMio.length ? `<section class="dx-sec"><h3 class="dx-h3">${t('De tu clóset, para la cara', 'From your closet, near your face')}</h3>${fotosCloset(deMio)}</section>` : ''}
-      <details class="dx-mas"><summary>${t('Cómo lo he medido', 'How I measured it')}</summary><ul class="dx-det">
+      <details class="dx-mas dx-peq"><summary>${t('Cómo lo he medido', 'How I measured it')}</summary><ul class="dx-det">
         ${m?.fotos > 1 ? `<li>${t(`Media de tus ${m.fotos} fotos de cara`, `Average of your ${m.fotos} face photos`)}</li>` : ''}
         ${m ? `<li>${t('Contraste', 'Contrast')}: ${m.contraste >= 45 ? t('alto', 'high') : m.contraste >= 28 ? t('medio', 'medium') : t('bajo', 'low')}</li>` : ''}
         <li>${t('Fiabilidad', 'Confidence')}: ${conf(c.confianza)}</li>${avisosC.map(x => `<li>${x}</li>`).join('')}</ul>
@@ -2908,12 +2946,12 @@ async function panelDiag(pendientes = [], tab) {
     const pr = b.ratios?.pierna, fotoDice = b.foto && b.foto !== b.k && R ? R.silueta.tipos[b.foto].n[es].toLowerCase() : '';
     sil = `<div class="dx-cab"><span>${t('Tu silueta', 'Your figure')}</span><h2>${b.n[es]}</h2><p>${b.d[es]}</p></div>
       ${barrasSilueta(b)}
-      ${b.fuente !== 'medidas' ? `<p class="dx-nota">${t('Medida en tu foto. Con cinta sale exacta.', 'Measured in your photo. With a tape measure it is exact.')}</p><button class="dx-enl" data-diag="fotos">${t('Apuntar mis medidas', 'Enter my measurements')}</button>` : ''}
+      ${b.fuente !== 'medidas' ? `<p class="dx-nota">${t('Medida en tu foto. Con cinta sale exacta.', 'Measured in your photo. With a tape measure it is exact.')}</p>` : ''}
       ${b.prop && pr ? `<div class="dx-pistas">${pista(b.propN[es], t('Torso largo', 'Long torso'), t('Piernas largas', 'Long legs'), (pr - .47) / .06)}</div>` : ''}
       <section class="dx-sec"><h3 class="dx-h3">${t('Te favorece', 'Flatters you')}</h3>${listaFavor(b.favorece[es])}</section>
       ${favor.length ? `<section class="dx-sec"><h3 class="dx-h3">${t('De tu clóset, lo que más te favorece', 'From your closet, what suits you most')}</h3>${fotosCloset(favor)}</section>` : ''}
       <details class="dx-mas"><summary>${t('Mejor evitar', 'Better avoid')}</summary>${listaFavor(b.evitar[es], ' sin')}</details>
-      <details class="dx-mas"><summary>${t('Cómo lo he medido', 'How I measured it')}</summary><ul class="dx-det">
+      <details class="dx-mas dx-peq"><summary>${t('Cómo lo he medido', 'How I measured it')}</summary><ul class="dx-det">
         <li>${b.fuente === 'medidas' ? t('Con tus medidas', 'With your measurements') : t('Con tu foto de cuerpo entero', 'With your full-body photo')}${b.altura ? ' (' + (b.altura / 100).toLocaleString(es ? 'en' : 'es', { minimumFractionDigits: 2 }) + ' m)' : ''}</li>
         ${fotoDice ? `<li>${t('Tu foto da ', 'Your photo says ') + fotoDice}</li>` : ''}
         <li>${t('Fiabilidad', 'Confidence')}: ${conf(b.confianza)}</li>${avisosB.map(x => `<li>${x}</li>`).join('')}</ul></details>`;
@@ -2923,7 +2961,6 @@ async function panelDiag(pendientes = [], tab) {
     <div class="dx-panel" role="tabpanel" id="dxp-color" aria-labelledby="dxt-color" ${tab === 'color' ? '' : 'hidden'}>${col}</div>
     <div class="dx-panel" role="tabpanel" id="dxp-silueta" aria-labelledby="dxt-silueta" ${tab === 'silueta' ? '' : 'hidden'}>${sil}</div>
     ${!pro && (c || b) ? `<p class="dx-nota">${t('Con el Pro, tus looks usan también tu silueta y ves qué prendas de tu clóset te favorecen.', 'With Pro, your looks also use your figure and you see which of your clothes suit you.')}</p>` : ''}
-    <button class="dx-cambiar" data-diag="fotos"><svg aria-hidden="true"><use href="#ic-camara"/></svg>${t('Cambiar mis medidas y fotos', 'Change my measurements and photos')}</button>
     <p class="dx-priv">${IC_CANDADO}${t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`;
   abrirPanel(t('Tu diagnóstico', 'Your analysis'), html, cap => cap.addEventListener('click', e => {
     const tb = e.target.closest('[data-dxtab]');
@@ -3186,7 +3223,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   setTimeout(() => estilizarNuevas().catch(() => { }), cuenta() ? 15000 : 0); // 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
-  if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
+  if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
