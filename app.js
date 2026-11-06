@@ -845,7 +845,7 @@ function ubicacionMovil(siempre) {
 }
 async function cargarTiempo(forzar) {
   const cache = JSON.parse(localStorage.getItem('tc_tiempo') || 'null');
-  if (!forzar && cache && cache.v && cache.k === 39 && 'lluviaH' in cache.v && Date.now() - cache.ts < 30 * 60000) { E.tiempo = cache.v; return E.tiempo; }
+  if (!forzar && cache && cache.v && cache.k === 40 && 'lluviaH' in cache.v && Date.now() - cache.ts < 30 * 60000) { E.tiempo = cache.v; return E.tiempo; }
   try {
     let lat = E.perfil?.lat, lon = E.perfil?.lon, nombre = E.perfil?.ciudad || E.perfil?.lugar || '';
     // 0.38 (Sheila, 22/10: «me sale Madrid y yo estoy en Huelva»): sin ciudad ni ubicación ya no se da Madrid por hecho;
@@ -858,8 +858,8 @@ async function cargarTiempo(forzar) {
     const r = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,apparent_temperature,wind_speed_10m,relative_humidity_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max&hourly=precipitation_probability&timezone=auto&forecast_days=1`)).json();
     const cod = r.current.weather_code; const txt = cod === 0 ? ['despejado', 'clear'] : cod <= 2 ? ['nubes y claros', 'partly cloudy'] : cod === 3 ? ['nublado', 'cloudy'] : cod < 50 ? ['niebla', 'fog'] : cod < 70 ? ['lluvia', 'rain'] : cod < 80 ? ['nieve', 'snow'] : cod < 90 ? ['chubascos', 'showers'] : ['tormenta', 'storm'];
     const ahora = new Date().getHours(); const probs = r.hourly?.precipitation_probability || []; let lluviaH = null; for (let h = ahora; h < Math.min(24, probs.length); h++) if (probs[h] >= 50) { lluviaH = h; break; }
-    E.tiempo = { sens: r.current.apparent_temperature, viento: r.current.wind_speed_10m, hum: r.current.relative_humidity_2m, uv: r.daily.uv_index_max?.[0], t: Math.round(r.current.temperature_2m), max: Math.round(r.daily.temperature_2m_max[0]), min: Math.round(r.daily.temperature_2m_min[0]), lluvia: r.daily.precipitation_probability_max?.[0] ?? 0, txt, nombre, cod, clave: claveTiempo(cod), lluviaH };
-    localStorage.setItem('tc_tiempo', JSON.stringify({ ts: Date.now(), k: 39, v: E.tiempo }));
+    E.tiempo = { sens: r.current.apparent_temperature, viento: r.current.wind_speed_10m, hum: r.current.relative_humidity_2m, uv: r.daily.uv_index_max?.[0], t: Math.round(r.current.temperature_2m), max: Math.round(r.daily.temperature_2m_max[0]), min: Math.round(r.daily.temperature_2m_min[0]), lluvia: r.daily.precipitation_probability_max?.[0] ?? 0, txt, nombre, cod, clave: claveTiempo(cod), lluviaH, lat, lon };
+    localStorage.setItem('tc_tiempo', JSON.stringify({ ts: Date.now(), k: 40, v: E.tiempo }));
   } catch (e) { E.tiempo = null; }
   return E.tiempo;
 }
@@ -1414,8 +1414,8 @@ const frDe = h => !h ? 'Mañana' : h < '14:00' ? 'Mañana' : h < '20:00' ? 'Tard
 const OC_POR_NOMBRE = [[/gym|gimnas|pilates|yoga|correr|running|p[aá]del|tenis|deporte|entren|crossfit|spinning|nata|piscina|baile/i, 'Deporte'], [/oficina|trabaj|reuni|clase|universidad|facultad|cliente|curro|cole/i, 'Oficina'], [/cena|copas|fiesta|discoteca|concierto|teatro|cine|noche/i, 'Noche'], [/boda|bautiz|comuni|graduaci|gala|evento|cumple/i, 'Evento'], [/viaje|vuelo|avi[oó]n|tren|escapada|aeropuerto/i, 'Viaje']];
 function eventosDe(d) {
   const a = E.agenda[d] || {}, dow = new Date(d + 'T12:00').getDay(), sin = a.sin || [];
-  const fijos = (E.perfil?.fijos || []).filter(f => f.dias.includes(dow) && !sin.includes(f.id) && (!f.desde || d >= f.desde)).map(f => ({ id: f.id, nombre: f.nombre, oc: f.oc, hora: f.hora || '', fijo: true }));
-  const sueltos = (a.planes || []).map((p, i) => ({ id: p.id || 'p' + i, i, nombre: p.nombre || '', oc: p.oc, hora: p.hora || HORA_FR[p.fr] || '', deHoy: p.deHoy }));
+  const fijos = (E.perfil?.fijos || []).filter(f => f.dias.includes(dow) && !sin.includes(f.id) && (!f.desde || d >= f.desde)).map(f => ({ id: f.id, nombre: f.nombre, oc: f.oc, hora: f.hora || '', fijo: true, url: f.url, desc: f.desc, lugar: f.lugar, ref: f }));
+  const sueltos = (a.planes || []).map((p, i) => ({ id: p.id || 'p' + i, i, nombre: p.nombre || '', oc: p.oc, hora: p.hora || HORA_FR[p.fr] || '', deHoy: p.deHoy, url: p.url, desc: p.desc, lugar: p.lugar, ref: p }));
   return [...fijos, ...sueltos].sort((x, y) => (x.hora || '99').localeCompare(y.hora || '99'));
 }
 function lookDe(d, ev) { const a = E.agenda[d] || {}, ids = a.looks?.[ev.id] || (a.look && eventosDe(d)[0]?.id === ev.id ? a.look : null); return ids?.length && ids.every(P) ? ids : null; }
@@ -1433,25 +1433,51 @@ function diasTxt(ds) {
 }
 // el formulario, como el de Google Calendar: título, hora, ocasión (se deduce del título) y si se repite
 const REPITE = [['una', 'No se repite', 'Does not repeat'], ['semana', 'Cada semana', 'Weekly'], ['laborables', 'De lunes a viernes', 'Weekdays'], ['diario', 'Todos los días', 'Every day'], ['dias', 'Elegir días', 'Pick days']];
+const escH = x => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 function formEvento() {
   const f = E.cal.form, en = idioma() === 'en', L = en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
   return `<div class="ag-form"><input id="ag-nom" type="text" maxlength="40" placeholder="${t('Añade un título: oficina, pilates, cena…', 'Add a title: office, pilates, dinner…')}" value="${(f.nombre || '').replace(/"/g, '&quot;')}" autocomplete="off">
     <label class="ag-hora">${t('Hora', 'Time')}<input id="ag-hora" type="time" value="${f.hora || ''}"></label>
+    <input id="ag-url" class="ag-url" type="url" inputmode="url" autocomplete="off" placeholder="${t('Enlace del sitio: Google Maps, su web o Instagram', 'Link to the place: Google Maps, website or Instagram')}" value="${escH(f.url || '')}">
+    <textarea id="ag-desc" class="ag-desc" rows="2" maxlength="240" placeholder="${t('Cuéntame el plan: qué haréis, si es dentro o fuera, si hay que ir arreglada…', 'Tell me the plan: what you’ll do, indoors or out, dressy or not…')}">${escH(f.desc || '')}</textarea>
     <div class="cal-ops">${OCASIONES.map(o => `<button class="${o === f.oc ? 'on' : ''}" data-agoc="${o}">${ocNombre(o)}</button>`).join('')}</div>
-    <div class="cal-ops ag-rep">${REPITE.map(([k, es, i]) => `<button class="${k === f.rep ? 'on' : ''}" data-agrep="${k}">${k === 'semana' ? (en ? `Every ${new Date(f.dia + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long' })}` : `Cada ${new Date(f.dia + 'T12:00').toLocaleDateString('es-ES', { weekday: 'long' })}`) : en ? i : es}</button>`).join('')}</div>
+    ${f.edita ? '' : `<div class="cal-ops ag-rep">${REPITE.map(([k, es, i]) => `<button class="${k === f.rep ? 'on' : ''}" data-agrep="${k}">${k === 'semana' ? (en ? `Every ${new Date(f.dia + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long' })}` : `Cada ${new Date(f.dia + 'T12:00').toLocaleDateString('es-ES', { weekday: 'long' })}`) : en ? i : es}</button>`).join('')}</div>`}
     ${f.rep === 'dias' ? `<div class="ag-dias">${[1, 2, 3, 4, 5, 6, 0].map((x, i) => `<button class="${f.dias.includes(x) ? 'on' : ''}" data-agdow="${x}" aria-label="${diasTxt([x])}">${L[i]}</button>`).join('')}</div>` : ''}
-    <div class="cal-bts"><button class="hz-bt" data-agguarda>${t('Guardar', 'Save')}</button><button class="txt sub-l" data-agcancela>${t('Cancelar', 'Cancel')}</button></div></div>`;
+    <div class="cal-bts"><button class="hz-bt" data-agguarda>${f.edita ? t('Guardar los cambios', 'Save changes') : t('Guardar', 'Save')}</button><button class="txt sub-l" data-agcancela>${t('Cancelar', 'Cancel')}</button></div></div>`;
 }
 function panelEvento(d, ev, hoy) {
   const lk = lookDe(d, ev), fut = d >= hoy;
   if (lk && !E.cal.cambia) return `<div class="ag-panel"><div class="lk-fig">${figLook({ ids: lk }, true)}</div><div class="cal-bts">${fut ? `<button class="txt sub-l" data-agcambia>${t('Cambiar el look', 'Change the look')}</button>` : ''}<button class="txt sub-l" data-agquitalook>${t('Quitar el look', 'Remove the look')}</button>${quitarEv(ev)}</div></div>`;
   if (!fut) return `<div class="ag-panel"><div class="cal-bts">${quitarEv(ev)}</div></div>`;
-  let ideas = generarLooks(6, ev.oc), falta = false; if (!ideas.length) { falta = true; ideas = masCercanos(ev.oc, generarLooks(12, 'Todos')).slice(0, 6); }
+  let ideas, falta = false, info = '';
+  if (typeof looksEvento === 'function') {
+    const r = looksEvento(d, ev); if (!r) return `<div class="ag-panel">${datosPlan(ev)}<p class="cal-vacio">${t('Mirando el tiempo de ese día en ese sitio…', 'Checking the weather there that day…')}</p><div class="cal-bts">${editarEv}${quitarEv(ev)}</div></div>`;
+    ideas = r.ideas; info = r.info;
+  } else ideas = generarLooks(6, ev.oc);
+  if (!ideas.length) { falta = true; ideas = masCercanos(ev.oc, generarLooks(12, 'Todos')).slice(0, 6); }
   const g = ideas[E.cal.idea % Math.max(1, ideas.length)];
+  if (g) { const k = `${d}|${ev.id}|${E.cal.idea}`; if (E.cal.reg !== k) { E.cal.reg = k; registrar('propuesta', { dia: d, ev: ev.id, oc: ev.oc, idea: E.cal.idea, ids: g.ids, info }); } }
   const mios = E.cal.mios && E.conjuntos.length ? `<div class="cal-mios">${E.conjuntos.slice(0, 12).map(c => `<button data-agmio="${c.id}"><div class="lk-fig">${figLook(c, true)}</div></button>`).join('')}</div>` : '';
-  return `<div class="ag-panel">${falta ? avisoFalta(ev.oc, false) : ''}${g ? `<div class="lk-fig">${figLook(g, true)}</div>${pieLook(conZapato(g.ids.map(P).filter(Boolean), g.zspec))}` : ''}
-    <div class="cal-bts">${g ? `<button class="hz-bt" data-agpon="${g.ids.join(',')}">${t('Guardar para este evento', 'Save for this event')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button>` : ''}${E.conjuntos.length ? `<button class="txt sub-l" data-agmios>${t('Elegir de mis looks', 'Pick from my looks')}</button>` : ''}${quitarEv(ev)}</div>${mios}</div>`;
+  return `<div class="ag-panel">${datosPlan(ev, info)}${falta ? avisoFalta(ev.oc, false) : ''}${g ? `<div class="lk-fig">${figLook(g, true)}</div>${pieLook(conZapato(g.ids.map(P).filter(Boolean), g.zspec))}` : ''}
+    <div class="cal-bts">${g ? `<button class="hz-bt" data-agpon="${g.ids.join(',')}">${t('Guardar para este evento', 'Save for this event')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button>` : ''}${E.conjuntos.length ? `<button class="txt sub-l" data-agmios>${t('Elegir de mis looks', 'Pick from my looks')}</button>` : ''}${editarEv}${quitarEv(ev)}</div>${mios}</div>`;
 }
+const editarEv = `<button class="txt sub-l" data-agedita>${t('Editar el plan', 'Edit the plan')}</button>`;
+// el sitio (con su enlace), la descripción y el tiempo de ese día a esa hora
+function datosPlan(ev, info) {
+  const sitio = ev.lugar?.nombre || (ev.url ? t('el sitio', 'the place') : ''), url = ev.lugar?.url || ev.url;
+  if (!sitio && !ev.desc && !info) return '';
+  return `<div class="ag-plan">${sitio ? `<p class="ag-sitio">${url ? `<a href="${escH(url)}" target="_blank" rel="noopener">${escH(sitio)}</a>` : escH(sitio)}${ev.lugar?.sitio ? `<small>${escH(ev.lugar.sitio)}</small>` : ''}</p>` : ''}${ev.desc ? `<p class="ag-desc-t">${escH(ev.desc)}</p>` : ''}${info ? `<p class="ag-info">${escH(info)}</p>` : ''}</div>`;
+}
+// el enlace → nombre, sitio y coordenadas (lo lee el servidor); se guarda en el evento para el tiempo de ese sitio
+async function leerEnlace(obj, d) {
+  if (!cuenta()) return;
+  try { const r = await api('/api/enlace?u=' + encodeURIComponent(obj.url), { tiempo: 20000 }); if (!r.ok) return; const j = await r.json();
+    if (j.nombre || j.lat != null) { obj.lugar = { nombre: j.nombre, lat: j.lat, lon: j.lon, tipo: j.tipo, sitio: j.sitio, url: obj.url }; await guardar(); registrar('lugar', { dia: d, url: obj.url, ...obj.lugar }); if (E.pantalla === 'looks' && E.lkTab === 'cal') pintarLooks(); }
+  } catch (e) { }
+}
+// 06/11 (Gabriela: «todo esto son experimentos que tienes que ir registrando para analizar y establecer patrones de comportamiento de la app»):
+// cada plan, look propuesto, elegido u «otra idea» se apunta en el servidor (solo de las cuentas de las socias, mientras no haya política de privacidad)
+function registrar(tipo, d) { if (!cuenta() || window.top !== window) return; api('/api/registro', { method: 'POST', json: { tipo, d }, tiempo: 15000 }).catch(() => { }); }
 const quitarEv = ev => `<button class="txt sub-l ag-quita" data-agquita>${ev.fijo ? t('Borrar solo este día', 'Delete this day only') : t('Borrar el evento', 'Delete the event')}</button>${ev.fijo ? `<button class="txt sub-l ag-quita" data-agbfijo="${ev.id}">${t('Borrar en todas las semanas', 'Delete from every week')}</button>` : ''}`;
 // 0.111 (Gabriela, 28/10, al ver la agenda por semanas: «quizás el calendario debe ser más pequeño, abarca mucho espacio, con la opción de
 // poner eventos en algún día como lo hace Google Calendar»): un mes pequeño arriba (un punto en los días con eventos) y, debajo, los eventos
@@ -1469,7 +1495,7 @@ function pintarAgenda(raiz) {
   const sem = (en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D']).map(x => `<span>${x}</span>`).join('');
   const evs = eventosDe(d), fijos = E.perfil?.fijos || [];
   const filas = evs.map(ev => { const k = `${d}|${ev.id}`, lk = lookDe(d, ev), ab = E.cal.ev === k;
-    return `<div class="ag-ev${ab ? ' ab' : ''}"><button class="ag-fila" data-agev="${k}"><span class="ag-h">${ev.hora || ''}</span><span class="ag-txt"><b>${nomEv(ev)}</b><small>${[ev.nombre && ev.nombre.toLowerCase() !== ocNombre(ev.oc).toLowerCase() ? ocNombre(ev.oc) : '', ev.fijo ? diasTxt((fijos.find(x => x.id === ev.id) || {}).dias || []) : ''].filter(Boolean).join(' · ')}</small></span>${lk ? `<span class="ag-mini"><span class="lk-fig">${figLook({ ids: lk }, true)}</span></span>` : d >= hoy ? `<span class="ag-elegir">${t('Elegir look', 'Pick a look')}</span>` : ''}</button>${ab ? panelEvento(d, ev, hoy) : ''}</div>`; }).join('');
+    return `<div class="ag-ev${ab ? ' ab' : ''}"><button class="ag-fila" data-agev="${k}"><span class="ag-h">${ev.hora || ''}</span><span class="ag-txt"><b>${nomEv(ev)}</b><small>${[ev.nombre && ev.nombre.toLowerCase() !== ocNombre(ev.oc).toLowerCase() ? ocNombre(ev.oc) : '', ev.fijo ? diasTxt((fijos.find(x => x.id === ev.id) || {}).dias || []) : '', ev.lugar?.nombre || ''].filter(Boolean).join(' · ')}</small></span>${lk ? `<span class="ag-mini"><span class="lk-fig">${figLook({ ids: lk }, true)}</span></span>` : d >= hoy ? `<span class="ag-elegir">${t('Elegir look', 'Pick a look')}</span>` : ''}</button>${ab ? panelEvento(d, ev, hoy) : ''}</div>`; }).join('');
   const puesto = E.prendas.filter(p => (p.usos || []).includes(d));
   raiz.innerHTML = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
     ${lkTabs('cal')}
@@ -1482,7 +1508,7 @@ function pintarAgenda(raiz) {
   const nom = $('ag-nom'); if (nom) { nom.oninput = () => { f.nombre = nom.value; const o = OC_POR_NOMBRE.find(([r]) => r.test(nom.value)); if (o && !f.ocTocada && o[1] !== f.oc) { f.oc = o[1]; raiz.querySelectorAll('[data-agoc]').forEach(b => b.classList.toggle('on', b.dataset.agoc === f.oc)); } }; if (!f.nombre) nom.focus(); }
   const hr = $('ag-hora'); if (hr) hr.onchange = () => { f.hora = hr.value; };
   raiz.onclick = async e => {
-    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agoc],[data-agrep],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agquitalook],[data-agquita],[data-agbfijo]'); if (!b) return;
+    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agoc],[data-agrep],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agedita],[data-agquitalook],[data-agquita],[data-agbfijo]'); if (!b) return;
     const q = b.dataset, [dia, evId] = (E.cal.ev || '|').split('|'), ag = k => (E.agenda[k] = E.agenda[k] || { planes: [] });
     if (q.lktab) { E.lkTab = q.lktab; E.lkTocado = true; E.lkI = 0; return pintarLooks(); }
     if (q.agmes) E.cal.mes = new Date(m.getFullYear(), m.getMonth() + +q.agmes, 1);
@@ -1493,18 +1519,25 @@ function pintarAgenda(raiz) {
     else if (q.agdow) { const x = +q.agdow; f.dias = f.dias.includes(x) ? f.dias.filter(y => y !== x) : [...f.dias, x]; b.classList.toggle('on'); return; }
     else if (q.agcancela !== undefined) E.cal.form = null;
     else if (q.agguarda !== undefined) {
-      const nombre = ($('ag-nom')?.value || '').trim(), hora = $('ag-hora')?.value || '';
-      const dias = { semana: [sel.getDay()], laborables: [1, 2, 3, 4, 5], diario: [0, 1, 2, 3, 4, 5, 6], dias: f.dias }[f.rep];
-      if (dias) { if (!dias.length) { toast(t('Marca los días en que se repite', 'Pick the days it repeats')); return; } E.perfil.fijos = [...(E.perfil.fijos || []), { id: uid(), nombre, oc: f.oc, hora, dias: [...dias].sort(), desde: d }]; }
-      else ag(d).planes.push({ id: uid(), nombre, oc: f.oc, hora, fr: frDe(hora) });
-      E.cal.form = null; await guardar(); E.propuestas = []; toast(dias ? t('Evento guardado: se repite ', 'Event saved: repeats ') + diasTxt(dias) : t('Evento guardado', 'Event saved'));
+      const nombre = ($('ag-nom')?.value || '').trim(), hora = $('ag-hora')?.value || '', url = ($('ag-url')?.value || '').trim(), desc = ($('ag-desc')?.value || '').trim();
+      if (url && !/^https?:\/\/\S+\.\S+/i.test(url)) { toast(t('Ese enlace no se puede abrir: cópialo entero, con https://', 'That link won’t open: copy it whole, with https://')); return; }
+      if (!f.ocTocada && !OC_POR_NOMBRE.some(([r]) => r.test(nombre))) { const o = OC_POR_NOMBRE.find(([r]) => r.test(desc)); if (o) f.oc = o[1]; }
+      const extra = { url: url || undefined, desc: desc || undefined }, dias = f.edita ? null : { semana: [sel.getDay()], laborables: [1, 2, 3, 4, 5], diario: [0, 1, 2, 3, 4, 5, 6], dias: f.dias }[f.rep];
+      let obj;
+      if (f.edita) { obj = f.edita; if (obj.url !== extra.url) delete obj.lugar; Object.assign(obj, { nombre, oc: f.oc, hora, ...extra }); if (!obj.dias) obj.fr = frDe(hora); }
+      else if (dias) { if (!dias.length) { toast(t('Marca los días en que se repite', 'Pick the days it repeats')); return; } obj = { id: uid(), nombre, oc: f.oc, hora, dias: [...dias].sort(), desde: d, ...extra }; E.perfil.fijos = [...(E.perfil.fijos || []), obj]; }
+      else { obj = { id: uid(), nombre, oc: f.oc, hora, fr: frDe(hora), ...extra }; ag(d).planes.push(obj); }
+      E.cal.form = null; await guardar(); E.propuestas = []; toast(f.edita ? t('Cambios guardados', 'Changes saved') : dias ? t('Evento guardado: se repite ', 'Event saved: repeats ') + diasTxt(dias) : t('Evento guardado', 'Event saved'));
+      registrar('plan', { dia: d, hora, oc: f.oc, nombre, desc, url, repite: dias ? diasTxt(dias) : '' });
+      if (url && !obj.lugar) leerEnlace(obj, d);
     }
     else if (q.agev) { E.cal.ev = E.cal.ev === q.agev ? null : q.agev; E.cal.idea = 0; E.cal.mios = false; E.cal.cambia = false; E.cal.form = null; }
-    else if (q.agpon) { const a = ag(dia); a.looks = { ...(a.looks || {}), [evId]: q.agpon.split(',') }; E.cal.cambia = false; await guardar(); E.propuestas = []; toast(t('Look guardado para este evento', 'Look saved for this event')); }
+    else if (q.agpon) { const a = ag(dia); a.looks = { ...(a.looks || {}), [evId]: q.agpon.split(',') }; registrar('elegido', { dia, ev: evId, ids: q.agpon.split(','), idea: E.cal.idea }); E.cal.cambia = false; await guardar(); E.propuestas = []; toast(t('Look guardado para este evento', 'Look saved for this event')); }
     else if (q.agmio) { const c = E.conjuntos.find(x => x.id === q.agmio); if (c) { const a = ag(dia); a.looks = { ...(a.looks || {}), [evId]: [...c.ids] }; E.cal.mios = false; E.cal.cambia = false; await guardar(); E.propuestas = []; toast(t('Look guardado para este evento', 'Look saved for this event')); } }
-    else if (q.cotra !== undefined) E.cal.idea++;
+    else if (q.cotra !== undefined) { registrar('otra', { dia: E.cal.dia, ev: (E.cal.ev || '').split('|')[1], idea: E.cal.idea }); E.cal.idea++; }
     else if (q.agmios !== undefined) E.cal.mios = !E.cal.mios;
     else if (q.agcambia !== undefined) { E.cal.cambia = true; E.cal.idea = 0; }
+    else if (q.agedita !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) { E.cal.form = { dia, oc: ev.oc, hora: ev.hora, rep: 'una', dias: [], nombre: ev.nombre, url: ev.url, desc: ev.desc, edita: ev.ref, ocTocada: true }; E.cal.ev = null; } }
     else if (q.agquitalook !== undefined) { const a = ag(dia); if (a.looks) delete a.looks[evId]; if (a.look && eventosDe(dia)[0]?.id === evId) delete a.look; await guardar(); E.propuestas = []; }
     else if (q.agquita !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) { const a = ag(dia); if (ev.fijo) a.sin = [...(a.sin || []), ev.id]; else a.planes.splice(ev.i, 1); if (a.looks) delete a.looks[ev.id]; E.cal.ev = null; await guardar(); E.propuestas = []; toast(ev.fijo ? t('Quitado de este día', 'Removed from this day') : t('Evento borrado', 'Event deleted')); } }
     else if (q.agbfijo) { E.perfil.fijos = (E.perfil.fijos || []).filter(x => x.id !== q.agbfijo); E.cal.ev = null; await guardar(); E.propuestas = []; toast(t('Borrado en todas las semanas', 'Deleted from every week')); }
@@ -2398,6 +2431,20 @@ function looksMotorCon(p) {
   } }
   return out.sort((a, b) => b.pts - a.pts);
 }
+// 06/11 (Gabriela: «en las de deporte se combinan con todo menos entre sí»): el «por ejemplo, con» de «Te vendría bien» sale del generador viejo; con el motor cargado,
+// solo valen looks sin vetos y, con una prenda de deporte, todo de deporte (o una camiseta lisa); sin ella, nada de deporte
+function casaMotor(p, ps) {
+  if (typeof Motor === 'undefined') return true;
+  try {
+    const fi = x => Motor.ficha(x), dep = f => f.uso === 'deporte' || (f.cat === 'calzado' && f.deportiva), fp = fi(p), roles = {};
+    for (const x of ps) { const f = fi(x); if (x.id !== p.id && f.cat !== 'accesorio' && f.cat !== 'bolso') {
+      if (dep(fp) && !dep(f) && !(['camiseta', 'camiseta_tirantes'].includes(f.subtipo) && f.estampado === 'liso')) return false;
+      if (!dep(fp) && f.uso === 'deporte') return false; }
+      if (roles[f.cat]) return false; roles[f.cat] = x; }
+    const j = Motor.juzgar({ ...roles, tiempo: E.tiempo?.t != null ? E.tiempo : { t: 18, max: 21, min: 12 }, plan: dep(fp) ? 'Deporte' : 'Diario', perfil: E.perfil, hora: 13 });
+    return !j.veto.duros.length;
+  } catch (e) { return true; }
+}
 function calcularPartido(p) {
   const rnd = Math.random; Math.random = () => .5; // sin azar: el mismo clóset da siempre la misma respuesta
   try {
@@ -2410,7 +2457,7 @@ function calcularPartido(p) {
       if (c === 'Estampado' && cat === 'Zapatos') continue;
       const v = { id: 'virtual', nombre: nombreReconocido(k, c), tipo: TIPO_DE_CAT[cat], color: c, usos: [], x: k }; if (tengo(v, cat) || Math.abs(estilo(v) - estilo(p)) >= (estilo(v) === 0 ? 2 : 3)) continue; // lo deportivo, solo con lo informal
       const mejorBase = {}; for (const l of combosCon([p, v], pool)) if (!mejorBase[l.base] || l.pts > mejorBase[l.base].pts) mejorBase[l.base] = l;
-      const nuevos = Object.entries(mejorBase).filter(([b, l]) => l.pts >= LOOK_BUENO && (antes[b] ?? -99) < LOOK_BUENO).map(([, l]) => l).sort((a, b) => b.pts - a.pts);
+      const nuevos = Object.entries(mejorBase).filter(([b, l]) => l.pts >= LOOK_BUENO && (antes[b] ?? -99) < LOOK_BUENO && casaMotor(p, l.ps)).map(([, l]) => l).sort((a, b) => b.pts - a.pts);
       if (nuevos.length) cand.push({ v, cat, k, n: nuevos.length, mejor: nuevos[0], pts: nuevos.reduce((a, l) => a + l.pts, 0) / nuevos.length + armonia(p, c) - .4 * Math.abs(estilo(v) - estilo(p)) });
     }
         const porCat = new Map(); for (const x of cand.sort((a, b) => b.n - a.n || b.pts - a.pts)) if (!porCat.has(x.cat)) porCat.set(x.cat, x); // una por categoría

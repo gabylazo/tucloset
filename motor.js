@@ -275,6 +275,38 @@ const Motor = (() => {
     if (f.cat === 'capa') return ['chaqueta_deportiva', 'forro_polar', 'sudadera', 'plumifero', 'cortavientos'].includes(f.subtipo);
     if (f.cat === 'arriba') return ['camiseta_tecnica', 'top_deportivo', 'sudadera'].includes(f.subtipo) || (['camiseta', 'camiseta_tirantes', 'henley'].includes(f.subtipo) && !ARREGLADO_RE.test(n) && f.form <= 3 && f.largo !== 'crop');
     return f.cat === 'calzado' ? !!f.deportiva : f.cat !== 'vestido'; };
+  // 06/11 (Gabriela: «las combinaciones de Inspírate en… son siempre las mismas»): las parejas se elegían sin mirar el estilo pedido y todas las referencias recibían
+  // las mismas prendas. Afinidad de cada prenda con un estilo, por sus rasgos (de -1 a 1); «Inspírate en» la pasa como o.afin y pesa en parejas, capa, calzado y nota.
+  const rasgo = (f, txt, tok) => { const [k, v] = tok.split(':'), en = x => v.split('|').includes(x);
+    switch (k) {
+      case 'sub': return en(f.subtipo); case 'tejido': return en(f.tejido); case 'corte': return en(f.corte); case 'tiro': return en(f.tiro); case 'txt': return new RegExp(v).test(txt);
+      case 'neutro': return String(f.color_clase).startsWith('neutro'); case 'vivo': return ['vivo', 'acento'].includes(f.color_clase); case 'suave': return f.color_clase === 'suave' || f.familia === 'rosa';
+      case 'liso': return f.estampado === 'liso'; case 'estampado': return f.estampado !== 'liso'; case 'rayas': return /rayas/.test(f.estampado || ''); case 'flores': case 'lunares': case 'cuadros': return f.estampado === k;
+      case 'vaquero': case 'cuero': case 'sastre': return f.tejido === k; case 'formal': return f.form >= 4; case 'informal': return f.form <= 2;
+      case 'deportiva': return !!f.deportiva || f.uso === 'deporte'; case 'brillo': return /saten|raso|lentejuel|brillo|metaliz|terciopelo|charol|seda/.test(txt);
+      case 'encaje': return /encaje/.test(txt); case 'volantes': return /volant/.test(txt); case 'romantico': return /volant|encaje/.test(txt) || f.estampado === 'flores';
+      case 'foco': return !!f.foco; case 'volumen': return (f.volumen ?? 0) >= 2 || ['ancho', 'barril', 'oversize'].includes(f.corte); case 'crop': return f.largo === 'crop';
+      default: return f.familia === k; // negro, tierra, blanco, gris, rojo, azul, verde, rosa
+    } };
+  const ESTILO_RASGOS = {
+    minimalista: [['neutro', .4], ['liso', .2], ['estampado', -.5], ['foco', -.4], ['vivo', -.3]],
+    clasico: [['sastre', .4], ['formal', .3], ['sub:camisa|americana|pantalon_vestir|mocasin|trench|abrigo_lana|jersey_cuello_alto|chaleco_traje|blusa', .3], ['neutro', .2], ['deportiva', -.5], ['crop', -.3]],
+    frances: [['rayas', .5], ['vaquero', .3], ['sub:camisa|jersey|trench|bailarina|mocasin|americana|vestido_midi', .3], ['txt:negro|blanco|marino|crema', .2], ['vivo', -.3], ['deportiva', -.4]],
+    casual: [['vaquero', .5], ['tejido:algodon|punto', .2], ['informal', .3], ['sub:camiseta|sudadera|zapatillas|henley', .3], ['formal', -.4], ['brillo', -.3]],
+    urbano: [['vaquero', .3], ['cuero', .4], ['sub:zapatillas|sudadera|botas|botines', .4], ['volumen', .3], ['negro', .2], ['romantico', -.3]],
+    glam: [['brillo', .6], ['encaje', .3], ['formal', .4], ['sub:sandalias_tacon|tacones|clutch|vestido_largo', .3], ['negro', .2], ['deportiva', -.6], ['vaquero', -.2], ['informal', -.2]],
+    boho: [['flores', .5], ['tejido:fluido|ante', .3], ['volantes', .3], ['tierra', .3], ['sub:vestido_largo|falda_larga|alpargatas|sandalias_planas', .4], ['sastre', -.3], ['deportiva', -.4]],
+    romantico: [['volantes', .5], ['encaje', .4], ['flores', .3], ['lunares', .3], ['suave', .3], ['sub:blusa|vestido_midi|falda_larga|vestido_corto', .2], ['cuero', -.3], ['deportiva', -.5]],
+    rock: [['cuero', .6], ['negro', .3], ['vaquero', .2], ['sub:botas|botines', .3], ['suave', -.3], ['volantes', -.3]],
+    oldmoney: [['txt:crema|beige|camel|marino|blanco|marfil|gris', .4], ['tejido:punto|lana|sastre', .3], ['formal', .2], ['sub:camisa|mocasin|jersey|americana|pantalon_vestir|abrigo_lana|trench', .2], ['vivo', -.4], ['deportiva', -.6], ['estampado', -.2], ['crop', -.3]],
+    retro: [['lunares', .5], ['cuadros', .4], ['corte:acampanado', .5], ['vivo', .2], ['tiro:alto', .2], ['deportiva', -.3]],
+    eclectico: [['estampado', .3], ['vivo', .4], ['foco', .3], ['volumen', .2], ['neutro', -.1]],
+    deportivo: [['deportiva', .6], ['sub:sudadera|camiseta|zapatillas|top_deportivo|malla', .3], ['informal', .2], ['formal', -.3], ['brillo', -.3]],
+  };
+  const sumaRasgos = (f, txt, reglas) => reglas.reduce((s, [tok, n]) => s + (rasgo(f, txt, tok) ? n : 0), 0), tope1 = x => Math.max(-1, Math.min(1, x));
+  const afinEstilo = (f, txt, estilos) => estilos.length ? estilos.reduce((s, e) => s + tope1(sumaRasgos(f, txt, ESTILO_RASGOS[e] || []) + ((f.estilos || []).includes(e) ? .5 : 0)), 0) / estilos.length : 0;
+  const txtAfin = p => norm([p.nombre, p.color, ...(p.detalles || []), p.notas].join(' '));
+  const afin = x => x?._af || 0, AF = { par: .15, capa: .3, zapato: .2, nota: .15 };
   // 06/11 (Gabriela: «siguen habiendo combinaciones espantosas»): la temperatura de cada prenda era solo un descuento de puntos (K15) y salían tops de verano bajo un abrigo
   // de paño o sandalias a 12°. Ahora es fija: lo que está a más de 3° de su rango (el de su estación, o el de su tipo) no entra en el look de hoy.
   const vaHoy = (p, ctx) => { const f = p._f; return !((f.tmin != null && ctx.t_ref < f.tmin - 3) || (f.tmax != null && ctx.t_ref > f.tmax + 3)); };
@@ -285,14 +317,14 @@ const Motor = (() => {
     if (dep) zapatos = zapatos.filter(p => p.muestra || aptoDeporte(p)); // en Deporte, solo zapatillas de deporte (unas de ante no)
     const H = r => formula.huecos.filter(h => h.rol === r), salida = [], parejas = [];
     const [hv] = H('vestido');
-    if (hv) for (const v of cands(hv, ents)) parejas.push({ vestido: v, n: 0 });
+    if (hv) for (const v of cands(hv, ents)) parejas.push({ vestido: v, n: AF.par * 2 * afin(v) });
     else {
       const ha = H('arriba')[0], hb = H('abajo')[0]; if (!ha || !hb) return salida;
       for (const a of cands(ha, ents)) for (const b of cands(hb, ents)) {
         if (a === b) continue;
         const k = a.id + '|' + b.id; let par = cacheP.get(k);
         if (!par) { const l = { arriba: a, abajo: b }; l.como = comoDe(null, l); const c = camposLook(l, ctx, pf, hoy), e = entorno(l, c, ctx, pf); par = { v: vetar(e, true).duros.length > 0, n: puntuar(l, c, e).total }; cacheP.set(k, par); }
-        if (!par.v) parejas.push({ arriba: a, abajo: b, n: par.n });
+        if (!par.v) parejas.push({ arriba: a, abajo: b, n: par.n + AF.par * (afin(a) + afin(b)) });
       }
     }
     parejas.sort((x, y) => y.n - x.n);
@@ -303,7 +335,7 @@ const Motor = (() => {
         const [hc] = H(r); if (!hc) continue;
         // lo de debajo: una camisa que asoma, o una prenda neutra si de verdad hace frío (una camiseta roja bajo un jersey de rayas no aporta nada)
         const debajo = p => r !== 'base_interior' || (p._f.largo !== 'crop' && (p._f.subtipo === 'camisa' || (['T5', 'T6', 'T7'].includes(ctx.tramo.id) && ['neutro', 'neutro_suave'].includes(p._f.color_clase))));
-        const cs = cands(hc, ents).filter(p => !PIEZAS.some(k => par[k] === p) && debajo(p)).sort((a, b) => cercania(b, par, ctx) - cercania(a, par, ctx)).slice(0, 2);
+        const cs = cands(hc, ents).filter(p => !PIEZAS.some(k => par[k] === p) && debajo(p)).sort((a, b) => cercania(b, par, ctx) + AF.capa * afin(b) - cercania(a, par, ctx) - AF.capa * afin(a)).slice(0, 2);
         if (!cs.length && !hc.opcional) { faltaHueco = { rol: r, h: hc }; continue; }
         looks = looks.flatMap(l => cs.map(c => ({ ...l, [r]: c })).concat(hc.opcional ? [l] : []));
       }
@@ -312,7 +344,7 @@ const Motor = (() => {
         const [hz] = H('calzado'); let cs = hz ? cands(hz, zapatos) : [];
         if (!cs.length && zapatos.length && !zapatos[0].muestra) cs = zapatos; // con zapatos subidos, siempre uno suyo
         const aguanta = cs.filter(c => pf.tacon_num == null || c._f.tacon_num <= pf.tacon_num); if (aguanta.length) cs = aguanta; // el tacón que ella dijo, si hay con qué
-        cs = cs.map(c => [puntosCalzado(c, l, ctx, pf, hz), c]).sort((a, b) => b[0] - a[0]).map(x => x[1]);
+        cs = cs.map(c => [puntosCalzado(c, l, ctx, pf, hz) + AF.zapato * afin(c), c]).sort((a, b) => b[0] - a[0]).map(x => x[1]);
         const sirven = []; for (const c of cs) { if (sirven.length >= 3) break; const lz = { ...l, calzado: c }; if (!vetar(entorno(lz, camposLook(lz, ctx, pf, hoy), ctx, pf)).duros.some(v => VETA_ZAPATO.has(v.id))) sirven.push(c); } // los tres mejores que el par admite
         cs = sirven.length ? sirven : cs.slice(0, 1);
         for (const c of cs.length ? cs : [null]) {
@@ -330,7 +362,7 @@ const Motor = (() => {
     const c = camposLook(l, ctx, pf, hoy), e = entorno(l, c, ctx, pf), veto = vetar(e), pts = puntuar(l, c, e);
     // un look puesto ayer no es la primera idea: el peso del grupo «variedad» solo no lo baja lo bastante
     const ayer = c.dias_desde_ultimo_uso === 1 || c.dias_desde_ultimo_uso === 0 ? (c.es_favorito ? .05 : .15) : 0;
-    return { ...l, ctx, campos: c, veto, pts, nota: pts.total + veto.p / 2 - ayer + huella(hoy + claveRopa(l)) * .04, casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
+    return { ...l, ctx, campos: c, veto, pts, nota: pts.total + veto.p / 2 - ayer + huella(hoy + claveRopa(l)) * .04 + AF.nota * (PIEZAS.reduce((s, k) => s + afin(l[k]), 0) / Math.max(1, PIEZAS.filter(k => l[k]).length)), casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
   }
   function elegir(cs, n, excluir) {
     const ok = cs.filter(l => !l.veto.duros.length && !l.casi && !excluir.has(claveLook(l))).sort((a, b) => b.nota - a.nota), sel = [], usoA = new Map(), usoB = new Map(), usoF = new Map(), usoZ = new Map(), vistos = new Set(), gemelos = new Set();
@@ -383,6 +415,7 @@ const Motor = (() => {
     const t0 = Date.now(), hoy = o.hoy || new Date().toISOString().slice(0, 10), plan = o.plan || 'Todos', n = o.n || 6, pf = perfilMotor(o.perfil, o), excluir = new Set(o.excluir || []);
     const ctx0 = contexto(o.tiempo, plan, { hora: o.hora, t_ref: o.t_ref, evento: o.evento, lugar: o.lugar });
     const ents = (o.prendas || []).filter(p => !p.noMeGusta).map(p => ({ id: p.id, p, _f: ficha(p, pf) }));
+    if (o.afin) for (const x of ents) x._af = typeof o.afin === 'function' ? o.afin(x._f, txtAfin(x.p)) : afinEstilo(x._f, txtAfin(x.p), o.afin);
     let ropa = ents.filter(p => p.p.tipo !== 'Calzado'); const propios = ents.filter(p => p.p.tipo === 'Calzado'), zapatos = propios.length ? propios : ZV;
     if (ents.length > 150) { // clóset enorme: se forman parejas con lo menos puesto últimamente
       const reciente = x => (x.p.usos || []).reduce((m, u) => u > m ? u : m, ''), poco = (tipo, n) => ropa.filter(x => x.p.tipo === tipo).sort((a, b) => reciente(a).localeCompare(reciente(b))).slice(0, n);
@@ -417,7 +450,7 @@ const Motor = (() => {
     const ps = ['capa', 'arriba', 'base_interior', 'abajo', 'vestido', 'calzado', 'bolso', 'accesorio'].map(k => l[k]).filter(p => p && !p.muestra);
     return { ids: ps.map(p => p.id), ocasion: l.ctx.ocasion, formula: l.formula?.id, nombre: l.formula?.nombre, porque: l.formula?.porque, como: l.campos.como === 'por_dentro' ? 'por dentro' : l.campos.como, zspec: zapatoDe(l), faltaCapa: !!l.faltaCapa, capaFalta: l.faltaCapa ? capaQueFalta(l) : null, nota: l.nota };
   }
-  return { iniciar, inferir, ficha: p => ficha(p, {}), ocasionesDe, contexto, perfilMotor, looks, juzgar, aPropuesta, faltas, claveLook, get R() { return R; }, get F() { return F; } };
+  return { iniciar, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, contexto, perfilMotor, looks, juzgar, aPropuesta, faltas, claveLook, get R() { return R; }, get F() { return F; } };
 })();
 if (typeof module !== 'undefined') module.exports = Motor;
 else if (typeof MOTOR_DATOS !== 'undefined') Motor.iniciar(MOTOR_DATOS.R, MOTOR_DATOS.F, MOTOR_DATOS.S);

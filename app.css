@@ -1305,6 +1305,14 @@ img{-webkit-user-drag:none}
 .ag-form>.mini-et{color:var(--sec)}
 .ag-form input[type=text]{font:inherit;font-size:16px;font-weight:300;color:var(--tinta);text-align:center;border:0;border-bottom:1px solid var(--linea2);padding:8px 4px;background:none;border-radius:0}
 .ag-form input[type=text]:focus{outline:0;border-bottom-color:var(--tinta)}
+/* 06/11: el plan con el enlace del sitio y su descripción */
+.ag-form input[type=url],.ag-form textarea{font:inherit;font-size:16px;font-weight:300;color:var(--tinta);text-align:center;border:0;border-bottom:1px solid var(--linea2);padding:8px 4px;background:none;border-radius:0;width:100%;box-sizing:border-box;resize:none}
+.ag-form input[type=url]:focus,.ag-form textarea:focus{outline:0;border-bottom-color:var(--tinta)}
+.ag-form input::placeholder,.ag-form textarea::placeholder{color:var(--sec)}
+.ag-plan{margin:4px auto 14px;max-width:340px;text-align:center;display:grid;gap:4px}
+.ag-sitio{margin:0;font-size:15px}.ag-sitio a{color:var(--tinta);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}.ag-sitio small{display:block;font-size:12px;color:var(--sec)}
+.ag-desc-t{margin:0;font-size:13px;color:var(--sec);font-weight:300;line-height:1.45}
+.ag-info{margin:0;font-size:13px;color:var(--tinta);line-height:1.45}
 .ag-hora{font-size:13px;color:var(--sec);font-weight:300}.ag-hora input{font:inherit;font-size:15px;color:var(--tinta);border:0;border-bottom:1px solid var(--linea2);margin-left:8px;background:none}
 .ag-dias{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--sec);font-weight:300}
 .ag-dias span{width:100%;margin-bottom:2px}

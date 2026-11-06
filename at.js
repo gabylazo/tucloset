@@ -347,7 +347,9 @@ if (AT) (() => {
     let looks = conj.slice(0, 8).map(c => ({ ps: psDe(c), attr: ` data-look="${c.id}" aria-label="${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}"` }));
     if (!looks.length && p.tipo !== 'Accesorios') {
       try { const pool = activas().filter(x => x.id !== id); const vistos = new Set();
-        looks = combosCon([p], pool).sort((a, b) => b.pts - a.pts).filter(x => !vistos.has(x.base) && vistos.add(x.base)).slice(0, 2)
+        // 06/11 (Gabriela: «en las de deporte se combinan con todo menos entre sí… con sandalias, con blusas de verano»): estas dos ideas salían del generador viejo
+        // (combosCon), que no conoce la ropa de deporte; ahora del motor, como «Ideas» (looksMotorCon de app.js)
+        looks = (typeof Motor !== 'undefined' ? looksMotorCon(p).slice(0, 2) : combosCon([p], pool).sort((a, b) => b.pts - a.pts).filter(x => !vistos.has(x.base) && vistos.add(x.base)).slice(0, 2))
           .map(x => ({ ps: conZapato(x.ps), attr: ` data-atcrear="${x.ps.map(y => y.id).join(',')}" aria-label="${t('Crear este look', 'Create this look')}"` }));
       } catch (e) { looks = []; }
     }
@@ -447,6 +449,44 @@ if (AT) (() => {
     if (ultima[plan + n]?.firma === firma) return ultima[plan + n].r;
     const r = Motor.looks({ prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
     ultima[plan + n] = { firma, r }; return r;
+  };
+  // 06/11 (Gabriela: «mañana tengo un plan y el domingo otro, me gustaría ponerlo con el link de los lugares y una pequeña descripción para que planifique los outfits»):
+  // los looks de un plan de la agenda salen con el tiempo de ese sitio a esa hora (Open-Meteo, hasta 16 días) y con lo que dicen el título, la descripción y el tipo
+  // de sitio: arreglado o informal, mucho caminar, playa, campo, iglesia o boda (estas dos ya las sabe el motor). Lo leído pesa en cada prenda como la afinidad de «Inspírate en».
+  const LEER_PLAN = [
+    [/elegant|formal|arreglad|etiqueta|coctel|gala|de vestir|ceremonia/, [['formal', .5], ['informal', -.5], ['deportiva', -.8]], ['arreglado', 'dressy']],
+    [/informal|casual|tranquil|relajad|sin arreglar|comod|en casa/, [['informal', .3], ['formal', -.4]], ['informal', 'casual']],
+    [/camin|andar|ruta|paseo|pasear|visita|turismo|museo|mercad|feria|sender|excursi|de pie|tourism:|marketplace/, [['sub:zapatillas|alpargatas|sandalias_planas|bailarina|mocasin|botines|botas', .4], ['sub:tacones|sandalias_tacon', -.7]], ['para caminar', 'lots of walking']],
+    [/playa|piscina|barco|yate|chiringuito|natural:beach/, [['sub:sandalias_planas|alpargatas|sandalias_tacon', .4], ['tejido:fluido|algodon', .2], ['tejido:lana|punto', -.4]], ['playa', 'beach']],
+    [/campo|montana|granja|bodega|vinedo|cesped|jardin|picnic|parque|leisure:park/, [['sub:tacones|sandalias_tacon', -.6], ['sub:zapatillas|botines|alpargatas|sandalias_planas|botas', .3]], ['campo', 'outdoors']],
+    [/terraza|aire libre|fuera|exterior|al sol/, [], ['al aire libre', 'outdoors']],
+  ];
+  const TEV = {};
+  const tiempoPlan = async (d, hh, ll) => {
+    const r = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${ll.lat}&longitude=${ll.lon}&hourly=temperature_2m,apparent_temperature,precipitation_probability,wind_speed_10m,relative_humidity_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,uv_index_max&timezone=auto&start_date=${d}&end_date=${d}`)).json();
+    const H = r.hourly; if (!H?.temperature_2m?.length || H.temperature_2m[hh] == null) return null;
+    const pr = H.precipitation_probability.slice(Math.max(0, hh - 1), hh + 4).filter(x => x != null);
+    return { t: Math.round(H.temperature_2m[hh]), sens: H.apparent_temperature[hh], viento: H.wind_speed_10m[hh], hum: H.relative_humidity_2m[hh], max: Math.round(r.daily.temperature_2m_max[0]), min: Math.round(r.daily.temperature_2m_min[0]), uv: r.daily.uv_index_max?.[0], lluvia: pr.length ? Math.max(...pr) : 0, cod: H.weather_code[hh] };
+  };
+  window.looksEvento = (d, ev) => {
+    const hora = ev.hora || '13:00', hh = Math.min(23, +hora.slice(0, 2) || 13), lu = ev.lugar, ll = lu?.lat != null ? lu : E.tiempo?.lat != null ? E.tiempo : E.perfil?.lat != null ? E.perfil : null;
+    const k = [d, hora, ll ? (+ll.lat).toFixed(2) + ',' + (+ll.lon).toFixed(2) : '-'].join('|'), te = TEV[k];
+    if (!te) { TEV[k] = { cargando: true }; (ll ? tiempoPlan(d, hh, ll) : Promise.resolve(null)).catch(() => null).then(w => { TEV[k] = { w }; if (E.pantalla === 'looks' && E.lkTab === 'cal') pintarLooks(); }); return null; }
+    if (te.cargando) return null;
+    const txt = [ev.nombre, ev.desc, lu?.nombre, lu?.tipo].join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), leidas = LEER_PLAN.filter(([re]) => re.test(txt)), reglas = leidas.flatMap(x => x[1]);
+    const evento = /boda/.test(txt) ? 'boda' : null, lugar = /iglesia|misa|bautiz|comunion|catedral|ermita|templo|mezquita|sinagoga|place_of_worship/.test(txt) ? 'religioso' : undefined;
+    const tiempo = te.w || E.tiempo, plan = ev.oc || 'Diario', g = E.perfil?.gustos, pr = activas();
+    const firma = JSON.stringify([k, plan, txt, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), E.perfil?.estilos, g?.fuera, planDemo()]);
+    if (te.firma !== firma) {
+      const r = Motor.looks({ prendas: pr, tiempo, plan, perfil: E.perfil, n: 6, hoy: d, hora: hh, excluir: g?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], evento, lugar,
+        afin: reglas.length ? (f, tx) => Math.max(-1, Math.min(1, reglas.reduce((s, [tok, n]) => s + (Motor.rasgo(f, tx, tok) ? n : 0), 0))) : undefined });
+      const ideas = deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta));
+      const donde = lu?.nombre ? '' : tiempo?.nombre || '', tt = tiempo ? `${tiempo.t}° ${t('a las', 'at')} ${hora}${tiempo.lluvia >= 30 ? ` · ${t('lluvia', 'rain')} ${tiempo.lluvia} %` : ''}` : '';
+      const lee = [...leidas.map(x => x[2][en() ? 1 : 0]), evento && t('boda', 'wedding'), lugar && t('hombros y rodillas cubiertos', 'shoulders and knees covered')].filter(Boolean);
+      te.firma = firma; te.ideas = ideas;
+      te.info = [donde && tt ? `${donde}: ${tt}` : tt, te.w ? '' : (ll ? t('aún no hay previsión para ese día: uso el tiempo de hoy', 'no forecast yet for that day: using today’s weather') : ''), lee.length ? t('Plan: ', 'Plan: ') + lee.join(', ') : ''].filter(Boolean).join(' · ');
+    }
+    return { ideas: te.ideas, info: te.info };
   };
   // Gabriela, 03/11: «tampoco que te inventes categorías si no hay ropa para eso: por ejemplo deporte, no tengo subida ropa de deporte, ¿y me pones un conjunto?»
   const DEPORTIVO = new Set(['malla', 'jogger', 'camiseta_tecnica', 'top_deportivo', 'chaqueta_deportiva', 'forro_polar', 'botas_montana', 'falda_deportiva']);
@@ -683,6 +723,45 @@ if (AT) (() => {
     ['pascal', 'Pedro Pascal', ['Clásico cálido', 'Warm classic'], ['Punto, marrón y verde oliva; americana sobre camiseta negra.', 'Knits, brown and olive; a blazer over a black tee.'], ['clasico', 'casual'], 'o'],
     ['badbunny', 'Bad Bunny', ['Sin reglas', 'No rules'], ['Color vivo, estampados y prendas sin género.', 'Bright colour, prints and genderless pieces.'], ['eclectico', 'urbano'], 'o'],
   ];
+  // 06/11 (Gabriela: «las combinaciones de Inspírate en… son siempre las mismas»): con su clóset, 45 looks distintos entre las 19 referencias y alguno en 7 de ellas.
+  // Ahora cada referencia puntúa cada prenda por sus rasgos (los de sus estilos y los suyos propios, abajo) y eso pesa más que la nota general; y de cada una salen
+  // seis looks sin repetir parte de arriba, de abajo ni capa. Medido con su ropa: 93 distintos de 114, ninguno en más de 5 referencias.
+  const ARQ_RASGOS = {
+    hollywood: [['volumen', .3], ['vaquero', .3], ['neutro', .2]],
+    tonal: [['tierra', .4], ['txt:beige|camel|crema|nude|arena|marron|chocolate|caqui', .4], ['estampado', -.4]],
+    modelo: [['vaquero', .3], ['cuero', .4], ['negro', .2], ['sub:vestido_largo|falda_larga|abrigo_lana', .2]],
+    limpia: [['blanco', .3], ['neutro', .2], ['sub:americana', .4], ['deportiva', .2], ['sub:sudadera|camiseta', .2]],
+    sastreria: [['sastre', .4], ['sub:americana|pantalon_vestir|chaleco_traje', .4], ['vivo', .3]],
+    americano: [['vaquero', .4], ['sub:camiseta|henley|jersey', .3], ['neutro', .2], ['foco', -.3]],
+    oldmoney: [['txt:crema|beige|camel|marino|blanco|marfil', .4], ['tejido:punto|lana', .2], ['vivo', -.4]],
+    boho: [['sub:vestido_largo|falda_larga', .4], ['tierra', .3], ['flores', .3], ['tejido:ante', .4]],
+    sinreglas: [['volumen', .3], ['vivo', .3], ['brillo', .4], ['cuero', .2], ['crop', .2]],
+    preppy: [['sub:vestido_corto|vestido_midi|falda_mini|falda_larga|jersey|cardigan', .4], ['rojo', .4], ['cuadros', .3], ['deportiva', -.4]],
+    brillo: [['deportiva', .2], ['cuero', .4], ['brillo', .5], ['negro', .2]],
+    elordi: [['txt:crema|camel|marino|beige', .4], ['sub:polo|mocasin|abrigo_lana', .4]],
+    styles: [['estampado', .4], ['tiro:alto', .3], ['sub:cardigan', .3], ['vivo', .3]],
+    mescal: [['sub:camiseta|zapatillas', .3], ['blanco', .2], ['vaquero', .4]],
+    beckham: [['gris', .3], ['sastre', .4], ['sub:jersey_cuello_alto|abrigo_lana', .4], ['cuero', .2]],
+    chalamet: [['negro', .2], ['blanco', .2], ['vivo', .3], ['sub:americana|botas|botines', .4]],
+    rocky: [['cuero', .4], ['sub:sudadera', .4], ['corte:ancho', .3], ['vaquero', .3]],
+    pascal: [['tejido:punto', .4], ['tierra', .3], ['verde', .3], ['sub:americana', .3]],
+    badbunny: [['vivo', .4], ['estampado', .4]],
+  };
+  function afinArq(a) { const reglas = ARQ_RASGOS[a[0]] || [];
+    return (f, txt) => .5 * Motor.afinEstilo(f, txt, a[4]) + .5 * Math.max(-1, Math.min(1, reglas.reduce((s, [tok, n]) => s + (Motor.rasgo(f, txt, tok) ? n : 0), 0))); }
+  // nota de cada candidato para esa referencia: la del motor (ya lleva la afinidad), más su fórmula si es de ese estilo y, en «tonal», todo de la misma familia
+  function notaArq(a, l, FS) { const fe = (FS.find(y => y?.id === l.formula?.id) || l.formula || {}).estilos || [], c = fe.filter(e => a[4].includes(e)).length, prim = a[4].includes(fe[0]);
+    const ks = ['arriba', 'abajo', 'vestido', 'capa', 'calzado'].filter(k => l[k]), af = ks.reduce((s, k) => s + (l[k]._af || 0), 0) / Math.max(1, ks.length);
+    let n = .5 * l.nota + 1.2 * af + (prim ? .08 : 0) + .02 * c;
+    if (a[0] === 'tonal') { const fam = ['arriba', 'abajo', 'vestido', 'capa'].map(k => l[k]?._f?.familia).filter(Boolean); if (fam.length && fam.every(x => x === fam[0])) n += .25; }
+    return { n, c, prim }; }
+  // seis looks que no se parezcan: primero, ninguna parte de arriba, de abajo ni capa repetida; luego, como mucho dos veces cada una; al final, solo looks distintos
+  function elegirArq(lista, n) { const sel = [], vistos = new Set(), uso = new Map(), cuenta = (k, id) => uso.get(k + id) || 0;
+    for (const tope of [1, 2, 99]) for (const { l } of lista) { if (sel.length >= n) break;
+      const partes = [['a', (l.arriba || l.vestido)?.id], ['b', l.abajo?.id], ['c', l.capa?.id]].filter(x => x[1]), clave = partes.map(x => x[1]).concat(l.base_interior?.id || []).sort().join();
+      if (vistos.has(clave) || partes.some(([k, id]) => cuenta(k, id) >= tope)) continue;
+      vistos.add(clave); partes.forEach(([k, id]) => uso.set(k + id, cuenta(k, id) + 1)); sel.push(l); }
+    return sel; }
   // una imagen de su estilo junto a la descripción (Gabriela, 22/10: «debe salir un visual de alguna forma del estilo de esa famosa»): collage de ropa sin personas, hecho con Gemini
   const FOTO_INSP = new Set(['hollywood', 'tonal', 'modelo', 'limpia', 'sastreria', 'americano', 'oldmoney', 'boho', 'sinreglas', 'preppy', 'brillo', 'elordi', 'styles', 'mescal']);
   function abrirInspira(k) {
@@ -698,14 +777,12 @@ if (AT) (() => {
         <ul class="at-insp-lista">${ARQ.filter(x => x[5] === g).map(x => `<li><button data-arq="${x[0]}">${foto(x)}<span class="at-insp-n">${x[1]}</span><span class="at-insp-a">${L(x[2])}</span><span class="at-insp-d">${L(x[3])}</span></button></li>`).join('')}</ul>
         <p class="at-insp-legal">${t('Inspirado en su estilo en público. Sin relación con TuCloset.', 'Inspired by their public style. Not affiliated with TuCloset.')}</p>`;
     } else {
-      // todos los candidatos del motor (sin vetos, o solo a falta de abrigo); valen los de una fórmula de ese estilo: su estilo principal es del arquetipo
-      // o comparte dos. Así cada arquetipo enseña sus fórmulas y no los mismos looks de siempre (03/11: con su ropa, 17 looks distintos en los 11)
-      const r = Motor.looks({ prendas: activas(), tiempo: E.tiempo, plan: 'Todos', perfil: { ...(E.perfil || {}), estilos: a[4] }, n: 12, hoy: hoyISO(), pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est], depurar: true });
+      // todos los candidatos del motor con la afinidad de esa referencia; valen los de una fórmula de su estilo (principal o compartido)
+      const r = Motor.looks({ prendas: activas(), tiempo: E.tiempo, plan: 'Todos', perfil: { ...(E.perfil || {}), estilos: a[4] }, n: 12, hoy: hoyISO(), pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est], depurar: true, afin: afinArq(a) });
       const FS = Array.isArray(Motor.F) ? Motor.F : Motor.F?.formulas || Object.values(Motor.F || {}), min = Motor.R.puntos?.umbrales?.mostrar_minimo ?? -1e9;
-      const cand = (r.todos || []).filter(l => (l.casi || !l.veto.duros.length) && l.nota >= min).map(l => { const fe = (FS.find(y => y?.id === l.formula?.id) || l.formula || {}).estilos || [], c = fe.filter(e => a[4].includes(e)).length; return { l, c, prim: a[4].includes(fe[0]) }; })
-        .filter(o => o.prim || o.c >= 2).sort((x, y) => (y.prim - x.prim) || (y.c - x.c) || (y.l.nota - x.l.nota)).map(o => ({ ...Motor.aPropuesta(o.l), faltaCapa: !!o.l.casi }));
-      const vistos = new Set(), arriba = new Set(), looks = [];
-      for (const pasada of [0, 1]) for (const x of deVerdad('Todos', cand)) { const kk = x.ids.slice().sort().join(); if (looks.length >= 6 || vistos.has(kk) || (!pasada && arriba.has(x.ids[0]))) continue; vistos.add(kk); arriba.add(x.ids[0]); looks.push(x); }
+      const lista = (r.todos || []).filter(l => (l.casi || !l.veto.duros.length) && l.nota >= min).map(l => ({ l, ...notaArq(a, l, FS) })).filter(o => o.prim || o.c >= 1).sort((x, y) => y.n - x.n);
+      const deporte = new Set(deVerdad('Deporte', lista.map(o => Motor.aPropuesta(o.l))).map(x => x.ids.join())); // en Deporte, solo los que llevan ropa de deporte
+      const looks = elegirArq(lista.filter(o => o.l.ctx.ocasion !== 'Deporte' || deporte.has(Motor.aPropuesta(o.l).ids.join())), 6).map(l => ({ ...Motor.aPropuesta(l), faltaCapa: !!l.casi }));
       const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
       E.inspLooks = looks;
       cap.innerHTML = `${X}<h1>${a[1]}</h1><p class="at-insp-a">${L(a[2])}</p>${foto(a)}<p class="at-vj-sub">${L(a[3])}</p>
