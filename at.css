@@ -430,3 +430,6 @@ html.at[data-iconos="1"] .at-ib.on .at-ib-t { color: var(--tinta); font-weight: 
 html.at[data-iconos="1"] .tabs button.subir .at-ic { border: 0; padding: 0; }
 html.at[data-iconos="1"] #s-raiz .uno .ops:not(.col) button.on { background: var(--tinta); color: #fff; font-weight: 400; }
 html.at[data-iconos="1"] #s-raiz .uno .ops.col button.on { outline: 2px solid var(--tinta); outline-offset: 3px; }
+
+/* 06/11 (revisión de toda la app): textos con contraste AA sobre el gris de las fotos del alta (4,47:1 → 10:1) */
+html.at .ac-fotos label .mini-et { color: var(--tinta); }

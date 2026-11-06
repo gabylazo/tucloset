@@ -121,7 +121,7 @@ function pintarMisColores() {
     + (E.perfil?.selfie && E.perfil?.diag?.color ? (listo ? `<div class="co-res dx-volver"><p>${t('Tus respuestas ya cuentan en tu diagnóstico.', 'Your answers now count in your analysis.')}</p><button class="boton" data-diag="ver-color">${t('Ver mis colores', 'See my colours')}</button></div>` : '') : e ? `<div class="co-res"><span class="mini-et">${t('Tu estación', 'Your season')}</span><h2>${e.n[es]}</h2><p>${e.d[es]}</p>
       <div class="co-tela">${e.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>
       <div class="co-dos"><div><span class="mini-et">${t('Te favorecen', 'Suit you')}</span><p>${e.si.map(x => colNom(x)).join(', ')}</p></div><div><span class="mini-et">${t('Mejor lejos de la cara', 'Better away from your face')}</span><p>${e.no.map(x => colNom(x)).join(', ')}</p></div></div>
-      ${mios.length ? `<span class="mini-et">${t('De tu clóset, para la cara', 'From your closet, for your face')}</span><div class="co-mias">${mios.map(id => `<button data-ficha="${id}"><img src="${urlCat(P(id))}" alt=""></button>`).join('')}</div>` : ''}
+      ${mios.length ? `<span class="mini-et">${t('De tu clóset, para la cara', 'From your closet, for your face')}</span><div class="co-mias">${mios.map(id => `<button data-ficha="${id}" aria-label="${escH(P(id)?.nombre || '')}"><img src="${urlCat(P(id))}" alt=""></button>`).join('')}</div>` : ''}
       <p class="co-nota">${t('Es una orientación, no una regla: si un color te hace feliz, póntelo. Hoy ya tiene en cuenta tus colores.', 'A guide, not a rule: if a colour makes you happy, wear it. Today already takes your colours into account.')}</p></div>` : '');
 }
 const colNom = c => idioma() === 'en' ? ({ Negro: 'black', Blanco: 'white', Gris: 'grey', Beige: 'beige', Camel: 'camel', Marrón: 'brown', Rojo: 'red', Rosa: 'pink', Naranja: 'orange', Amarillo: 'yellow', Verde: 'green', 'Azul claro': 'light blue', Azul: 'blue', Morado: 'purple' }[c] || c) : c.toLowerCase();
@@ -276,9 +276,9 @@ async function bajarNube() {
   for (const q of doc.prendas || []) {
     // 06/11 (Gabriela: «una vez se estilice la foto, esa foto es la que prevalece y se elimina la original; libera memoria y ganamos en eficiencia»): con fCat, la foto de catálogo
     // es la única foto de la prenda; en el móvil no se guardan ni la original ni la recortada, y la nube ya no las tiene
-    const l = locales.get(q.id), solo = !!(q.fCat && q.conCat); const p = { ...q, foto: (solo && l?.cat) || l?.foto || null, original: solo ? null : l?.original || null, cat: l?.cat || null }; if (l?.fotoTorcida && !solo) p.fotoTorcida = l.fotoTorcida; delete p.conFoto; delete p.conOriginal;
+    const l = locales.get(q.id), solo = !!(q.fCat && q.conCat); const p = { ...q, foto: (solo && l?.cat) || l?.foto || null, original: solo ? null : l?.original || null, cat: l?.cat || null }; if (l?.fotoTorcida && !solo) p.fotoTorcida = l.fotoTorcida; if (l?.catProp && !q.conCat) { p.catProp = l.catProp; p.catPropAR = l.catPropAR; } // 06/11: la foto de catálogo propuesta, hasta que elija delete p.conFoto; delete p.conOriginal;
     if (solo && l?.cat && l.foto !== l.cat) { urls.delete(q.id); alfa.delete(q.id); p.caja = null; }
-    if (q.conCat && (!p.cat || l?.nubeC !== q.nubeC)) (ST || Z14 || AT ? fotos : originales).push(async () => { try { const f = await api('/api/foto/' + q.id + '-c?v=' + (q.nubeC || ''), { tiempo: 30000 }); if (f.ok) { p.cat = await f.blob(); urlsCat.delete(q.id); if (solo) { p.foto = p.cat; urls.delete(q.id); alfa.delete(q.id); p.caja = null; } if (typeof stRepintar === 'function') stRepintar(); } } catch (e) { } }); // 0.121: foto de catálogo (Gemini)
+    if (q.conCat && (!p.cat || l?.nubeC !== q.nubeC)) (AT ? fotos : originales).push(async () => { try { const f = await api('/api/foto/' + q.id + '-c?v=' + (q.nubeC || ''), { tiempo: 30000 }); if (f.ok) { p.cat = await f.blob(); urlsCat.delete(q.id); if (solo) { p.foto = p.cat; urls.delete(q.id); alfa.delete(q.id); p.caja = null; } if (typeof stRepintar === 'function') stRepintar(); } } catch (e) { } }); // 0.121: foto de catálogo (Gemini)
     if (q.conFoto && !solo && (!l?.foto || l.fotoRota || l.nube !== q.nube)) fotos.push(async () => { try { const f = await api('/api/foto/' + q.id + '?v=' + (q.nube || ''), { tiempo: 30000 }); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; delete p.fotoRota; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } });
     if (q.conOriginal && !solo && (!p.original || l?.originalRota || l?.nubeO !== q.nubeO)) originales.push(async () => { try { const f = await api('/api/foto/' + q.id + '-o?v=' + (q.nubeO || ''), { tiempo: 30000 }); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; delete p.originalRota; } } catch (e) { } });
     nuevas.push(p); locales.delete(q.id);
@@ -390,16 +390,15 @@ function colorCercano(r, g, b) { // nombre del color por tono, saturación y luz
 
 /* ---------- estilo de la app, plan de demostración, color del conjunto y maniquí ---------- */
 let PLAN_URL = null;
-// ejes del diseño (pantalla «Diseño»): letra de dentro, color, forma del tiempo y simetría
+// ejes del diseño de antes (?ver=clasico): letra, color, tiempo y simetría; la pantalla «Diseño» se quitó el 06/11 (el diseño de todas no los usa)
 const DIS = {
   letra: { vals: ['inter', 'atkinson', 'jost', 'source', 'playfair'], def: 'inter', nom: { inter: 'Inter', atkinson: 'Atkinson', jost: 'Jost', source: 'Source Serif', playfair: 'Playfair' } },
   tema: { vals: ['categorias', 'nogal', 'verde', 'color'], def: 'categorias', nom: { categorias: 'Por tipo de prenda', nogal: 'Nogal', verde: 'Nogal y verde', color: 'Color de tu ropa' } },
   tiempo: { vals: ['medallon', 'franja', 'linea', 'emoji'], def: 'medallon', nom: { medallon: 'Arriba, junto a la fecha', franja: 'Franja de color', linea: 'Frase', emoji: 'Con emoji' } },
   sim: { vals: ['1', '0'], def: '1', nom: { '1': 'Simétrica', '0': 'Libre' } }
 };
-const PROTOS = { P1: { letra: 'inter', tema: 'categorias', tiempo: 'medallon', sim: '1' }, P2: { letra: 'atkinson', tema: 'verde', tiempo: 'franja', sim: '1' }, P3: { letra: 'jost', tema: 'color', tiempo: 'medallon', sim: '1' }, P4: { letra: 'source', tema: 'categorias', tiempo: 'franja', sim: '1' }, P5: { letra: 'inter', tema: 'nogal', tiempo: 'emoji', sim: '1' }, P6: { letra: 'atkinson', tema: 'categorias', tiempo: 'linea', sim: '0' } };
 const DIS_URL = {};
-const dis = k => DIS_URL[k] || localStorage.getItem('tc_' + k) || DIS[k].def;
+const dis = k => { if (DIS_URL[k]) return DIS_URL[k]; let v = null; try { v = localStorage.getItem('tc_' + k); } catch (e) { } return DIS[k].vals.includes(v) ? v : DIS[k].def; }; // tc_tiempo es también la caché del tiempo
 const TEMAS = DIS.tema.vals;
 const tema = () => dis('tema');
 // 04/11 (Gabriela: «danos la opción de elegir la versión gratis, básica y luego la pro… desde nuestras cuentas… de una versión a otra no se puede perder nada»):
@@ -577,6 +576,93 @@ function abrirRepetidas() {
     abrirRepetidas(); };
 }
 
+// 06/11 (Gabriela, 17:3x: «SÍ» a que cada prenda se estilice sola al subirla, para todas, con «Usar esta / Dejar la mía»): al guardar una prenda nueva con cuenta,
+// el servidor hace su foto de catálogo (Gemini con el recorte de referencia, como en el experimento B del 06/11; ≈ 15 s) y la app la deja propuesta.
+// Con «Usar esta», la de catálogo pasa a ser la única foto de la prenda (fCat, 06/11): se sube como <id>-c y la recortada y la original se borran de la nube.
+// «Otra vez» la repite una vez con el modelo Pro. Sin cuenta, sin red o con el tope del día o del mes, la prenda se queda con su recorte.
+const tipoCat = p => p.tipo === 'Calzado' ? 'calzado' : ['Bolsos', 'Accesorios'].includes(p.tipo) ? 'accesorio' : 'prenda';
+const catPend = () => E.prendas.filter(p => p.catProp instanceof Blob && !p.cat);
+const cargaImg = u => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
+let estilizando = null, catParado = false;
+function estilizarNuevas() {
+  if (estilizando) return estilizando;
+  if (catParado || !cuenta()?.token || window.top !== window) return Promise.resolve(0);
+  estilizando = (async () => {
+    await 0; let hechas = 0;
+    try {
+      for (;;) {
+        const p = E.prendas.find(p => p.catAuto && !p.cat && !p.catProp && !p.catNo && !p.ejemplo && p.foto instanceof Blob && !p.fotoRota && (p.catFallos || 0) < 2);
+        if (!p) break;
+        const r = await pedirCatalogo(p); if (r === 'parar') break; if (r) hechas++;
+        await BD.set('prendas', E.prendas).catch(() => { });
+      }
+    } finally { estilizando = null; }
+    if (hechas) { await guardar(); if (E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); if (!$('rep-capa') && !$('cat-capa')) toast(hechas === 1 ? t('Tu prenda ya tiene foto de catálogo: míralo en el Clóset', 'Your garment has a catalogue photo: see it in the Closet') : t(`${hechas} prendas tienen ya foto de catálogo: míralas en el Clóset`, `${hechas} garments have a catalogue photo: see them in the Closet`)); }
+    return hechas;
+  })();
+  return estilizando;
+}
+async function pedirCatalogo(p, otra) {
+  const u = URL.createObjectURL(p.foto);
+  try {
+    const im = await cargaImg(u), e = Math.min(1, 1024 / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.round(im.naturalWidth * e), h = Math.round(im.naturalHeight * e);
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(im, 0, 0, w, h);
+    const b = await new Promise(r => c.toBlob(r, 'image/jpeg', .9)); if (!b) return null;
+    const q = new URLSearchParams({ tipo: tipoCat(p), nombre: p.nombre || '' }); if (otra) q.set('otra', '1');
+    const r = await api('/api/catalogo?' + q, { method: 'POST', body: b, headers: { 'Content-Type': 'image/jpeg' }, tiempo: 90000 });
+    if (r.status === 429 || r.status === 503) { catParado = true; return 'parar'; } // tope del día o del mes, o sin clave: se vuelve a probar al abrir la app otro día
+    if (r.status === 401) return 'parar';
+    if (!r.ok) { p.catFallos = (p.catFallos || 0) + 1; return null; }
+    const fin = await afinarCat(await r.blob()); if (!fin) { p.catFallos = (p.catFallos || 0) + 1; return null; }
+    if (otra) p.catOtra = 1;
+    p.catProp = fin.blob; p.catPropAR = fin.ar; return true;
+  } catch (e) { p.catFallos = (p.catFallos || 0) + 1; return null; } finally { URL.revokeObjectURL(u); }
+}
+// como afinar.py de las fotos de catálogo hechas a mano: al borde de la prenda, 900 px de alto (o 1100 de ancho), con transparencia
+async function afinarCat(b) {
+  const u = URL.createObjectURL(b);
+  try {
+    const im = await cargaImg(u), W = im.naturalWidth, H = im.naturalHeight, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, W, H).data; let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let p = 0, k = 3; p < W * H; p++, k += 4) if (d[k] >= 24) { const px = p % W, py = (p / W) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
+    if (x1 < 0 || (x1 - x0) * (y1 - y0) < W * H * .03) return null;
+    const cw = x1 - x0 + 1, ch = y1 - y0 + 1; let k = 900 / ch; if (cw * k > 1100) k = 1100 / cw;
+    const o = document.createElement('canvas'); o.width = Math.max(1, Math.round(cw * k)); o.height = Math.max(1, Math.round(ch * k)); const ox = o.getContext('2d'); ox.imageSmoothingQuality = 'high'; ox.drawImage(c, x0, y0, cw, ch, 0, 0, o.width, o.height);
+    const blob = await new Promise(r => o.toBlob(r, 'image/webp', .86)); // Safari no hace WebP: da PNG, también con transparencia
+    return blob && { blob, ar: Math.round(o.width / o.height * 1e4) / 1e4 };
+  } finally { URL.revokeObjectURL(u); }
+}
+async function usarCat(p) {
+  const b = p.catProp; if (!b) return false;
+  try { await subirFoto('/api/foto/' + p.id + '-c', b); } catch (e) { toast(t('No he podido guardarla: mira tu conexión y vuelve a probar', 'Could not save it: check your connection and try again')); return false; }
+  Object.assign(p, { cat: b, foto: b, conCat: 1, nubeC: Date.now().toString(36), catAR: p.catPropAR, fCat: 1, caja: null });
+  for (const k of ['catProp', 'catPropAR', 'original', 'fotoSub', 'fotoSubO', 'cajaV', 'dudoso', 'recMano']) delete p[k];
+  urls.delete(p.id); alfa.delete(p.id); urlsCat.delete(p.id);
+  for (const k of ['', '-o']) api('/api/foto/' + p.id + k, { method: 'DELETE' }).catch(() => { }); // la de catálogo es ya la única foto
+  E.propuestas = []; await guardar(); medirTodas(); return true;
+}
+function abrirCatalogo(id) {
+  const lista = catPend(), p = (id && lista.find(x => x.id === id)) || lista[0]; $('cat-capa')?.remove();
+  if (!p) { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'ficha' && $('at-ficha')?.dataset.id) abrirFicha($('at-ficha').dataset.id); return; }
+  const uC = URL.createObjectURL(p.catProp), nom = String(p.nombre || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const cap = document.createElement('div'); cap.id = 'cat-capa'; cap.className = 'ay-capa at-vj at-rep'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'cat-t');
+  cap.innerHTML = `<h1 id="cat-t" tabindex="-1">${nom}</h1><p class="at-vj-sub">${t('Tu prenda, en foto de catálogo. Si la usas, será su única foto.', 'Your garment as a catalogue photo. If you use it, it becomes its only photo.')}</p>
+    <div class="rep-par">${[[urlFoto(p), t('Tu foto', 'Your photo')], [uC, t('Catálogo', 'Catalogue')]].map(([u, et]) => `<figure><img src="${u}" alt=""><figcaption>${et}</figcaption></figure>`).join('')}</div>
+    <div class="at-ropa-ops"><button class="at-btn" data-catu="si">${t('Usar esta', 'Use this one')}</button><button class="at-btn" data-catu="no">${t('Dejar la mía', 'Keep mine')}</button></div>
+    ${p.catOtra ? '' : `<button class="at-enlace" data-catu="otra">${t('No se parece: probar otra vez', 'Not alike: try again')}</button>`}
+    <button class="at-enlace" data-catu="">${lista.length > 1 ? t(`Ahora no · quedan ${lista.length - 1} más`, `Not now · ${lista.length - 1} more`) : t('Ahora no', 'Not now')}</button>`;
+  document.body.append(cap); $('cat-t').focus({ preventScroll: true });
+  const fin = () => { URL.revokeObjectURL(uC); cap.remove(); };
+  cap.onclick = async e => { const b = e.target.closest('[data-catu]'); if (!b || cap.dataset.ocupado) return; const k = b.dataset.catu;
+    if (k === '') { fin(); if (E.pantalla === 'closet') pintarCloset(); return; }
+    cap.dataset.ocupado = 1; cap.querySelectorAll('button').forEach(x => x.disabled = true);
+    if (k === 'si') { if (!(await usarCat(p))) { delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; } toast(t('Foto de catálogo puesta', 'Catalogue photo set')); }
+    else if (k === 'no') { delete p.catProp; delete p.catPropAR; p.catNo = 1; await guardar(); }
+    else if (k === 'otra') { b.textContent = t('Haciendo otra… unos 20 segundos', 'Making another… about 20 seconds'); const r = await pedirCatalogo(p, true); await BD.set('prendas', E.prendas).catch(() => { });
+      if (r !== true) toast(r === 'parar' ? t('Por hoy no puedo hacer más fotos de catálogo', 'No more catalogue photos today') : t('No ha salido: puedes usar esta o dejar la tuya', 'It did not work: use this one or keep yours'));
+      fin(); return abrirCatalogo(p.id); }
+    fin(); if (E.pantalla === 'ficha' && $('at-ficha')?.dataset.id === p.id) { abrirFicha(p.id); if (catPend().length) abrirCatalogo(); } else abrirCatalogo(); };
+}
 let midiendo = null;
 function medirTodas() {
   if (midiendo) return midiendo;
@@ -667,15 +753,9 @@ const pieza = (p, x, y, w, h, W, H) => { const pos = `left:${x / W * 100}%;top:$
 // 03/11 (Gabriela: «sí, para todas»; Sheila dijo sí el 30/10): el diseño A «Atelier» es el de todas. Las propuestas 012, 013 y 014 solo se ven con ?ver= una vez;
 // ?ver=clasico enseña el diseño de antes (lo usa comparar.html). Lo que hubiera guardado de las pruebas en tc_prop se olvida.
 const VER = (() => { try { const v = new URLSearchParams(location.search).get('ver') || ''; if (localStorage.getItem('tc_prop')) localStorage.removeItem('tc_prop'); return v; } catch (e) { return ''; } })();
-const PROP = ['012', '013', '014'].includes(VER);
-// 0.121 · propuesta 013 (Gabriela, 29/10: «ES HORROROSO… apóyate en otras IAs»): diseño de Stitch y fotos de catálogo de Gemini, en st.js y st.css
-const ST = VER === '013';
-// 0.122 · propuesta 014 (Gabriela, 29/10, al ver la 013: «la veo horrible… va en contra total de mi concepto de estética»; referencia: Zara y Massimo Dutti), en z14.js y z14.css
-const Z14 = VER === '014';
-// 0.124 · diseño A «Atelier» (Gabriela, 30/10: «la a», entre las dos direcciones hechas con el método del manual de Estudio; favoritas de las 20: «18, 7 y 3»), en at.js y at.css
-const AT = !['012', '013', '014', 'clasico'].includes(VER);
-const COMP = (() => { try { return new URLSearchParams(location.search).get('comp') || (PROP ? 'tarjeta' : 'conjunto'); } catch (e) { return 'conjunto'; } })();
-if (PROP) { const tb = document.getElementById('tabs'), lk = tb?.querySelector('[data-ir="looks"]'); if (lk) { tb.querySelector('[data-ir="hoy"]')?.remove(); tb.prepend(lk); tb.classList.add('cuatro'); document.documentElement.classList.add('prop'); } } // 0.98: «abierto» por defecto (Sheila y Gabriela, 24/10: «mira qué mal la distribución», «la distribución espacial… horrenda»)
+// 06/11 (revisión de toda la app): las propuestas 012, 013 y 014, descartadas, ya no se cargan; ?ver=012|013|014 enseña el diseño de todas
+const AT = VER !== 'clasico';
+const COMP = (() => { try { return new URLSearchParams(location.search).get('comp') || 'conjunto'; } catch (e) { return 'conjunto'; } })();
 function collage(ps) {
   const m = tam, rol = r => ps.filter(p => r.includes(p.tipo)), G = 6;
   const arriba = rol(['Arriba', 'Abrigo']).slice(0, 2), grande = rol(['Abajo', 'Vestidos'])[0], bolso = rol(['Bolsos'])[0], calzado = rol(['Calzado'])[0], acc = rol(['Accesorios']).slice(0, 3);
@@ -844,7 +924,7 @@ function ubicacionMovil(siempre) {
   return new Promise(res => navigator.geolocation.getCurrentPosition(p => res({ lat: p.coords.latitude, lon: p.coords.longitude, lugar: '' }), () => res(null), { timeout: 10000, maximumAge: 3600000 }));
 }
 async function cargarTiempo(forzar) {
-  const cache = JSON.parse(localStorage.getItem('tc_tiempo') || 'null');
+  let cache = null; try { cache = JSON.parse(localStorage.getItem('tc_tiempo') || 'null'); } catch (e) { } // 06/11: la pantalla «Diseño» guardaba ahí su eje «tiempo» ("emoji"…) y rompía el tiempo
   if (!forzar && cache && cache.v && cache.k === 40 && 'lluviaH' in cache.v && Date.now() - cache.ts < 30 * 60000) { E.tiempo = cache.v; return E.tiempo; }
   try {
     let lat = E.perfil?.lat, lon = E.perfil?.lon, nombre = E.perfil?.ciudad || E.perfil?.lugar || '';
@@ -1275,7 +1355,6 @@ function generarLooksAuto(n, plan) {
 /* ---------- navegación ---------- */
 const SIN_TABS = ['inicio', 'alta', 'entrar', 'planes', 'silueta', 'cuerpo', 'estilo', 'anadir', 'nuevo-look', 'subir'];
 function ir(nombre, datos) {
-  if (PROP && nombre === 'hoy') { E.lkTab = 'hoy'; nombre = 'looks'; } // 0.12: Hoy vive dentro de Looks
   if (nombre === 'inicio' && !$('intro')) $('p-inicio').classList.add('aparece');
   if (nombre === 'anadir') prepararAnadir(datos);
   if (nombre === 'subir' && !datos) prepararSubir();
@@ -1286,12 +1365,12 @@ function ir(nombre, datos) {
   if (nombre === 'closet') pintarCloset();
   if (nombre === 'looks') pintarLooks();
   if (nombre === 'yo') pintarYo();
-  if (nombre === 'diseno') pintarDiseno();
   if (nombre === 'cuenta') pintarCuenta();
   if (nombre === 'colores') pintarMisColores();
+  if (nombre !== 'closet' && $('mc-hoja') && !$('mc-hoja').hidden) hojaFiltros(false); // la hoja de filtros no se queda abierta en otra pantalla
   E.pantalla = nombre;
   document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.id === 'p-' + nombre));
-  const tab = { ficha: 'closet', look: 'looks', diseno: 'yo', cuenta: 'yo', colores: 'yo' }[nombre] || nombre;
+  const tab = { ficha: 'closet', look: 'looks', cuenta: 'yo', colores: 'yo' }[nombre] || nombre;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('activo', b.dataset.ir === tab));
   $('tabs').classList.toggle('oculta', SIN_TABS.includes(nombre));
   const el = $('p-' + nombre); if (el) el.scrollTop = 0;
@@ -1404,7 +1483,6 @@ async function ponerse(ids, conj) {
    oficina en la mañana ya sabes que eso tienes que sugerirle»). Cada día: sus planes (ocasión y franja), el look elegido para ese día y, en los días
    pasados, lo que se puso (sale de los «Me lo pongo», que se guardan con fecha). E.agenda = { 'aaaa-mm-dd': { planes: [{ oc, fr }], look: [ids] } } ---------- */
 const diaISO = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const FRANJAS = [['Mañana', 'Morning'], ['Tarde', 'Afternoon'], ['Noche', 'Evening']];
 E.cal = { mes: null, dia: null, oc: 'Oficina', fr: 'Mañana', idea: 0 };
 // 0.111 · Agenda (Gabriela, 28/10: «en el calendario pueden los usuarios poner tipo su agenda con eventos fijos e ir planificando los outfits»).
 // Eventos fijos (perfil.fijos: nombre, ocasión, hora y días de la semana) y sueltos (agenda[día].planes); cada evento lleva su look
@@ -1424,7 +1502,6 @@ function eventoAhora() { // el evento de hoy que toca: el próximo (o el que aca
   const n = new Date(), ya = `${String(Math.max(0, n.getHours() - 1)).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
   return evs.find(e => e.deHoy) || evs.find(e => !e.hora || e.hora >= ya) || evs[evs.length - 1]; // lo que eligió en Hoy manda
 }
-const lunesDe = d => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return diaISO(x); };
 const nomEv = ev => ev.nombre || ocNombre(ev.oc);
 function diasTxt(ds) {
   const o = [1, 2, 3, 4, 5, 6, 0].filter(x => ds.includes(x)), en = idioma() === 'en';
@@ -1544,73 +1621,7 @@ function pintarAgenda(raiz) {
     pintarAgenda(raiz);
   };
 }
-function pintarCalendario(raiz) { // vista de mes de la 0.40–0.110; desde la 0.111 el calendario es la agenda (pintarAgenda) y esto queda de reserva
-  return pintarAgenda(raiz);
-  const en = idioma() === 'en', loc = en ? 'en-GB' : 'es-ES', hoy = diaISO(new Date());
-  if (!E.cal.dia) E.cal.dia = hoy;
-  const sel = new Date(E.cal.dia + 'T12:00'); if (!E.cal.mes) E.cal.mes = new Date(sel.getFullYear(), sel.getMonth(), 1);
-  const m = E.cal.mes, pri = (m.getDay() + 6) % 7, dias = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
-  const puesto = d => E.prendas.filter(p => (p.usos || []).includes(d));
-  let celdas = ''; for (let i = 0; i < pri; i++) celdas += '<i></i>';
-  for (let n = 1; n <= dias; n++) {
-    const d = diaISO(new Date(m.getFullYear(), m.getMonth(), n)), a = E.agenda[d], pl = eventosDe(d)[0];
-    const marca = a?.look?.length || Object.keys(a?.looks || {}).length || puesto(d).length;
-    celdas += `<button class="${d === E.cal.dia ? 'on' : ''}${d === hoy ? ' hoy' : ''}${d < hoy ? ' pasado' : ''}" data-cdia="${d}"><b>${n}</b>${pl ? `<small>${nomEv(pl)}</small>` : ''}${marca ? '<em></em>' : ''}</button>`;
-  }
-  const sem = (en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D']).map(x => `<span>${x}</span>`).join('');
-  const a = E.agenda[E.cal.dia] || {}, planes = a.planes || [], futuro = E.cal.dia >= hoy, ps = puesto(E.cal.dia);
-  const ocs = OCASIONES.map(o => `<button class="${o === E.cal.oc ? 'on' : ''}" data-coc="${o}">${ocNombre(o)}</button>`).join('');
-  const frs = FRANJAS.map(([es, i]) => `<button class="${es === E.cal.fr ? 'on' : ''}" data-cfr="${es}">${en ? i : es}</button>`).join('');
-  let look = '';
-  if (a.look?.length && a.look.every(P)) look = `<div class="cal-look"><p class="mini-et">${t('Tu look para este día', 'Your look for this day')}</p><div class="lk-fig">${figLook({ ids: a.look }, true)}</div><button class="txt sub-l" data-cquitalook>${t('Quitar el look', 'Remove the look')}</button></div>`;
-  else if (futuro && !(E.cal.dia === hoy && ps.length)) { // 0.102 (revisión del calendario, 27/10): si hoy ya te has puesto algo, no se propone otra idea encima de «Te pusiste»
-    // 0.41 (Sheila, 22/10: «no algo para la noche»): si el clóset no tiene nada de esa ocasión, se dice y se enseña lo más cercano
-    // (para Noche y Evento, lo más arreglado; para Deporte y Diario, lo más cómodo), en vez de sugerir un look cualquiera
-    // 0.60 (Sheila, 23/10: «por qué me sugieres esto para un evento por la noche… no es elegante»): la idea sigue la ocasión que acaba de marcar,
-    // aunque aún no haya guardado el plan; antes, sin plan guardado, salía una idea cualquiera
-    const oc = planes[0]?.oc || (E.cal.ocSel ? E.cal.oc : 'Todos'); let ideas = generarLooks(6, oc), falta = false;
-    if (!ideas.length) { falta = oc !== 'Todos'; const sube = ['Noche', 'Evento', 'Oficina'].includes(oc) ? 1 : -1, nv = l => { const ps = l.ids.map(P).filter(Boolean), z = ps.find(p => p.tipo === 'Calzado'); return nivelRopa(ps) + (z ? estilo(z) : 1) * .5; }; ideas = masCercanos(oc, generarLooks(12, 'Todos')).slice(0, 6); }
-    const g = ideas[E.cal.idea % Math.max(1, ideas.length)];
-    look = g ? `<div class="cal-look">${oc !== 'Todos' ? avisoFalta(oc, !falta) : ''}<p class="mini-et">${falta ? t('Lo más cercano', 'The closest') : oc !== 'Todos' ? t(`Te sugiero para ${ocNombre(oc).toLowerCase()}`, `My pick for ${ocNombre(oc).toLowerCase()}`) : t('Una idea para este día', 'An idea for this day')}</p><div class="lk-fig">${figLook(g, true)}</div><div class="cal-bts"><button class="hz-bt" data-cguarda="${g.ids.join(',')}">${t('Guardar para este día', 'Save for this day')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button></div></div>` : '';
-  }
-  const pasado = ps.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(ps, true)}</div></div>`
-    : !futuro && E.conjuntos.length ? `<div class="cal-look"><p class="mini-et">${t('Apunta lo que te pusiste', 'Note what you wore')}</p><div class="cal-mios">${E.conjuntos.slice(0, 12).map(c => `<button data-cpuse="${c.id}"><div class="lk-fig">${maniqui(c.ids.map(P).filter(Boolean), true)}</div></button>`).join('')}</div></div>` : '';
-  raiz.innerHTML = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
-    ${lkTabs('cal')}
-    <div class="cal"><div class="lk-ocs ag-vista"><button data-agvista="semana">${t('Semana', 'Week')}</button><button class="on" data-agvista="mes">${t('Mes', 'Month')}</button></div><div class="cal-mes"><button data-cmes="-1" aria-label="${t('Mes anterior', 'Previous month')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h2>${cap(m.toLocaleDateString(loc, { month: 'long', year: 'numeric' }))}</h2><button data-cmes="1" aria-label="${t('Mes siguiente', 'Next month')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
-    <div class="cal-sem">${sem}</div><div class="cal-rej">${celdas}</div>
-    <div class="cal-dia"><h3>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>
-      ${planes.length ? `<ul class="cal-planes">${planes.map((p, i) => `<li><span>${ocNombre(p.oc)}</span><small>${en ? (FRANJAS.find(f => f[0] === p.fr) || [p.fr, p.fr])[1] : p.fr}</small><button data-cquita="${i}" aria-label="${t('Quitar', 'Remove')}"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></li>`).join('')}</ul>` : futuro && E.cal.add ? '' : `<p class="cal-vacio">${futuro ? t('¿Qué tienes este día?', 'What do you have on this day?') : t('Sin planes apuntados.', 'No plans noted.')}</p>`}
-      ${futuro && E.cal.add ? `<div class="cal-add"><p class="mini-et">${t('Añadir un plan', 'Add a plan')}</p><div class="cal-ops">${ocs}</div><div class="cal-ops fr">${frs}</div><label class="cal-hasta"><span id="cal-hasta-t">${t('Repetir hasta…', 'Repeat until…')}</span><input type="date" id="cal-hasta" min="${E.cal.dia}"></label><button class="hz-bt" data-cadd>${t('Guardar el plan', 'Save the plan')}</button></div>` : futuro ? `<button class="cal-mas-plan" data-cmas><svg viewBox="0 0 12 12"><path d="M6 1v10M1 6h10"/></svg>${planes.length ? t('Añadir otro plan', 'Add another plan') : t('Añadir un plan', 'Add a plan')}</button>` : ''}
-      ${look}${pasado}</div></div>`;
-  const hz = $('cal-hasta'); if (hz) { hz.onclick = () => { try { hz.showPicker(); } catch (e) { } };
-    hz.onchange = () => { $('cal-hasta-t').textContent = hz.value ? t('Hasta el ', 'Until ') + new Date(hz.value + 'T12:00').toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }) : t('Repetir hasta…', 'Repeat until…'); }; }
-  raiz.onclick = async e => {
-    const b = e.target.closest('[data-agvista],[data-lktab],[data-cmas],[data-cdia],[data-cmes],[data-coc],[data-cfr],[data-cadd],[data-cquita],[data-cguarda],[data-cotra],[data-cquitalook],[data-cpuse]'); if (!b) return;
-    const d = b.dataset, ag = () => (E.agenda[E.cal.dia] = E.agenda[E.cal.dia] || { planes: [] });
-    if (d.lktab) { E.lkTab = d.lktab; E.lkTocado = true; E.lkI = 0; return pintarLooks(); }
-    if (d.agvista) { E.cal.vista = d.agvista; return pintarCalendario(raiz); }
-    if (d.cmas !== undefined) E.cal.add = true;
-    else if (d.cdia) { E.cal.vista = 'semana'; E.cal.ini = lunesDe(d.cdia); E.cal.foco = d.cdia; E.cal.ev = null; E.cal.form = null; return pintarAgenda(raiz); } // 0.111: el día abre su semana en la agenda
-    else if (d.cmes) E.cal.mes = new Date(E.cal.mes.getFullYear(), E.cal.mes.getMonth() + +d.cmes, 1);
-    else if (d.coc) { E.cal.oc = d.coc; E.cal.ocSel = true; E.cal.idea = 0; e.preventDefault(); }
-    else if (d.cfr) { E.cal.fr = d.cfr; e.preventDefault(); }
-    else if (d.cadd !== undefined) {
-      const hasta = $('cal-hasta').value || E.cal.dia; let n = 0;
-      for (let x = new Date(E.cal.dia + 'T12:00'); diaISO(x) <= hasta && n < 366; x.setDate(x.getDate() + 1), n++) {
-        const k = diaISO(x); if (hasta !== E.cal.dia && [0, 6].includes(x.getDay()) && E.cal.oc === 'Oficina') continue; // la oficina se repite de lunes a viernes
-        const a2 = E.agenda[k] = E.agenda[k] || { planes: [] }; if (!a2.planes.some(p => p.oc === E.cal.oc && p.fr === E.cal.fr)) a2.planes.push({ oc: E.cal.oc, fr: E.cal.fr });
-      }
-      E.cal.add = false; await guardar(); E.propuestas = []; toast(hasta === E.cal.dia ? t('Plan guardado', 'Plan saved') : t('Plan guardado en varios días', 'Plan saved on several days'));
-    }
-    else if (d.cquita) { ag().planes.splice(+d.cquita, 1); await guardar(); E.propuestas = []; }
-    else if (d.cguarda) { ag().look = d.cguarda.split(','); await guardar(); E.propuestas = []; toast(t('Look guardado para ese día', 'Look saved for that day')); }
-    else if (d.cotra !== undefined) E.cal.idea++;
-    else if (d.cquitalook !== undefined) { delete ag().look; await guardar(); E.propuestas = []; }
-    else if (d.cpuse) { const c = E.conjuntos.find(x => x.id === d.cpuse); if (c) { c.ids.forEach(id => { const p = P(id); if (p) { p.usos = p.usos || []; if (!p.usos.includes(E.cal.dia)) p.usos.push(E.cal.dia); } }); c.usos = c.usos || []; if (!c.usos.includes(E.cal.dia)) c.usos.push(E.cal.dia); await guardar(); toast(t('Apuntado', 'Noted')); } }
-    pintarCalendario(raiz);
-  };
-}
+function pintarCalendario(raiz) { return pintarAgenda(raiz); } // la vista de mes (0.40–0.110) se quitó el 06/11: desde la 0.111 el calendario es la agenda
 
 /* ---------- CLÓSET ---------- */
 // 0.8 · categorías de tienda: lo de abajo se separa en pantalones y faldas por el nombre
@@ -2133,9 +2144,9 @@ async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
   if (enGratis() && E.prendas.length + listos.length > TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas: te quedan ${Math.max(0, TOPE_GRATIS - E.prendas.length)}.`, `The free version holds ${TOPE_GRATIS} garments: ${Math.max(0, TOPE_GRATIS - E.prendas.length)} left.`));
   listos.forEach(it => { if (it.detalles?.length) it.notas = it.detalles.join(', ').toLowerCase().replace(/^./, c => c.toUpperCase()); });
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, notas: it.notas || '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 5 : it.cv || 1, recMano: it.recMano || undefined, detalles: it.detalles?.length ? it.detalles : undefined, catM: it.catM || undefined, estampado: it.estampado || undefined, color2: it.color2 || undefined, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined }));
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, catAuto: 1, notas: it.notas || '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 5 : it.cv || 1, recMano: it.recMano || undefined, detalles: it.detalles?.length ? it.detalles : undefined, catM: it.catM || undefined, estampado: it.estampado || undefined, color2: it.color2 || undefined, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined }));
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
-  revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 600); }).catch(() => { });
+  revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 600); }).catch(() => { }); setTimeout(estilizarNuevas, 1500);
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet'); setTimeout(enderezarTodas, 2500);
 }
 
@@ -2301,14 +2312,14 @@ async function guardarPrenda(otra) {
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
   if (!p && enGratis() && E.prendas.length >= TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas.`, `The free version holds ${TOPE_GRATIS} garments.`));
-  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), detalles: detaEd() }); if (fotoNueva) { quitarCat(p); p.foto = fotoNueva; delete p.src; delete p.fotoRota; delete p.caja; urls.delete(p.id), alfa.delete(p.id); } }
-  else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), detalles: detaEd(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
+  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), detalles: detaEd() }); if (fotoNueva) { quitarCat(p); p.foto = fotoNueva; delete p.src; delete p.fotoRota; delete p.caja; urls.delete(p.id), alfa.delete(p.id); for (const k of ['catProp', 'catPropAR', 'catNo', 'catOtra', 'catFallos']) delete p[k]; p.catAuto = 1; } }
+  else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, catAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), detalles: detaEd(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   const tiro = tipo === 'Abajo' && $('an-tiro').dataset.sel, pr = p || E.prendas[0]; if (tiro) pr.est = { ...(pr.est || {}), tiro };
   if (E.recManoEdit && fotoNueva) pr.recMano = 1; E.recManoEdit = 0; // recortada a mano: el repaso automático del recorte no la toca
   const largo = tipo === 'Arriba' && $('an-largo')?.dataset.sel; if (largo) pr.est = { ...(pr.est || {}), largo };
   await guardar(); E.propuestas = [];
   toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'));
-  if (!p) revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 900); }).catch(() => { });
+  if (!p) revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 900); }).catch(() => { }); setTimeout(estilizarNuevas, 1500);
   if (otra) prepararAnadir(null); else ir(p ? 'ficha' : 'closet', p?.id), p && abrirFicha(p.id);
 }
 
@@ -2424,7 +2435,7 @@ function looksMotorCon(p) {
   const pool = activas().filter(x => x.id === p.id || Motor.ficha(x, {}).cat !== f.cat);
   const vistos = new Set(), out = [];
   for (const tiempo of tiempos) { if (out.length >= 2) break; for (const plan of ['Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].filter(o => ocs.includes(o) && !out.some(x => x.plan === o))) {
-    const r = Motor.looks({ prendas: pool, tiempo, plan, perfil: E.perfil, n: 6, hoy: hoyISO(), hora: plan === 'Noche' ? 20 : 13, pro: true, depurar: true });
+    const r = Motor.looks({ prendas: pool, tiempo, plan, perfil: E.perfil, n: 6, hoy: hoyISO(), hora: plan === 'Noche' ? 20 : 13, pro: true, depurar: true, complementos: ['bolso', 'accesorio'].includes(f.cat) });
     const l = (r.todos || []).filter(l => !l.veto.duros.length && !l.casi && l.nota >= min && Motor.claveLook(l).split(',').includes(p.id) && !vistos.has(Motor.claveLook(l))).sort((a, b) => b.nota - a.nota)[0];
     if (!l) continue; vistos.add(Motor.claveLook(l));
     const ps = Motor.aPropuesta(l).ids.map(id => E.prendas.find(x => x.id === id)).filter(Boolean); if (ps.length > 1) out.push({ ps, pts: l.nota, plan });
@@ -2483,13 +2494,12 @@ function sacalePartido(p) {
 /* ---------- CONJUNTOS ---------- */
 // 0.10 · Looks con el diseño cerrado (21/10): título centrado, «Mis looks» e «Ideas para hoy» en letras con el botón de dos agujeros,
 // filtro por ocasión y tres formas de verlos a prueba (?looks=1 rejilla de 2 · 2 uno a uno · 3 lista)
-E.lkTab = ({ ideas: 'ideas', cal: 'cal', hoy: 'hoy', mios: 'mios' })[new URLSearchParams(location.search).get('lk')] || (PROP ? 'hoy' : 'mios'); E.lkOc = 'Todo'; E.lkI = 0;
+E.lkTab = ({ ideas: 'ideas', cal: 'cal', hoy: 'hoy', mios: 'mios' })[new URLSearchParams(location.search).get('lk')] || 'mios'; E.lkOc = 'Todo'; E.lkI = 0;
 const lkVista = () => { const v = new URLSearchParams(location.search).get('looks') || localStorage.getItem('tc_looks'); return ['1', '2', '3', '4', '5'].includes(v) ? v : '1'; }; // 0.49 (Gabriela, 22/10: «aplica el mismo estilo a todas las nuevas… y corregimos sobre esa base»): rejilla como el Clóset cerrado; // 4 y 5 (21/10, «adapta la interfaz a mi estilo»): sobre blanco, sin cajas
 const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(conZapato(c.ids.map(P).filter(Boolean), c.zspec, c.como), mini);
 const usosTxt = c => c.usos?.length ? veces(c.usos.length) : t('sin estrenar', 'not worn yet');
 // 0.12 · pestañas de Looks: en la propuesta, «Hoy · Mis looks · Calendario» («la opción de hoy puede ser una opción de looks»); «Ideas para hoy» desaparece
-const lkTabs = act => PROP ? `<div class="mc-cats lk-tabs">${[['hoy', t('Hoy', 'Today')], ['mios', t('Mis looks', 'My looks')], ['cal', t('Calendario', 'Calendar')]].map(([k, n]) => `<button class="${act === k ? 'activo' : ''}" data-lktab="${k}">${n}</button>`).join('')}</div>`
-  : `<div class="mc-cats lk-tabs"><button class="${act === 'mios' ? 'activo' : ''}" data-lktab="mios">${t('Mis looks', 'My looks')}</button><button class="${act === 'ideas' ? 'activo' : ''}" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="${act === 'cal' ? 'activo' : ''}" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>`;
+const lkTabs = act => `<div class="mc-cats lk-tabs"><button class="${act === 'mios' ? 'activo' : ''}" data-lktab="mios">${t('Mis looks', 'My looks')}</button><button class="${act === 'ideas' ? 'activo' : ''}" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="${act === 'cal' ? 'activo' : ''}" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>`;
 const CORAZON = '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 async function alternarFav(ids, oc) { // el corazón guarda el look en Mis looks como favorito (no hace falta «Guardar» aparte)
   if (!E.perfil) return; const g = E.perfil.gustos = E.perfil.gustos || { si: {}, no: {} }, k = claveLook(ids); g.fav = g.fav || [];
@@ -2506,73 +2516,7 @@ function lineaTiempo() { // fecha, cielo, mínima y máxima, y la lluvia con su 
   const lluvia = ['lluvia', 'tormenta'].includes(w.clave) ? `${ico('lluvia')}${t('ahora', 'now')}` : w.lluviaH != null ? `${ico('lluvia')}${w.lluviaH}:00` : '';
   return `<span>${d}</span><span>${ico(cielo)}${w.min != null ? `${w.min}° / ${w.max}°` : `${w.t}°`}</span>${lluvia ? `<span>${lluvia}</span>` : ''}`;
 }
-function avisoTiempo(ps) { // lluvia o fresco a primera hora sin nada encima
-  const w = E.tiempo, min = w ? (w.min ?? w.t) : null, capa = ps.some(p => p.tipo === 'Abrigo' || esCapa(p));
-  if (w && w.lluviaH != null && !capa) return t(`Lluvia a las ${w.lluviaH}:00: llévate algo por encima.`, `Rain at ${w.lluviaH}:00: take a layer.`);
-  if (w && w.t <= 19 && min <= 12 && !capa) return t(`A primera hora, ${min}°: llévate una chaqueta.`, `Early on, ${min}°: take a jacket.`);
-  return '';
-}
-// una línea con el porqué de cada look; lo que vale para todos (no hay chaquetas o zapatos subidos) va una sola vez arriba
-function porqueDiag(ps) { // Pro con diagnóstico: el porqué sale de sus colores y de su silueta
-  const d = planDemo() === 'pro' && E.perfil?.diag; if (!d) return ''; const es = idioma() === 'en' ? 1 : 0;
-  const cara = ps.find(p => p.tipo === 'Arriba' && !esCapa(p)) || ps.find(p => p.tipo === 'Vestidos'), col = cara && d.color?.si?.includes(cara.color);
-  const sil = d.cuerpo?.puntos?.length && puntosDiag(ps) > 0, cn = cara && colNom(cara.color);
-  if (col && sil) return t(`${cn[0].toUpperCase() + cn.slice(1)} cerca de la cara (${d.color.n[0]}) y una línea que favorece tu silueta.`, `${cn[0].toUpperCase() + cn.slice(1)} near your face (${d.color.n[1]}) and a line that suits your figure.`);
-  if (col) return t(`${cn[0].toUpperCase() + cn.slice(1)} cerca de la cara: es de tu paleta, ${d.color.n[0]}.`, `${cn[0].toUpperCase() + cn.slice(1)} near your face: it’s in your palette, ${d.color.n[1]}.`);
-  if (sil) return t(`Favorece tu silueta (${d.cuerpo.n[0].toLowerCase()}).`, `Suits your figure (${d.cuerpo.n[1].toLowerCase()}).`);
-  return '';
-}
-const porqueHoy = (pr, ps, hayCapas) => (hayCapas && avisoTiempo(ps)) || pr.porque || porqueDiag(ps);
-function pintarLooksHoy(raiz, cab) {
-  const planHoy = eventoAhora()?.oc;
-  if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy || 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); E.propuestas = masCercanos(E.hoyFalta, E.propuestas); } }
-  const act = activas(), hayCapas = act.some(p => p.tipo === 'Abrigo' || esCapa(p)), hayZap = act.some(p => p.tipo === 'Calzado'), fresco = hayCapas ? '' : avisoTiempo([]);
-  const avisos = [fresco && `${fresco} <button data-ir="subir">${t('Sube las tuyas', 'Upload yours')}</button>`, !hayZap && `${t('Los zapatos son de muestra.', 'The shoes are samples.')} <button data-ir="subir">${t('Sube los tuyos', 'Upload yours')}</button>`].filter(Boolean);
-  const lista = E.propuestas.slice(0, 8), cabT = cab + `<div class="pr-tiempo mini-et">${lineaTiempo()}</div><div class="pr-plan">${preguntaHoy(planHoy)}</div>${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : ''}${avisos.length ? `<div class="pr-avisos">${avisos.map(a => `<p>${a}</p>`).join('')}</div>` : ''}`;
-  if (!lista.length) { raiz.innerHTML = cabT + `<div class="hz-vacio lk-vacio">${activas().length ? t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.') : t('Tu look de hoy aparecerá aquí en cuanto tengas una prenda de arriba, una de abajo y unos zapatos.', 'Your look of the day will appear here once you have a top, a bottom and shoes.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button></div>`; return; }
-  const slide = (pr, i) => {
-    const ps = pr.ids.map(P).filter(Boolean), psZ = conZapato(ps, pr.zspec, pr.como), fav = esFav(pr.ids), porque = porqueHoy(pr, ps, hayCapas);
-    const oc = planHoy && !E.hoyFalta && pr.tipo !== 'conjunto' ? planHoy : (pr.c && pr.c.ocasion) || pr.ocasion || ocasionDe(ps);
-    pr.ocHoy = oc;
-    return `<article class="pr-slide"><div class="pr-card" data-prficha="${i}">${maniqui(psZ, false, 'tarjeta')}</div>
-      <div class="pr-pie"><span class="pr-oc">${ocNombre(oc)}</span><button class="pr-fav${fav ? ' on' : ''}" data-prfav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${CORAZON}</button></div>
-      ${porque ? `<p class="pr-porque">${porque}</p>` : ''}${hayZap && psZ.some(p => p.muestra) ? `<button class="pr-zap" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: upload yours')}</button>` : ''}
-      <div class="pr-acc"><button class="boton" data-prpongo="${i}">${t('Me lo pongo', 'I’ll wear it')}</button><button class="pr-otra" data-protra="${i}">${t('Otra idea', 'Another idea')} <svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
-      <button class="pr-no" data-prno="${i}">${t('No me gusta', 'Not for me')}</button></article>`;
-  };
-  raiz.innerHTML = cabT + `<div class="pr-carrusel" id="pr-car">${lista.map(slide).join('')}</div><div class="pr-puntos">${lista.map((_, i) => `<i class="${i === (E.hoyIdx || 0) ? 'on' : ''}"></i>`).join('')}</div>`;
-  const car = $('pr-car'), puntos = raiz.querySelectorAll('.pr-puntos i');
-  const ancho = () => car.firstElementChild?.offsetWidth || 1;
-  if (E.hoyIdx) car.scrollLeft = E.hoyIdx * (ancho() + 12);
-  car.onscroll = () => { const i = Math.round(car.scrollLeft / (ancho() + 12)); if (i !== E.hoyIdx) { E.hoyIdx = i; puntos.forEach((p, k) => p.classList.toggle('on', k === i)); } };
-  car.onclick = async e => {
-    const b = e.target.closest('[data-prfav],[data-prpongo],[data-protra],[data-prno],[data-prficha]'); if (!b) return;
-    const i = +(b.dataset.prfav ?? b.dataset.prpongo ?? b.dataset.protra ?? b.dataset.prno ?? b.dataset.prficha), pr = lista[i]; if (!pr) return;
-    if (b.dataset.prfav != null) { await alternarFav(pr.ids, pr.ocHoy); b.classList.toggle('on', esFav(pr.ids)); b.setAttribute('aria-pressed', esFav(pr.ids)); }
-    else if (b.dataset.prpongo != null) await ponerse(pr.ids, pr.c);
-    else if (b.dataset.protra != null) car.scrollTo({ left: ((i + 1) % lista.length) * (ancho() + 12), behavior: 'smooth' });
-    else if (b.dataset.prficha != null) { const cj = E.conjuntos.find(x => claveLook(x.ids) === claveLook(pr.ids)); if (cj) ir('look', cj.id); else car.scrollTo({ left: ((i + 1) % lista.length) * (ancho() + 12), behavior: 'smooth' }); }
-    else { anotarGusto(pr.ids, 'no'); const g = E.perfil.gustos, k = [...pr.ids].sort().join(); if (pr.tipo === 'propuesta') g.fuera = [...(g.fuera || []), k].slice(-300); else { if (g.hoy?.d !== hoyISO()) g.hoy = { d: hoyISO(), k: [] }; g.hoy.k.push(k); } await guardar(); E.propuestas.splice(E.propuestas.indexOf(pr), 1); pintarLooks(); }
-  };
-}
-function pintarLooksProp() {
-  const raiz = $('lk-raiz'); document.documentElement.dataset.looks = 'p';
-  if (!['hoy', 'mios', 'cal'].includes(E.lkTab)) E.lkTab = 'hoy';
-  const cab = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>${lkTabs(E.lkTab)}`;
-  raiz.onclick = e => { const b = e.target.closest('.lk-tabs [data-lktab],[data-lkoc]'); if (!b) return; if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkTocado = true; } else E.lkOc = b.dataset.lkoc; pintarLooks(); };
-  if (E.lkTab === 'cal') return pintarCalendario(raiz);
-  if (E.lkTab === 'hoy') return pintarLooksHoy(raiz, cab);
-  // Mis looks: rejilla 2 × 4:5, corazón en el pie y filtro «♡ Favoritos» desde el primer favorito
-  const hayFav = E.conjuntos.some(c => c.fav || esFav(c.ids)), ocs = ['Todo', ...(hayFav ? ['Fav'] : []), ...OCASIONES.filter(o => E.conjuntos.some(c => (c.ocasion || 'Diario') === o))];
-  if (!ocs.includes(E.lkOc)) E.lkOc = 'Todo';
-  const lista = E.conjuntos.filter(c => E.lkOc === 'Todo' || (E.lkOc === 'Fav' ? c.fav || esFav(c.ids) : (c.ocasion || 'Diario') === E.lkOc));
-  raiz.innerHTML = cab + (ocs.length > 2 ? `<div class="lk-ocs">${ocs.map(o => `<button class="${o === E.lkOc ? 'on' : ''}" data-lkoc="${o}">${o === 'Todo' ? t('Todo', 'All') : o === 'Fav' ? `${CORAZON}${t('Favoritos', 'Favourites')}` : ocNombre(o)}</button>`).join('')}</div>` : '')
-    + (lista.length ? `<div class="pr-rejilla">${lista.map(c => { const f = c.fav || esFav(c.ids); return `<div class="pr-t"><div class="pr-card" data-look="${c.id}">${figLook(c, true)}</div><div class="pr-pie"><span class="pr-oc">${ocNombre(c.ocasion || 'Diario')}</span><button class="pr-fav${f ? ' on' : ''}" data-lkfav="${c.id}" aria-pressed="${f}" aria-label="${t('Favorito', 'Favourite')}">${CORAZON}</button></div></div>`; }).join('')}</div>`
-      : `<div class="hz-vacio lk-vacio">${E.lkOc === 'Fav' ? t('Aún no tienes favoritos: toca el corazón de un look.', 'No favourites yet: tap the heart on a look.') : t('Aún no tienes looks guardados. En «Hoy» toca el corazón de los que te gusten, o crea uno con +.', 'No saved looks yet. In “Today” tap the heart on the ones you like, or create one with +.')}<button class="hz-bt" data-lktab="hoy">${t('Ver los de hoy', 'See today’s')}</button></div>`);
-  raiz.querySelectorAll('[data-lkfav]').forEach(b => b.onclick = async ev => { ev.stopPropagation(); const c = E.conjuntos.find(x => x.id === b.dataset.lkfav); if (!c) return; const g = E.perfil.gustos = E.perfil.gustos || { si: {}, no: {} }, k = claveLook(c.ids); g.fav = g.fav || []; const ya = c.fav || g.fav.includes(k); g.fav = ya ? g.fav.filter(x => x !== k) : [...g.fav, k]; c.fav = !ya; await guardar(); pintarLooks(); });
-}
 function pintarLooks() {
-  if (PROP) return pintarLooksProp();
   // 0.89 (Gabriela, 24/10: «doy en looks y no me ha creado ningún look»): sin looks guardados, Looks abre en las ideas
   if (E.lkTab === 'mios' && !E.lkTocado && !E.conjuntos.length) E.lkTab = 'ideas';
   const v = lkVista(), raiz = $('lk-raiz'); document.documentElement.dataset.looks = v;
@@ -2633,34 +2577,32 @@ function abrirLook(id) {
   ir('look');
 }
 
-/* ---------- DISEÑO: para decidir (letra, color, tiempo, simetría) ---------- */
-function pintarDiseno() {
-  const grupo = k => DIS[k].vals.map(v => `<button class="chip ${dis(k) === v ? 'sel' : ''}" data-dis="${k}|${v}">${DIS[k].nom[v]}</button>`).join('');
-  $('d-proto').innerHTML = Object.keys(PROTOS).map(pn => `<button class="chip ${Object.entries(PROTOS[pn]).every(([k, v]) => dis(k) === v) ? 'sel' : ''}" data-proto="${pn}">${pn}</button>`).join('');
-  for (const k of Object.keys(DIS)) $('d-' + k).innerHTML = grupo(k);
-  $('d-muestra').innerHTML = `<b>${t('Viernes de oficina', 'Office Friday')}</b>${t('12°, nublado. Lluvia desde las 17:00: lleva paraguas. Pantalón negro con lazo · 5 usos. Il1 O0 rn m', '12°, cloudy. Rain from 17:00: take an umbrella. Black trousers with bow · 5 uses. Il1 O0 rn m')}`;
-}
-
 /* ---------- YO ---------- */
 // 0.63 · Ayuda (Sheila, 22/10: «también podemos integrar un sistema de asistente virtual por si la usuaria tiene alguna duda»; Gabriela: «Sí»):
 // primera fase, preguntas frecuentes con buscador, sin servidor y sin red; el asistente con IA llegará con las cuentas
-const AYUDA = [
-  ['Subir y recortar', 'Cómo subo mi ropa', 'Toca Subir, en el centro de la barra. Puedes hacer una foto o elegir hasta 20 de la galería. La app quita el fondo y te propone nombre, categoría, tipo y color; revísalo y guarda.'],
-  ['Subir y recortar', 'Cómo hago una buena foto', 'Fondo liso que contraste con la prenda, una prenda por foto y entera, desde arriba o colgada de una puerta lisa, luz de día sin flash y que la prenda llene casi toda la foto. Tienes las seis reglas en Subir → «Cómo hacer una buena foto».'],
-  ['Subir y recortar', 'El recorte ha dejado restos del fondo', 'Abre la prenda, toca Editar y usa «Recortar» para ajustar el marco a la prenda; después, «Quitar el fondo». Si no te convence, «Volver a la original» recupera la foto sin tocar.'],
-  ['Subir y recortar', 'La app se ha equivocado de tipo o de color', 'En «Revisa tu prenda» o en Editar puedes cambiar la categoría y el tipo con los desplegables, y el color tocando su muestra. Lo que corrijas a mano la app ya no lo cambia.'],
-  ['Hoy y looks', 'Cómo elige la app el look de hoy', 'Mira el tiempo de tu ciudad, el plan del día, tus estilos y lo que menos te has puesto, y combina tus prendas para que casen colores y ocasión.'],
-  ['Hoy y looks', 'No me gusta el look que me propone', 'Toca «No me gusta» bajo el look: te saldrá otro y la app aprende qué prendas no quieres juntas. Con las flechas puedes ver más propuestas.'],
-  ['Hoy y looks', 'Para qué sirve «Me lo pongo»', 'Apunta que hoy llevas ese look: cuenta un uso de cada prenda, lo guarda en el calendario y la app aprende lo que te gusta.'],
-  ['Hoy y looks', 'Cómo le digo a dónde voy', 'En Hoy, toca «¿Qué planes tienes hoy?» y elige la ocasión. Para otros días, en Looks → Calendario, elige el día, marca la ocasión y la franja y guarda el plan.'],
-  ['Hoy y looks', 'Me dice que me falta ropa para una ocasión', 'Cuando tu clóset no da para un plan (noche, evento, oficina, deporte), la app te enseña lo más cercano y te dice qué tipo de prenda te vendría bien. Al subirla, te la propondrá.'],
-  ['Hoy y looks', 'Cómo creo y guardo un look', 'En Looks, toca + y elige las prendas. También puedes guardar las ideas que te propone la app en «Ideas para hoy».'],
-  ['Mi estilo', 'Cómo cambio mi estilo', 'En Yo → Mi estilo, elige hasta tres estilos. Los looks que te propone la app se ordenan según ellos.'],
-  ['Mi estilo', 'Cómo copio el estilo de una famosa', 'La función «Inspírate en…» está en camino. Mientras, elige en Mi estilo los estilos que más se le parecen.'],
-  ['Mi cuenta y datos', 'Dónde se guarda mi ropa', 'En este móvil, dentro del navegador. No se sube a ningún servidor. Si borras los datos del navegador, se borra también: guarda una copia en Yo → «Guardar una copia de mis datos».'],
-  ['Mi cuenta y datos', 'Cómo paso mi clóset a otro móvil', 'En Yo → «Guardar una copia de mis datos» se descarga un fichero. En el otro móvil, Yo → «Recuperar una copia» y elige ese fichero.'],
-  ['Mi cuenta y datos', 'Qué incluye cada plan', 'Básico (1,99 €/mes o 14,99 €/año): tu armario digital, looks, look del día, calendario, uso y estilo. Pro (4,99 €/mes o 39,99 €/año): todo lo del Básico y además colorimetría, morfología, probador virtual, estilismo por ocasión, «Inspírate en…» y Planning Travel.'],
-  ['Mi cuenta y datos', 'Cómo pongo la app en la pantalla de inicio', 'En Android, desde Chrome: menú ⋮ → «Añadir a pantalla de inicio». En iPhone, desde Safari: Compartir → «Añadir a pantalla de inicio».']
+const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no hay funciones obsoletas»): al día con la web 0.185
+  ['Subir y fotos', 'Cómo subo mi ropa', 'Toca Subir, en el centro de la barra. Haz una foto o elige varias de la galería. La app quita el fondo y te propone nombre, categoría, color, estampado y estación; revísalo y guarda.'],
+  ['Subir y fotos', 'Cómo hago una buena foto', 'Una prenda por foto y entera, sobre un fondo que contraste (una cama o el suelo valen), con luz de día y sin flash. Las mangas, mejor hacia abajo.'],
+  ['Subir y fotos', 'El recorte ha dejado restos o ha cortado la prenda', 'Abre la prenda y toca «Arreglar foto»: marca la prenda sobre tu foto y la app vuelve a quitar el fondo. Tu foto original no se toca.'],
+  ['Subir y fotos', 'La app se ha equivocado de tipo, color o estación', 'Abre la prenda y toca el lápiz. Cambia la categoría, el tipo, el color, el estampado, los detalles (encaje, vaquero, deporte…) o la estación. Lo que corrijas a mano la app ya no lo cambia.'],
+  ['Subir y fotos', 'Me pregunta si una prenda está repetida', 'Si subes dos fotos que se parecen mucho, la app te las enseña juntas. «Sí, es la misma» borra la nueva y pasa sus looks a la otra; «No, son distintas» guarda las dos.'],
+  ['Subir y fotos', 'Cómo borro una prenda', 'Abre la prenda y toca la papelera, arriba.'],
+  ['Hoy y looks', 'Cómo elige la app el look de hoy', 'Mira el tiempo de tu ciudad, tu plan del día, tus estilos y lo que menos te has puesto, y combina tus prendas con reglas de estilistas: ocasión, temperatura, colores y proporciones.'],
+  ['Hoy y looks', 'Quiero otro look', 'Usa las flechas a los lados del look para ver más propuestas. Con el corazón lo guardas en tus favoritos.'],
+  ['Hoy y looks', 'Para qué sirve «Me lo pongo»', 'Apunta que hoy llevas ese look: cuenta un uso de cada prenda y lo guarda en el calendario.'],
+  ['Hoy y looks', 'Cómo le digo a dónde voy', 'En Hoy, toca la ocasión bajo la fecha y elige otra. Para otro día, en Looks → Calendario, elige el día y toca «Añadir evento»: pon el plan, la hora y, si quieres, el enlace del sitio y una descripción. La app te propone looks con el tiempo de ese día.'],
+  ['Hoy y looks', 'Me dice que me falta ropa para una ocasión', 'Si tu clóset no da para un plan (noche, evento, oficina, deporte), la app te lo dice y te propone qué tipo de prenda te vendría bien.'],
+  ['Hoy y looks', 'Cómo creo y guardo un look', 'En Looks → Mis looks, toca + y elige las prendas. Los looks que te gustan de Hoy e Ideas se guardan con el corazón.'],
+  ['Hoy y looks', 'Qué es «Mi cápsula»', 'En Looks → Mis looks: elige el plan y cuántas prendas quieres llevar, y la app busca las que más looks dan entre sí.'],
+  ['Mi prenda', 'Qué significan los iconos de la ficha', 'Hoy: llevarla hoy. Look: crear un look con ella. Ideas: looks con esa prenda. Cuidar: cómo lavarla. Sucia: que no salga en los looks hasta que la marques limpia. Guardar: fuera de temporada. Donar y Cerca: puntos para donarla o venderla cerca de ti.'],
+  ['Mi estilo', 'Cómo cambio mi estilo', 'En Yo → Mi estilo, elige hasta cinco estilos y toca «Guardar». Los looks que te propone la app se ordenan según ellos.'],
+  ['Mi estilo', 'Cómo aprende la app lo que me gusta', 'En Yo → Mi estilo, «Looks que te encantan»: sube hasta cinco fotos de looks que te gusten (tuyos, de Pinterest o de Instagram). La app lee la ropa, sus colores y su estilo, y te propone más looks parecidos. La foto no se guarda.'],
+  ['Mi estilo', 'Cómo copio el estilo de alguien', 'En el Pro, Looks → Ideas → «Inspírate en…»: elige una referencia y la app arma looks con tu ropa en ese estilo.'],
+  ['Mi estilo', 'Cómo funciona mi diagnóstico', 'En Yo → Mis medidas y fotos: apunta tus medidas con la cinta (el contorno de pecho, cintura y cadera) y sube una foto de cara y una de cuerpo entero. La app calcula tu silueta y tus colores. En el Pro, los looks los tienen en cuenta.'],
+  ['Mi cuenta y datos', 'Dónde se guarda mi ropa', 'Con cuenta, tu ropa y tus looks se guardan en tu cuenta y los ves en cualquier móvil en el que entres. Tus fotos de cara y de cuerpo no se suben nunca: se quedan en tu móvil.'],
+  ['Mi cuenta y datos', 'Cómo paso mi clóset a otro móvil', 'Entra con tu correo y tu contraseña en el otro móvil: tu clóset aparece solo. Sin cuenta, Yo → «Guardar una copia» y, en el otro móvil, «Recuperar una copia».'],
+  ['Mi cuenta y datos', 'Qué incluye cada plan', 'Gratis: 7 días con hasta 10 prendas. Básico (1,99 €/mes o 14,99 €/año): tu clóset sin tope, el look de cada día, los looks de la estilista, Mi cápsula, el calendario y los cuidados. Pro (4,99 €/mes o 39,99 €/año): todo lo del Básico y además tu diagnóstico de colores y silueta aplicado a tus looks, «Inspírate en…», Planear un viaje e ideas con cada prenda.'],
+  ['Mi cuenta y datos', 'Cómo pongo la app en la pantalla de inicio', 'En iPhone, desde Safari: Compartir → «Añadir a pantalla de inicio». En Android, desde Chrome: menú ⋮ → «Añadir a pantalla de inicio».']
 ];
 function abrirAyuda() { // 0.114: con el panel de Yo; cada grupo en su bloque y, al final, «Escríbenos»
   abrirPanel(t('Ayuda', 'Help'), `<label class="pn-busca">${icY('ayuda')}<input type="search" placeholder="${t('Busca tu duda', 'Search your question')}"></label><div class="ay-lista"></div>`
@@ -2724,7 +2666,6 @@ function pintarPanelYo() {
       + filaP({ tag: 'a', attr: 'href="mailto:app@tucloset.app"', ic: 'correo', tit: t('Escríbenos', 'Write to us'), val: 'app@tucloset.app', flecha: false })
       + filaP({ ic: 'info', tit: t('Versión', 'Version'), val: ($('yo-version')?.textContent || '').split(' · ')[0].replace('TuCloset web ', ''), flecha: false, tag: 'div' }))
     + `<details class="pn-pruebas"><summary>${t('Herramientas de prueba', 'Test tools')}</summary><div class="pn-c">`
-      + filaP({ attr: 'data-ir="diseno"', ic: 'probar', tit: t('Diseño (para decidir)', 'Design (to decide)'), val: `${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}` })
       + filaP({ id: 'yo-closet', ic: 'probar', tit: t('Clóset', 'Closet'), val: CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes'), flecha: false })
       + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))
       + `</div></details>`;
@@ -2749,9 +2690,10 @@ function panelCiudad() {
   });
 }
 function panelPlan() {
-  abrirPanel(t('Plan', 'Plan'), `<p class="pn-lema">${t('Estás en la prueba gratis de 7 días.', 'You are on the 7-day free trial.')}</p>`
-    + grupoP('', filaP({ tag: 'div', tit: t('Básico', 'Basic'), val: t('1,99 € al mes', '€1.99 a month'), flecha: false }) + `<p class="pn-txt">${t('Tu armario en orden, el look de cada día, los looks de la estilista, el calendario y el análisis de uso.', 'Your closet in order, the daily look, the stylist’s looks, the calendar and usage insights.')}</p>`)
-    + grupoP('', filaP({ tag: 'div', tit: 'Pro', val: t('4,99 € al mes', '€4.99 a month'), oro: true, flecha: false }) + `<p class="pn-txt">${t('Además, tu asesora de imagen: tus colores, tu silueta y la ropa que te favorece a partir de tus fotos, los looks puestos en ti y «Sácale partido».', 'Plus your image adviser: your colours, your figure and the clothes that suit you from your photos, looks on you and “Make the most of it”.')}</p>`)
+  abrirPanel(t('Plan', 'Plan'), `<p class="pn-lema">${t('Estás viendo la app como', 'You are viewing the app as')} ${({ gratis: t('Gratis', 'Free'), basico: t('Básico', 'Basic'), pro: 'Pro' })[planDemo()] || 'Pro'}.</p>`
+    + grupoP('', filaP({ tag: 'div', tit: t('Gratis', 'Free'), val: t('7 días', '7 days'), flecha: false }) + `<p class="pn-txt">${t('Hasta 10 prendas, con el look de cada día y el calendario.', 'Up to 10 garments, with the daily look and the calendar.')}</p>`)
+    + grupoP('', filaP({ tag: 'div', tit: t('Básico', 'Basic'), val: t('1,99 € al mes', '€1.99 a month'), flecha: false }) + `<p class="pn-txt">${t('Tu clóset sin tope de prendas, el look de cada día, los looks de la estilista, Mi cápsula, el calendario y los cuidados.', 'Your closet with no garment limit, the daily look, the stylist’s looks, My capsule, the calendar and care tips.')}</p>`)
+    + grupoP('', filaP({ tag: 'div', tit: 'Pro', val: t('4,99 € al mes', '€4.99 a month'), oro: true, flecha: false }) + `<p class="pn-txt">${t('Además, tu asesora de imagen: tus colores y tu silueta a partir de tus fotos, aplicados a tus looks; «Inspírate en…», Planear un viaje e ideas con cada prenda.', 'Plus your image adviser: your colours and figure from your photos, applied to your looks; “Get inspired by…”, trip planning and ideas for each garment.')}</p>`)
     + `<p class="pn-nota">${t('El pago llegará con la app del móvil. Mientras tanto, todo está abierto.', 'Payment will come with the mobile app. Until then, everything is open.')}</p>`);
 }
 async function panelPrivacidad() {
@@ -3123,7 +3065,7 @@ document.addEventListener('click', e => {
 
 /* ---------- eventos ---------- */
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-ir],[data-ficha],[data-filtro],[data-look],[data-idioma],[data-color],[data-oc],[data-sel],[data-plan],[data-gguardar],[data-ghoy],[data-dis],[data-proto]'); if (!b) return;
+  const b = e.target.closest('[data-ir],[data-ficha],[data-filtro],[data-look],[data-idioma],[data-color],[data-oc],[data-sel],[data-plan],[data-gguardar],[data-ghoy]'); if (!b) return;
   if (b.dataset.ir) { e.preventDefault(); if (b.dataset.ir === 'hoy' && E.pantalla === 'inicio' && !E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } ir(b.dataset.ir); }
   else if (b.dataset.ficha) abrirFicha(b.dataset.ficha);
   else if (b.dataset.filtro) { E.filtro = b.dataset.filtro; pintarCloset(); }
@@ -3131,8 +3073,6 @@ document.addEventListener('click', e => {
   else if (b.dataset.idioma) { localStorage.setItem('tc_idioma', b.dataset.idioma); if (E.perfil) { E.perfil.idioma = b.dataset.idioma; guardar(); } traducir(); }
   else if (b.dataset.color) { pintarColores(b.dataset.color); }
   else if (b.dataset.oc) { $('nl-ocasiones').dataset.sel = b.dataset.oc; $('nl-ocasiones').querySelectorAll('.chip').forEach(c => c.classList.toggle('sel', c.dataset.oc === b.dataset.oc)); }
-  else if (b.dataset.dis) { const [k, v] = b.dataset.dis.split('|'); delete DIS_URL[k]; localStorage.setItem('tc_' + k, v); aplicarDiseno(); pintarDiseno(); }
-  else if (b.dataset.proto) { for (const [k, v] of Object.entries(PROTOS[b.dataset.proto])) { delete DIS_URL[k]; localStorage.setItem('tc_' + k, v); } aplicarDiseno(); pintarDiseno(); toast(`${b.dataset.proto}: ${DIS.letra.nom[dis('letra')]} · ${DIS.tema.nom[dis('tema')]}`); }
   else if (b.dataset.gguardar !== undefined) { const g = E.generados[+b.dataset.gguardar]; if (g) { E.conjuntos.unshift({ id: uid(), nombre: g.nombre, ocasion: g.ocasion, ids: g.ids, creada: hoyISO(), usos: [], ...(g.zspec ? { zspec: g.zspec } : {}), ...(g.como ? { como: g.como } : {}) }); E.generados.splice(+b.dataset.gguardar, 1); guardar(); E.propuestas = []; toast(t('Conjunto guardado', 'Outfit saved')); pintarLooks(); } }
   else if (b.dataset.ghoy !== undefined) { const g = E.generados[+b.dataset.ghoy]; if (g) ponerse(g.ids); }
   else if (b.dataset.plan) { E.plan = b.dataset.plan; E.hoyIdx = 0; E.propuestas = []; pintarHoy(); }
@@ -3232,7 +3172,6 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   { const l = +new URLSearchParams(location.search).get('lema'); const t = LEMAS[l - 1]; if (t) $('p-inicio').querySelector('.lema .t').textContent = t; bordar(); }
   const q = new URLSearchParams(location.search);
   for (const k of Object.keys(DIS)) if (DIS[k].vals.includes(q.get(k))) DIS_URL[k] = q.get(k);
-  if (PROTOS[q.get('proto')]) Object.assign(DIS_URL, PROTOS[q.get('proto')]);
   if (VERSIONES.includes(q.get('plan'))) PLAN_URL = q.get('plan');
   aplicarDiseno();
   if (q.get('ejemplo') && !E.prendas.length && !PUBLICA) await cargarEjemplo();
@@ -3244,6 +3183,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
+  setTimeout(() => estilizarNuevas().catch(() => { }), cuenta() ? 15000 : 0); // 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
@@ -3334,8 +3274,70 @@ function pintarEstilo() {
   $('es-lista').innerHTML = FAMILIAS.map((f, i) => `<h3 class="es-tit">${f[es]}</h3><div class="es-rej">${ESTILOS.filter(x => x.f === i).map(x => `<button class="${el.includes(x.k) ? 'on' : ''}" data-estilo="${x.k}"><span class="es-tela">${x.c.map(c => `<i style="background:${c}"></i>`).join('')}</span><b>${x.n[es]}</b><span class="es-d">${x.d[es]}</span></button>`).join('')}</div>`).join('')
     + `<p class="es-cuenta" aria-live="polite">${el.length ? `<b>${el.length} ${t('de', 'of')} ${MAX_ESTILOS}</b>${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(', ')}` : '&nbsp;'}</p>`
     // 0.108 · «Enseñar la cintura» (Gabriela, 28/10: «12. sí»): preferencia de estilo, saltable, guardada solo en este móvil
-    + `<div class="es-cint"><h3 class="es-tit">${t('Un detalle más', 'One more thing')}</h3><p>${t('¿Te gusta enseñar la cintura?', 'Do you like showing your waist?')}</p><div>${[['1', t('Sí', 'Yes')], ['0', t('No', 'No')]].map(([v, n]) => `<button data-cintura="${v}" class="${cinturaPref() === v ? 'on' : ''}">${n}</button>`).join('')}</div><span class="es-d">${t('Así sabemos si proponerte tops cortos con pantalones de tiro bajo.', 'So we know whether to suggest crop tops with low-rise trousers.')}</span></div>`;
+    + `<div class="es-cint"><h3 class="es-tit">${t('Un detalle más', 'One more thing')}</h3><p>${t('¿Te gusta enseñar la cintura?', 'Do you like showing your waist?')}</p><div>${[['1', t('Sí', 'Yes')], ['0', t('No', 'No')]].map(([v, n]) => `<button data-cintura="${v}" class="${cinturaPref() === v ? 'on' : ''}">${n}</button>`).join('')}</div><span class="es-d">${t('Así sabemos si proponerte tops cortos con pantalones de tiro bajo.', 'So we know whether to suggest crop tops with low-rise trousers.')}</span></div>`
+    + bloqueInspo();
 }
+// 06/11 · Looks que te encantan (Gabriela: «puedes pedirle fotos a la usuaria de 5 outfits… tú vas valorando, eres el que sabe»; Sheila lo propuso el 14/10).
+// Hasta cinco fotos de looks (suyos, de Pinterest o de Instagram): el servidor lee la ropa (/api/inspo, IA de visión de Cloudflare) y la foto no se guarda en ningún
+// sitio. Lo leído (prendas, colores, estilos, formalidad y ocasión) va en el perfil, viaja con la cuenta, y el motor tira de los estilos y colores que más se repiten
+const MAX_INSPO = 5;
+let inspoLeyendo = 0;
+const hexCol = c => (COLORES.find(x => x[0] === c) || [, '#ccc'])[1];
+function inspoResumen() { // los estilos que más se repiten en sus looks y que aún no ha elegido
+  const l = E.perfil?.inspo || [], n = {}; l.forEach(x => (x.estilos || []).forEach((e, i) => { n[e] = (n[e] || 0) + (i ? .5 : 1); }));
+  const min = l.length >= 3 ? 1.5 : 1, top = Object.entries(n).filter(([, v]) => v >= min).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0]);
+  return { top, nuevos: top.filter(k => !(E.esBorr || []).includes(k)) };
+}
+function bloqueInspo() {
+  const es = idioma() === 'en' ? 1 : 0, l = E.perfil?.inspo || [], nomE = k => ESTILOS.find(x => x.k === k)?.n[es] || k;
+  const cab = `<h3 class="es-tit" id="es-inspo-t">${t('Looks que te encantan', 'Looks you love')}</h3><p class="es-insp-sub">${t('Sube hasta cinco fotos de looks que te gusten: tuyos, de Pinterest o de Instagram. Leemos la ropa y la foto no se guarda.', 'Add up to five photos of looks you like: yours, from Pinterest or Instagram. We read the clothes and the photo is not kept.')}</p>`;
+  if (!cuenta()) return `<section class="es-inspo" aria-labelledby="es-inspo-t">${cab}<p class="es-insp-sub"><button class="es-insp-entrar" data-ir="entrar">${t('Entra en tu cuenta para usarlo', 'Sign in to use it')}</button></p></section>`;
+  const tarjeta = (x, i) => `<li class="es-insp"><span class="es-insp-col">${(x.colores || []).map(c => `<i style="background:${hexCol(c)}" title="${colNom(c)}"></i>`).join('')}</span>`
+    + `<p>${escH(x.frase || (x.prendas || []).map(p => p.tipo).join(', '))}</p><small>${(x.estilos || []).map(nomE).join(', ')}</small>`
+    + `<button class="es-insp-x" data-inspox="${i}" aria-label="${t('Quitar este look', 'Remove this look')}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15"/></svg></button></li>`;
+  const leyendo = Array.from({ length: inspoLeyendo }, () => `<li class="es-insp leyendo" aria-busy="true"><p>${t('Leyendo la foto…', 'Reading the photo…')}</p></li>`).join('');
+  const caben = MAX_INSPO - l.length - inspoLeyendo;
+  const mas = caben > 0 ? `<li class="es-insp es-insp-mas"><label><input type="file" accept="image/*" multiple id="es-inspo-f"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg><span>${l.length ? t('Añadir otro', 'Add another') : t('Añadir looks', 'Add looks')}</span></label></li>` : '';
+  const { top, nuevos } = inspoResumen();
+  const res = top.length ? `<p class="es-insp-res">${t('Tus looks se parecen a', 'Your looks are close to')} <b>${top.map(nomE).join(t(' y ', ' and '))}</b>.${nuevos.length ? ` <button data-inspoadd="${nuevos.join(',')}">${t('Añadir a mis estilos', 'Add to my styles')}</button>` : ''}</p>` : '';
+  return `<section class="es-inspo" aria-labelledby="es-inspo-t">${cab}<ul class="es-insp-l">${l.map(tarjeta).join('')}${leyendo}${mas}</ul>${res}</section>`;
+}
+async function leerInspo(f) {
+  const u = URL.createObjectURL(f);
+  try {
+    const im = await cargaImg(u), e = Math.min(1, 768 / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.round(im.naturalWidth * e), h = Math.round(im.naturalHeight * e);
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(im, 0, 0, w, h);
+    const b = await new Promise(r => c.toBlob(r, 'image/jpeg', .85)); if (!b) return { error: 'foto' };
+    const r = await api('/api/inspo', { method: 'POST', body: b, headers: { 'Content-Type': 'image/jpeg' }, tiempo: 45000 });
+    const j = await r.json().catch(() => ({}));
+    return r.ok ? j : { error: j.error || 'red' };
+  } catch (e) { return { error: 'red' }; } finally { URL.revokeObjectURL(u); }
+}
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'es-inspo-f') return;
+  const fs = [...e.target.files].slice(0, MAX_INSPO - (E.perfil?.inspo || []).length - inspoLeyendo); if (!fs.length) return;
+  inspoLeyendo += fs.length; pintarEstilo();
+  let sinRopa = 0, fallo = '';
+  await Promise.all(fs.map(async f => {
+    const r = await leerInspo(f); inspoLeyendo--;
+    if (r.sinRopa) sinRopa++;
+    else if (r.error) fallo = fallo || r.error;
+    else { E.perfil = E.perfil || {}; E.perfil.inspo = [...(E.perfil.inspo || []), { ...r, fecha: new Date().toISOString().slice(0, 10) }].slice(0, MAX_INSPO); }
+    if (E.pantalla === 'estilo') pintarEstilo();
+  }));
+  await guardar(); E.propuestas = [];
+  if (fallo) toast(fallo === 'tope-ia' ? t('Hoy ya no puedo leer más fotos. Prueba mañana.', 'I can’t read more photos today. Try tomorrow.') : fallo === 'tope' ? t('Ya has subido muchas fotos hoy. Prueba mañana.', 'You’ve added many photos today. Try tomorrow.') : t('No he podido leer la foto. Prueba otra vez.', 'I couldn’t read the photo. Try again.'));
+  else if (sinRopa) toast(t('No veo ropa en esa foto. Prueba con otra.', 'I can’t see clothes in that photo. Try another one.'));
+  if (E.pantalla === 'estilo') { pintarEstilo(); document.getElementById('es-inspo-t')?.scrollIntoView({ block: 'nearest' }); }
+});
+document.addEventListener('click', async e => {
+  const x = e.target.closest('[data-inspox]'), a = e.target.closest('[data-inspoadd]'); if (!x && !a) return;
+  if (x) { E.perfil.inspo = (E.perfil.inspo || []).filter((_, i) => i !== +x.dataset.inspox); await guardar(); E.propuestas = []; return pintarEstilo(); }
+  const el = E.esBorr || [], nuevos = a.dataset.inspoadd.split(',').filter(k => !el.includes(k)), caben = nuevos.slice(0, Math.max(0, MAX_ESTILOS - el.length));
+  if (!caben.length) return toast(t('Ya tienes cinco estilos. Quita uno para añadir otro.', 'You already have five styles. Remove one to add another.'));
+  E.esBorr = [...el, ...caben]; pintarEstilo();
+  toast(E.esDesde === 'yo' ? t('Añadido. Pulsa «Guardar» para quedártelo.', 'Added. Tap “Save” to keep it.') : t('Añadido a tus estilos', 'Added to your styles'));
+});
 // 0.117 (Gabriela, 28/10: «7. b»): la preferencia vive en el perfil (viaja con la cuenta); localStorage queda de reserva
 const cinturaPref = () => { const v = E.perfil?.cintura; if (v === '1' || v === '0') return v; try { return localStorage.getItem('tc_cintura') || ''; } catch (e) { return ''; } };
 const taconBajo = () => E.perfil?.tacon === 'bajo'; // 0.117 (Gabriela, 28/10: «6. a y b»: plano o hasta 3 cm)

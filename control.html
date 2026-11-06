@@ -203,7 +203,7 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
 
   <section id="cifras"><h2>Cifras</h2>
     <div class="cifras"><div><b>${d.usuarias.length}</b><span>cuentas</span></div><div><b>${activas7}</b><span>activas, 7 días</span></div><div><b>${prendas}</b><span>prendas</span></div>
-    <div><b>0</b><span>suscriptoras</span></div><div><b>${d.entradas7}</b><span>entradas, 7 días</span></div><div><b>${fallos7}</b><span>fallos, 7 días</span></div></div>
+    <div><b>0</b><span>suscriptoras</span></div><div><b>${d.entradas7}</b><span>entradas, 7 días</span></div><div><b>${fallos7}</b><span>fallos, 7 días</span></div>${d.catalogoMes ? `<div><b>${d.catalogoMes.hechas}</b><span>fotos de catálogo este mes · ${String(d.catalogoMes.usd).replace(".", ",")} $ de ${d.catalogoMes.tope}</span></div>` : ""}</div>
     <div class="tarjeta uso"><p>Personas que abren la app cada día</p>${barras}</div>
     <div class="rejilla mirar" style="margin-top:12px">${(P.mirar || []).map(x => x.url ? `<a href="${esc(x.url)}"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></a>` : `<div class="tarjeta"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></div>`).join('')}</div></section>
 

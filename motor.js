@@ -121,12 +121,19 @@ const Motor = (() => {
     return { t_ref, t_min: tmin, t_max: tmax, amplitud: tmax - tmin, lluvia, viento: v, humedad: tiempo.hum ?? 50, hora: h, ocasion: plan, evento: extra.evento || null, lugar: extra.lugar || 'normal',
       tramo: tr, clo_min: tr.clo[0], clo_max: tr.clo[1], clo_min_menos_0_4: tr.clo[0] - .4, clo_max_mas_0_35: tr.clo[1] + .35, sol: (tiempo.uv ?? 0) >= 6, paraguas: !!extra.paraguas };
   }
+  // 06/11: lo que la IA leyó de los looks que le encantan (Yo → Mi estilo): estilos con su peso, colores y formalidad media
+  function inspoDe(l) {
+    if (!Array.isArray(l) || !l.length) return null;
+    const estilos = {}, colores = new Set(), fs = [];
+    for (const x of l) { (x.estilos || []).forEach((e, i) => { estilos[e] = (estilos[e] || 0) + (i ? .5 : 1); }); (x.colores || []).forEach(c => colores.add(c)); if (x.formalidad) fs.push(x.formalidad); }
+    return { estilos, colores, form: fs.length ? fs.reduce((s, x) => s + x, 0) / fs.length : null };
+  }
   function perfilMotor(pf = {}, opc = {}) {
     const usoSolo = new Set(pf.usoSolo || []); // el chaleco que los looks a mano llevan sin nada encima lo lleva solo
     for (const l of pf.estilista?.looks || []) if (l.arriba && !l.capa) usoSolo.add(l.arriba);
     const dc = pf.diag?.color, ec = dc?.si ? dc : opc.colorEstacion, cint = pf.cintura === '1' || pf.cintura === 'si' ? 'si' : pf.cintura === '0' || pf.cintura === 'no' ? 'no' : undefined;
     const reglas = opc.pro ? (pf.diag?.cuerpo?.puntos || S[pf.tipoCuerpo] || null) : null;
-    return { estilos: pf.estilos || [], publico: pf.publico || (pf.ropa === 'hombre' ? 'masculino' : 'todo') /* 03/11: «¿Qué ropa llevas?» */, cintura: cint, tacon: pf.tacon, tacon_num: TACON[pf.tacon], evitarColores: pf.evitarColores || [], usoSolo, gustos: pf.gustos || {}, diag: { estacion: ec ? { si: ec.si, no: ec.no } : undefined, puntos: reglas } };
+    return { estilos: pf.estilos || [], publico: pf.publico || (pf.ropa === 'hombre' ? 'masculino' : 'todo') /* 03/11: «¿Qué ropa llevas?» */, cintura: cint, tacon: pf.tacon, tacon_num: TACON[pf.tacon], evitarColores: pf.evitarColores || [], usoSolo, gustos: pf.gustos || {}, inspo: inspoDe(pf.inspo), diag: { estacion: ec ? { si: ec.si, no: ec.no } : undefined, puntos: reglas } };
   }
 
   /* ---------- 3. condiciones: las de las fórmulas sobre una prenda y las de las reglas sobre el look ---------- */
@@ -207,7 +214,9 @@ const Motor = (() => {
       hay_accesorio_util: !!l.accesorio, accesorio_frio: ['bufanda', 'gorro', 'guantes'].includes(l.accesorio?._f.subtipo), valor_dominante: dom(valores, .51), familia_dominante: dom(familias, .5),
       prendas_fuera_de_rango: ps.filter(p => (p._f.tmin != null && ctx.t_ref < p._f.tmin - 3) || (p._f.tmax != null && ctx.t_ref > p._f.tmax + 3)).length,
       arriba_fuera_grados: A?.tmax != null ? Math.max(0, ctx.t_ref - A.tmax) : 0, abajo_fuera_grados: B?.tmax != null ? Math.max(0, ctx.t_ref - B.tmax) : 0,
-      n_neutros_pct: ropa.filter(f => ['neutro', 'neutro_suave'].includes(f.color_clase)).length / (ropa.length || 1), ids };
+      n_neutros_pct: ropa.filter(f => ['neutro', 'neutro_suave'].includes(f.color_clase)).length / (ropa.length || 1),
+      inspo_estilos: pf.inspo ? (l.formula?.estilos || []).slice(0, 2).filter(e => pf.inspo.estilos[e]).length : 0, inspo_colores_pct: pf.inspo ? colores.filter(c => pf.inspo.colores.has(c)).length / (colores.length || 1) : 0,
+      inspo_form_dif: pf.inspo?.form != null ? Math.abs(media - pf.inspo.form) : 0, ids };
   }
   function entorno(l, campos, ctx, pf) {
     const e = { look: campos, ctx, perfil: pf, formula: l.formula || {} };
@@ -258,6 +267,28 @@ const Motor = (() => {
   const cloMedia = ctx => (ctx.clo_min + ctx.clo_max) / 2;
   const cloPiezas = l => .2 + PIEZAS.map(k => l[k]).filter(Boolean).reduce((s, p) => s + (p._f.clo || 0), 0);
   const cercania = (c, l, ctx) => -Math.abs(cloMedia(ctx) - (cloPiezas(l) + (c._f.clo || 0))) + (ctx.lluvia && c._f.impermeable ? .3 : 0) - (c.p?.usos?.length || 0) * .002;
+  // 06/11 (bolsos y cinturones sin ideas): el bolso y el cinturón solo salían si la fórmula los pedía (el clutch de noche); los bolsos de diario y los cinturones
+  // no entraban nunca y su ficha no tenía ideas. Ahora, en todo look con calzado (salvo Deporte): el bolso del plan (de día o de noche, R.grupos), con el calzado o neutro
+  // y de la formalidad del look; y un cinturón solo donde se ve y suma: pantalón o falda de tiro alto con la prenda por dentro o corta, a juego con el calzado o el bolso
+  const NO_CINTURON = new Set(['jogger', 'malla', 'falda_deportiva', 'shorts']);
+  let COMPL = false; // solo con o.complementos (las ideas de la ficha de un bolso o un cinturón); en Hoy y en Ideas, cuando las socias lo decidan
+  function complemento(tipo, l, ents, ctx) {
+    if (ctx.ocasion === 'Deporte' || !l.calzado) return null;
+    const z = l.calzado._f, ropa = PIEZAS.map(k => l[k]).filter(p => p && !['calzado', 'bolso', 'accesorio'].includes(p._f.cat)).map(p => p._f);
+    const media = ropa.reduce((s, f) => s + (f.form ?? 3), 0) / (ropa.length || 1), clave = claveRopa(l) + (l.calzado.id || '');
+    const casa = (f, ...con) => con.some(c => c && f.familia === c.familia) ? .35 : String(f.color_clase).startsWith('neutro') ? .15 : -.2;
+    if (tipo === 'bolso') {
+      const ok = grupo(['Noche', 'Evento'].includes(ctx.ocasion) ? '@bolso_noche' : '@bolso_dia');
+      const cs = ents.filter(p => p._f.cat === 'bolso' && ok.includes(p._f.subtipo) && !(p._f.subtipo === 'mochila' && media >= 3));
+      const nota = b => casa(b._f, z) - Math.abs((b._f.form ?? 3) - media) * .2 + huella(clave + b.id) * .3;
+      return cs.sort((a, b) => nota(b) - nota(a))[0] || null;
+    }
+    const A = l.arriba?._f, B = l.abajo?._f;
+    if (!A || !B || B.uso === 'deporte' || NO_CINTURON.has(B.subtipo) || B.tiro === 'bajo' || l.capa?._f.largo === 'largo') return null;
+    if (!(l.como === 'por_dentro' || A.largo === 'crop' || (B.tiro === 'alto' && A.largo === 'cintura'))) return null;
+    const cs = ents.filter(p => p._f.subtipo === 'cinturon').map(p => [casa(p._f, z, l.bolso?._f) + huella(clave + p.id) * .2, p]).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]);
+    return cs[0]?.[1] || null;
+  }
   // la capa que pide el tramo de temperatura aunque la fórmula no la escriba
   function capaPorClima(l, ents, ctx) {
     const id = ctx.tramo.id, grupos = id === 'T4' ? ['@capa_ligera', '@capa_media'] : id === 'T5' ? ['@capa_media', '@abrigo_frio'] : id === 'T6' || id === 'T7' ? ['@abrigo_frio'] : id === 'T3' ? ['@capa_ligera'] : id === 'T2' && (ctx.t_min < 16 || ctx.amplitud >= 10) ? ['@capa_ligera'] : null;
@@ -309,7 +340,9 @@ const Motor = (() => {
   const afin = x => x?._af || 0, AF = { par: .15, capa: .3, zapato: .2, nota: .15 };
   // 06/11 (Gabriela: «siguen habiendo combinaciones espantosas»): la temperatura de cada prenda era solo un descuento de puntos (K15) y salían tops de verano bajo un abrigo
   // de paño o sandalias a 12°. Ahora es fija: lo que está a más de 3° de su rango (el de su estación, o el de su tipo) no entra en el look de hoy.
-  const vaHoy = (p, ctx) => { const f = p._f; return !((f.tmin != null && ctx.t_ref < f.tmin - 3) || (f.tmax != null && ctx.t_ref > f.tmax + 3)); };
+  // 06/11 (banco de looks de Moda): a primera hora la referencia mira la mínima y una cazadora o un jersey de entretiempo pasaban en un día de 25° (looks 34, 49, 88,
+  // 107, 110, 150, 191 y 195, notas 1 y 2); ahora tampoco vale si la máxima del día pasa en más de 6° la de su estación (7° si es una capa, que se quita al mediodía)
+  const vaHoy = (p, ctx) => { const f = p._f; return !((f.tmin != null && ctx.t_ref < f.tmin - 3) || (f.tmax != null && (ctx.t_ref > f.tmax + 3 || (ctx.t_max ?? ctx.t_ref) > f.tmax + (f.cat === 'capa' ? 7 : 6)))); };
   function rellenar(formula, ents, zapatos, ctx, pf, hoy, cacheP) {
     const dep = formula.ocasiones.includes('Deporte');
     ents = ents.filter(p => vaHoy(p, ctx) && (dep ? aptoDeporte(p) : !soloDeporte(p._f)));
@@ -350,6 +383,8 @@ const Motor = (() => {
         for (const c of cs.length ? cs : [null]) {
           const l2 = { ...l }; if (c) l2.calzado = c; if (faltaHueco) l2.hueco_faltante = faltaHueco;
           const [hb] = H('bolso'); if (hb && c) { const b = cands(hb, ents)[0]; if (b) l2.bolso = b; }
+          if (COMPL && c && !l2.bolso) { const b = complemento('bolso', l2, ents, ctx); if (b) l2.bolso = b; }
+          if (COMPL && c && !l2.accesorio) { const a = complemento('cinturon', { ...l2, como: comoDe(formula, l2) }, ents, ctx); if (a) l2.accesorio = a; }
           salida.push(l2);
         }
       }
@@ -379,7 +414,10 @@ const Motor = (() => {
     return out;
   }
   // en qué ocasiones cabe una prenda (para el filtro del clóset): una fórmula de esa ocasión la admite en un hueco y la prenda no baja del nivel de la ocasión
-  const ocasionesDe = p => { const f0 = ficha(p, {}), e = [{ id: p.id, p, _f: f0 }]; return [...new Set(F.formulas.filter(f => (!soloDeporte(f0) || f.ocasiones.includes('Deporte')) && f.huecos.some(h => cands(h, e).length)).flatMap(f => f.ocasiones))].filter(o => !(f0.form < (R.ocasiones[o]?.form_media_min ?? 0) - .5)); };
+  const ocasionesDe = p => { const f0 = ficha(p, {}), e = [{ id: p.id, p, _f: f0 }];
+    if (f0.cat === 'bolso') return [...(grupo('@bolso_dia').includes(f0.subtipo) ? ['Diario', 'Oficina', 'Viaje'] : []), ...(grupo('@bolso_noche').includes(f0.subtipo) ? ['Noche', 'Evento'] : [])]; // 06/11: complementos
+    if (f0.subtipo === 'cinturon') return ['Diario', 'Oficina', 'Noche', 'Evento'];
+    return [...new Set(F.formulas.filter(f => (!soloDeporte(f0) || f.ocasiones.includes('Deporte')) && f.huecos.some(h => cands(h, e).length)).flatMap(f => f.ocasiones))].filter(o => !(f0.form < (R.ocasiones[o]?.form_media_min ?? 0) - .5)); };
   const claveLook = l => PIEZAS.map(k => l[k]).filter(p => p && !p.muestra).map(p => p.id).sort().join();
 
   /* ---------- 6. fórmulas posibles, qué falta y la llamada de la app ---------- */
@@ -415,7 +453,12 @@ const Motor = (() => {
     const t0 = Date.now(), hoy = o.hoy || new Date().toISOString().slice(0, 10), plan = o.plan || 'Todos', n = o.n || 6, pf = perfilMotor(o.perfil, o), excluir = new Set(o.excluir || []);
     const ctx0 = contexto(o.tiempo, plan, { hora: o.hora, t_ref: o.t_ref, evento: o.evento, lugar: o.lugar });
     const ents = (o.prendas || []).filter(p => !p.noMeGusta).map(p => ({ id: p.id, p, _f: ficha(p, pf) }));
+    COMPL = !!o.complementos;
     if (o.afin) for (const x of ents) x._af = typeof o.afin === 'function' ? o.afin(x._f, txtAfin(x.p)) : afinEstilo(x._f, txtAfin(x.p), o.afin);
+    else if (pf.inspo) { // 06/11: sin «Inspírate en», los looks que le encantan tiran (a menos de la mitad de fuerza) de los estilos que más se repiten en ellos y de sus colores
+      const top = Object.entries(pf.inspo.estilos).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0]);
+      for (const x of ents) x._af = .5 * afinEstilo(x._f, txtAfin(x.p), top) + (pf.inspo.colores.has(x._f.color) ? .15 : 0);
+    }
     let ropa = ents.filter(p => p.p.tipo !== 'Calzado'); const propios = ents.filter(p => p.p.tipo === 'Calzado'), zapatos = propios.length ? propios : ZV;
     if (ents.length > 150) { // clóset enorme: se forman parejas con lo menos puesto últimamente
       const reciente = x => (x.p.usos || []).reduce((m, u) => u > m ? u : m, ''), poco = (tipo, n) => ropa.filter(x => x.p.tipo === tipo).sort((a, b) => reciente(a).localeCompare(reciente(b))).slice(0, n);
@@ -450,7 +493,7 @@ const Motor = (() => {
     const ps = ['capa', 'arriba', 'base_interior', 'abajo', 'vestido', 'calzado', 'bolso', 'accesorio'].map(k => l[k]).filter(p => p && !p.muestra);
     return { ids: ps.map(p => p.id), ocasion: l.ctx.ocasion, formula: l.formula?.id, nombre: l.formula?.nombre, porque: l.formula?.porque, como: l.campos.como === 'por_dentro' ? 'por dentro' : l.campos.como, zspec: zapatoDe(l), faltaCapa: !!l.faltaCapa, capaFalta: l.faltaCapa ? capaQueFalta(l) : null, nota: l.nota };
   }
-  return { iniciar, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, contexto, perfilMotor, looks, juzgar, aPropuesta, faltas, claveLook, get R() { return R; }, get F() { return F; } };
+  return { iniciar, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, aPropuesta, faltas, claveLook, get R() { return R; }, get F() { return F; } };
 })();
 if (typeof module !== 'undefined') module.exports = Motor;
 else if (typeof MOTOR_DATOS !== 'undefined') Motor.iniciar(MOTOR_DATOS.R, MOTOR_DATOS.F, MOTOR_DATOS.S);

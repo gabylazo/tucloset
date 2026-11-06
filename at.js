@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.174'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.185'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -281,6 +281,9 @@ if (AT) (() => {
     const nRep = dudasRepetidas().length; let av = $('at-rep-av'); // 05/11: prendas que pueden estar repetidas
     if (nRep && !av) { av = document.createElement('button'); av.id = 'at-rep-av'; av.className = 'at-rep-av'; av.onclick = abrirRepetidas; $('pared').before(av); }
     if (av) { av.hidden = !nRep; av.textContent = nRep === 1 ? t('1 prenda puede estar repetida · Revisar', '1 garment may be a duplicate · Review') : t(`${nRep} prendas pueden estar repetidas · Revisar`, `${nRep} garments may be duplicates · Review`); }
+    const nCat = catPend().length; let ac = $('at-cat-av'); // 06/11: fotos de catálogo hechas solas al subir, por elegir
+    if (nCat && !ac) { ac = document.createElement('button'); ac.id = 'at-cat-av'; ac.className = 'at-rep-av'; ac.onclick = () => abrirCatalogo(); $('pared').before(ac); }
+    if (ac) { ac.hidden = !nCat; ac.textContent = nCat === 1 ? t('1 foto de catálogo lista · Ver', '1 catalogue photo ready · View') : t(`${nCat} fotos de catálogo listas · Ver`, `${nCat} catalogue photos ready · View`); }
     const ej = $('at-cl-ejemplo'); if (ej) ej.onclick = cargarEjemplo;
     if (!$('mc-hoja').hidden) pintarFiltros();
   };
@@ -366,7 +369,7 @@ if (AT) (() => {
     const on = k => k === p.estado || (k === 'cuidar' && cuidarAbierta === id), MARCA = ['cuidar', 'lavar', 'guardada', 'donar'];
     const nombre = (w, l) => l.toLowerCase().includes(w.toLowerCase()) ? l : `${w}. ${l}`; // el nombre que se lee contiene la palabra que se ve
     r.innerHTML = `<div class="at-barra-sup"><button class="at-volver" data-ir="closet" aria-label="${t('Volver', 'Back')}">${I.iz}</button><span class="at-der2"><button class="at-ico" data-atfacc="editar" aria-label="${t('Editar', 'Edit')}">${I.lapiz}</button><button class="at-ico" data-atfacc="borrar" aria-label="${t('Borrar la prenda', 'Delete the garment')}">${I.papelera}</button></span></div>
-      <div class="at-foto${conCat(p) ? '' : ' sin-cat'}"><img src="${urlCat(p)}" alt="${esc(p.nombre)}"><button type="button" class="at-ampliar" data-ampliar="${p.id}" aria-label="${t('Ampliar la foto', 'Enlarge the photo')}"></button></div>${sinFoto(p) ? `<p class="at-sin-foto">${t('La foto de esta prenda se ha perdido en este móvil. Toca el lápiz y vuelve a hacerla.', 'This garment’s photo was lost on this phone. Tap the pencil and take it again.')}</p>` : ''}
+      <div class="at-foto${conCat(p) ? '' : ' sin-cat'}"><img src="${urlCat(p)}" alt="${esc(p.nombre)}"><button type="button" class="at-ampliar" data-ampliar="${p.id}" aria-label="${t('Ampliar la foto', 'Enlarge the photo')}"></button></div>${p.catProp && !p.cat ? `<button class="at-rep-av" data-catver>${t('Foto de catálogo lista · Ver', 'Catalogue photo ready · View')}</button>` : ''}${sinFoto(p) ? `<p class="at-sin-foto">${t('La foto de esta prenda se ha perdido en este móvil. Toca el lápiz y vuelve a hacerla.', 'This garment’s photo was lost on this phone. Tap the pencil and take it again.')}</p>` : ''}
       ${p.estado ? `<p class="at-estado">${estadoTxt(p.estado)}</p>` : ''}<h1 class="at-h1">${esc(p.nombre)}</h1>${datos ? `<p class="at-datos">${datos}</p>` : ''}<ul class="at-chips">${chips}</ul>
       ${looks.length ? `<div class="at-minis${looks.length > 2 ? ' muchos' : ''}">${looks.map(x => baldosa(x.ps, MW, MH, x.attr)).join('')}</div>` : ''}
       <div class="at-iconos" role="group" aria-label="${t('Acciones de la prenda', 'Garment actions')}">${ACC.map(([k, ic, w, l]) => `<button class="at-ib${on(k) ? ' on' : ''}" data-atfacc="${k}" aria-label="${esc(nombre(w, l || largo(k)))}"${MARCA.includes(k) ? ` aria-pressed="${on(k)}"` : ''}><span class="at-ib-c">${ic}</span><span class="at-ib-t" aria-hidden="true">${esc(w)}</span></button>`).join('')}</div>
@@ -374,6 +377,7 @@ if (AT) (() => {
       <p class="at-nota-fin">${esc($('f-nota').textContent)}</p>`;
     if (y) pf.scrollTop = y;
     r.onclick = e => {
+      if (e.target.closest('[data-catver]')) return abrirCatalogo(id);
       const b = e.target.closest('[data-atfacc],[data-atcrear]'); if (!b) return;
       if (b.dataset.atcrear) { e.stopPropagation(); return ir('nuevo-look', b.dataset.atcrear.split(',')); }
       const k = b.dataset.atfacc;
@@ -427,7 +431,7 @@ if (AT) (() => {
     const fav = E.lkTab === 'fav', lista = E.conjuntos.filter(c => !fav || c.fav || esFav(c.ids));
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     const crear = fav ? '' : `<figure class="at-t"><button class="at-bal at-crear" style="width:${TW}px;height:${TH}px" data-ir="nuevo-look">${I.mas}<span>${t('Crear un look', 'Create a look')}</span></button></figure>`;
-    const t1 = c => `<figure class="at-t">${baldosa(psDe(c), TW, TH, ` data-look="${c.id}"`)}<figcaption>${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</figcaption></figure>`;
+    const t1 = c => `<figure class="at-t">${baldosa(psDe(c), TW, TH, ` data-look="${c.id}" aria-label="${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}"`)}<figcaption>${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</figcaption></figure>`;
     const capsula = fav ? '' : `<figure class="at-t"><button class="at-bal at-crear" style="width:${TW}px;height:${TH}px" data-capsula>${I.percha}<span>${t('Mi cápsula', 'My capsule')}</span></button></figure>`;
     raiz.innerHTML = filaLooks(E.lkTab) + (lista.length || !fav ? `<div class="at-rej2">${crear}${capsula}${lista.map(t1).join('')}</div>`
       : `<div class="at-vacio"><p>${t('Aún no tienes favoritos. Abre un look y toca el corazón.', 'No favourites yet. Open a look and tap the heart.')}</p></div>`);
@@ -653,7 +657,7 @@ if (AT) (() => {
     return { prendas: [...C].map(P).filter(Boolean), looks: hechos().map(l => l.x) };
   }
   function abrirCapsula() {
-    let cap = $('at-capsula'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-capsula'; cap.className = 'ay-capa at-vj at-cap'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); document.body.append(cap); }
+    let cap = $('at-capsula'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-capsula'; cap.className = 'ay-capa at-vj at-cap'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-label', t('Mi cápsula', 'My capsule')); document.body.append(cap); }
     const F = E.capF = E.capF || { oc: 'Diario', n: 10 }, { prendas, looks } = hacerCapsula(F.oc, F.n), ORD = ['Abrigo', 'Arriba', 'Vestidos', 'Abajo', 'Calzado', 'Bolsos', 'Accesorios'];
     prendas.sort((a, b) => ORD.indexOf(a.tipo) - ORD.indexOf(b.tipo));
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25), PW = Math.floor((ancho - 40 - 16) / 3);
@@ -766,7 +770,7 @@ if (AT) (() => {
   // una imagen de su estilo junto a la descripción (Gabriela, 22/10: «debe salir un visual de alguna forma del estilo de esa famosa»): collage de ropa sin personas, hecho con Gemini
   const FOTO_INSP = new Set(['hollywood', 'tonal', 'modelo', 'limpia', 'sastreria', 'americano', 'oldmoney', 'boho', 'sinreglas', 'preppy', 'brillo', 'elordi', 'styles', 'mescal']);
   function abrirInspira(k) {
-    let cap = $('at-inspira'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-inspira'; cap.className = 'ay-capa at-vj at-insp'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); document.body.append(cap); }
+    let cap = $('at-inspira'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-inspira'; cap.className = 'ay-capa at-vj at-insp'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-label', t('Inspírate en…', 'Get inspired by…')); document.body.append(cap); }
     const X = `<button class="x" aria-label="${k ? t('Volver', 'Back') : t('Cerrar', 'Close')}">${k ? I.iz : '<svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg>'}</button>`, L = i => i[en() ? 1 : 0];
     if (planDemo() !== 'pro') { cap.innerHTML = `${X}<h1>${t('Inspírate en…', 'Get inspired by…')}</h1><p class="at-vj-sub">${t('Eliges un estilo y te armo looks con tu ropa a su manera.', 'Pick a style and I’ll put together looks from your clothes its way.')}</p><p class="at-vj-sub"><span class="dg-pro">Pro</span></p>`; cap.onclick = e => e.target.closest('.x') && cap.remove(); return; }
     const a = k && ARQ.find(x => x[0] === k), ropa = E.perfil?.ropa;

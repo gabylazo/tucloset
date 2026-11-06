@@ -370,11 +370,6 @@ dialog p{margin-top:8px;color:var(--sec);font-size:15.5px;line-height:1.45}
 [data-sim="1"] #p-yo h1,[data-sim="1"] #p-looks .sub{text-align:center}
 [data-sim="1"] .g-cab{text-align:center}
 /* pantalla «Diseño» */
-.d-grupo{margin-top:18px}
-.d-grupo > span{display:block;font-size:13px;font-weight:650;color:var(--sec);margin-bottom:6px}
-.d-muestra{margin-top:10px;padding:12px;border:1px solid var(--linea);font-size:16px;line-height:1.45}
-.d-muestra b{display:block;font-size:22px;font-weight:700;margin-bottom:4px}
-.d-proto .chip{min-width:58px;text-align:center}
 /* el interior del armario al abrirse: blanco con una sombra suave, sin dorado ni perchas (Gabriela 01:xx) */
 .intro .interior{background:#fff;box-shadow:inset 0 0 calc(var(--u) * 7) rgba(74,53,38,.22)}
 .intro .interior svg{display:none}
@@ -831,7 +826,7 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .plb-det p{font-size:13px;color:var(--tinta);font-weight:300;line-height:1.8;margin-top:16px}
 .plb-prueba{font-size:12px;color:var(--sec);font-weight:300;line-height:1.7;margin-top:26px}
 /* 0.15 · planes que se venden: una frase por plan, cuatro ventajas y, en anual, el precio del año y lo que se ahorra */
-.pl-periodo em{font-style:normal;color:var(--oro);letter-spacing:.06em}
+.pl-periodo em{font-style:normal;color:var(--oro-t);letter-spacing:.06em}
 .pl-ahorro{display:none;font-size:11px;color:var(--oro);font-weight:400;margin-top:4px}
 #p-planes.anual .pl-ahorro{display:block}
 .pl-lema{font-family:var(--f-marca);font-size:14.5px;line-height:1.3;color:var(--tinta);margin-top:12px;padding:0 4px}
@@ -1098,7 +1093,7 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 #p-yo #yo-borrar{color:#8E3B2E}
 #p-yo .nota{font-size:11.5px;font-weight:300;margin:30px 0 10px}
 /* 0.81 (Gabriela, 24/10: «prueba poner el precio de cada plan en dorado») */
-#p-planes .plb-pre,#p-planes .pl-pre{color:var(--oro)}
+#p-planes .plb-pre,#p-planes .pl-pre{color:var(--oro-t)} /* 06/11: dorado oscuro, 5:1 sobre blanco (el dorado claro daba 2,4:1 y no se leía) */
 /* 0.82 (Gabriela, 24/10: «mínimo 8 caracteres, ponlo debajo de contraseña») */
 .ac-campo .ac-pista{display:block;margin-top:6px;text-align:center}
 /* 0.83 (Gabriela, 24/10: «el cartel de ha empezado la prueba de 7 días… ponlo igual que el resto, hay que mantener esa misma simetría»): avisos en blanco, centrados, Bellefair, filo fino y dos rayitas doradas */
@@ -1364,7 +1359,7 @@ img{-webkit-user-drag:none}
 .pn-v .pn-ic{stroke:var(--oro);stroke-width:2}
 .pn-fl{width:15px;height:15px;flex:none;fill:none;stroke:var(--oro);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .pn-f.rojo,.pn-f.rojo .pn-t{color:#8E3B2E}.pn-f.rojo .pn-ic{stroke:#8E3B2E}
-.pn-f.apagada .pn-t,.pn-f.apagada .pn-ic{opacity:.55}
+.pn-f.apagada .pn-ic{opacity:.55}.pn-f.apagada .pn-t{color:var(--sec)} /* 06/11: el texto, en gris legible (con opacidad daba 3,1:1) */
 .pn-nota{font-size:12.5px;color:var(--sec);line-height:1.5;margin:8px 4px 0}
 .pn-txt{font-size:14px;color:var(--sec);line-height:1.5;padding:0 14px 14px 14px;margin:0}
 .pn-lema{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:19px;text-align:center;color:var(--tinta);margin:6px 0 0}
@@ -1648,3 +1643,27 @@ html{touch-action:manipulation}
 /* 06/11: aviso de medidas que no son contornos (antes se ignoraban sin decir nada) */
 .dx-error{font-size:15px;line-height:1.45;color:#B3261E;margin:12px auto 0;max-width:300px}
 .dx-error:empty{display:none}
+/* 06/11 · Looks que te encantan (Mi estilo): hasta cinco, en filas finas; colores leídos a la izquierda, la frase y sus estilos, y la X para quitarlo */
+#p-estilo .es-inspo{margin-top:30px;text-align:center}
+#p-estilo .es-insp-sub{font-size:14px;line-height:1.45;color:var(--sec);max-width:32em;margin:6px auto 0}
+#p-estilo .es-insp-l{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px;text-align:left}
+#p-estilo .es-insp{position:relative;display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:center;min-height:64px;padding:10px 48px 10px 14px;border:1px solid var(--linea);background:#fff}
+#p-estilo .es-insp p{margin:0;font-size:15px;line-height:1.3;color:var(--tinta)}
+#p-estilo .es-insp small{grid-column:2;font-size:12.5px;line-height:1.3;color:var(--sec);margin-top:3px}
+#p-estilo .es-insp-col{grid-row:span 2;display:flex;gap:3px}
+#p-estilo .es-insp-col i{width:12px;height:30px;border:1px solid var(--linea)}
+#p-estilo .es-insp-x{position:absolute;right:2px;top:50%;transform:translateY(-50%);width:44px;height:44px;display:grid;place-items:center;background:none;border:0;cursor:pointer}
+#p-estilo .es-insp-x svg{width:16px;height:16px;stroke:var(--sec);stroke-width:1.5;fill:none}
+#p-estilo .es-insp.leyendo{grid-template-columns:1fr;padding-right:14px}
+#p-estilo .es-insp.leyendo p{color:var(--sec);animation:es-insp-lee 1.4s ease-in-out infinite alternate}
+@keyframes es-insp-lee{from{opacity:.45}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){#p-estilo .es-insp.leyendo p{animation:none}}
+#p-estilo .es-insp-mas{display:block;padding:0;border-style:dashed}
+#p-estilo .es-insp-mas label{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;min-height:56px;cursor:pointer;font-size:15px;color:var(--tinta)}
+#p-estilo .es-insp-mas input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+#p-estilo .es-insp-mas svg{width:18px;height:18px;stroke:var(--tinta);stroke-width:1.4;fill:none}
+#p-estilo .es-insp-mas:focus-within{outline:2px solid var(--tinta);outline-offset:2px}
+#p-estilo .es-insp-res{font-size:14.5px;line-height:1.5;color:var(--tinta);margin-top:14px}
+#p-estilo .es-insp-res button,#p-estilo .es-insp-entrar{display:block;margin:2px auto 0;min-height:44px;padding:0 4px;background:none;border:0;border-bottom:1px solid var(--oro);font:inherit;color:var(--tinta);cursor:pointer}
+#p-estilo .es-insp-res b{font:inherit;font-weight:500}
+#p-estilo .es-insp-mas span{font-size:15px;letter-spacing:0;text-transform:none}
