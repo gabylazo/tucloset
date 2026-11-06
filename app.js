@@ -2881,6 +2881,7 @@ async function panelDiag(pendientes = [], tab) {
     const pr = b.ratios?.pierna, fotoDice = b.foto && b.foto !== b.k && R ? R.silueta.tipos[b.foto].n[es].toLowerCase() : '';
     sil = `<div class="dx-cab"><span>${t('Tu silueta', 'Your figure')}</span><h2>${b.n[es]}</h2><p>${b.d[es]}</p></div>
       ${barrasSilueta(b)}
+      ${b.fuente !== 'medidas' ? `<p class="dx-nota">${t('Medida en tu foto. Con cinta sale exacta.', 'Measured in your photo. With a tape measure it is exact.')}</p><button class="dx-enl" data-diag="fotos">${t('Apuntar mis medidas', 'Enter my measurements')}</button>` : ''}
       ${b.prop && pr ? `<div class="dx-pistas">${pista(b.propN[es], t('Torso largo', 'Long torso'), t('Piernas largas', 'Long legs'), (pr - .47) / .06)}</div>` : ''}
       <section class="dx-sec"><h3 class="dx-h3">${t('Te favorece', 'Flatters you')}</h3>${listaFavor(b.favorece[es])}</section>
       ${favor.length ? `<section class="dx-sec"><h3 class="dx-h3">${t('De tu clóset, lo que más te favorece', 'From your closet, what suits you most')}</h3>${fotosCloset(favor)}</section>` : ''}
