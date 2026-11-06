@@ -2024,7 +2024,7 @@ function pintarSubida() {
     const i = E.subida.indexOf(det), listo = det.estado === 'listo';
     const ops = (lista, sel, k, nom) => `<div class="ops">${lista.map(x => `<button type="button" class="${x === sel ? 'on' : ''}" data-s${k}="${x}">${nom(x)}</button>`).join('')}</div>`;
     raiz.innerHTML = `<div class="sb uno">${n === 1 ? X : `<button class="x" data-svolver aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>`}<div class="tit"><h1>${t('Revisa tu prenda', 'Check your garment')}</h1>${n > 1 ? `<div class="mini-et">${i + 1} ${t('de', 'of')} ${n}</div>` : ''}</div>
-      <div class="foto">${det.url && listo ? `<button type="button" class="s-recortar" data-srecortar aria-label="${t('Recortar la foto', 'Crop the photo')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/></svg></button>` : ''}${det.url ? `<img src="${det.url}" alt="">` : `<p class="s-procesando">${t('Quitando el fondo y reconociendo la prenda…', 'Removing the background and recognising the garment…')}</p>`}</div>
+      <div class="foto">${det.url && listo ? `<button type="button" class="s-recortar" data-srecortar aria-label="${t('Arreglar la foto: marca la prenda y le quito el fondo otra vez', 'Fix the photo: frame the garment and I remove the background again')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/></svg><span aria-hidden="true">${t('Arreglar foto', 'Fix photo')}</span></button>` : ''}${det.url ? `<img src="${det.url}" alt="">` : `<p class="s-procesando">${t('Quitando el fondo y reconociendo la prenda…', 'Removing the background and recognising the garment…')}</p>`}</div>
       ${listo && det.noPrenda && !det.siPrenda ? `<div class="s-aviso"><b>${t('Esta foto no parece una prenda', 'This photo does not look like a garment')}</b><span>${t('No coincide con ninguna categoría de ropa. Si es una captura, un texto u otra cosa, quítala.', 'It does not match any clothing category. If it is a screenshot, text or something else, remove it.')}</span><div><button class="boton" data-squita>${t('Quitarla', 'Remove it')}</button><button class="txt sub-l" data-ssi>${t('Sí es una prenda', 'It is a garment')}</button></div></div>` : ''}
       ${listo && det.dudoso && !(det.noPrenda && !det.siPrenda) ? `<div class="s-aviso"><b>${t('Revisa el recorte', 'Check the cut-out')}</b><span>${t('Puede que le falte un trozo o que le sobre fondo. Si es así, repite la foto con la prenda sobre algo de otro color, como una toalla o el suelo. También puedes guardarla y arreglarla después en su ficha, con «Editar».', 'It may be missing a piece or keep some background. If so, take the photo again with the garment on something of another colour, like a towel or the floor. You can also save it and fix it later in its page, with «Edit».')}</span></div>` : ''}
       ${listo && det.fondo && !det.dudoso && !(det.cv >= 3) && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso y el recorte puede salir con restos. Para un recorte limpio, haz la foto sobre un fondo de un solo color.', 'The background is not plain, so the cut-out may keep bits of it. For a clean cut-out, shoot on a single-colour background.')}</p>${reglasFoto()}` : ''}
@@ -2061,7 +2061,8 @@ function pintarSubida() {
     else if (d.sestp) { const propio = !NOMBRE_AUTO.test(det.nombre) && !/ (de rayas|de cuadros|de lunares|de flores|animal print|estampad[oa])$/.test(det.nombre); det.estampado = d.sestp; if (!propio && det.x && NOM_X[det.x]) det.nombre = nomEstampado(det.x, d.sestp, det.color2); pintarSubida(); }
     else if (d.scolor2) { const propio = !NOMBRE_AUTO.test(det.nombre) && !/ (de rayas|de cuadros|de lunares|de flores)( [a-záéíóú ]+)?$/.test(det.nombre); det.color2 = d.scolor2; if (!propio && det.x && NOM_X[det.x]) det.nombre = nomEstampado(det.x, det.estampado, det.color2); pintarSubida(); }
     // 06/11 (Gabriela: «el icono de recortar tiene que ser mientras estás subiendo, no después, porque me siguen saliendo los pies en un vestido negro corto»)
-    else if (d.srecortar !== undefined) { const k = det.usaOriginal ? 'original' : 'blob', r = await recortarAMano(det[k]); if (!r) return; det[k] = r; det.recMano = 1; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(r); pintarSubida(); }
+    else if (d.srecortar !== undefined) { if (det.usaOriginal) { const r = await recortarAMano(det.original); if (!r) return; det.original = r; det.recMano = 1; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(r); return pintarSubida(); }
+      const q = await arreglarFoto(det.original, det.blob); if (!q) return; det.blob = q.blob; det.cv = q.cv; det.recMano = 1; if (q.dudoso) det.dudoso = 1; else delete det.dudoso; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(q.blob); pintarSubida(); }
     else if (d.sgirar !== undefined) { b.disabled = true; det.blob = await girarBlob(det.blob); if (det.original) det.original = await girarBlob(det.original); URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(det.usaOriginal ? det.original : det.blob); pintarSubida(); }
     else if (d.sorig !== undefined) { det.usaOriginal = !det.usaOriginal; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(det.usaOriginal ? det.original : det.blob); pintarSubida(); }
   };
@@ -2152,14 +2153,22 @@ function enderezar(blob) {
   });
 }
 // marco con cuatro esquinas sobre la foto; devuelve el trozo elegido como JPEG
-function recortarAMano(blob) {
+// 06/11 (Gabriela: «el botón girar y recortar en las prendas que aún no se han estilizado no lo entiendo, funciona mal»): «Recortar» cortaba un rectángulo de la foto
+// ya sin fondo y la guardaba con fondo blanco (de ahí el cuadrado blanco en los looks). Ahora es un solo paso: se marca la prenda sobre la foto ORIGINAL y se le vuelve a
+// quitar el fondo (servidor). Devuelve lo de procesarPrenda, o null si se cancela.
+async function arreglarFoto(original, actual) {
+  const r = await recortarAMano(original instanceof Blob ? original : actual, t('Marca solo la prenda: deja fuera los pies, la cama y lo demás', 'Frame only the garment: leave out feet, bed and everything else')); if (!r) return null;
+  toast(t('Quitando el fondo…', 'Removing the background…'));
+  return procesarPrenda(r, { sinReconocer: true });
+}
+function recortarAMano(blob, titulo) {
   return new Promise(res => {
     const u = URL.createObjectURL(blob), cap = document.createElement('div'); cap.className = 'rc-capa';
-    cap.innerHTML = `<p class="mini-et">${t('Ajusta el marco a la prenda', 'Fit the frame to the garment')}</p><div class="rc-zona"><img src="${u}" alt=""><div class="rc-marco"><i data-c="tl"></i><i data-c="tr"></i><i data-c="bl"></i><i data-c="br"></i></div></div><div class="rc-bts"><button class="boton" data-rc="ok">${t('Recortar', 'Crop')}</button><button class="txt sub-l" data-rc="no">${t('Cancelar', 'Cancel')}</button></div>`;
+    cap.innerHTML = `<p class="mini-et">${titulo || t('Ajusta el marco a la prenda', 'Fit the frame to the garment')}</p><div class="rc-zona"><img src="${u}" alt=""><div class="rc-marco"><i data-c="tl"></i><i data-c="tr"></i><i data-c="bl"></i><i data-c="br"></i></div></div><div class="rc-bts"><button class="boton" data-rc="ok">${t('Recortar', 'Crop')}</button><button class="txt sub-l" data-rc="no">${t('Cancelar', 'Cancel')}</button></div>`;
     document.body.appendChild(cap);
     const img = cap.querySelector('img'), m = cap.querySelector('.rc-marco'); let r = null;
     const pinta = () => Object.assign(m.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
-    img.onload = () => { r = { x: img.offsetLeft + img.width * .08, y: img.offsetTop + img.height * .08, w: img.width * .84, h: img.height * .84 }; pinta(); };
+    img.onload = () => { r = { x: img.offsetLeft, y: img.offsetTop, w: img.width, h: img.height }; pinta(); }; // 06/11: empieza con la foto entera (antes un 8 % hacia dentro: si se aceptaba sin tocar, cortaba la prenda)
     let arr = null;
     m.onpointerdown = e => { e.preventDefault(); m.setPointerCapture(e.pointerId); arr = { c: e.target.dataset.c || 'mover', x: e.clientX, y: e.clientY, r: { ...r } }; };
     m.onpointermove = e => {

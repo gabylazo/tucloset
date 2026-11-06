@@ -10,6 +10,7 @@ const Motor = (() => {
   // palabra que termina en $ = palabra completa; si no, prefijo de palabra
   const re = w => { const q = norm(w), entera = q.endsWith('$'), t = entera ? q.slice(0, -1) : q; return new RegExp('(^|[^a-z0-9])' + esc(t) + (entera ? '($|[^a-z0-9])' : '')); };
   // ropa de deporte (Gabriela, 06/11: «hay minifaldas que son de deporte»): por el nombre o por el detalle «Deporte» de la subida
+  const TOP_ESP = /lencer|peplum|halter|cruzad|volant|babydoll|encaje|saten|seda/;
   const DEPORTE_RE = /(^|[^a-z0-9])(deporte|deportiv|tenis|padel|running|yoga|pilates|gimnasio|gym|fitness|entreno|entrenamiento)/;
   const A_DEPORTE = { falda_mini: 'falda_deportiva', falda_midi: 'falda_deportiva', falda_plisada: 'falda_deportiva', falda_generica: 'falda_deportiva', camiseta: 'camiseta_tecnica', camiseta_tirantes: 'top_deportivo', top: 'top_deportivo', top_corto: 'top_deportivo', chaqueta: 'chaqueta_deportiva', pantalon_generico: 'jogger' };
   const SUB_EST = { pantalon_de_vestir: 'pantalon_vestir', camiseta_sin_mangas: 'camiseta_tirantes' }; // el vocabulario de la ficha de la estilista (28/10)
@@ -50,7 +51,9 @@ const Motor = (() => {
   function inferir(p, perfil = {}) {
     const I = R.inferencia, nom = norm((p.nombre || '') + ' ' + (p.x || '')), est = p.est || {}, buscar = txt => txt && I.subtipos.find(s => s.tiposApp.includes(p.tipo) && s.re.some(r => r.test(txt)));
     // manda el nombre; lo reconocido en la foto (p.x, en inglés) solo afina si el nombre no dice el tipo: «Pantalón negro» + wide leg pants
-    let sub = buscar(norm(p.nombre)); if (!sub || COMODIN[sub.id]) sub = buscar(norm(p.x)) || sub;
+    let sub = buscar(norm(p.nombre)); if (!sub || (COMODIN[sub.id] && !(sub.id === 'top' && TOP_ESP.test(norm(p.nombre))))) sub = buscar(norm(p.x)) || sub;
+    // 06/11: un top de tirantes o una camiseta con volantes, encaje, satén… es un top arreglado, no una camiseta básica (no va a deporte ni cuenta como básico)
+    if (sub && ['camiseta_tirantes', 'camiseta'].includes(sub.id) && TOP_ESP.test(norm((p.nombre || '') + ' ' + (p.detalles || []).join(' ')))) sub = I.subtipos.find(s => s.id === 'top') || sub;
     let conSub = !!sub;
     const dicho = est.sub && I.subtipos.find(s => s.id === (SUB_EST[est.sub] || est.sub));
     if (dicho && !(sub && (sub.id.startsWith(dicho.id) || (dicho.id === 'camiseta' && sub.id === 'henley')))) { sub = dicho; conSub = true; }
@@ -259,8 +262,21 @@ const Motor = (() => {
   }
   // 06/11 (Gabriela: «¿cómo va a combinar una camiseta con un short de deporte y las alpargatas?»): la ropa de deporte (detalle «Deporte» o nombre) solo va en fórmulas de deporte
   const soloDeporte = f => f.uso === 'deporte' && ['arriba', 'abajo', 'vestido', 'capa'].includes(f.cat);
+  // 06/11 (Gabriela: «¿cómo vas a combinar un short de deporte con un top de verano rosa de volantes?»): al revés también; un look de deporte solo lleva ropa de deporte
+  // o básicos lisos de algodón (camiseta, sudadera); nada con volantes, encaje, brillo, transparencias… Abajo, siempre ropa de deporte; la capa, deportiva o de abrigo técnico.
+  const ARREGLADO_RE = /volant|encaje|lencer|sat[eé]n|seda|lentejuel|transparen|terciopelo|brillo|peplum|halter|palabra de honor|asim[eé]tric|ganchillo|crochet|cors[eé]|fruncid|drapead|lazo|lunares|flores|cuadros|rayas/;
+  const aptoDeporte = p => { const f = p._f; if (f.uso === 'deporte') return true; const n = norm((p.p.nombre || '') + ' ' + (p.p.detalles || []).join(' ') + ' ' + (p.p.notas || ''));
+    if (f.cat === 'abajo') return ['jogger', 'malla', 'falda_deportiva'].includes(f.subtipo);
+    if (f.cat === 'capa') return ['chaqueta_deportiva', 'forro_polar', 'sudadera', 'plumifero', 'cortavientos'].includes(f.subtipo);
+    if (f.cat === 'arriba') return ['camiseta_tecnica', 'top_deportivo', 'sudadera'].includes(f.subtipo) || (['camiseta', 'camiseta_tirantes', 'henley'].includes(f.subtipo) && !ARREGLADO_RE.test(n) && f.form <= 3 && f.largo !== 'crop');
+    return f.cat !== 'vestido'; };
+  // 06/11 (Gabriela: «siguen habiendo combinaciones espantosas»): la temperatura de cada prenda era solo un descuento de puntos (K15) y salían tops de verano bajo un abrigo
+  // de paño o sandalias a 12°. Ahora es fija: lo que está a más de 3° de su rango (el de su estación, o el de su tipo) no entra en el look de hoy.
+  const vaHoy = (p, ctx) => { const f = p._f; return !((f.tmin != null && ctx.t_ref < f.tmin - 3) || (f.tmax != null && ctx.t_ref > f.tmax + 3)); };
   function rellenar(formula, ents, zapatos, ctx, pf, hoy, cacheP) {
-    if (!formula.ocasiones.includes('Deporte')) ents = ents.filter(p => !soloDeporte(p._f));
+    const dep = formula.ocasiones.includes('Deporte');
+    ents = ents.filter(p => vaHoy(p, ctx) && (dep ? aptoDeporte(p) : !soloDeporte(p._f)));
+    const zHoy = zapatos.filter(p => p.muestra || vaHoy(p, ctx)); if (zHoy.length) zapatos = zHoy;
     const H = r => formula.huecos.filter(h => h.rol === r), salida = [], parejas = [];
     const [hv] = H('vestido');
     if (hv) for (const v of cands(hv, ents)) parejas.push({ vestido: v, n: 0 });
