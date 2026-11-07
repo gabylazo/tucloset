@@ -27,7 +27,33 @@ const BD = (() => {
       if (v && v.__bytes instanceof ArrayBuffer) r[k] = new Blob([v.__bytes], { type: v.t || 'image/jpeg' });
       else if (v instanceof Blob) { try { await v.slice(0, 16).arrayBuffer(); } catch (e) { delete r[k]; } } // guardada a la antigua y ya perdida
     } return r; };
-  return { cerrar: () => { if (db) db.close(); db = null; }, get: k => op('readonly', s => s.get(k)).then(v => CRUDO.has(k) ? deBytes(v) : v), set: async (k, v) => { if (CRUDO.has(k)) v = await aBytes(v); return op('readwrite', s => s.put(v, k)); }, del: k => op('readwrite', s => s.delete(k)), claves: () => op('readonly', s => s.getAllKeys()) };
+  // 07/11 (Gabriela: «las fotos siguen sin cargar en el móvil; la app debería guardarlas, no depender de nada»): las fotos de las prendas, igual. Cada foto va a su propia
+  // clave («f:<prenda>:<campo>») como bytes, y solo cuando cambia (las ya guardadas se recuerdan en GUARDADAS); la lista de prendas lleva solo la referencia. Las que se
+  // guardaron a la antigua y Safari perdió las sigue arreglando repararFotos (las baja de la nube) y, desde ahí, se guardan ya como bytes
+  const GUARDADAS = new WeakMap(), CAMPOS_FOTO = new Set(); let cola = Promise.resolve();
+  const opMuchas = (modo, f) => abrir().then(d => new Promise((res, rej) => { const tx = d.transaction('kv', modo); const r = f(tx.objectStore('kv')); tx.oncomplete = () => res(r); tx.onerror = () => rej(tx.error); }));
+  async function ponerPrendas(lista) {
+    const nuevas = [], fuera = [], arr = [];
+    for (const p of lista || []) { const q = { ...p };
+      for (const [c, v] of Object.entries(p)) if (v instanceof Blob) { const k = `f:${p.id}:${c}`; CAMPOS_FOTO.add(c);
+        if (GUARDADAS.get(v) !== k) { try { nuevas.push([k, { __bytes: await v.arrayBuffer(), t: v.type }, v]); } catch (e) { q[c] = v; continue; } } // perdida: se queda como estaba
+        q[c] = { __ref: k }; }
+      arr.push(q); }
+    const usadas = new Set(arr.flatMap(q => Object.values(q).filter(v => v && v.__ref).map(v => v.__ref)));
+    await opMuchas('readwrite', st => { for (const [k, v] of nuevas) st.put(v, k); st.put(arr, 'prendas'); const q = st.getAllKeys(); q.onsuccess = () => { for (const k of q.result) if (typeof k === 'string' && k.startsWith('f:') && !usadas.has(k)) st.delete(k); }; });
+    for (const [k, , b] of nuevas) GUARDADAS.set(b, k);
+  }
+  async function leerPrendas(arr) {
+    if (!Array.isArray(arr)) return arr;
+    const refs = arr.flatMap(p => Object.values(p).filter(v => v && v.__ref).map(v => v.__ref)), bytes = {};
+    if (refs.length) await opMuchas('readonly', st => { for (const k of refs) { const q = st.get(k); q.onsuccess = () => { bytes[k] = q.result; }; } });
+    return arr.map(p => { const q = { ...p };
+      for (const [c, v] of Object.entries(p)) if (v && v.__ref) { const b = bytes[v.__ref]; if (b && b.__bytes instanceof ArrayBuffer) { q[c] = new Blob([b.__bytes], { type: b.t || 'image/jpeg' }); GUARDADAS.set(q[c], v.__ref); } else delete q[c]; }
+      return q; });
+  }
+  return { cerrar: () => { if (db) db.close(); db = null; }, get: k => op('readonly', s => s.get(k)).then(v => k === 'prendas' ? leerPrendas(v) : CRUDO.has(k) ? deBytes(v) : v),
+    // en cola: pasar fotos a bytes lleva su tiempo y un guardado viejo no puede pisar a uno más nuevo
+    set: (k, v) => (cola = cola.catch(() => { }).then(async () => { if (k === 'prendas') return ponerPrendas(v); if (CRUDO.has(k)) v = await aBytes(v); return op('readwrite', s => s.put(v, k)); })), del: k => op('readwrite', s => s.delete(k)), claves: () => op('readonly', s => s.getAllKeys()) };
 })();
 
 /* ---------- estado ---------- */
@@ -223,6 +249,10 @@ async function subirNube(reintento) {
         if (p.foto && !p.fotoRota && !p.fCat && p.fotoSub !== firma(p.foto)) { try { await subirFoto('/api/foto/' + p.id, p.foto); p.fotoSub = firma(p.foto); p.nube = Date.now().toString(36); cambio = true; } catch (e) { if (/^leer /.test(e?.message || '')) { p.fotoRota = 1; cambio = true; } fallos++; avisarFallo('foto', e, p.foto); } } // nube = marca de la versión subida; fotoSub = qué foto local se subió
         if (p.original && !p.originalRota && !p.fCat && p.fotoSubO !== firma(p.original)) { try { await subirFoto('/api/foto/' + p.id + '-o', p.original); p.fotoSubO = firma(p.original); p.nubeO = Date.now().toString(36); cambio = true; } catch (e) { if (/^leer /.test(e?.message || '')) { p.originalRota = 1; cambio = true; } avisarFallo('original', e, p.original); } }
       }
+      // 07/11 (Gabriela: «la app debería guardarlas, no depender de nada»; «en el Mac tampoco aparece ninguna foto del análisis»): con «Guardar mis fotos en mi cuenta»,
+      // la selfie, la foto de cuerpo y el avatar van también a su cuenta (privadas: solo se piden con su sesión) y vuelven a cualquier móvil u ordenador donde entre
+      { const pf = E.perfil || {}; if (pf.fotosCuenta) for (const k of FOTOS_DIAG) if (pf[k] instanceof Blob && pf[k + 'Sub'] !== firma(pf[k]) && LS.get('tc_bajada_' + k) !== firma(pf[k])) {
+        try { await subirFoto('/api/foto/diag-' + k, pf[k]); pf[k + 'Sub'] = firma(pf[k]); cambio = true; await BD.set('perfil', E.perfil); } catch (e) { fallos++; } } }
       if (cambio) { await BD.set('prendas', E.prendas); d = await ponerDatos(); if (!d) { if (reintento) throw new Error('datos 409'); await bajarNube(); nubeEnCurso = null; return subirNube(true); } }
       E.nube = { estado: fallos ? 'error' : 'ok', cuando: d.actualizado };
     } catch (e) { E.nube.estado = 'error'; avisarFallo('datos', e); }
@@ -309,6 +339,18 @@ document.addEventListener('error', e => {
   for (const [id, u] of [...urls, ...urlsCat]) if (u === im.src) fotosMal.add(id);
   if (!fotosMal.size) return; clearTimeout(fotosMalT); fotosMalT = setTimeout(() => { const ids = fotosMal; fotosMal = new Set(); repararFotos(ids).catch(() => { }); }, 800);
 }, true);
+const FOTOS_DIAG = ['selfie', 'cuerpo', 'avatar'];
+async function bajarFotosDiag() { // las que faltan en este móvil u ordenador y están en su cuenta; lo bajado no se vuelve a subir (tc_bajada_*)
+  const pf = E.perfil || {}; if (!pf.fotosCuenta || !cuenta()) return; let hay = false;
+  for (const k of FOTOS_DIAG) if (!(pf[k] instanceof Blob) && pf[k + 'Sub']) {
+    try { const r = await api('/api/foto/diag-' + k, { tiempo: 30000 }); if (r.ok) { const b = await r.blob(); if (b.size > 1000) { pf[k] = b; LS.set('tc_bajada_' + k, firma(b)); hay = true; } } } catch (e) { } }
+  if (hay) { await BD.set('perfil', E.perfil); if (E.pantalla === 'yo') pintarYo(); }
+}
+async function fotosEnCuenta(si) {
+  const pf = E.perfil = E.perfil || {}; pf.fotosCuenta = !!si;
+  if (!si) { for (const k of FOTOS_DIAG) { if (pf[k + 'Sub']) api('/api/foto/diag-' + k, { method: 'DELETE' }).catch(() => { }); delete pf[k + 'Sub']; } }
+  await guardar(); programarNube(); if (si) bajarFotosDiag();
+}
 async function bajarNube() {
   if (!cuenta()) return false;
   const r = await api('/api/datos', { tiempo: 30000 }); if (!r.ok) return false;
@@ -342,7 +384,7 @@ async function bajarNube() {
   E.perfil = { ...(doc.perfil || {}), ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => v instanceof Blob || (k === 'medidas' && v && Object.keys(v).length) || (mio && ['diag', 'tipoCuerpo'].includes(k)))) }; // fotos y medidas: solo en el móvil
   if (mio && pl.colores?.fuente === 'foto') E.perfil.colores = { ...(E.perfil.colores || {}), est: pl.colores.est, sub: pl.colores.sub, fuente: 'foto' };
   LS.set('tc_nube_ver', version); LS.set('tc_nube_ids', JSON.stringify((doc.prendas || []).map(p => p.id)));
-  await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda);
+  await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda); bajarFotosDiag();
   if (estacionesAuto()) await guardar(); // 0.101: estación por tipo, también para lo que llega de otros móviles
   E.propuestas = []; E.generados = []; E.nubeBajada = true; return true;
 }
@@ -2942,7 +2984,8 @@ async function crearAvatar() {
 }
 async function borrarAvatar() {
   if (!await confirmar(t('¿Borrar tu avatar?', 'Delete your avatar?'), t('Se borra de este móvil, con los looks que te has visto puestos.', 'It is deleted from this phone, with the looks you tried on.'), t('Borrar', 'Delete'))) return;
-  ['avatar', 'avatarAR', 'avatarDe', 'avatarF'].forEach(k => delete E.perfil[k]); E.puestos = {}; await BD.set('puestos', {}); await guardar(); pintarYo();
+  if (E.perfil.avatarSub) api('/api/foto/diag-avatar', { method: 'DELETE' }).catch(() => { });
+  ['avatar', 'avatarAR', 'avatarDe', 'avatarF', 'avatarSub'].forEach(k => delete E.perfil[k]); E.puestos = {}; await BD.set('puestos', {}); await guardar(); pintarYo();
 }
 // el look puesto: el avatar y hasta 6 prendas (primero lo que se ve más), con la foto de catálogo si la hay; lo ya hecho sale de este móvil sin gastar
 async function puestoEnMi(ps, como, otra) {
@@ -3008,7 +3051,9 @@ function panelDiagFotos() {
       <details class="dx-mas"><summary>${t('Cómo hacer las fotos', 'How to take the photos')}</summary><div class="dx-cons">${consejos.map(([h, l]) => `<div><h3>${h}</h3><ul>${l.map(x => `<li>${IC_BIEN}${x}</li>`).join('')}</ul></div>`).join('')}</div></details></section>
     <div class="dg-estado" id="dg-estado" aria-live="polite"></div>
     <button class="boton dx-boton" id="dg-analizar" ${pf.selfie || pf.cuerpo || firmaMed() ? '' : 'disabled'}>${t('Analizar', 'Analyse')}</button>
-    <p class="dx-priv">${IC_CANDADO}${t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`, cap => {
+    ${cuenta() ? `<label class="dx-cuenta"><input type="checkbox" id="dg-cuenta" ${pf.fotosCuenta ? 'checked' : ''}><span>${t('Guardar mis fotos en mi cuenta', 'Keep my photos in my account')}</span></label>` : ''}
+    <p class="dx-priv" id="dg-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer') : t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`, cap => {
+    const ck = cap.querySelector('#dg-cuenta'); if (ck) ck.onchange = async () => { await fotosEnCuenta(ck.checked); cap.querySelector('#dg-priv').innerHTML = IC_CANDADO + (ck.checked ? t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer') : t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')); };
     const LIM = { altura: [120, 220], peso: [30, 250], pecho: [60, 170], cintura: [45, 170], cadera: [60, 180] }; let medT = 0;
     cap.querySelectorAll('[data-med]').forEach(inp => {
       const l = cap.querySelector(`.dx-l[data-l="${inp.dataset.med}"]`);

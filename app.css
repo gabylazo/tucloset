@@ -1673,3 +1673,6 @@ html{touch-action:manipulation}
 .dx-mas.dx-peq summary{font-size:13px;color:var(--sec);min-height:44px}
 .dx-mas.dx-peq .dx-det{font-size:13px}
 .dx-mas.dx-peq .dx-enl{font-size:14px}
+/* 07/11: «Guardar mis fotos en mi cuenta» en Tus medidas y tus fotos */
+.dx-cuenta { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; margin: 14px 0 0; font-size: 15px; color: var(--tinta); cursor: pointer; }
+.dx-cuenta input { width: 20px; height: 20px; accent-color: var(--tinta); margin: 0; }

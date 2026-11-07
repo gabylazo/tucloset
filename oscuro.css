@@ -808,6 +808,8 @@ html.oscuro #p-estilo .es-insp-res{color:var(--tinta)}
 html.oscuro #p-estilo .es-insp-res button,html.oscuro #p-estilo .es-insp-entrar{background:none;border:0;border-bottom:1px solid var(--oro);color:var(--tinta)}
 html.oscuro .dx-mas.dx-peq{border-top:0}
 html.oscuro .dx-mas.dx-peq summary{color:var(--sec)}
+html.oscuro .dx-cuenta{color:var(--tinta)}
+html.oscuro .dx-cuenta input{accent-color:var(--tinta)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}
@@ -1012,4 +1014,21 @@ html.at.oscuro .at-cel.sin-cat, html.at.oscuro .at-foto.sin-cat, html.at.oscuro 
 html.at.oscuro .at-cel.sin-cat img, html.at.oscuro .at-foto.sin-cat img { mix-blend-mode: multiply; filter: none; }
 /* 07/11: el look puesto en el avatar, con el mismo filo de luz que las prendas */
 html.at.oscuro .at-puesto img, html.at.oscuro .av-img img { filter: drop-shadow(0 0 .7px rgba(241, 233, 222, .55)) drop-shadow(0 0 7px rgba(241, 233, 222, .07)); }
+/* 07/11 (Gabriela: «en el modo oscuro los fondos de la ropa son pésimos, hay que trabajar en varias alternativas, investiga»): cuatro fondos para elegir, con ?fondo=1…4
+   (se guarda en este móvil, tc_fondo; ?fondo=0 vuelve al de ahora). 1 Foco: la prenda bajo un foco cálido, con sombra de verdad; 2 Piedra: tarjeta de tono medio;
+   3 Lino: tarjeta clara apagada, como papel de embalar; 4 Sin tarjeta: la ropa sobre la noche, con sombra, y un foco suave detrás del look de Hoy */
+html.at.oscuro[data-fondo="1"] { --baldosa: #2A2019; }
+html.at.oscuro[data-fondo="1"] :is(.at-hoy .at-look, .at-bal, .at-cel:not(.sin-cat), .at-foto:not(.sin-cat), .dx-closet button, .av-img) { background: radial-gradient(ellipse 72% 62% at 50% 46%, #514034 0%, #33281F 58%, #231A14 100%); }
+html.at.oscuro[data-fondo="2"] { --baldosa: #5E5046; }
+html.at.oscuro[data-fondo="2"] :is(.at-hoy .at-look, .at-bal, .at-cel:not(.sin-cat), .at-foto:not(.sin-cat), .dx-closet button, .av-img) { background: #5E5046; }
+html.at.oscuro[data-fondo="3"] { --baldosa: #DCD2C6; }
+html.at.oscuro[data-fondo="3"] :is(.at-hoy .at-look, .at-bal, .at-cel, .at-foto, .dx-closet button, .av-img) { background: #DCD2C6; }
+html.at.oscuro[data-fondo="3"] .at-barra-sup:has(+ .at-foto) button { color: #4A3526; }
+html.at.oscuro[data-fondo="4"] { --baldosa: transparent; }
+html.at.oscuro[data-fondo="4"] :is(.at-bal, .at-cel:not(.sin-cat), .at-foto:not(.sin-cat), .dx-closet button, .av-img) { background: transparent; }
+html.at.oscuro[data-fondo="4"] .at-hoy .at-look { background: radial-gradient(ellipse 60% 55% at 50% 48%, rgba(241, 233, 222, .09), transparent 70%); }
+html.at.oscuro[data-fondo="1"] :is(.at-lz .pz, .at-lz img, .at-bal img, .at-cel:not(.sin-cat) img, .at-foto:not(.sin-cat) img, #nl-prendas img, .at-cap-p img, .dx-closet img, .at-puesto img, .av-img img) { filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .5)); }
+html.at.oscuro[data-fondo="2"] :is(.at-lz .pz, .at-lz img, .at-bal img, .at-cel:not(.sin-cat) img, .at-foto:not(.sin-cat) img, #nl-prendas img, .at-cap-p img, .dx-closet img, .at-puesto img, .av-img img) { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .35)); }
+html.at.oscuro[data-fondo="3"] :is(.at-lz .pz, .at-lz img, .at-bal img, .at-cel img, .at-foto img, #nl-prendas img, .at-cap-p img, .dx-closet img, .at-puesto img, .av-img img) { filter: none; }
+html.at.oscuro[data-fondo="4"] :is(.at-lz .pz, .at-lz img, .at-bal img, .at-cel:not(.sin-cat) img, .at-foto:not(.sin-cat) img, #nl-prendas img, .at-cap-p img, .dx-closet img, .at-puesto img, .av-img img) { filter: drop-shadow(0 0 1px rgba(241, 233, 222, .4)) drop-shadow(0 10px 16px rgba(0, 0, 0, .65)); }
 
