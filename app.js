@@ -16,7 +16,18 @@ const BD = (() => {
     r.onerror = () => rej(r.error);
   });
   const op = (modo, f) => abrir().then(d => new Promise((res, rej) => { const tx = d.transaction('kv', modo); const q = f(tx.objectStore('kv')); tx.oncomplete = () => res(q.result); tx.onerror = () => rej(tx.error); }));
-  return { cerrar: () => { if (db) db.close(); db = null; }, get: k => op('readonly', s => s.get(k)), set: (k, v) => op('readwrite', s => s.put(v, k)), del: k => op('readwrite', s => s.delete(k)), claves: () => op('readonly', s => s.getAllKeys()) };
+  // 07/11 (Gabriela: «en el móvil las fotos no se cargan, las del diagnóstico»): Safari pierde los ficheros (Blob) guardados en IndexedDB («The object can not be
+  // found here»; su móvil rehízo 107 fotos de prendas dos veces en 40 min). Las prendas se recuperan de la nube, pero la selfie, la foto de cuerpo, el avatar y los
+  // looks puestos solo viven aquí: se guardan como bytes dentro del registro, que Safari no pierde. Al leer, una foto que ya no se puede abrir se quita (se pide otra vez)
+  const CRUDO = new Set(['perfil', 'puestos']);
+  const aBytes = async o => { if (!o || typeof o !== 'object') return o; const r = { ...o };
+    for (const [k, v] of Object.entries(o)) if (v instanceof Blob) { try { r[k] = { __bytes: await v.arrayBuffer(), t: v.type }; } catch (e) { delete r[k]; } } return r; };
+  const deBytes = async o => { if (!o || typeof o !== 'object') return o; const r = { ...o };
+    for (const [k, v] of Object.entries(o)) {
+      if (v && v.__bytes instanceof ArrayBuffer) r[k] = new Blob([v.__bytes], { type: v.t || 'image/jpeg' });
+      else if (v instanceof Blob) { try { await v.slice(0, 16).arrayBuffer(); } catch (e) { delete r[k]; } } // guardada a la antigua y ya perdida
+    } return r; };
+  return { cerrar: () => { if (db) db.close(); db = null; }, get: k => op('readonly', s => s.get(k)).then(v => CRUDO.has(k) ? deBytes(v) : v), set: async (k, v) => { if (CRUDO.has(k)) v = await aBytes(v); return op('readwrite', s => s.put(v, k)); }, del: k => op('readwrite', s => s.delete(k)), claves: () => op('readonly', s => s.getAllKeys()) };
 })();
 
 /* ---------- estado ---------- */
@@ -2693,6 +2704,7 @@ const IC_Y = {
   cuenta: '<circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c1.2-3.6 3.8-5.4 7-5.4s5.8 1.8 7 5.4"/>',
   plan: '<path d="M12 3.8l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.6l-5 2.6.9-5.6-4-3.9 5.6-.8z"/>',
   ciudad: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  modo: '<path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/>',
   idioma: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5s1.2-6.1 3.6-8.5z"/>',
   avisos: '<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   privacidad: '<rect x="5.5" y="10.5" width="13" height="9.5" rx="1"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
@@ -2711,6 +2723,14 @@ const IC_Y = {
   ok: '<path d="m5 12.5 4.5 4.5L19 7.5"/>'
 };
 const icY = k => `<svg class="pn-ic" viewBox="0 0 24 24" aria-hidden="true">${IC_Y[k] || ''}</svg>`;
+// 07/11 (Gabriela: «en Yo no me sale cambiar a modo oscuro»): el interruptor del modo oscuro en Yo → Ajustes; se guarda en este móvil (tc_modo) y se aplica al momento
+function cambiarModo() {
+  const on = !document.documentElement.classList.contains('oscuro'); try { localStorage.setItem('tc_modo', on ? 'oscuro' : 'claro'); } catch (e) { }
+  if (on && !document.querySelector('link[href^="oscuro.css"]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'oscuro.css?v=' + (document.querySelector('script[src^="app.js"]')?.src.split('v=')[1] || ''); document.head.append(l); }
+  document.documentElement.classList.toggle('oscuro', on);
+  const tc = document.querySelector('meta[name="theme-color"]'), cs = document.querySelector('meta[name="color-scheme"]'); if (tc) tc.content = on ? '#1A1410' : '#FFFFFF'; if (cs) cs.content = on ? 'dark' : 'only light';
+  pintarPanelYo();
+}
 const filaP = ({ id, attr = '', ic, tit, val = '', rojo, flecha = true, apagada, oro, tag = 'button' }) => `<${tag} class="pn-f${rojo ? ' rojo' : ''}${apagada ? ' apagada' : ''}"${id ? ` id="${id}"` : ''} ${attr}>${ic ? icY(ic) : ''}<span class="pn-t">${tit}</span>${val !== '' ? `<span class="pn-v${oro ? ' oro' : ''}">${val}</span>` : ''}${flecha ? '<svg class="pn-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>' : ''}</${tag}>`;
 const grupoP = (tit, filas, nota) => `<section class="pn-g">${tit ? `<h2 class="pn-gt">${tit}</h2>` : ''}<div class="pn-c">${filas}</div>${nota ? `<p class="pn-nota">${nota}</p>` : ''}</section>`;
 function abrirPanel(tit, html, enlazar) {
@@ -2730,6 +2750,7 @@ function pintarPanelYo() {
     + grupoP(t('Ajustes', 'Settings'),
       filaP({ attr: 'data-diag="fotos"', ic: 'medidas', tit: t('Medidas y fotos', 'Measurements and photos'), val: pf.selfie && pf.cuerpo ? t('2 fotos', '2 photos') : pf.selfie || pf.cuerpo ? t('1 foto', '1 photo') : '' })
       + filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
+      + filaP({ id: 'yo-modo', ic: 'modo', tit: t('Modo oscuro', 'Dark mode'), val: document.documentElement.classList.contains('oscuro') ? t('Sí', 'On') : t('No', 'Off'), flecha: false })
       + filaP({ id: 'yo-idioma', ic: 'idioma', tit: t('Idioma', 'Language'), val: es ? 'English' : 'Español' })
       + filaP({ id: 'yo-avisos', ic: 'avisos', tit: t('Notificaciones', 'Notifications'), val: t('Pronto', 'Soon'), flecha: false, apagada: true }))
     + grupoP(t('Privacidad y datos', 'Privacy and data'),
@@ -2742,7 +2763,7 @@ function pintarPanelYo() {
       + filaP({ id: 'yo-closet', ic: 'probar', tit: t('Clóset', 'Closet'), val: CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes'), flecha: false })
       + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))
       + `</div></details>`;
-  $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
+  $('yo-modo').onclick = cambiarModo; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
   $('yo-avisos').onclick = () => toast(t('Las notificaciones llegarán con la app del móvil', 'Notifications will come with the mobile app'));
   $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
