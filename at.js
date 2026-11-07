@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.194'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.195'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -62,6 +62,7 @@ if (AT) (() => {
     cal: svg('<rect x="4" y="5.5" width="16" height="14" rx="1"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>'),
     recorte: svg('<path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/>'),
     deshacer: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'),
+    cerrar: svg('<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>'),
   };
 
   /* ---------- barra de abajo: cinco secciones, en mayúsculas pequeñas; la activa, en nogal y con los dos agujeros ---------- */
@@ -231,26 +232,60 @@ if (AT) (() => {
   /* ---------- 07/11, «Puesto en mí» (Pro, con avatar; Gabriela: «subiendo dos fotos te hagan todo el análisis y el avatar»): el look se ve puesto en tu avatar
      en lugar del collage; otra vez el mismo botón, vuelve el collage. Lo ya hecho sale del móvil al momento; lo nuevo tarda unos 20 segundos ---------- */
   const botonPuesto = () => planDemo() === 'pro' && tieneAvatar() ? `<button class="at-puestob" data-puesto aria-pressed="false" aria-label="${t('Verlo puesto en mí', 'See it on me')}">${IC_PUESTO}</button>` : '';
-  async function verPuesto(b, zona, ps, como, otra) {
-    const fig = zona?.querySelector('.at-look'); if (!fig) return;
+  // 07/11 (Gabriela: «quiero que el avatar, cuando se pruebe una ropa, se quede ahí fijo»): si lo dejas puesto, al pasar de look sigue puesto; lo ya probado sale del
+  // móvil al momento y lo que no te has probado se queda en collage hasta que toques la figura (no se pide solo, para no gastar). Lo último probado se queda en Yo → Tu avatar
+  async function verPuesto(b, zona, ps, como, otra, auto) {
+    let fig = zona?.querySelector('.at-look'); if (!fig) return;
     let capa = zona.querySelector('.at-puesto');
-    if (b.getAttribute('aria-pressed') === 'true' && !otra) { capa?.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); return; }
+    if (b.getAttribute('aria-pressed') === 'true' && !otra && !auto) { capa?.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); LS.set('tc_ver_avatar', null); return; }
     if (b.classList.contains('cargando')) return;
+    let r = null;
+    if (auto) { r = await puestoEnMi(ps, como, false, true); fig = zona.querySelector('.at-look'); if (!r.blob || !fig || !zona.isConnected || b.getAttribute('aria-pressed') === 'true') return; capa = zona.querySelector('.at-puesto'); }
+    else LS.set('tc_ver_avatar', '1');
     const alto = fig.offsetHeight || capa?.offsetHeight || 320;
     if (!capa) { capa = document.createElement('div'); capa.className = 'at-puesto'; fig.after(capa); }
-    capa.style.height = alto + 'px'; capa.innerHTML = `<p class="at-puesto-esp" role="status">${t('Vistiéndote…', 'Dressing you…')}</p>`; fig.style.display = 'none';
-    b.setAttribute('aria-pressed', 'true'); b.classList.add('cargando');
-    const r = await puestoEnMi(ps, como, otra); b.classList.remove('cargando');
+    capa.style.height = alto + 'px'; if (!r) capa.innerHTML = `<p class="at-puesto-esp" role="status">${t('Vistiéndote…', 'Dressing you…')}</p>`; fig.style.display = 'none';
+    b.setAttribute('aria-pressed', 'true');
+    if (!r) { b.classList.add('cargando'); r = await puestoEnMi(ps, como, otra); b.classList.remove('cargando'); }
     if (!capa.isConnected) return;
-    if (r.error) { capa.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); return toast(r.error); }
+    if (r.error) { capa.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); LS.set('tc_ver_avatar', null); return toast(r.error); }
     capa.innerHTML = `<img src="${URL.createObjectURL(r.blob)}" alt="${t('Tú con este look', 'You wearing this look')}"><button class="at-enlace at-puesto-otra">${t('No se parece: otra vez', 'Not right: try again')}</button>`;
     capa.querySelector('.at-puesto-otra').onclick = e => { e.stopPropagation(); verPuesto(b, zona, ps, como, true); };
+  }
+
+  /* ---------- 07/11 (Gabriela: «una opción de elegir una prenda que quieras ponerte sí o sí, y que la app te cree un outfit con esa pieza, o te proponga varios»): en Hoy,
+     «Con una prenda»: la eliges y los looks salen todos con ella; primero hasta 3 para la ocasión de hoy y luego para las demás en que encaja, hasta 6. Con el tiempo de
+     hoy; si así no sale (un top de verano en noviembre), con el de su estación, y se dice ---------- */
+  const looksConPrenda = (p, oc0) => {
+    const f = Motor.ficha(p), min = Motor.R.puntos.umbrales.pasable, w = E.tiempo?.t != null ? E.tiempo : { t: 18, max: 21, min: 12 }, g = E.perfil?.gustos;
+    const ocs = [...new Set([oc0, ...Motor.ocasionesDe(p)].filter(o => o && o !== 'Todos'))];
+    const m = Math.round((Math.max(f.tmin ?? 5, 5) + Math.min(f.tmax ?? 28, 28)) / 2), tiempos = [w, ...(Math.abs(m - w.t) >= 4 ? [{ t: m, max: m + 3, min: m - 6 }] : [])];
+    // de su misma categoría solo entra ella (si no, el motor prueba antes otras parejas y la elegida casi no llega)
+    const pool = activas().filter(x => x.id === p.id || Motor.ficha(x).cat !== f.cat), vistos = new Set(), out = [];
+    for (const tiempo of tiempos) { if (out.length >= 2) break;
+      for (const plan of ocs) { if (out.length >= 6) break;
+        const r = Motor.looks({ prendas: pool, tiempo, plan, perfil: E.perfil, n: 8, hoy: hoyISO(), ...(plan === 'Noche' ? { hora: 20 } : {}), excluir: g?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], depurar: true, complementos: ['bolso', 'accesorio'].includes(f.cat) });
+        const ls = (r.todos || []).filter(l => !l.veto.duros.length && !l.casi && l.nota >= min && Motor.claveLook(l).split(',').includes(p.id) && !vistos.has(Motor.claveLook(l))).sort((a, b) => b.nota - a.nota);
+        let n = 0; for (const l of ls) { if (n >= 3 || out.length >= 6) break; const x = Motor.aPropuesta(l); if (!deVerdad(plan, [x]).length) continue;
+          vistos.add(Motor.claveLook(l)); out.push({ ...x, tipo: 'con', ocasion: plan, conT: tiempo === w ? null : tiempo.t }); n++; }
+      } }
+    return out;
+  };
+  window.atPrueba.looksConPrenda = looksConPrenda;
+  function elegirPrendaHoy() {
+    const ps = activas().filter(p => urlCat(p) && !sinFoto(p)), cats = CATS_ORDEN.filter(c => ps.some(p => catDe(p) === c));
+    abrirPanel(t('¿Qué quieres ponerte?', 'What do you want to wear?'), `<p class="at-con-txt">${t('Elige la prenda y te propongo looks con ella.', 'Pick a garment and I’ll suggest looks with it.')}</p>`
+      + cats.map(c => `<h2 class="pn-gt">${catTxt(c)}</h2><div class="at-con-rej">${ps.filter(p => catDe(p) === c).map(p => `<button class="at-cel${conCat(p) ? '' : ' sin-cat'}${p.id === E.hoyCon ? ' on' : ''}" data-con="${p.id}" aria-label="${esc(p.nombre)}"${p.id === E.hoyCon ? ' aria-current="true"' : ''}><img src="${urlCat(p)}" alt=""></button>`).join('')}</div>`).join(''),
+      cap => cap.addEventListener('click', e => { const b = e.target.closest('[data-con]'); if (!b) return; cap.remove(); E.hoyCon = b.dataset.con; E.propuestas = []; E.hoyIdx = 0; E.hzPreg = false; pintarHoy(); }));
   }
 
   /* ---------- HOY: el nombre, la fecha con el tiempo, el look grande y quieto; debajo, la ocasión y «Me lo pongo» ---------- */
   pintarHoy = function () {
     if (!E.perfil?.ropa && E.perfil?.alta) setTimeout(preguntarRopa, 400);
     const pant = $('p-hoy'), w = E.tiempo, planHoy = eventoAhora()?.oc;
+    let pc = E.hoyCon ? P(E.hoyCon) : null; if (E.hoyCon && (!pc || !activas().includes(pc))) { E.hoyCon = null; pc = null; }
+    if (pc && !E.propuestas.length) { E.propuestas = looksConPrenda(pc, planHoy || (E.plan && E.plan !== 'Todos' ? E.plan : 'Diario'));
+      if (!E.propuestas.length) { toast(t(`Con tu ropa aún no sale un look con ${pc.nombre.toLowerCase()}.`, `Your clothes don’t make a look with this garment yet.`)); E.hoyCon = null; pc = null; } }
     if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy && hayOcasion(planHoy) ? planHoy : E.hoyDiario && hayOcasion('Diario') ? 'Diario' : 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); E.propuestas = masCercanos(E.hoyFalta, E.propuestas); } }
     const lista = E.propuestas; if ((E.hoyIdx || 0) >= lista.length) E.hoyIdx = 0; const pr = lista[E.hoyIdx || 0];
     const dia = new Date().toLocaleDateString(loc(), { weekday: 'long', day: 'numeric' }).replace(',', '');
@@ -264,10 +299,11 @@ if (AT) (() => {
     // Gabriela, 03/11: «este texto debe aparecer en la pestaña donde no haya ropa para esa ocasión, por ejemplo de deporte, no en diario»: si la ocasión de hoy no tiene
     // ropa, se dice ahí, sin inventar un look, y se ofrece uno de diario (que ya no lleva el aviso)
     if (E.hoyDiarioDe !== planHoy) E.hoyDiario = false;
-    if (planHoy && !hayOcasion(planHoy) && !E.hoyDiario) {
+    if (planHoy && !pc && !hayOcasion(planHoy) && !E.hoyDiario) {
       const f = faltaPara(planHoy), o = ocNombre(planHoy).toLowerCase(), y = f.length < 2 ? f.join('') : f.slice(0, -1).join(', ') + t(' y ', ' and ') + f[f.length - 1];
-      pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocBoton(planHoy) + '</header>')}${ocsDe(planHoy)}<div class="at-vacio at-sinropa"><p>${planHoy === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte.', 'No sportswear yet.')) : t(`Con tu ropa aún no sale un look para ${o}.`, `Your clothes don’t make a look for ${o} yet.`)} ${t('Cuando la subas, tu look saldrá aquí.', 'Once you add it, your look will appear here.')}</p>${y ? `<p class="at-falta-que">${t('Te vendría bien', 'What would help')}: ${esc(y.charAt(0).toLowerCase() + y.slice(1))}.</p>` : ''}<button class="at-enlace" id="at-diario">${t('Ver un look de diario', 'See an everyday look')}</button></div></div>`;
+      pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', `<div class="at-cab-fila">${ocBoton(planHoy)}<button class="at-conp" data-hzcon>${I.percha}${t('Con una prenda', 'With a garment')}</button></div></header>`)}${ocsDe(planHoy)}<div class="at-vacio at-sinropa"><p>${planHoy === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte.', 'No sportswear yet.')) : t(`Con tu ropa aún no sale un look para ${o}.`, `Your clothes don’t make a look for ${o} yet.`)} ${t('Cuando la subas, tu look saldrá aquí.', 'Once you add it, your look will appear here.')}</p>${y ? `<p class="at-falta-que">${t('Te vendría bien', 'What would help')}: ${esc(y.charAt(0).toLowerCase() + y.slice(1))}.</p>` : ''}<button class="at-enlace" id="at-diario">${t('Ver un look de diario', 'See an everyday look')}</button></div></div>`;
       $('at-diario').onclick = () => { E.hoyDiario = true; E.hoyDiarioDe = planHoy; E.propuestas = []; pintarHoy(); };
+      pant.querySelector('[data-hzcon]').onclick = elegirPrendaHoy;
       return;
     }
     if (!pr) {
@@ -276,7 +312,7 @@ if (AT) (() => {
       const ej = $('at-ejemplo'); if (ej) ej.onclick = cargarEjemplo;
       return;
     }
-    const ps = psDe(pr), oc = planHoy && E.plan === planHoy && !E.hoyFalta && pr.tipo !== 'conjunto' && pr.tipo !== 'agenda' ? planHoy : (pr.c && pr.c.ocasion) || pr.ocasion || ocasionDe(ps);
+    const ps = psDe(pr), oc = pr.tipo === 'con' ? pr.ocasion : planHoy && E.plan === planHoy && !E.hoyFalta && pr.tipo !== 'conjunto' && pr.tipo !== 'agenda' ? planHoy : (pr.c && pr.c.ocasion) || pr.ocasion || ocasionDe(ps);
     const [ancho, alto] = caja(), W = Math.min(440, ancho - 72), H = Math.max(240, alto - 300);
     const muestra = ps.some(p => p.muestra);
     const flechas = lista.length > 1 ? `<button class="at-flecha iz" data-atmov="-1" aria-label="${t('Look anterior', 'Previous look')}">${I.iz}</button><button class="at-flecha de" data-atmov="1" aria-label="${t('Look siguiente', 'Next look')}">${I.de}</button>` : '';
@@ -284,8 +320,11 @@ if (AT) (() => {
     const fav = esFav(pr.ids), puesto = pr.ids.length > 0 && pr.ids.every(id => (P(id)?.usos || []).includes(hoyISO()));
     // 03/11, tarde (Gabriela: «la página de inicio me da la sensación de apretado… y desorden»; «no me gusta eso de no me gusta»): la ocasión pasa a la cabecera, bajo la
     // fecha; debajo del look, si hace falta, la nota; y abajo, juntos y centrados, el corazón y «Me lo pongo»
-    const nota = pr.tipo === 'agenda' && pr.ev ? `<p class="at-nota at-nota-plan">${esc(pr.ev.nombre || ocNombre(pr.ev.oc))}${pr.ev.hora ? ' · ' + pr.ev.hora : ''}</p>` : E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'With your coat on top: add it and it will show here' : `Con ${pr.capaFalta && pr.capaFalta !== 'abrigo' ? (pr.capaFalta === 'chaqueta' ? 'tu chaqueta' : 'tu ' + pr.capaFalta) : 'tu abrigo'} encima: súbelo y saldrá aquí`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : '';
-    const ocB = ocBoton(oc);
+    const nota = pr.tipo === 'con' && pr.conT != null ? `<p class="at-nota">${t(`Para un día de unos ${pr.conT}°: con el tiempo de hoy no le va`, `For a day of about ${pr.conT}°: it doesn’t suit today’s weather`)}</p>` : pr.tipo === 'agenda' && pr.ev ? `<p class="at-nota at-nota-plan">${esc(pr.ev.nombre || ocNombre(pr.ev.oc))}${pr.ev.hora ? ' · ' + pr.ev.hora : ''}</p>` : E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'With your coat on top: add it and it will show here' : `Con ${pr.capaFalta && pr.capaFalta !== 'abrigo' ? (pr.capaFalta === 'chaqueta' ? 'tu chaqueta' : 'tu ' + pr.capaFalta) : 'tu abrigo'} encima: súbelo y saldrá aquí`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : '';
+    // junto a la ocasión, «Con una prenda»; elegida, su foto pequeña y su nombre (tocarla cambia de prenda) y la equis para volver a los looks de siempre
+    const conB = pc ? `<span class="at-conp on"><button class="at-conp-n" data-hzcon aria-label="${t('Con', 'With')} ${esc(pc.nombre)}: ${t('cambiar la prenda', 'change the garment')}"><img src="${urlCat(pc)}" alt=""><span class="at-conp-t">${esc(pc.nombre)}</span></button><button class="at-conp-x" data-hzconx aria-label="${t('Quitar la prenda', 'Remove the garment')}">${I.cerrar}</button></span>`
+      : `<button class="at-conp" data-hzcon>${I.percha}${t('Con una prenda', 'With a garment')}</button>`;
+    const ocB = `<div class="at-cab-fila">${ocBoton(oc)}${conB}</div>`;
     pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocB + '</header>')}${ocs}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}${nota}</div>
       <div class="at-pie"><button class="at-fav${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button>${botonPuesto()}</div></div>`;
     // el look ocupa el hueco que de verdad queda entre la cabecera y el botón (en cada móvil es distinto)
@@ -295,7 +334,9 @@ if (AT) (() => {
     ajustar(); requestAnimationFrame(ajustar); // la primera vez la pantalla aún no se ve: se mide en el siguiente fotograma
     const mover = d => { E.hoyIdx = ((E.hoyIdx || 0) + d + lista.length) % lista.length; E.hzPreg = false; pintarHoy(); };
     pant.querySelectorAll('[data-atmov]').forEach(b => b.onclick = () => mover(+b.dataset.atmov));
-    const bp = pant.querySelector('[data-puesto]'); if (bp) bp.onclick = () => verPuesto(bp, z, ps, pr.como);
+    const bp = pant.querySelector('[data-puesto]'); if (bp) { bp.onclick = () => verPuesto(bp, z, ps, pr.como); if (LS.get('tc_ver_avatar')) requestAnimationFrame(() => requestAnimationFrame(() => verPuesto(bp, z, ps, pr.como, false, true))); }
+    pant.querySelector('[data-hzcon]').onclick = elegirPrendaHoy;
+    const cx = pant.querySelector('[data-hzconx]'); if (cx) cx.onclick = () => { E.hoyCon = null; E.propuestas = []; E.hoyIdx = 0; pintarHoy(); };
     $('at-pongo').onclick = async e => { const b = e.currentTarget; await ponerse(pr.ids, pr.c); await datosLook(pr); b.classList.add('hecho'); b.setAttribute('aria-pressed', 'true'); b.textContent = t('Puesto hoy', 'Worn today'); };
     // el corazón, y el doble toque sobre el look como en Instagram (un toque sobre una prenda abre su ficha, un instante después para distinguirlos)
     const fv = $('at-fav'), alternar = async quiero => { if (quiero != null && esFav(pr.ids) === quiero) { fv.classList.remove('late'); void fv.offsetWidth; fv.classList.add('late'); return; }

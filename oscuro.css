@@ -985,6 +985,14 @@ html.at.oscuro .av-sum{color:var(--tinta)}
 html.at.oscuro .av-flecha{fill:none;stroke:var(--sec)}
 html.at.oscuro .av-des[open] summary{border-bottom:0}
 html.at.oscuro .av-grande{border:0;background:var(--baldosa)}
+html.at.oscuro .at-conp{color:var(--sec)}
+html.at.oscuro .at-conp-n{color:var(--tinta)}
+html.at.oscuro .at-conp-n img{background:var(--baldosa)}
+html.at.oscuro .at-conp-x{color:var(--sec)}
+html.at.oscuro .at-con-txt{color:var(--sec)}
+html.at.oscuro .at-con-rej .at-cel.on{box-shadow:inset 0 0 0 1.5px var(--tinta)}
+html.at.oscuro .av-t{background:var(--baldosa);border:0}
+html.at.oscuro .av-t[aria-pressed="true"]::after{background:var(--oro)}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz
