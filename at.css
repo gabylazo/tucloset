@@ -458,3 +458,21 @@ html.at .at-puesto-esp { color: var(--sec); font-size: 14px; animation: av-lat 1
 html.at .at-puesto-otra { flex: none; font-size: 13px; }
 @media (prefers-reduced-motion: reduce) { html.at .av-tarjeta.creando .av-img, html.at .at-puestob.cargando svg, html.at .at-puesto-esp { animation: none; } }
 html.at .at-enlace[data-puesto][aria-pressed="true"] { color: var(--tinta); text-decoration-color: var(--oro); }
+/* 07/11 (Gabriela: «el avatar aparece muy pequeño; que lo despliegues y se vea grande»): fila plegable con miniatura; desplegada, el avatar a todo el ancho */
+html.at .av-con { align-items: stretch; }
+html.at .av-con .es-tit { text-align: center; }
+html.at .av-des summary { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 8px 0; cursor: pointer; list-style: none; border-top: 1px solid var(--linea, rgba(74,53,38,.15)); border-bottom: 1px solid var(--linea, rgba(74,53,38,.15)); }
+html.at .av-des summary::-webkit-details-marker { display: none; }
+html.at .av-mini { width: 42px; height: 56px; flex: none; background: var(--baldosa); display: flex; }
+html.at .av-mini img { width: 100%; height: 100%; object-fit: contain; }
+html.at .av-sum { flex: 1; text-align: left; font-size: 15px; color: var(--tinta); }
+html.at .av-plegar, html.at .av-des[open] .av-ver, html.at .av-des[open] .av-mini { display: none; }
+html.at .av-des[open] .av-plegar { display: inline; }
+html.at .av-flecha { width: 20px; height: 20px; fill: none; stroke: var(--sec); stroke-width: 1.4; transition: transform .2s; }
+html.at .av-des[open] .av-flecha { transform: rotate(180deg); }
+html.at .av-des[open] summary { border-bottom: 0; }
+html.at .av-grande { display: block; width: 100%; padding: 0; border: 0; background: var(--baldosa); margin: 4px 0 0; cursor: zoom-in; }
+html.at .av-grande img { display: block; width: 100%; height: auto; max-height: 72vh; object-fit: contain; margin: 0 auto; }
+html.at .av-des .av-p { text-align: center; margin-top: 12px; }
+html.at .av-des .av-acc { justify-content: center; display: flex; gap: 24px; padding-bottom: 8px; }
+@media (prefers-reduced-motion: reduce) { html.at .av-flecha { transition: none; } }

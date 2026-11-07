@@ -12,10 +12,13 @@ const BD = (() => {
     if (db) return res(db);
     const r = indexedDB.open('tucloset' + (CLOSET_ACT ? '-' + CLOSET_ACT : ''), 1); // 0.53: cada clóset (Mi ropa, Pruebas) en su propia base
     r.onupgradeneeded = () => r.result.createObjectStore('kv');
-    r.onsuccess = () => { db = r.result; res(db); };
+    r.onsuccess = () => { db = r.result; db.onclose = () => { db = null; }; db.onversionchange = () => { db.close(); db = null; }; res(db); }; // 07/11: Safari cierra a veces la conexión
     r.onerror = () => rej(r.error);
   });
-  const op = (modo, f) => abrir().then(d => new Promise((res, rej) => { const tx = d.transaction('kv', modo); const q = f(tx.objectStore('kv')); tx.oncomplete = () => res(q.result); tx.onerror = () => rej(tx.error); }));
+  // 07/11: una transacción que se aborta sin error («datos|null» en los avisos) dice ahora por qué; si la conexión estaba cerrada, se abre otra y se repite una vez
+  const enTx = (modo, f, alFinal) => abrir().then(d => { let tx; try { tx = d.transaction('kv', modo); } catch (e) { db = null; return abrir().then(d2 => enTxCon(d2.transaction('kv', modo), f, alFinal)); } return enTxCon(tx, f, alFinal); });
+  const enTxCon = (tx, f, alFinal) => new Promise((res, rej) => { const q = f(tx.objectStore('kv')); tx.oncomplete = () => res(alFinal(q)); tx.onerror = () => rej(tx.error || new Error('idb error')); tx.onabort = () => rej(tx.error || new Error('idb abortada')); });
+  const op = (modo, f) => enTx(modo, f, q => q.result);
   // 07/11 (Gabriela: «en el móvil las fotos no se cargan, las del diagnóstico»): Safari pierde los ficheros (Blob) guardados en IndexedDB («The object can not be
   // found here»; su móvil rehízo 107 fotos de prendas dos veces en 40 min). Las prendas se recuperan de la nube, pero la selfie, la foto de cuerpo, el avatar y los
   // looks puestos solo viven aquí: se guardan como bytes dentro del registro, que Safari no pierde. Al leer, una foto que ya no se puede abrir se quita (se pide otra vez)
@@ -31,7 +34,7 @@ const BD = (() => {
   // clave («f:<prenda>:<campo>») como bytes, y solo cuando cambia (las ya guardadas se recuerdan en GUARDADAS); la lista de prendas lleva solo la referencia. Las que se
   // guardaron a la antigua y Safari perdió las sigue arreglando repararFotos (las baja de la nube) y, desde ahí, se guardan ya como bytes
   const GUARDADAS = new WeakMap(), CAMPOS_FOTO = new Set(); let cola = Promise.resolve();
-  const opMuchas = (modo, f) => abrir().then(d => new Promise((res, rej) => { const tx = d.transaction('kv', modo); const r = f(tx.objectStore('kv')); tx.oncomplete = () => res(r); tx.onerror = () => rej(tx.error); }));
+  const opMuchas = (modo, f) => enTx(modo, f, r => r);
   async function ponerPrendas(lista) {
     const nuevas = [], fuera = [], arr = [];
     for (const p of lista || []) { const q = { ...p };
@@ -40,8 +43,14 @@ const BD = (() => {
         q[c] = { __ref: k }; }
       arr.push(q); }
     const usadas = new Set(arr.flatMap(q => Object.values(q).filter(v => v && v.__ref).map(v => v.__ref)));
-    await opMuchas('readwrite', st => { for (const [k, v] of nuevas) st.put(v, k); st.put(arr, 'prendas'); const q = st.getAllKeys(); q.onsuccess = () => { for (const k of q.result) if (typeof k === 'string' && k.startsWith('f:') && !usadas.has(k)) st.delete(k); }; });
-    for (const [k, , b] of nuevas) GUARDADAS.set(b, k);
+    // 07/11 (Gabriela: «1. sí», como Instagram: la cuenta es la dueña de las fotos y el móvil solo guarda una copia): las fotos van de 8 en 8, cada tanda en su
+    // transacción (antes, las 107 en una sola, unos 20 MB, y si Safari la abortaba no se guardaba nada). Si una tanda falla, esas fotos siguen en la memoria y en
+    // la cuenta: al volver a abrir se bajan otra vez (bajarNube) y se reintenta guardarlas
+    let fallo = null;
+    for (let i = 0; i < nuevas.length; i += 8) { const tanda = nuevas.slice(i, i + 8);
+      try { await opMuchas('readwrite', st => { for (const [k, v] of tanda) st.put(v, k); }); for (const [k, , b] of tanda) GUARDADAS.set(b, k); } catch (e) { fallo = fallo || e; } }
+    await opMuchas('readwrite', st => { st.put(arr, 'prendas'); const q = st.getAllKeys(); q.onsuccess = () => { for (const k of q.result) if (typeof k === 'string' && k.startsWith('f:') && !usadas.has(k)) st.delete(k); }; });
+    if (fallo) try { avisarFallo('copia', fallo); } catch (e) { }
   }
   async function leerPrendas(arr) {
     if (!Array.isArray(arr)) return arr;
@@ -345,6 +354,18 @@ async function bajarFotosDiag() { // las que faltan en este móvil u ordenador y
   for (const k of FOTOS_DIAG) if (!(pf[k] instanceof Blob) && pf[k + 'Sub']) {
     try { const r = await api('/api/foto/diag-' + k, { tiempo: 30000 }); if (r.ok) { const b = await r.blob(); if (b.size > 1000) { pf[k] = b; LS.set('tc_bajada_' + k, firma(b)); hay = true; } } } catch (e) { } }
   if (hay) { await BD.set('perfil', E.perfil); if (E.pantalla === 'yo') pintarYo(); }
+}
+// 07/11 (Gabriela: «2. sí»): la primera vez que alguien con cuenta tiene fotos del diagnóstico, se le pregunta una vez si se guardan en su cuenta, sin nada elegido
+// de antemano; la respuesta se cambia en Medidas y fotos
+async function preguntarFotosCuenta() {
+  const pf = E.perfil || {}; if (!cuenta() || pf.fotosCuenta || pf.fotosCuentaVista || !(pf.selfie instanceof Blob || pf.cuerpo instanceof Blob || pf.avatar instanceof Blob)) return;
+  pf.fotosCuentaVista = 1; await guardar(); programarNube();
+  const si = await confirmar(t('¿Guardamos tus fotos en tu cuenta?', 'Keep your photos in your account?'),
+    t('Así no se pierden y las ves en el móvil y en el ordenador. Son privadas: solo las ves tú. Puedes cambiarlo en Medidas y fotos.', 'That way they are never lost and you see them on your phone and computer. They are private: only you see them. You can change it in Measurements and photos.'),
+    t('Guardarlas', 'Keep them'), t('Solo en este móvil', 'Only on this phone'));
+  if (!si) return; await fotosEnCuenta(true); toast(t('Tus fotos se guardan en tu cuenta', 'Your photos are kept in your account'));
+  const ck = $('dg-cuenta'), pv = $('dg-priv'); if (ck) ck.checked = true; if (pv) pv.innerHTML = IC_CANDADO + t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer');
+  if (E.pantalla === 'yo') pintarYo();
 }
 async function fotosEnCuenta(si) {
   const pf = E.perfil = E.perfil || {}; pf.fotosCuenta = !!si;
@@ -2944,7 +2965,7 @@ function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; e
 const IC_PUESTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.8" r="2.4"/><path d="M8.2 21.5 9 13.8 7.3 10.6c-.4-.9.2-2.1 1.2-2.4L12 7.4l3.5.8c1 .3 1.6 1.5 1.2 2.4L15 13.8l.8 7.7"/></svg>';
 const firmaAvatar = () => [E.perfil?.selfie?.size || 0, E.perfil?.cuerpo?.size || 0].join(':');
 const tieneAvatar = () => E.perfil?.avatar instanceof Blob;
-let avatarEnCurso = false;
+let avatarEnCurso = false, avatarAbierto = false; // avatarAbierto: la fila del avatar desplegada (se abre sola al crearlo)
 async function jpegBlanco(b, max = 1024) {
   const u = URL.createObjectURL(b);
   try {
@@ -2978,7 +2999,7 @@ async function crearAvatar() {
     if (!r.ok) { const j = await r.json().catch(() => ({})); return toast(errorAvatar(r.status, j.error)); }
     const fin = await afinarCat(await r.blob()); if (!fin) return toast(errorAvatar(502));
     Object.assign(E.perfil, { avatar: fin.blob, avatarAR: fin.ar, avatarDe: firmaAvatar(), avatarF: new Date().toISOString() });
-    E.puestos = {}; await BD.set('puestos', {}); await guardar(); toast(t('Tu avatar está listo', 'Your avatar is ready'));
+    E.puestos = {}; await BD.set('puestos', {}); await guardar(); avatarAbierto = true; toast(t('Tu avatar está listo', 'Your avatar is ready')); setTimeout(preguntarFotosCuenta, 1200);
   } catch (e) { toast(t('Sin conexión: prueba otra vez', 'No connection: try again')); }
   finally { avatarEnCurso = false; if (E.pantalla === 'yo') pintarYo(); }
 }
@@ -3011,6 +3032,14 @@ async function puestoEnMi(ps, como, otra) {
 function tarjetaAvatar() {
   if (planDemo() !== 'pro') return '';
   const pf = E.perfil || {}, fotos = pf.selfie instanceof Blob && pf.cuerpo instanceof Blob, av = tieneAvatar(), viejas = av && pf.avatarDe && pf.avatarDe !== firmaAvatar();
+  // 07/11 (Gabriela: «el avatar cuando se crea aparece muy pequeño; debería ser una opción dentro, que lo despliegues y se vea grande»): con avatar, la tarjeta es
+  // una fila plegable con la miniatura; al desplegarla, el avatar ocupa el ancho y, al tocarlo, se abre a pantalla completa para acercarlo
+  if (av && !avatarEnCurso) { const u = URL.createObjectURL(pf.avatar);
+    return `<section class="av-tarjeta av-con"><h2 class="es-tit">${t('Tu avatar', 'Your avatar')}</h2>
+      <details class="av-des" ${avatarAbierto ? 'open' : ''}><summary><span class="av-mini"><img src="${u}" alt=""></span><span class="av-sum"><span class="av-ver">${t('Ver mi avatar', 'See my avatar')}</span><span class="av-plegar">${t('Plegar', 'Fold')}</span></span><svg class="av-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <button class="av-grande" data-avatar="ver" aria-label="${t('Ver tu avatar a pantalla completa', 'See your avatar full screen')}"><img src="${u}" alt="${t('Tu avatar', 'Your avatar')}"></button>
+        <p class="av-p">${viejas ? t('Tus fotos han cambiado.', 'Your photos have changed.') : t(`En Hoy, toca ${IC_PUESTO} para verte el look puesto.`, `In Today, tap ${IC_PUESTO} to see the look on you.`)}</p>
+        <div class="av-acc"><button class="at-enlace" data-avatar="crear">${t('Rehacer', 'Redo')}</button><button class="at-enlace" data-avatar="borrar">${t('Borrar', 'Delete')}</button></div></details></section>`; }
   const img = av ? `<button class="av-img" data-avatar="ver" aria-label="${t('Ver tu avatar', 'See your avatar')}"><img src="${URL.createObjectURL(pf.avatar)}" alt=""></button>` : `<span class="av-img av-vacio">${IC_PUESTO}</span>`;
   const txt = avatarEnCurso ? t('Creando tu avatar… tarda unos 30 segundos.', 'Creating your avatar… it takes about 30 seconds.')
     : av ? (viejas ? t('Tus fotos han cambiado.', 'Your photos have changed.') : t(`En Hoy, toca ${IC_PUESTO} para verte el look puesto.`, `In Today, tap ${IC_PUESTO} to see the look on you.`))
@@ -3018,8 +3047,9 @@ function tarjetaAvatar() {
   const bot = avatarEnCurso ? '' : av ? `<div class="av-acc"><button class="at-enlace" data-avatar="crear">${t('Rehacer', 'Redo')}</button><button class="at-enlace" data-avatar="borrar">${t('Borrar', 'Delete')}</button></div>`
     : `<button class="at-btn" data-${fotos ? 'avatar="crear"' : 'diag="fotos"'}>${fotos ? t('Crear mi avatar', 'Create my avatar') : t('Añadir mis fotos', 'Add my photos')}</button>`;
   return `<section class="av-tarjeta${avatarEnCurso ? ' creando' : ''}" aria-busy="${avatarEnCurso}"><h2 class="es-tit">${t('Tu avatar', 'Your avatar')}</h2>${img}<p class="av-p">${txt}</p>${bot}
-    ${!av && fotos && !avatarEnCurso ? `<p class="av-priv">${IC_CANDADO}${t('Tus fotos se envían una vez para crearlo y no se guardan. El avatar se queda en tu móvil.', 'Your photos are sent once to create it and are not stored. The avatar stays on your phone.')}</p>` : ''}</section>`;
+    ${!av && fotos && !avatarEnCurso ? `<p class="av-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Tus fotos se envían una vez para crearlo. El avatar se guarda en tu cuenta, privado.', 'Your photos are sent once to create it. The avatar is kept in your account, private.') : t('Tus fotos se envían una vez para crearlo y no se guardan. El avatar se queda en tu móvil.', 'Your photos are sent once to create it and are not stored. The avatar stays on your phone.')}</p>` : ''}</section>`;
 }
+document.addEventListener('toggle', e => { if (e.target.classList?.contains('av-des')) avatarAbierto = e.target.open; }, true);
 document.addEventListener('click', e => { const b = e.target.closest('[data-avatar]'); if (!b) return; const k = b.dataset.avatar;
   if (k === 'crear') crearAvatar(); else if (k === 'borrar') borrarAvatar(); else if (k === 'ver' && tieneAvatar()) verFoto([{ src: URL.createObjectURL(E.perfil.avatar), alt: t('Tu avatar', 'Your avatar') }]); });
 // 06/11 noche (Gabriela: «lo de cómo lo he medido sobra, o al menos ponlo más pequeña la explicación; y quita cambiar las medidas y las fotos si ya hay una opción para eso
@@ -3053,6 +3083,7 @@ function panelDiagFotos() {
     <button class="boton dx-boton" id="dg-analizar" ${pf.selfie || pf.cuerpo || firmaMed() ? '' : 'disabled'}>${t('Analizar', 'Analyse')}</button>
     ${cuenta() ? `<label class="dx-cuenta"><input type="checkbox" id="dg-cuenta" ${pf.fotosCuenta ? 'checked' : ''}><span>${t('Guardar mis fotos en mi cuenta', 'Keep my photos in my account')}</span></label>` : ''}
     <p class="dx-priv" id="dg-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer') : t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`, cap => {
+    setTimeout(preguntarFotosCuenta, 600);
     const ck = cap.querySelector('#dg-cuenta'); if (ck) ck.onchange = async () => { await fotosEnCuenta(ck.checked); cap.querySelector('#dg-priv').innerHTML = IC_CANDADO + (ck.checked ? t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer') : t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')); };
     const LIM = { altura: [120, 220], peso: [30, 250], pecho: [60, 170], cintura: [45, 170], cadera: [60, 180] }; let medT = 0;
     cap.querySelectorAll('[data-med]').forEach(inp => {
@@ -3072,7 +3103,7 @@ function panelDiagFotos() {
         clearTimeout(medT); medT = setTimeout(guardar, 400); $('dg-analizar').disabled = !(E.perfil.selfie || E.perfil.cuerpo || firmaMed());
       };
     });
-    cap.querySelectorAll('[data-dgfoto]').forEach(inp => inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; try { const r = await procesarFoto(f); E.perfil = E.perfil || {}; E.perfil[inp.dataset.dgfoto] = r.blob; await guardar(); panelDiagFotos(); } catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); } });
+    cap.querySelectorAll('[data-dgfoto]').forEach(inp => inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; try { const r = await procesarFoto(f); E.perfil = E.perfil || {}; E.perfil[inp.dataset.dgfoto] = r.blob; await guardar(); panelDiagFotos(); setTimeout(preguntarFotosCuenta, 400); } catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); } });
     $('dg-analizar').onclick = async () => {
       const b = $('dg-analizar'), est = $('dg-estado'); b.disabled = true;
       try { const { res, R } = await hacerDiagnostico(x => { est.textContent = x; });
