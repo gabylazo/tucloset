@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.201'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.202'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -658,7 +658,9 @@ if (AT) (() => {
     const fila = ['Todos', 'Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].map(o => `<button class="${o === oc ? 'on' : ''}" data-ideaoc="${o}"${o === oc ? ' aria-current="true"' : ''}>${o === 'Todos' ? t('Todas', 'All') : ocNombre(o)}${DOS}</button>`).join('');
     const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button></figure>`; };
     const vendria = r.falta?.length && !en() && activas().length ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';
-    const insp = oc === 'Todos' ? `<div class="at-vj-entrada"><button class="at-enlace" data-conprenda>${t('Con una prenda', 'With one garment')}</button><button class="at-enlace" data-compra>${t('¿Me lo compro?', 'Should I buy it?')}</button><button class="at-enlace" data-inspira>${t('Inspírate en…', 'Get inspired by…')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button></div>` : '';
+    // 08/11 (Gabriela, mensaje 1909: «no le gusta cómo están distribuidos así en una columna en el centro»): las tres, en una fila de iconos como las acciones de la ficha
+    const ibI = (attr, ic, w, pro) => `<button class="at-ib" ${attr}><span class="at-ib-c">${ic}</span><span class="at-ib-t">${w}${pro ? '<span class="dg-pro">Pro</span>' : ''}</span></button>`;
+    const insp = oc === 'Todos' ? `<div class="at-iconos at-ideas-acc" role="group" aria-label="${t('Más formas de buscar looks', 'More ways to find looks')}">${ibI('data-conprenda', I.percha, t('Con una prenda', 'With one garment'))}${ibI('data-compra', I.bolsa, t('Antes de comprar', 'Before you buy'))}${ibI('data-inspira', I.chispa, t('Inspírate en…', 'Get inspired by…'), planDemo() !== 'pro')}</div>` : '';
     const vj = oc === 'Viaje' ? `<div class="at-vj-entrada"><button class="at-enlace" data-viaje>${t('Planear un viaje', 'Plan a trip')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button>${viajes().map(v => `<button class="at-enlace" data-viaje="${v.id}">${esc(v.destino)} · ${rango(v)}</button>`).join('')}</div>` : '';
     raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${insp}${vj}${w && !vj ? `<p class="at-para">${t('Para hoy', 'For today')}, ${Math.round(w.t)}°</p>` : ''}`
       + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio">${activas().length ? `<p>${oc === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte. Cuando la subas, tus looks saldrán aquí.', 'No sportswear yet. Once you add some, your looks will appear here.')) : t('Con lo que tienes aún no sale un look completo para esta ocasión. Cuando subas más, saldrá aquí.', 'What you have doesn’t make a complete look for this occasion yet.')}</p>` : `<p>${t('Sube tu ropa y aquí saldrán tus ideas.', 'Add your clothes and your ideas will appear here.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>`}</div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
@@ -892,8 +894,8 @@ if (AT) (() => {
     C.u = Motor.utilidad({ prenda: C.p, prendas: activas(), perfil: E.perfil, hoy: hoyISO(), excluir: E.perfil?.gustos?.fuera || [], colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
   }
   function abrirCompra() {
-    const cap = capaDe('at-compra', 'at-cm', t('¿Me lo compro?', 'Should I buy it?')), C = E.compra = E.compra || { fase: 'foto' };
-    const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button>`, h1 = `<h1>${t('¿Me lo compro?', 'Should I buy it?')}</h1>`;
+    const cap = capaDe('at-compra', 'at-cm', t('Antes de comprar', 'Before you buy')), C = E.compra = E.compra || { fase: 'foto' };
+    const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button>`, h1 = `<h1>${t('Antes de comprar', 'Before you buy')}</h1>`;
     const foto = txt => `<label class="at-btn at-cm-foto">${txt}<input type="file" accept="image/*" data-cmfoto aria-label="${txt}"></label>`;
     if (C.fase === 'foto') cap.innerHTML = `${X}${h1}<p class="at-vj-sub">${t('Hazle una foto en la tienda y te digo cuánto partido le sacarías con tu ropa.', 'Take a photo in the shop and I’ll tell you how much wear you’d get from it with your clothes.')}</p>
       <div class="at-cm-guia" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg></div>
