@@ -2807,7 +2807,7 @@ function abrirPanel(tit, html, enlazar) {
   document.querySelectorAll('.pn-capa:not(.pn-base)').forEach(c => c.remove()); // 08/11: la pantalla de Ajustes (pn-base) se queda debajo
   const cap = document.createElement('div'), hid = 'pn-t' + (++abrirPanel.n || (abrirPanel.n = 1)); cap.className = 'pn-capa'; // 08/11: diálogo con su título (axe pedía región)
   cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', hid);
-  cap.innerHTML = `<header class="pn-cab"><button class="pn-volver" aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h1 id="${hid}">${tit}</h1><span></span></header><div class="pn-cuerpo">${html}</div>`;
+  cap.innerHTML = `<div class="pn-cab"><button class="pn-volver" aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h1 id="${hid}">${tit}</h1><span></span></div><div class="pn-cuerpo">${html}</div>`;
   document.body.appendChild(cap); cap.querySelector('.pn-volver').onclick = () => cap.remove();
   if (enlazar) enlazar(cap); return cap;
 }
