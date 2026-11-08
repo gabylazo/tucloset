@@ -121,7 +121,8 @@ const fecha = (iso, corta) => { if (!iso) return '—'; const d = new Date(iso);
 
 /* ---------- utilidades ---------- */
 const $ = id => document.getElementById(id);
-let toastT; function toast(m) { const e = $('toast'); e.textContent = m; e.classList.add('visible'); clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove('visible'), 2200); }
+// 08/11 (estudio de diseño, cambio 16): sin la barra de abajo (alta, editar, nuevo look) o con una capa encima, el aviso sale arriba: abajo tapaba el botón de seguir
+let toastT; function toast(m) { const e = $('toast'); e.textContent = m; e.classList.toggle('arriba', $('tabs').classList.contains('oculta') || !!document.querySelector('.ay-capa, .pn-capa, .sp-capa')); e.classList.add('visible'); clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove('visible'), 2200); }
 function confirmar(titulo, texto, si, no) { return new Promise(res => { $('dlg-t').textContent = titulo; $('dlg-p').textContent = texto; $('dlg-si').textContent = si || t('Sí', 'Yes'); $('dlg-no').textContent = no || t('Cancelar', 'Cancel'); const d = $('dlg'); d.showModal(); $('dlg-si').onclick = () => { d.close(); res(true); }; $('dlg-no').onclick = () => { d.close(); res(false); }; }); }
 // 06/11: si se cambia la foto de una prenda, la de catálogo ya no es de esa foto: se quita (también de la nube) y la nueva vuelve a ser la suya
 function quitarCat(p) { if (!p || !(p.cat || p.conCat)) return; if (p.conCat) api('/api/foto/' + p.id + '-c', { method: 'DELETE' }).catch(() => { }); p.cat = null; urlsCat.delete(p.id); for (const k of ['conCat', 'nubeC', 'catAR', 'fCat']) delete p[k]; }
@@ -2805,7 +2806,7 @@ function cambiarModo() {
   pintarPanelYo();
 }
 const filaP = ({ id, attr = '', ic, tit, val = '', rojo, flecha = true, apagada, oro, tag = 'button' }) => `<${tag} class="pn-f${rojo ? ' rojo' : ''}${apagada ? ' apagada' : ''}"${id ? ` id="${id}"` : ''} ${attr}>${ic ? icY(ic) : ''}<span class="pn-t">${tit}</span>${val !== '' ? `<span class="pn-v${oro ? ' oro' : ''}">${val}</span>` : ''}${flecha ? '<svg class="pn-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>' : ''}</${tag}>`;
-const grupoP = (tit, filas, nota) => `<section class="pn-g">${tit ? `<h2 class="pn-gt">${tit}</h2>` : ''}<div class="pn-c">${filas}</div>${nota ? `<p class="pn-nota">${nota}</p>` : ''}</section>`;
+const grupoP = (tit, filas, nota) => `<section class="pn-g${tit ? '' : ' pn-g0'}">${tit ? `<h2 class="pn-gt">${tit}</h2>` : ''}<div class="pn-c">${filas}</div>${nota ? `<p class="pn-nota">${nota}</p>` : ''}</section>`;
 function abrirPanel(tit, html, enlazar) {
   document.querySelectorAll('.pn-capa:not(.pn-base)').forEach(c => c.remove()); // 08/11: la pantalla de Ajustes (pn-base) se queda debajo
   const cap = document.createElement('div'), hid = 'pn-t' + (++abrirPanel.n || (abrirPanel.n = 1)); cap.className = 'pn-capa'; // 08/11: diálogo con su título (axe pedía región)
@@ -3102,7 +3103,7 @@ function panelDiagFotos() {
   const campo = (k, et, ud) => `<label class="dx-campo"><span>${et}</span><span class="dx-in"><input type="text" inputmode="decimal" autocomplete="off" data-med="${k}" value="${md[k] ? String(md[k]).replace('.', en ? '.' : ',') : ''}"><i>${ud}</i></span></label>`;
   const foto = (k, tit, ic) => pf[k]
     ? `<div class="dx-foto"><button type="button" class="dx-ver" data-ampliar-diag="${k}" aria-label="${t('Ver en grande', 'View larger')}: ${tit}"><img src="${URL.createObjectURL(pf[k])}" alt=""><span class="dx-lupa" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></svg></span></button><b>${tit}</b><label class="dx-acc"><svg aria-hidden="true"><use href="#ic-camara"/></svg>${t('Cambiar', 'Change')}<input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label></div>`
-    : `<label class="dx-foto dx-sin"><span class="dx-caja"><svg aria-hidden="true"><use href="#${ic}"/></svg></span><b>${tit}</b><span class="dx-acc">${t('Añadir', 'Add')}</span><input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label>`;
+    : `<label class="dx-foto dx-sin"><span class="dx-caja"><svg aria-hidden="true"><use href="#${ic}"/></svg><b>${tit}</b><small>${t('Opcional', 'Optional')}</small></span><span class="dx-acc">${t('Añadir', 'Add')}</span><input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label>`;
   const consejos = [[t('Tu cara', 'Your face'), [t('De frente', 'Facing the camera'), t('Con luz de día', 'In daylight'), t('Sin filtros ni gafas', 'No filters or glasses'), t('El pelo suelto', 'Hair down')]],
     [t('Cuerpo entero', 'Full body'), [t('De pie y de frente', 'Standing, facing the camera'), t('Con ropa ajustada', 'In fitted clothes'), t('Los brazos un poco separados', 'Arms slightly away from your body'), t('Si salen los pies, mido también tus piernas', 'If your feet show, I also measure your legs')]]];
   abrirPanel(t('Tus medidas y tus fotos', 'Your measurements and photos'), `<div class="dx">

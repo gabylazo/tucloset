@@ -560,3 +560,20 @@ html.at #p-yo .dg-cab h2 { font-size: 15px; letter-spacing: .06em; color: var(--
 
 /* 08/11 · estudio de diseño (cambio 14): en Hoy, la nota más cerca del look (el hueco de debajo del look ya separa) */
 html.at .at-hoy .at-nota, html.at .at-hoy .cal-falta { margin-top: 10px; }
+
+/* 08/11 · estudio de diseño (cambio 18): un look solo, centrado (no pegado a la izquierda) */
+html.at .at-rej2 > :only-child { grid-column: 1 / -1; }
+
+/* 08/11 · estudio de diseño (cambio 19): estos botones, del ancho de su texto y centrados (regla del 03/11) */
+html.at #pn-ciudad-ok, html.at #p-yo .dg-tarjeta .boton, html.at .s-aviso div .boton { width: fit-content; min-width: 0; max-width: 100%; justify-self: center; margin-left: auto; margin-right: auto; padding-left: 24px; padding-right: 24px; }
+
+/* 08/11 · estudio de diseño (cambio 20): en Inspírate, una flecha fina junto al nombre dice que la tarjeta se toca */
+html.at .at-insp-fl { width: 16px; height: 16px; margin-left: 4px; vertical-align: -1px; fill: none; stroke: var(--tinta); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+/* 08/11, estudio de diseño (21): cinco detalles */
+html.at .pn-cuerpo > .pn-g0:first-child { margin-top: 0; } /* (a) sin la franja vacía bajo la cabecera (Idioma, Ver la app como) */
+html.at .pn-cuerpo > .pn-g0:first-child > .pn-c { border-top: 0; }
+html.at .pn-f > .pn-v:last-child { margin-right: 5px; } /* (b) valores e interruptor en la columna de los chevrones */
+html.at .pn-f > .pn-v:last-child:has(> .pn-ic) { margin-right: 0; }
+html.at .co-ops button { padding: 10px 2px 12px; }
+html.at .co-ops button.on::after { width: 11px; height: 11px; margin-left: -5.5px; bottom: -4px; } /* (c) el mismo botón de dos agujeros que en las pestañas */
+html.at .at-vj-campo input::-webkit-calendar-picker-indicator { width: 20px; height: 20px; padding: 0; color: transparent; cursor: pointer; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A3526' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5'/%3E%3Cpath d='M3.5 9.5h17M8 3v4M16 3v4'/%3E%3C/svg%3E") center / 20px no-repeat; } /* (d) el calendario en nogal, como los demás iconos */

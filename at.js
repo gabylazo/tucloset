@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.199'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.200'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -748,7 +748,7 @@ if (AT) (() => {
         <div class="at-vj-dos"><label class="at-vj-campo"><span>${t('Ida', 'Leaving')}</span><input id="vj-desde" type="date" min="${diaISO(new Date())}" value="${F.desde}"></label>
           <label class="at-vj-campo"><span>${t('Días', 'Days')}</span><select id="vj-dias">${Array.from({ length: 14 }, (_, i) => `<option${i + 1 === F.dias ? ' selected' : ''}>${i + 1}</option>`).join('')}</select></label></div>
         <p class="at-vj-et">${t('Para', 'For')}</p><div class="at-fila at-vj-ops">${opc('motivo', 'Diario', t('Ocio', 'Leisure'), F.motivo === 'Diario')}${opc('motivo', 'Oficina', t('Trabajo', 'Work'), F.motivo === 'Oficina')}</div>
-        <p class="at-vj-et">${t('Además', 'Also')}</p><div class="at-fila at-vj-ops">${opc('extra', 'Noche', t('Una noche de salir', 'A night out'), F.extras.includes('Noche'))}${opc('extra', 'Evento', t('Un evento', 'An event'), F.extras.includes('Evento'))}</div>
+        <p class="at-vj-et">${t('Además, si quieres', 'Also, if you like')}</p><div class="at-fila at-vj-ops">${opc('extra', 'Noche', t('Una noche de salir', 'A night out'), F.extras.includes('Noche'))}${opc('extra', 'Evento', t('Un evento', 'An event'), F.extras.includes('Evento'))}</div>
         <p class="at-vj-error" role="alert"></p>
         <button class="at-btn" type="submit">${t('Preparar la maleta', 'Pack my suitcase')}</button>
       </form>${viajes().length ? `<h2 class="at-vj-h2">${t('Tus viajes', 'Your trips')}</h2><div class="at-enlaces at-vj-lista">${viajes().map(v => `<button class="at-enlace" data-vjver="${v.id}">${esc(v.destino)} · ${rango(v)}</button>`).join('')}</div>` : ''}`;
@@ -800,7 +800,8 @@ if (AT) (() => {
       <p class="at-vj-sub">${t('Las prendas de tu clóset que más looks hacen entre sí, para el tiempo de ahora.', 'The pieces in your closet that make the most looks together, for the weather now.')}</p>
       <div class="at-fila at-vj-ops">${opc('oc', 'Diario', t('Diario', 'Everyday'))}${opc('oc', 'Oficina', t('Trabajo', 'Work'))}${opc('oc', 'Noche', t('Noche', 'Night'))}</div>
       <div class="at-fila at-vj-ops">${[10, 15, 20].map(n => opc('n', n, t(`${n} prendas`, `${n} pieces`))).join('')}</div>
-      ${looks.length ? `<p class="at-vj-datos at-cap-cuenta">${t(`${prendas.length} prendas · ${looks.length} looks`, `${prendas.length} pieces · ${looks.length} looks`)}</p>
+      ${looks.length ? `<p class="at-vj-datos at-cap-cuenta">${t(`${prendas.length} ${prendas.length === 1 ? 'prenda' : 'prendas'} · ${looks.length} ${looks.length === 1 ? 'look' : 'looks'}`, `${prendas.length} ${prendas.length === 1 ? 'piece' : 'pieces'} · ${looks.length} ${looks.length === 1 ? 'look' : 'looks'}`)}</p>
+        ${prendas.length < F.n ? `<p class="at-vj-nota">${t(`Pediste ${F.n}; con tu ropa salen ${prendas.length}.`, `You asked for ${F.n}; your clothes make ${prendas.length}.`)}</p>` : ''}
         ${looks.some(x => x.faltaCapa) ? `<p class="at-vj-nota">${t('Con este tiempo, con tu abrigo encima.', 'In this weather, with your coat on top.')}</p>` : ''}
         <div class="at-cap-prendas">${prendas.map(p => `<button class="at-cap-p" style="width:${PW}px;height:${Math.round(PW * 1.25)}px" data-capficha="${p.id}" aria-label="${esc(p.nombre)}"><img src="${urlCat(p)}" alt="" loading="eager"></button>`).join('')}</div>
         <h2 class="at-vj-h2">${t('Los looks que salen', 'The looks it makes')}</h2>
@@ -1049,7 +1050,7 @@ if (AT) (() => {
     if (!a) {
       cap.innerHTML = `${X}<h1>${t('Inspírate en…', 'Get inspired by…')}</h1><p class="at-vj-sub">${t('Elige a quién: te armo looks con tu ropa a su manera.', 'Pick someone: I’ll put together looks from your clothes their way.')}</p>
         ${ropa === 'mujer' || ropa === 'hombre' ? '' : `<div class="at-fila at-vj-ops at-insp-g">${[['a', t('Ellas', 'Women')], ['o', t('Ellos', 'Men')]].map(([v, n]) => `<button class="${g === v ? 'on' : ''}" data-ginsp="${v}" aria-pressed="${g === v}">${n}${DOS}</button>`).join('')}</div>`}
-        <ul class="at-insp-lista">${ARQ.filter(x => x[5] === g).map(x => `<li><button data-arq="${x[0]}">${foto(x)}<span class="at-insp-n">${x[1]}</span><span class="at-insp-a">${L(x[2])}</span><span class="at-insp-d">${L(x[3])}</span></button></li>`).join('')}</ul>
+        <ul class="at-insp-lista">${ARQ.filter(x => x[5] === g).map(x => `<li><button data-arq="${x[0]}">${foto(x)}<span class="at-insp-n">${x[1]}<svg class="at-insp-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span><span class="at-insp-a">${L(x[2])}</span><span class="at-insp-d">${L(x[3])}</span></button></li>`).join('')}</ul>
         <p class="at-insp-legal">${t('Inspirado en su estilo en público. Sin relación con TuCloset.', 'Inspired by their public style. Not affiliated with TuCloset.')}</p>`;
     } else {
       // todos los candidatos del motor con la afinidad de esa referencia; valen los de una fórmula de su estilo (principal o compartido)

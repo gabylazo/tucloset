@@ -1708,3 +1708,9 @@ html{touch-action:manipulation}
 #p-yo .y3-pal{margin-left:0;margin-right:0}
 #yo-fm{margin:0}
 .yo-ajustes{right:8px}
+/* 08/11 · estudio de diseño (cambio 16): el aviso, arriba cuando abajo hay un botón y no la barra */
+.toast.arriba{bottom:auto;top:calc(14px + env(safe-area-inset-top));z-index:120}
+/* 08/11 · estudio de diseño (cambio 17): la caja vacía dice qué foto va y que es opcional, y es más baja para que se vea lo siguiente */
+.dx-sin .dx-caja{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px}
+.dx-sin .dx-caja b{font-weight:400;font-size:16px;color:var(--tinta)}
+.dx-sin .dx-caja small{font-size:13px;color:var(--sec)}
