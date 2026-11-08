@@ -544,3 +544,19 @@ html.at .at-fila.at-cm-forma > button:first-child, html.at .at-fila.at-cm-forma 
 html.at .at-cm-fb { margin-top: 14px; }
 html.at .at-cm-fb .at-cm-et { margin: 0 0 2px; }
 html.at .at-cm-fb .at-cm-pie { margin-top: 0; }
+
+/* 08/11 · estudio de diseño (cambio 2): elegir una prenda como en el Clóset, con la fila de tipos y una sola rejilla de 3 a todo el ancho */
+html.at .at-elegir { margin: 4px -20px 0; }
+html.at .pn-cuerpo .at-elegir { margin: 4px -18px 0; }
+html.at .at-elegir .at-cats { margin-bottom: 8px; }
+html.at .at-elegir .at-con-rej { margin-bottom: 0; }
+html.at .at-elegir .at-cel[hidden] { display: none; }
+html.at .at-cp .at-cp-aviso { max-width: 32ch; margin: 14px auto 18px; text-wrap: balance; }
+
+/* 08/11 · estudio de diseño (cambio 7): Yo, todo a 20 px del borde; «Tu asesora de imagen» con el mismo título que «Tus medidas y fotos» y «Tu avatar» */
+html.at #p-yo .av-tarjeta { margin-left: 0; margin-right: 0; }
+html.at #p-yo .dg-cab { margin-bottom: 12px; }
+html.at #p-yo .dg-cab h2 { font-size: 15px; letter-spacing: .06em; color: var(--sec); }
+
+/* 08/11 · estudio de diseño (cambio 14): en Hoy, la nota más cerca del look (el hueco de debajo del look ya separa) */
+html.at .at-hoy .at-nota, html.at .at-hoy .cal-falta { margin-top: 10px; }

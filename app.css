@@ -1692,3 +1692,19 @@ html{touch-action:manipulation}
 .yo-fm-txt small{font-size:13px;color:var(--sec)}
 .yo-fm-fl{width:20px;height:20px;flex:none;fill:none;stroke:var(--sec);stroke-width:1.4}
 .yo-nw{white-space:nowrap}
+/* 08/11 · estudio de diseño (cambios 9 y 11): chevrones e iconos de valor en oro oscuro (el oro claro daba 2,4:1 sobre blanco); el modo oscuro, con interruptor cuadrado */
+.pn-v .pn-ic{stroke:var(--oro-t)}
+.pn-fl{stroke:var(--oro-t)}
+.pn-sw{position:relative;display:block;width:44px;height:26px;border:1px solid var(--tinta);background:#fff;flex:none;box-sizing:border-box}
+.pn-sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;background:var(--tinta);transition:left .15s}
+[aria-checked="true"] .pn-sw{background:var(--tinta)}
+[aria-checked="true"] .pn-sw::after{left:21px;background:#fff}
+@media (prefers-reduced-motion:reduce){.pn-sw::after{transition:none}}
+/* 08/11 · estudio de diseño (cambio 3): los avisos del recorte con el margen de 20 px del resto */
+.sb .s-aviso{margin-left:20px;margin-right:20px}
+.sb .s-fondo{margin-left:20px;margin-right:20px}
+/* 08/11 · estudio de diseño (cambio 7): Yo con un solo margen lateral, el de 20 px del resto de la app (antes 18, 24 y 38 px según el bloque), y un solo estilo de título de sección */
+#p-yo.con-margen{padding-left:20px;padding-right:20px}
+#p-yo .y3-pal{margin-left:0;margin-right:0}
+#yo-fm{margin:0}
+.yo-ajustes{right:8px}

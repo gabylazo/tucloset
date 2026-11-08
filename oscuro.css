@@ -818,6 +818,12 @@ html.oscuro .yo-fm .dg-mini{background:var(--baldosa,var(--o-fondo))}
 html.oscuro .yo-fm .dg-mini svg{fill:none;stroke:var(--sec)}
 html.oscuro .yo-fm-txt small{color:var(--sec)}
 html.oscuro .yo-fm-fl{fill:none;stroke:var(--sec)}
+html.oscuro .pn-v .pn-ic{stroke:var(--oro-t)}
+html.oscuro .pn-fl{stroke:var(--oro-t)}
+html.oscuro .pn-sw{border:1px solid var(--tinta);background:var(--o-fondo)}
+html.oscuro .pn-sw::after{background:var(--tinta)}
+html.oscuro [aria-checked="true"] .pn-sw{background:var(--tinta)}
+html.oscuro [aria-checked="true"] .pn-sw::after{background:var(--o-fondo)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}
@@ -1024,6 +1030,7 @@ html.at.oscuro .at-cm-campo input:focus-visible,html.at.oscuro .at-cm-campo sele
 html.at.oscuro .at-cm-et{color:var(--sec)}
 html.at.oscuro .at-cm-col button{border:1px solid var(--linea2, rgba(241,233,222, .28));border-radius:50%}
 html.at.oscuro .at-cm-col button.on{outline:2px solid var(--tinta);outline-offset:3px}
+html.at.oscuro #p-yo .dg-cab h2{color:var(--sec)}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz
@@ -1066,4 +1073,9 @@ html.at.oscuro[data-fondo="4"] { --baldosa: transparent; }
 html.at.oscuro[data-fondo="4"] :is(.at-bal, .at-cel:not(.sin-cat), .at-foto:not(.sin-cat), .dx-closet button, .av-img) { background: transparent; }
 html.at.oscuro[data-fondo="4"] .at-hoy .at-look { background: radial-gradient(ellipse 60% 55% at 50% 48%, rgba(241, 233, 222, .09), transparent 70%); }
 html.at.oscuro[data-fondo="4"] :is(.at-lz .pz, .at-lz img, .at-bal img, .at-cel:not(.sin-cat) img, .at-foto:not(.sin-cat) img, #nl-prendas img, .at-cap-p img, .dx-closet img, .at-puesto img, .av-img img) { filter: drop-shadow(0 0 1px rgba(241, 233, 222, .4)) drop-shadow(0 10px 16px rgba(0, 0, 0, .65)); }
+
+/* 08/11: los rojos de borrar y de error, claros sobre la noche (#8E3B2E daba 2,4:1 y #B3261E, 3:1; #E8776B da 6,3:1) */
+html.oscuro .pn-f.rojo, html.oscuro .pn-f.rojo .pn-t, html.oscuro #p-cuenta .item.rojo, html.oscuro #p-yo #yo-borrar, html.oscuro .dx-in input[aria-invalid=true], html.oscuro .dx-error { color: #E8776B; }
+html.oscuro .pn-f.rojo .pn-ic { stroke: #E8776B; }
+html.oscuro .dg-campo input[aria-invalid=true] { border-bottom-color: #E8776B; }
 

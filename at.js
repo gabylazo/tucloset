@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.198'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.199'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -267,23 +267,27 @@ if (AT) (() => {
     const a = estilo ? [estilo, '', '', '', [estilo]] : null, FS = a ? FSM() : null, perfil = a ? { ...(E.perfil || {}), estilos: [estilo] } : E.perfil, tope = a ? 99 : 6;
     // de su misma categoría solo entra ella (si no, el motor prueba antes otras parejas y la elegida casi no llega)
     const pool = activas().filter(x => x.id === p.id || Motor.ficha(x).cat !== f.cat), vistos = new Set(), out = [];
-    for (const tiempo of tiempos) { if (out.length >= 2) break;
+    // 08/11: si con su ropa solo salen looks a los que les falta una capa (la camiseta blanca del clóset de ejemplo: «Con tu ropa aún no sale un look» mientras Hoy
+    // la enseñaba con su nota), se enseñan esos, como en Hoy, con la nota de la capa que falta
+    const buscar = casiVale => { for (const tiempo of tiempos) { if (out.length >= 2) break;
       for (const plan of ocs) { if (out.length >= tope) break;
         const r = Motor.looks({ prendas: pool, tiempo, plan, perfil, n: 8, hoy: hoyISO(), ...(plan === 'Noche' ? { hora: 20 } : {}), excluir: g?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], depurar: true, complementos: ['bolso', 'accesorio'].includes(f.cat), ...(a ? { afin: [estilo] } : {}) });
-        const ls = (r.todos || []).filter(l => !l.veto.duros.length && !l.casi && l.nota >= min && Motor.claveLook(l).split(',').includes(p.id) && !vistos.has(Motor.claveLook(l)))
+        const ls = (r.todos || []).filter(l => (casiVale ? l.casi : !l.veto.duros.length && !l.casi) && l.nota >= min && Motor.claveLook(l).split(',').includes(p.id) && !vistos.has(Motor.claveLook(l)))
           .map(l => ({ l, s: a ? notaArq(a, l, FS).n : l.nota })).sort((x, y) => y.s - x.s);
-        let n = 0; for (const { l, s } of ls) { if (n >= 3 || out.length >= tope) break; const x = Motor.aPropuesta(l); if (!deVerdad(plan, [x]).length) continue;
-          vistos.add(Motor.claveLook(l)); out.push({ ...x, tipo: 'con', ocasion: plan, conT: tiempo === w ? null : tiempo.t, _s: s }); n++; }
-      } }
+        let n = 0; for (const { l, s } of ls) { if (n >= 3 || out.length >= tope) break; const x = Motor.aPropuesta(casiVale ? { ...l, faltaCapa: true } : l), kx = [...x.ids].sort().join(); // con los «casi», como hace el motor en Hoy
+          if (vistos.has(kx) || !deVerdad(plan, [x]).length) continue; // las mismas prendas, una vez (los «casi» repetían el look con otra capa que falta)
+          vistos.add(Motor.claveLook(l)); vistos.add(kx); out.push({ ...x, tipo: 'con', ocasion: plan, conT: tiempo === w ? null : tiempo.t, _s: s }); n++; }
+      } } };
+    buscar(false); if (!out.length) buscar(true);
     return a ? out.sort((x, y) => y._s - x._s).slice(0, 6) : out;
   };
   window.atPrueba.looksConPrenda = looksConPrenda;
   Object.assign(window.atPrueba, { abrirConPrenda: () => abrirConPrenda(), abrirCompra: () => abrirCompra() });
   function elegirPrendaHoy() {
-    const ps = activas().filter(p => urlCat(p) && !sinFoto(p)), cats = CATS_ORDEN.filter(c => ps.some(p => catDe(p) === c));
-    abrirPanel(t('¿Qué quieres ponerte?', 'What do you want to wear?'), `<p class="at-con-txt">${t('Elige la prenda y te propongo looks con ella.', 'Pick a garment and I’ll suggest looks with it.')}</p>`
-      + cats.map(c => `<h2 class="pn-gt">${catTxt(c)}</h2><div class="at-con-rej">${ps.filter(p => catDe(p) === c).map(p => `<button class="at-cel${conCat(p) ? '' : ' sin-cat'}${p.id === E.hoyCon ? ' on' : ''}" data-con="${p.id}" aria-label="${esc(p.nombre)}"${p.id === E.hoyCon ? ' aria-current="true"' : ''}><img src="${urlCat(p)}" alt=""></button>`).join('')}</div>`).join(''),
-      cap => cap.addEventListener('click', e => { const b = e.target.closest('[data-con]'); if (!b) return; cap.remove(); E.hoyCon = b.dataset.con; E.propuestas = []; E.hoyIdx = 0; E.hzPreg = false; pintarHoy(); }));
+    const ps = activas().filter(p => urlCat(p) && !sinFoto(p));
+    abrirPanel(t('¿Qué quieres ponerte?', 'What do you want to wear?'), `<p class="at-con-txt">${t('Elige la prenda y te propongo looks con ella.', 'Pick a garment and I’ll suggest looks with it.')}</p>` + rejillaPrendas(ps, 'data-con', E.hoyCon),
+      cap => { deslizable(cap.querySelector('.at-elegir .at-cats'));
+        cap.addEventListener('click', e => { const b = e.target.closest('[data-con]'); if (!b) return; cap.remove(); E.hoyCon = b.dataset.con; E.propuestas = []; E.hoyIdx = 0; E.hzPreg = false; pintarHoy(); }); });
   }
 
   /* ---------- HOY: el nombre, la fecha con el tiempo, el look grande y quieto; debajo, la ocasión y «Me lo pongo» ---------- */
@@ -327,7 +331,7 @@ if (AT) (() => {
     const fav = esFav(pr.ids), puesto = pr.ids.length > 0 && pr.ids.every(id => (P(id)?.usos || []).includes(hoyISO()));
     // 03/11, tarde (Gabriela: «la página de inicio me da la sensación de apretado… y desorden»; «no me gusta eso de no me gusta»): la ocasión pasa a la cabecera, bajo la
     // fecha; debajo del look, si hace falta, la nota; y abajo, juntos y centrados, el corazón y «Me lo pongo»
-    const nota = pr.tipo === 'con' && pr.conT != null ? `<p class="at-nota">${t(`Para un día de unos ${pr.conT}°: con el tiempo de hoy no le va`, `For a day of about ${pr.conT}°: it doesn’t suit today’s weather`)}</p>` : pr.tipo === 'agenda' && pr.ev ? `<p class="at-nota at-nota-plan">${esc(pr.ev.nombre || ocNombre(pr.ev.oc))}${pr.ev.hora ? ' · ' + pr.ev.hora : ''}</p>` : E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'With your coat on top: add it and it will show here' : `Con ${pr.capaFalta && pr.capaFalta !== 'abrigo' ? (pr.capaFalta === 'chaqueta' ? 'tu chaqueta' : 'tu ' + pr.capaFalta) : 'tu abrigo'} encima: súbelo y saldrá aquí`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : '';
+    const nota = pr.tipo === 'con' && pr.conT != null ? `<p class="at-nota">${t(`Para un día de unos ${pr.conT}° (hoy no le va)`, `For a day of about ${pr.conT}° (not today’s weather)`)}</p>` : pr.tipo === 'agenda' && pr.ev ? `<p class="at-nota at-nota-plan">${esc(pr.ev.nombre || ocNombre(pr.ev.oc))}${pr.ev.hora ? ' · ' + pr.ev.hora : ''}</p>` : E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'With your coat on top: add it and it will show here' : `Con tu ${pr.capaFalta || 'abrigo'} encima: ${/a$/.test(pr.capaFalta || '') ? 'súbela' : 'súbelo'} y saldrá aquí`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : '';
     // junto a la ocasión, «Con una prenda»; elegida, su foto pequeña y su nombre (tocarla cambia de prenda) y la equis para volver a los looks de siempre
     const conB = pc ? `<span class="at-conp on"><button class="at-conp-n" data-hzcon aria-label="${t('Con', 'With')} ${esc(pc.nombre)}: ${t('cambiar la prenda', 'change the garment')}"><img src="${urlCat(pc)}" alt=""><span class="at-conp-t">${esc(pc.nombre)}</span></button><button class="at-conp-x" data-hzconx aria-label="${t('Quitar la prenda', 'Remove the garment')}">${I.cerrar}</button></span>`
       : `<button class="at-conp" data-hzcon>${I.percha}${t('Con una prenda', 'With a garment')}</button>`;
@@ -710,7 +714,7 @@ if (AT) (() => {
     return { id: uid(), destino: g.name, pais: g.country || '', desde: f.desde, dias: f.dias, motivo: f.motivo, extras: f.extras, previsto: tv.previsto, plan, listo: [], lluvia: tv.dias.some(w => w.lluvia >= 50), tmin, tmax, creado: Date.now() };
   }
   function abrirViaje(id) {
-    let cap = $('at-viaje'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-viaje'; cap.className = 'ay-capa at-vj'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); document.body.append(cap); }
+    let cap = $('at-viaje'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-viaje'; cap.className = 'ay-capa at-vj'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-label', t('Planear un viaje', 'Plan a trip')); document.body.append(cap); }
     const cerrar = () => { cap.remove(); if (E.pantalla === 'looks') pintarLooks(); };
     const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>`;
     const v = id && viajes().find(x => x.id === id);
@@ -816,8 +820,14 @@ if (AT) (() => {
   const X_CERRAR = `<svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg>`;
   // el look sin botón (cuando no se puede abrir: la prenda aún no es tuya)
   const baldosaFija = (ps, W, H, lbl) => `<div class="at-bal" role="img" aria-label="${esc(lbl)}" style="width:${W}px;height:${H}px">${figura(ps, W - 2 * Math.round(W * .17), H - 2 * Math.round(H * .12))}</div>`;
-  const rejillaPrendas = (ps, attr, sel) => { const cats = CATS_ORDEN.filter(c => ps.some(p => catDe(p) === c));
-    return cats.map(c => `<h2 class="pn-gt">${catTxt(c)}</h2><div class="at-con-rej">${ps.filter(p => catDe(p) === c).map(p => `<button class="at-cel${conCat(p) ? '' : ' sin-cat'}${p.id === sel ? ' on' : ''}" ${attr}="${p.id}" aria-label="${esc(p.nombre)}"${p.id === sel ? ' aria-current="true"' : ''}><img src="${urlCat(p)}" alt=""></button>`).join('')}</div>`).join(''); };
+  // 08/11 (estudio de diseño, cambio 2): se elige como en el Clóset: la fila de tipos de prenda arriba y una sola rejilla de 3 a todo el ancho (antes, una
+  // rejilla por tipo con media pantalla vacía cuando había una o dos prendas). La fila solo enseña u oculta las celdas: no se vuelve a pintar nada
+  const rejillaPrendas = (ps, attr, sel) => { const cats = ['Todo', ...CATS_ORDEN.filter(c => ps.some(p => catDe(p) === c))];
+    return `<div class="at-elegir">${cats.length > 2 ? `<nav class="at-fila at-cats" aria-label="${t('Tipo de prenda', 'Garment type')}">${cats.map((c, i) => `<button class="${i ? '' : 'on'}" data-elcat="${c}" aria-pressed="${!i}">${catTxt(c)}${DOS}</button>`).join('')}</nav>` : ''}
+      <div class="at-con-rej">${ps.map(p => `<button class="at-cel${conCat(p) ? '' : ' sin-cat'}${p.id === sel ? ' on' : ''}" ${attr}="${p.id}" data-cat="${esc(catDe(p))}" aria-label="${esc(p.nombre)}"${p.id === sel ? ' aria-current="true"' : ''}><img src="${urlCat(p)}" alt=""></button>`).join('')}</div></div>`; };
+  document.addEventListener('click', e => { const b = e.target.closest('[data-elcat]'); if (!b) return; const caja = b.closest('.at-elegir'), c = b.dataset.elcat;
+    caja.querySelectorAll('[data-elcat]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
+    caja.querySelectorAll('.at-con-rej .at-cel').forEach(x => { x.hidden = c !== 'Todo' && x.dataset.cat !== c; }); });
 
   /* ---------- CON UNA PRENDA, en Looks → Ideas (08/11, Gabriela: «que selecciones una pieza que sí o sí quieras usar, por ejemplo un jean, y que la app te
      proponga outfits en función del estilo que quieres»): eliges la prenda y, si quieres, un estilo; salen hasta seis looks con ella. En Hoy está la versión
@@ -829,10 +839,14 @@ if (AT) (() => {
     if (!p || S.cambiar) {
       const ps = activas().filter(q => urlCat(q) && !sinFoto(q));
       cap.innerHTML = `${p ? `<button class="x" aria-label="${t('Volver', 'Back')}">${I.iz}</button>` : X}<h1>${t('Con una prenda', 'With one garment')}</h1>
-        <p class="at-vj-sub">${t('Elige la que quieres llevar sí o sí y te propongo looks con ella.', 'Pick the one you want to wear no matter what and I’ll suggest looks with it.')}</p>
+        <p class="at-vj-sub">${t('Elige la que quieres llevar sí\u00a0o\u00a0sí y te propongo looks con ella.', 'Pick the one you want to wear no matter what and I’ll suggest looks with it.')}</p>
         ${ps.length ? rejillaPrendas(ps, 'data-cpp', p?.id) : `<p class="at-vj-sub">${t('Sube tu ropa y aquí podrás elegir.', 'Add your clothes and you’ll be able to pick here.')}</p>`}`;
+      deslizable(cap.querySelector('.at-elegir .at-cats'));
     } else {
       const looks = looksConPrenda(p, 'Diario', S.estilo || null), est = ESTILOS.find(e => e.k === S.estilo), mios = (E.perfil?.estilos || []).filter(k => ESTILOS.some(e => e.k === k));
+      // 08/11 (estudio de diseño, cambio 2): si el estilo no cambia los looks (con poca ropa pasa), se dice en vez de enseñar lo mismo como si fuera otra cosa
+      const firma = ls => ls.map(x => psDe(x).map(q => q.id).sort().join()).sort().join('|'), igual = est && looks.length && firma(looks) === firma(looksConPrenda(p, 'Diario', null));
+      const otroDia = looks.length && looks.every(x => x.conT != null), capa = looks.length && looks.every(x => x.faltaCapa) ? looks[0].capaFalta || 'abrigo' : '';
       const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25), L = e => e.n[en() ? 1 : 0];
       const chip = (k, txt) => `<button class="${S.estilo === k ? 'on' : ''}" data-cpest="${k}" aria-pressed="${S.estilo === k}">${txt}${DOS}</button>`;
       E.cpLooks = looks;
@@ -841,8 +855,10 @@ if (AT) (() => {
         <p class="at-cp-et" id="at-cp-et">${t('En qué estilo', 'In which style')}</p>
         <nav class="at-fila at-cp-est" aria-labelledby="at-cp-et">${chip('', mios.length ? t('Mis estilos', 'My styles') : t('El mío', 'Mine'))}${ESTILOS.map(e => chip(e.k, L(e))).join('')}</nav>
         ${est ? `<p class="at-vj-sub">${esc(L({ n: est.d }))}</p>` : ''}
-        ${looks.length ? `<div class="at-rej2 at-vj-dias">${looks.map((x, i) => `<figure class="at-t">${baldosa(psDe(x), TW, TH, ` data-cplook="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<figcaption>${esc(ocNombre(x.ocasion))}${x.conT != null ? ` · ${x.conT}°` : ''}</figcaption></figure>`).join('')}</div>
-          ${looks.some(x => x.conT != null) ? `<p class="at-vj-nota">${t('Los que llevan grados son para su temporada: con el tiempo de hoy no le va.', 'Those with degrees are for its season: it doesn’t suit today’s weather.')}</p>` : ''}`
+        ${igual ? `<p class="at-vj-nota at-cp-aviso">${t(`Con tu ropa no hay otros looks de estilo ${L(est).toLowerCase()} con esta prenda: estos son los que más se acercan.`, `Your clothes don’t make other ${L(est).toLowerCase()} looks with this garment: these are the closest.`)}</p>` : ''}
+        ${otroDia ? `<p class="at-vj-nota at-cp-aviso">${t(`Con el tiempo de hoy no le va. Así la llevarías un día de unos ${looks[0].conT}°.`, `It doesn’t suit today’s weather. This is how you’d wear it on a day of about ${looks[0].conT}°.`)}</p>` : ''}
+        ${capa ? `<p class="at-vj-nota at-cp-aviso">${t(`Para completarlos, con tu ${capa} encima. Si aún no está en tu clóset, ${/a$/.test(capa) ? 'súbela' : 'súbelo'}.`, `To complete them, wear your ${capa} on top. If it isn’t in your closet yet, add it.`)}</p>` : ''}
+        ${looks.length ? `<div class="at-rej2 at-vj-dias">${looks.map((x, i) => `<figure class="at-t">${baldosa(psDe(x), TW, TH, ` data-cplook="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<figcaption>${esc(ocNombre(x.ocasion))}${x.conT != null && !otroDia ? ` · ${t(`para un día de ${x.conT}°`, `for a ${x.conT}° day`)}` : ''}</figcaption></figure>`).join('')}</div>`
           : `<p class="at-vj-sub">${est ? t(`Con tu ropa aún no sale un look ${L(est).toLowerCase()} con esta prenda. Prueba otro estilo.`, `Your clothes don’t make a ${L(est).toLowerCase()} look with this garment yet. Try another style.`) : t('Con tu ropa aún no sale un look con esta prenda.', 'Your clothes don’t make a look with this garment yet.')}</p>`}`;
       deslizable(cap.querySelector('.at-cp-est'));
       const on = cap.querySelector('.at-cp-est .on'); if (on && S.estilo) requestAnimationFrame(() => on.scrollIntoView({ block: 'nearest', inline: 'center' }));

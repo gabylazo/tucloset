@@ -1512,7 +1512,7 @@ function ir(nombre, datos) {
   if (nombre === 'yo') pintarYo();
   if (nombre === 'cuenta') pintarCuenta();
   if (nombre === 'colores') pintarMisColores();
-  document.querySelectorAll('.pn-base').forEach(c => c.remove()); // Ajustes no tapa la pantalla a la que se va
+  document.querySelectorAll('.pn-base, .vf-capa').forEach(c => c.remove()); // Ajustes y el visor de fotos no tapan la pantalla a la que se va
   if (nombre !== 'closet' && $('mc-hoja') && !$('mc-hoja').hidden) hojaFiltros(false); // la hoja de filtros no se queda abierta en otra pantalla
   E.pantalla = nombre;
   document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.id === 'p-' + nombre));
@@ -2235,8 +2235,8 @@ function pintarSubida() {
     raiz.innerHTML = `<div class="sb uno">${n === 1 ? X : `<button class="x" data-svolver aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>`}<div class="tit"><h1>${t('Revisa tu prenda', 'Check your garment')}</h1>${n > 1 ? `<div class="mini-et">${i + 1} ${t('de', 'of')} ${n}</div>` : ''}</div>
       <div class="foto">${det.url && listo ? `<button type="button" class="s-recortar" data-srecortar aria-label="${t('Arreglar la foto: marca la prenda y le quito el fondo otra vez', 'Fix the photo: frame the garment and I remove the background again')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/></svg><span aria-hidden="true">${t('Arreglar foto', 'Fix photo')}</span></button>` : ''}${det.url ? `<img src="${det.url}" alt="">` : `<p class="s-procesando">${t('Quitando el fondo y reconociendo la prenda…', 'Removing the background and recognising the garment…')}</p>`}</div>
       ${listo && det.noPrenda && !det.siPrenda ? `<div class="s-aviso"><b>${t('Esta foto no parece una prenda', 'This photo does not look like a garment')}</b><span>${t('No coincide con ninguna categoría de ropa. Si es una captura, un texto u otra cosa, quítala.', 'It does not match any clothing category. If it is a screenshot, text or something else, remove it.')}</span><div><button class="boton" data-squita>${t('Quitarla', 'Remove it')}</button><button class="txt sub-l" data-ssi>${t('Sí es una prenda', 'It is a garment')}</button></div></div>` : ''}
-      ${listo && det.dudoso && !(det.noPrenda && !det.siPrenda) ? `<div class="s-aviso"><b>${t('Revisa el recorte', 'Check the cut-out')}</b><span>${t('Puede que le falte un trozo o que le sobre fondo. Si es así, repite la foto con la prenda sobre algo de otro color, como una toalla o el suelo. También puedes guardarla y arreglarla después en su ficha, con «Editar».', 'It may be missing a piece or keep some background. If so, take the photo again with the garment on something of another colour, like a towel or the floor. You can also save it and fix it later in its page, with «Edit».')}</span></div>` : ''}
-      ${listo && det.fondo && !det.dudoso && !(det.cv >= 3) && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso y el recorte puede salir con restos. Para un recorte limpio, haz la foto sobre un fondo de un solo color.', 'The background is not plain, so the cut-out may keep bits of it. For a clean cut-out, shoot on a single-colour background.')}</p>${reglasFoto()}` : ''}
+      ${listo && det.dudoso && !(det.noPrenda && !det.siPrenda) ? `<div class="s-aviso"><b>${t('Revisa el recorte', 'Check the cut-out')}</b><span>${t('Si le falta un trozo o le sobra fondo, toca «Arreglar foto».', 'If a piece is missing or there is background left, tap “Fix photo”.')}</span></div>` : ''}
+      ${listo && det.fondo && !det.dudoso && !(det.cv >= 3) && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso: si el recorte sale con restos, toca «Arreglar foto».', 'The background is not plain: if the cut-out keeps bits of it, tap “Fix photo”.')}</p>${reglasFoto()}` : ''}
       ${listo ? `<input class="nom" value="${det.nombre}" data-snom aria-label="${t('Nombre', 'Name')}">
       <div class="fila2 s-cat"><label class="campo"><span>${t('Categoría', 'Category')}</span><select data-scat>${opsCat(catDe(det))}</select></label><label class="campo"><span>${t('Tipo', 'Type')}</span><select data-ssub>${opsSub(catDe(det), subDe(catDe(det), det.x, det.nombre))}</select></label></div>
       <div class="gr"><p class="mini-et">${t('Color', 'Colour')}</p><div class="ops col">${COLORES.map(([c, h]) => `<button type="button" class="${c === det.color ? 'on' : ''}" data-scolor="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>
@@ -2244,7 +2244,6 @@ function pintarSubida() {
       ${det.color === 'Estampado' && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(det.estampado) ? `<div class="gr"><p class="mini-et">${t('Color del estampado', 'Pattern colour')}</p><div class="ops col">${COLORES.filter(([c]) => c !== 'Estampado').map(([c, h]) => `<button type="button" class="${c === det.color2 ? 'on' : ''}" data-scolor2="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>` : ''}
       <div class="gr"><p class="mini-et">${t('Detalles', 'Details')}</p><div class="ops">${Object.keys(DETALLES).map(k => `<button type="button" class="${(det.detalles || []).includes(k) ? 'on' : ''}" data-sdeta="${k}" aria-pressed="${(det.detalles || []).includes(k)}">${t(k, DETALLES[k])}</button>`).join('')}</div></div>
       <div class="gr"><p class="mini-et">${t('Estación', 'Season')}</p>${ops(ESTACIONES, det.estacion, 'est', estNombre)}</div>
-      <button class="txt sub-l" data-sgirar>${t('Girar la foto', 'Rotate the photo')}</button>
       ${det.recortada ? `<button class="txt sub-l" data-sorig>${det.usaOriginal ? t('Usar el fondo blanco', 'Use white background') : t('Usar la foto original', 'Use the original photo')}</button>` : ''}` : ''}
       <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo && !(det.noPrenda && !det.siPrenda) ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(t('Añadir más prendas', 'Add more garments'), 'txt sub-l')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button><button class="txt sub-l" data-squita>${t('Quitar esta prenda', 'Remove this garment')}</button>`}</div></div>`;
   } else {
@@ -2732,7 +2731,7 @@ function abrirLook(id) {
 /* ---------- YO ---------- */
 // 0.63 · Ayuda (Sheila, 22/10: «también podemos integrar un sistema de asistente virtual por si la usuaria tiene alguna duda»; Gabriela: «Sí»):
 // primera fase, preguntas frecuentes con buscador, sin servidor y sin red; el asistente con IA llegará con las cuentas
-const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no hay funciones obsoletas»): al día con la web 0.185
+const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no hay funciones obsoletas»): al día con la web 0.185; 08/11: Con una prenda, ¿Me lo compro?, avatar y Ajustes
   ['Subir y fotos', 'Cómo subo mi ropa', 'Toca Subir, en el centro de la barra. Haz una foto o elige varias de la galería. La app quita el fondo y te propone nombre, categoría, color, estampado y estación; revísalo y guarda.'],
   ['Subir y fotos', 'Cómo hago una buena foto', 'Una prenda por foto y entera, sobre un fondo que contraste (una cama o el suelo valen), con luz de día y sin flash. Las mangas, mejor hacia abajo.'],
   ['Subir y fotos', 'El recorte ha dejado restos o ha cortado la prenda', 'Abre la prenda y toca «Arreglar foto»: marca la prenda sobre tu foto y la app vuelve a quitar el fondo. Tu foto original no se toca.'],
@@ -2745,20 +2744,24 @@ const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no
   ['Hoy y looks', 'Cómo le digo a dónde voy', 'En Hoy, toca la ocasión bajo la fecha y elige otra. Para otro día, en Looks → Calendario, elige el día y toca «Añadir evento»: pon el plan, la hora y, si quieres, el enlace del sitio y una descripción. La app te propone looks con el tiempo de ese día.'],
   ['Hoy y looks', 'Me dice que me falta ropa para una ocasión', 'Si tu clóset no da para un plan (noche, evento, oficina, deporte), la app te lo dice y te propone qué tipo de prenda te vendría bien.'],
   ['Hoy y looks', 'Cómo creo y guardo un look', 'En Looks → Mis looks, toca + y elige las prendas. Los looks que te gustan de Hoy e Ideas se guardan con el corazón.'],
+  ['Hoy y looks', 'Quiero un look con una prenda concreta', 'En Hoy, toca «Con una prenda» junto a la ocasión. En Looks → Ideas → «Con una prenda» puedes elegir además el estilo. Todos los looks que te propone la llevan.'],
+  ['Hoy y looks', 'Para qué sirve «¿Me lo compro?»', 'En Looks → Ideas: hazle una foto a una prenda en la tienda y la app te dice qué parte de tu clóset combina con ella, qué looks saldrían y si ya tienes algo parecido. No entra en tu clóset hasta que tocas «La he comprado».'],
   ['Hoy y looks', 'Qué es «Mi cápsula»', 'En Looks → Mis looks: elige el plan y cuántas prendas quieres llevar, y la app busca las que más looks dan entre sí.'],
   ['Mi prenda', 'Qué significan los iconos de la ficha', 'Hoy: llevarla hoy. Look: crear un look con ella. Ideas: looks con esa prenda. Cuidar: cómo lavarla. Sucia: que no salga en los looks hasta que la marques limpia. Guardar: fuera de temporada. Donar y Cerca: puntos para donarla o venderla cerca de ti.'],
   ['Mi estilo', 'Cómo cambio mi estilo', 'En Yo → Mi estilo, elige hasta cinco estilos y toca «Guardar». Los looks que te propone la app se ordenan según ellos.'],
   ['Mi estilo', 'Cómo aprende la app lo que me gusta', 'En Yo → Mi estilo, «Looks que te encantan»: sube hasta cinco fotos de looks que te gusten (tuyos, de Pinterest o de Instagram). La app lee la ropa, sus colores y su estilo, y te propone más looks parecidos. La foto no se guarda.'],
   ['Mi estilo', 'Cómo copio el estilo de alguien', 'En el Pro, Looks → Ideas → «Inspírate en…»: elige una referencia y la app arma looks con tu ropa en ese estilo.'],
-  ['Mi estilo', 'Cómo funciona mi diagnóstico', 'En Yo → Ajustes → Medidas y fotos: apunta tus medidas con la cinta (el contorno de pecho, cintura y cadera) y sube una foto de cara y una de cuerpo entero. La app calcula tu silueta y tus colores. En el Pro, los looks los tienen en cuenta.'],
-  ['Mi cuenta y datos', 'Dónde se guarda mi ropa', 'Con cuenta, tu ropa y tus looks se guardan en tu cuenta y los ves en cualquier móvil en el que entres. Tus fotos de cara y de cuerpo no se suben nunca: se quedan en tu móvil.'],
-  ['Mi cuenta y datos', 'Cómo paso mi clóset a otro móvil', 'Entra con tu correo y tu contraseña en el otro móvil: tu clóset aparece solo. Sin cuenta, Yo → «Guardar una copia» y, en el otro móvil, «Recuperar una copia».'],
+  ['Mi estilo', 'Cómo funciona mi diagnóstico', 'En Yo → Tus medidas y fotos: apunta tus medidas con la cinta (el contorno de pecho, cintura y cadera) y sube una foto de cara y una de cuerpo entero. La app calcula tu silueta y tus colores. En el Pro, los looks los tienen en cuenta.'],
+  ['Mi estilo', 'Cómo me veo los looks puestos', 'En el Pro, Yo → Tu avatar: con tu foto de cara y la de cuerpo entero la app crea tu avatar. Después, en Hoy, toca la figura junto a «Me lo pongo». Lo último que te pruebas se queda en Yo.'],
+  ['Mi cuenta y datos', 'Dónde se guarda mi ropa', 'Con cuenta, tu ropa y tus looks se guardan en tu cuenta y los ves en cualquier móvil en el que entres. Tus fotos de cara y de cuerpo se quedan en tu móvil, salvo que elijas guardarlas en tu cuenta (privadas).'],
+  ['Mi cuenta y datos', 'Dónde están los ajustes', 'En Yo, en el engranaje de arriba a la derecha: tu cuenta, tu plan, la ciudad del tiempo, el modo oscuro, el idioma, tus datos y la ayuda.'],
+  ['Mi cuenta y datos', 'Cómo paso mi clóset a otro móvil', 'Entra con tu correo y tu contraseña en el otro móvil: tu clóset aparece solo. Sin cuenta, en Ajustes → Tus datos y permisos, «Descargar una copia» y, en el otro móvil, «Recuperar una copia».'],
   ['Mi cuenta y datos', 'Qué incluye cada plan', 'Gratis: 7 días con hasta 10 prendas. Básico (1,99 €/mes o 14,99 €/año): tu clóset sin tope, el look de cada día, los looks de la estilista, Mi cápsula, el calendario y los cuidados. Pro (4,99 €/mes o 39,99 €/año): todo lo del Básico y además tu diagnóstico de colores y silueta aplicado a tus looks, «Inspírate en…», Planear un viaje e ideas con cada prenda.'],
   ['Mi cuenta y datos', 'Cómo pongo la app en la pantalla de inicio', 'En iPhone, desde Safari: Compartir → «Añadir a pantalla de inicio». En Android, desde Chrome: menú ⋮ → «Añadir a pantalla de inicio».']
 ];
 function abrirAyuda() { // 0.114: con el panel de Yo; cada grupo en su bloque y, al final, «Escríbenos»
   abrirPanel(t('Ayuda', 'Help'), `<label class="pn-busca">${icY('ayuda')}<input type="search" placeholder="${t('Busca tu duda', 'Search your question')}"></label><div class="ay-lista"></div>`
-    + grupoP('', filaP({ tag: 'a', attr: 'href="mailto:app@tucloset.app"', ic: 'correo', tit: t('¿No lo encuentras? Escríbenos', 'Can’t find it? Write to us'), val: 'app@tucloset.app', flecha: false })), cap => {
+    + grupoP('', filaP({ tag: 'a', attr: 'href="mailto:app@tucloset.app"', ic: 'correo', tit: t('Escríbenos', 'Write to us'), val: 'app@tucloset.app', flecha: false })), cap => {
     const n = x => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const pinta = q => { const b = n(q || ''), hay = AYUDA.filter(([, p, r]) => !b || n(p + ' ' + r).includes(b)), grupos = [...new Set(hay.map(h => h[0]))];
       cap.querySelector('.ay-lista').innerHTML = hay.length ? grupos.map(g => grupoP(g, hay.filter(h => h[0] === g).map(([, p, r]) => `<details class="pn-d"><summary>${p}<svg class="pn-fl" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><p>${r}</p></details>`).join(''))).join('')
@@ -2823,9 +2826,8 @@ function pintarPanelYo() {
       enGratis() && E.prendas.length > TOPE_GRATIS ? t(`En la gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`) : '')
     + grupoP(t('La app', 'The app'),
       filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
-      + filaP({ id: 'yo-modo', ic: 'modo', tit: t('Modo oscuro', 'Dark mode'), val: document.documentElement.classList.contains('oscuro') ? t('Sí', 'On') : t('No', 'Off'), flecha: false })
-      + filaP({ id: 'yo-idioma', ic: 'idioma', tit: t('Idioma', 'Language'), val: es ? 'English' : 'Español' })
-      + filaP({ id: 'yo-avisos', ic: 'avisos', tit: t('Notificaciones', 'Notifications'), val: t('Pronto', 'Soon'), flecha: false, apagada: true }))
+      + filaP({ id: 'yo-modo', ic: 'modo', tit: t('Modo oscuro', 'Dark mode'), val: '<span class="pn-sw" aria-hidden="true"></span>', flecha: false, attr: `role="switch" aria-checked="${document.documentElement.classList.contains('oscuro')}"` })
+      + filaP({ id: 'yo-idioma', ic: 'idioma', tit: t('Idioma', 'Language'), val: es ? 'English' : 'Español' }))
     + grupoP(t('Privacidad y datos', 'Privacy and data'),
       filaP({ id: 'yo-privacidad', ic: 'privacidad', tit: t('Tus datos y permisos', 'Your data and permissions') }))
     + grupoP(t('Ayuda', 'Help'),
@@ -2837,7 +2839,6 @@ function pintarPanelYo() {
       + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))
       + `</div></details>`;
   $('yo-vercomo').onclick = panelVerComo; $('yo-modo').onclick = cambiarModo; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
-  $('yo-avisos').onclick = () => toast(t('Las notificaciones llegarán con la app del móvil', 'Notifications will come with the mobile app'));
   $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
 }
@@ -2885,7 +2886,8 @@ async function panelPrivacidad() {
   abrirPanel(t('Tus datos y permisos', 'Your data and permissions'),
     grupoP(t('Qué se guarda', 'What is kept'), `<ul class="pn-lista">
       <li>${icY('nube')}<span>${c ? t('Tus prendas, sus fotos, tus looks y tu calendario se guardan en tu cuenta para verlos en cualquier móvil.', 'Your garments, their photos, your looks and your calendar are kept in your account so you can see them on any phone.') : t('Sin cuenta, todo se queda en este móvil.', 'Without an account, everything stays on this phone.')}</span></li>
-      <li>${icY('camara')}<span>${t('Tu selfie y tu foto de cuerpo no salen nunca de este móvil. El fondo de las fotos se quita aquí mismo.', 'Your selfie and body photo never leave this phone. Photo backgrounds are removed right here.')}</span></li>
+      <li>${icY('camara')}<span>${E.perfil?.fotosCuenta ? t('Tu selfie y tu foto de cuerpo se guardan en tu cuenta, privadas, porque así lo elegiste. Lo cambias en Yo → Tus medidas y fotos.', 'Your selfie and body photo are kept in your account, private, because you chose so. Change it in Me → Your measurements and photos.') : t('Tu selfie y tu foto de cuerpo se quedan en este móvil.', 'Your selfie and body photo stay on this phone.')} ${t('Si creas tu avatar, se envían una vez para hacerlo.', 'If you create your avatar, they are sent once to make it.')}</span></li>
+      <li>${icY('percha')}<span>${t('Para quitar el fondo de tu ropa y hacer la foto de catálogo, la foto de la prenda pasa por nuestro servidor y por la IA de imagen de Google.', 'To remove the background of your clothes and make the catalogue photo, the garment photo goes through our server and Google’s image AI.')}</span></li>
       <li>${icY('ciudad')}<span>${t('Tu ciudad o tu ubicación solo se usan para darte el tiempo.', 'Your city or location is only used for the weather.')}</span></li></ul>`)
     + grupoP(t('Permisos', 'Permissions'), filaP({ tag: 'div', ic: 'ciudad', tit: t('Ubicación', 'Location'), val: ubic, flecha: false }) + filaP({ tag: 'div', ic: 'camara', tit: t('Cámara', 'Camera'), val: t('Solo al subir fotos', 'Only when uploading'), flecha: false }),
       t('Los permisos se cambian en los ajustes del navegador o del móvil.', 'Permissions are changed in your browser or phone settings.'))
@@ -3254,7 +3256,7 @@ function pintarYo() {
   const sil = pf.selfie && pf.cuerpo ? t('fotos listas', 'photos ready') : pf.selfie || pf.cuerpo ? t('falta una foto', 'one photo missing') : t('por descubrir', 'to discover');
   const ests = (pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean), colO = pf.colores?.est ? EST_COLOR[pf.colores.est] : null;
   const ent = (attr, tit, val) => `<button class="y3-a" ${attr}>${tit}<small>${val}</small></button>`;
-  const dg = pf.diag, pend = diagPendiente() && !diagFallo, mira = (k, f) => dg?.[k] ? min(dg[k].n[es]) : pf[f] ? (pend ? t('analizando…', 'analysing…') : t('repite la foto', 'retake the photo')) : t('falta la foto', 'photo missing');
+  const dg = pf.diag, pend = diagPendiente() && !diagFallo, mira = (k, f) => dg?.[k] ? min(dg[k].n[es]) : pf[f] ? (pend ? t('analizando…', 'analysing…') : t('prueba otra foto', 'try another photo')) : t('falta la foto', 'photo missing');
   $('yo-lista').innerHTML = ent(dg?.cuerpo || pf.cuerpo ? 'data-diag="ver-silueta"' : 'data-diag="fotos"', t('Mi silueta', 'My figure'), mira('cuerpo', 'cuerpo'))
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? (ests.length > 2 ? ests.slice(0, 2).map(min).join(', ') + ` +${ests.length - 2}` : ests.map(min).join(t(' y ', ' and '))) : t('elígelo', 'choose it'))
     + ent(dg?.color || pf.selfie ? 'data-diag="ver-color"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
