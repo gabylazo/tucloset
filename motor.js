@@ -273,6 +273,7 @@ const Motor = (() => {
   // no entraban nunca y su ficha no tenía ideas. Ahora, en todo look con calzado (salvo Deporte): el bolso del plan (de día o de noche, R.grupos), con el calzado o neutro
   // y de la formalidad del look; y un cinturón solo donde se ve y suma: pantalón o falda de tiro alto con la prenda por dentro o corta, a juego con el calzado o el bolso
   const NO_CINTURON = new Set(['jogger', 'malla', 'falda_deportiva', 'shorts']);
+  let MAXPAR = 12; // 08/11: parejas que se convierten en looks por fórmula; «¿Me lo compro?» mira más (o.parejas) para saber con cuántas prendas combina
   let COMPL = false; // solo con o.complementos (las ideas de la ficha de un bolso o un cinturón); en Hoy y en Ideas, cuando las socias lo decidan
   function complemento(tipo, l, ents, ctx) {
     if (ctx.ocasion === 'Deporte' || !l.calzado) return null;
@@ -363,7 +364,7 @@ const Motor = (() => {
       }
     }
     parejas.sort((x, y) => y.n - x.n);
-    for (const par0 of parejas.slice(0, 12)) {
+    for (const par0 of parejas.slice(0, MAXPAR)) {
       const par = { ...par0, formula }; delete par.n; par.como = comoDe(formula, par);
       let looks = [par], faltaHueco = null;
       for (const r of ['capa', 'base_interior']) {
@@ -457,7 +458,7 @@ const Motor = (() => {
     const t0 = Date.now(), hoy = o.hoy || new Date().toISOString().slice(0, 10), plan = o.plan || 'Todos', n = o.n || 6, pf = perfilMotor(o.perfil, o), excluir = new Set(o.excluir || []);
     const ctx0 = contexto(o.tiempo, plan, { hora: o.hora, t_ref: o.t_ref, evento: o.evento, lugar: o.lugar });
     const ents = (o.prendas || []).filter(p => !p.noMeGusta).map(p => ({ id: p.id, p, _f: ficha(p, pf) }));
-    COMPL = !!o.complementos;
+    COMPL = !!o.complementos; MAXPAR = o.parejas || 12;
     if (o.afin) for (const x of ents) x._af = typeof o.afin === 'function' ? o.afin(x._f, txtAfin(x.p)) : afinEstilo(x._f, txtAfin(x.p), o.afin);
     else if (pf.inspo) { // 06/11: sin «Inspírate en», los looks que le encantan tiran (a menos de la mitad de fuerza) de los estilos que más se repiten en ellos y de sus colores
       const top = Object.entries(pf.inspo.estilos).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0]);
@@ -497,7 +498,41 @@ const Motor = (() => {
     const ps = ['capa', 'arriba', 'base_interior', 'abajo', 'vestido', 'calzado', 'bolso', 'accesorio'].map(k => l[k]).filter(p => p && !p.muestra);
     return { ids: ps.map(p => p.id), ocasion: l.ctx.ocasion, formula: l.formula?.id, nombre: l.formula?.nombre, porque: l.formula?.porque, como: l.campos.como === 'por_dentro' ? 'por dentro' : l.campos.como, zspec: zapatoDe(l), faltaCapa: !!l.faltaCapa, capaFalta: l.faltaCapa ? capaQueFalta(l) : null, nota: l.nota };
   }
-  return { iniciar, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, aPropuesta, faltas, claveLook, get R() { return R; }, get F() { return F; } };
+  /* 08/11 (Gabriela: «uno escanea piezas en tiendas y que la app le diga un porcentaje de utilidad, es decir, si tendría muchas combinaciones en su clóset»):
+     la prenda que aún no tienes se prueba con tu ropa en su temporada (dos temperaturas si vale para mucho tiempo) y en todas las ocasiones en que puede salir;
+     de su categoría solo entra ella, así que todos los looks la llevan. Utilidad: de tus prendas que se llevarían con ella en esa temporada (lo de abajo para
+     una de arriba, lo de arriba para una de abajo, calzado y abrigo para un vestido…), cuántas salen con ella en algún look bueno. Además, lo que ya tienes igual. */
+  const CON_TIPO = { Arriba: ['Abajo'], Abajo: ['Arriba'], Vestidos: ['Calzado', 'Abrigo'], Abrigo: ['Arriba', 'Abajo', 'Vestidos'], Calzado: ['Arriba', 'Abajo', 'Vestidos'], Bolsos: ['Arriba', 'Abajo', 'Vestidos'], Accesorios: ['Arriba', 'Abajo', 'Vestidos'] };
+  function utilidad(o) {
+    const p = o.prenda, f = ficha(p, {}), lo = Math.max(f.tmin ?? 5, 0), hi = Math.min(f.tmax ?? 28, 32), min = R.puntos.umbrales.pasable;
+    const temps = hi - lo >= 12 ? [lo + 4, hi - 4] : [Math.round((lo + hi) / 2)], tiempos = temps.map(t => ({ t, max: t + 3, min: t - 6 }));
+    const resto = (o.prendas || []).filter(x => x.id !== p.id && !x.noMeGusta), dep = soloDeporte(f), ent = { p, _f: f };
+    const ocs = dep ? ['Deporte'] : ['Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', ...(aptoDeporte(ent) ? ['Deporte'] : [])];
+    const pool = [p, ...resto.filter(x => ficha(x, {}).cat !== f.cat)], vistos = new Map(), socios = new Set(), enOc = new Set();
+    for (const tiempo of tiempos) for (const plan of ocs) {
+      const r = looks({ prendas: pool, tiempo, plan, perfil: o.perfil, n: 8, hoy: o.hoy, hora: plan === 'Noche' ? 20 : 12, excluir: o.excluir, pro: true, colorEstacion: o.colorEstacion, depurar: true, complementos: ['bolso', 'accesorio'].includes(f.cat), parejas: o.parejas || 40 });
+      for (const l of r.todos || []) {
+        if (l.veto.duros.length || l.casi || l.nota < min) continue;
+        const ps = PIEZAS.map(k => l[k]).filter(x => x && !x.muestra); if (!ps.some(x => x.id === p.id)) continue;
+        if (plan === 'Deporte' && !ps.some(x => soloDeporte(x._f) || x._f.deportiva)) continue;
+        ps.forEach(x => x.id !== p.id && socios.add(x.id)); enOc.add(plan);
+        const k = claveLook(l), y = vistos.get(k); if (!y || y.nota < l.nota) vistos.set(k, l);
+      }
+    }
+    const ctxs = tiempos.map(w => contexto(w, 'Diario', { hora: 12 }));
+    const posibles = resto.filter(x => (CON_TIPO[p.tipo] || []).includes(x.tipo)).filter(x => { const e = { p: x, _f: ficha(x, {}) }; return (dep ? aptoDeporte(e) : !soloDeporte(e._f)) && ctxs.some(c => vaHoy(e, c)); });
+    const conEl = posibles.filter(x => socios.has(x.id));
+    // los mejores: uno de cada ocasión por turnos (Deporte, al final), sin repetir la pareja principal (la de abajo para una de arriba…) hasta haber probado todas
+    const todos = [...vistos.values()].sort((a, b) => b.nota - a.nota), lista = [], usadas = new Set(), N = o.n || 6, clave = l => PIEZAS.map(k => l[k]).filter(x => x && !x.muestra && x.id !== p.id && (CON_TIPO[p.tipo] || []).includes(x.p.tipo)).map(x => x.id).sort().join();
+    const porOc = ocs.map(oc => todos.filter(l => l.ctx.ocasion === oc));
+    for (let vuelta = 0; lista.length < N && vuelta < 12; vuelta++) for (const ls of porOc) { if (lista.length >= N) break; const l = ls.find(l => !lista.includes(l) && !usadas.has(clave(l))); if (l) { usadas.add(clave(l)); lista.push(l); } }
+    for (const l of todos) { if (lista.length >= N) break; if (!lista.includes(l)) lista.push(l); }
+    // lo que ya tienes igual: mismo tipo, color y manga (una camiseta roja de manga corta no es la de manga larga abullonada)
+    const parecidas = resto.filter(x => { const g = ficha(x, {}); return g.subtipo === f.subtipo && g.color === f.color && (g.manga || '') === (f.manga || '') && !!g.foco === !!f.foco; }).map(x => x.id);
+    return { pct: posibles.length ? Math.round(100 * conEl.length / posibles.length) : null, con: conEl.map(x => x.id), posibles: posibles.length, nLooks: vistos.size,
+      ocasiones: ocs.filter(x => enOc.has(x)), temps, looks: lista.map(aPropuesta), parecidas, tipos: CON_TIPO[p.tipo] || [] };
+  }
+  return { iniciar, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, aPropuesta, faltas, claveLook, utilidad, get R() { return R; }, get F() { return F; } };
 })();
 if (typeof module !== 'undefined') module.exports = Motor;
 else if (typeof MOTOR_DATOS !== 'undefined') Motor.iniciar(MOTOR_DATOS.R, MOTOR_DATOS.F, MOTOR_DATOS.S);

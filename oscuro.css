@@ -993,6 +993,29 @@ html.at.oscuro .at-con-txt{color:var(--sec)}
 html.at.oscuro .at-con-rej .at-cel.on{box-shadow:inset 0 0 0 1.5px var(--tinta)}
 html.at.oscuro .av-t{background:var(--baldosa);border:0}
 html.at.oscuro .av-t[aria-pressed="true"]::after{background:var(--oro)}
+html.at.oscuro .at-cp-elegida img{background:var(--baldosa)}
+html.at.oscuro .at-cp-n{color:var(--tinta)}
+html.at.oscuro .at-cp-et{color:var(--sec)}
+html.at.oscuro .at-cm-guia{background:var(--baldosa)}
+html.at.oscuro .at-cm-guia svg{fill:none;stroke:var(--tinta)}
+html.at.oscuro .at-cm-foto:focus-within{outline:2px solid var(--tinta);outline-offset:3px}
+html.at.oscuro .at-cm-pie{color:var(--sec)}
+html.at.oscuro .at-cm-error{color:#8B2E1F}
+html.at.oscuro .at-cm-prenda{background:var(--baldosa)}
+html.at.oscuro .at-cm-nom{color:var(--tinta)}
+html.at.oscuro .at-cm-pct{color:var(--tinta)}
+html.at.oscuro .at-cm-frase{color:var(--tinta)}
+html.at.oscuro .at-cm-datos{color:var(--sec)}
+html.at.oscuro .at-cm-par p{color:var(--sec)}
+html.at.oscuro .at-cm-parb{background:none;border:0;color:var(--tinta)}
+html.at.oscuro .at-cm-parb img{background:var(--baldosa)}
+html.at.oscuro .at-cm-corr summary{color:var(--sec);text-decoration:underline}
+html.at.oscuro .at-cm-campo{color:var(--sec)}
+html.at.oscuro .at-cm-campo input,html.at.oscuro .at-cm-campo select{border:0;border-bottom:1px solid var(--linea2, rgba(241,233,222, .28));border-radius:0;background:var(--o-fondo);color:var(--tinta)}
+html.at.oscuro .at-cm-campo input:focus-visible,html.at.oscuro .at-cm-campo select:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+html.at.oscuro .at-cm-et{color:var(--sec)}
+html.at.oscuro .at-cm-col button{border:1px solid var(--linea2, rgba(241,233,222, .28));border-radius:50%}
+html.at.oscuro .at-cm-col button.on{outline:2px solid var(--tinta);outline-offset:3px}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz

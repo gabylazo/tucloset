@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.195'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.196'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -220,7 +220,8 @@ if (AT) (() => {
   }
   // un look en su baldosa, con aire: un 12 % arriba y abajo y un 17 % a cada lado (24 px y 27 px en la de la ficha; Gabriela: «tiene que quedar más holgado»)
   const baldosa = (ps, W, H, attr = '') => `<button class="at-bal" style="width:${W}px;height:${H}px"${attr}>${figura(ps, W - 2 * Math.round(W * .17), H - 2 * Math.round(H * .12))}</button>`;
-  const psDe = x => conZapato(x.ids.map(P).filter(Boolean), x.zspec, x.como);
+  const specDe = specLook;
+  const psDe = x => conZapato(x.ids.map(P).filter(Boolean), specDe(x), x.como);
   // los demás sitios que pintan looks (calendario, «Sácale partido»…) usan la misma composición
   const maniquiViejo = maniqui;
   maniqui = function (ps, mini, modo) {
@@ -256,22 +257,28 @@ if (AT) (() => {
   /* ---------- 07/11 (Gabriela: «una opción de elegir una prenda que quieras ponerte sí o sí, y que la app te cree un outfit con esa pieza, o te proponga varios»): en Hoy,
      «Con una prenda»: la eliges y los looks salen todos con ella; primero hasta 3 para la ocasión de hoy y luego para las demás en que encaja, hasta 6. Con el tiempo de
      hoy; si así no sale (un top de verano en noviembre), con el de su estación, y se dice ---------- */
-  const looksConPrenda = (p, oc0) => {
+  // 08/11 (Gabriela: «que selecciones una pieza que sí o sí quieras usar, por ejemplo un jean, y que la app te proponga outfits en función del estilo que quieres»):
+  // con estilo, el motor busca como si ese fuera tu estilo (solo para esta búsqueda, como en «Inspírate en…») y gana el look que más se le parece
+  const FSM = () => Array.isArray(Motor.F) ? Motor.F : Motor.F?.formulas || Object.values(Motor.F || {});
+  const looksConPrenda = (p, oc0, estilo) => {
     const f = Motor.ficha(p), min = Motor.R.puntos.umbrales.pasable, w = E.tiempo?.t != null ? E.tiempo : { t: 18, max: 21, min: 12 }, g = E.perfil?.gustos;
     const ocs = [...new Set([oc0, ...Motor.ocasionesDe(p)].filter(o => o && o !== 'Todos'))];
     const m = Math.round((Math.max(f.tmin ?? 5, 5) + Math.min(f.tmax ?? 28, 28)) / 2), tiempos = [w, ...(Math.abs(m - w.t) >= 4 ? [{ t: m, max: m + 3, min: m - 6 }] : [])];
+    const a = estilo ? [estilo, '', '', '', [estilo]] : null, FS = a ? FSM() : null, perfil = a ? { ...(E.perfil || {}), estilos: [estilo] } : E.perfil, tope = a ? 99 : 6;
     // de su misma categoría solo entra ella (si no, el motor prueba antes otras parejas y la elegida casi no llega)
     const pool = activas().filter(x => x.id === p.id || Motor.ficha(x).cat !== f.cat), vistos = new Set(), out = [];
     for (const tiempo of tiempos) { if (out.length >= 2) break;
-      for (const plan of ocs) { if (out.length >= 6) break;
-        const r = Motor.looks({ prendas: pool, tiempo, plan, perfil: E.perfil, n: 8, hoy: hoyISO(), ...(plan === 'Noche' ? { hora: 20 } : {}), excluir: g?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], depurar: true, complementos: ['bolso', 'accesorio'].includes(f.cat) });
-        const ls = (r.todos || []).filter(l => !l.veto.duros.length && !l.casi && l.nota >= min && Motor.claveLook(l).split(',').includes(p.id) && !vistos.has(Motor.claveLook(l))).sort((a, b) => b.nota - a.nota);
-        let n = 0; for (const l of ls) { if (n >= 3 || out.length >= 6) break; const x = Motor.aPropuesta(l); if (!deVerdad(plan, [x]).length) continue;
-          vistos.add(Motor.claveLook(l)); out.push({ ...x, tipo: 'con', ocasion: plan, conT: tiempo === w ? null : tiempo.t }); n++; }
+      for (const plan of ocs) { if (out.length >= tope) break;
+        const r = Motor.looks({ prendas: pool, tiempo, plan, perfil, n: 8, hoy: hoyISO(), ...(plan === 'Noche' ? { hora: 20 } : {}), excluir: g?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], depurar: true, complementos: ['bolso', 'accesorio'].includes(f.cat), ...(a ? { afin: [estilo] } : {}) });
+        const ls = (r.todos || []).filter(l => !l.veto.duros.length && !l.casi && l.nota >= min && Motor.claveLook(l).split(',').includes(p.id) && !vistos.has(Motor.claveLook(l)))
+          .map(l => ({ l, s: a ? notaArq(a, l, FS).n : l.nota })).sort((x, y) => y.s - x.s);
+        let n = 0; for (const { l, s } of ls) { if (n >= 3 || out.length >= tope) break; const x = Motor.aPropuesta(l); if (!deVerdad(plan, [x]).length) continue;
+          vistos.add(Motor.claveLook(l)); out.push({ ...x, tipo: 'con', ocasion: plan, conT: tiempo === w ? null : tiempo.t, _s: s }); n++; }
       } }
-    return out;
+    return a ? out.sort((x, y) => y._s - x._s).slice(0, 6) : out;
   };
   window.atPrueba.looksConPrenda = looksConPrenda;
+  Object.assign(window.atPrueba, { abrirConPrenda: () => abrirConPrenda(), abrirCompra: () => abrirCompra() });
   function elegirPrendaHoy() {
     const ps = activas().filter(p => urlCat(p) && !sinFoto(p)), cats = CATS_ORDEN.filter(c => ps.some(p => catDe(p) === c));
     abrirPanel(t('¿Qué quieres ponerte?', 'What do you want to wear?'), `<p class="at-con-txt">${t('Elige la prenda y te propongo looks con ella.', 'Pick a garment and I’ll suggest looks with it.')}</p>`
@@ -647,14 +654,16 @@ if (AT) (() => {
     const fila = ['Todos', 'Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].map(o => `<button class="${o === oc ? 'on' : ''}" data-ideaoc="${o}"${o === oc ? ' aria-current="true"' : ''}>${o === 'Todos' ? t('Todas', 'All') : ocNombre(o)}${DOS}</button>`).join('');
     const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button></figure>`; };
     const vendria = r.falta?.length && !en() && activas().length ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';
-    const insp = oc === 'Todos' ? `<div class="at-vj-entrada"><button class="at-enlace" data-inspira>${t('Inspírate en…', 'Get inspired by…')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button></div>` : '';
+    const insp = oc === 'Todos' ? `<div class="at-vj-entrada"><button class="at-enlace" data-conprenda>${t('Con una prenda', 'With one garment')}</button><button class="at-enlace" data-compra>${t('¿Me lo compro?', 'Should I buy it?')}</button><button class="at-enlace" data-inspira>${t('Inspírate en…', 'Get inspired by…')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button></div>` : '';
     const vj = oc === 'Viaje' ? `<div class="at-vj-entrada"><button class="at-enlace" data-viaje>${t('Planear un viaje', 'Plan a trip')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button>${viajes().map(v => `<button class="at-enlace" data-viaje="${v.id}">${esc(v.destino)} · ${rango(v)}</button>`).join('')}</div>` : '';
     raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${insp}${vj}${w && !vj ? `<p class="at-para">${t('Para hoy', 'For today')}, ${Math.round(w.t)}°</p>` : ''}`
       + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio">${activas().length ? `<p>${oc === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte. Cuando la subas, tus looks saldrán aquí.', 'No sportswear yet. Once you add some, your looks will appear here.')) : t('Con lo que tienes aún no sale un look completo para esta ocasión. Cuando subas más, saldrá aquí.', 'What you have doesn’t make a complete look for this occasion yet.')}</p>` : `<p>${t('Sube tu ropa y aquí saldrán tus ideas.', 'Add your clothes and your ideas will appear here.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>`}</div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
     deslizable(raiz.querySelector('.at-ocs-ideas'));
     raiz.onclick = async e => {
-      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje],[data-inspira]'); if (!b) return;
+      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje],[data-inspira],[data-conprenda],[data-compra]'); if (!b) return;
       if (b.dataset.viaje != null) return abrirViaje(b.dataset.viaje);
+      if (b.dataset.conprenda != null) return abrirConPrenda();
+      if (b.dataset.compra != null) return abrirCompra();
       if (b.dataset.inspira != null) return abrirInspira();
       if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkTocado = true; return pintarLooks(); }
       if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; return pintarLooks(); }
@@ -800,6 +809,130 @@ if (AT) (() => {
       if (b.dataset.capn) { F.n = +b.dataset.capn; return abrirCapsula(); }
       if (b.dataset.capficha) { cap.remove(); return abrirFicha(b.dataset.capficha); }
       if (b.dataset.caplook) { cap.remove(); return abrirIdea(looks[+b.dataset.caplook]); }
+    };
+  }
+
+  const capaDe = (id, cls, nombre) => { let cap = $(id); if (!cap) { cap = document.createElement('div'); cap.id = id; cap.className = 'ay-capa at-vj ' + cls; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); document.body.append(cap); } cap.setAttribute('aria-label', nombre); return cap; };
+  const X_CERRAR = `<svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg>`;
+  // el look sin botón (cuando no se puede abrir: la prenda aún no es tuya)
+  const baldosaFija = (ps, W, H, lbl) => `<div class="at-bal" role="img" aria-label="${esc(lbl)}" style="width:${W}px;height:${H}px">${figura(ps, W - 2 * Math.round(W * .17), H - 2 * Math.round(H * .12))}</div>`;
+  const rejillaPrendas = (ps, attr, sel) => { const cats = CATS_ORDEN.filter(c => ps.some(p => catDe(p) === c));
+    return cats.map(c => `<h2 class="pn-gt">${catTxt(c)}</h2><div class="at-con-rej">${ps.filter(p => catDe(p) === c).map(p => `<button class="at-cel${conCat(p) ? '' : ' sin-cat'}${p.id === sel ? ' on' : ''}" ${attr}="${p.id}" aria-label="${esc(p.nombre)}"${p.id === sel ? ' aria-current="true"' : ''}><img src="${urlCat(p)}" alt=""></button>`).join('')}</div>`).join(''); };
+
+  /* ---------- CON UNA PRENDA, en Looks → Ideas (08/11, Gabriela: «que selecciones una pieza que sí o sí quieras usar, por ejemplo un jean, y que la app te
+     proponga outfits en función del estilo que quieres»): eliges la prenda y, si quieres, un estilo; salen hasta seis looks con ella. En Hoy está la versión
+     corta (sin estilo), junto a la ocasión ---------- */
+  function abrirConPrenda() {
+    const cap = capaDe('at-conprenda', 'at-cp', t('Con una prenda', 'With one garment')), S = E.conP = E.conP || { id: null, estilo: '' };
+    const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button>`;
+    let p = S.id ? P(S.id) : null; if (p && !activas().includes(p)) p = null;
+    if (!p || S.cambiar) {
+      const ps = activas().filter(q => urlCat(q) && !sinFoto(q));
+      cap.innerHTML = `${p ? `<button class="x" aria-label="${t('Volver', 'Back')}">${I.iz}</button>` : X}<h1>${t('Con una prenda', 'With one garment')}</h1>
+        <p class="at-vj-sub">${t('Elige la que quieres llevar sí o sí y te propongo looks con ella.', 'Pick the one you want to wear no matter what and I’ll suggest looks with it.')}</p>
+        ${ps.length ? rejillaPrendas(ps, 'data-cpp', p?.id) : `<p class="at-vj-sub">${t('Sube tu ropa y aquí podrás elegir.', 'Add your clothes and you’ll be able to pick here.')}</p>`}`;
+    } else {
+      const looks = looksConPrenda(p, 'Diario', S.estilo || null), est = ESTILOS.find(e => e.k === S.estilo), mios = (E.perfil?.estilos || []).filter(k => ESTILOS.some(e => e.k === k));
+      const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25), L = e => e.n[en() ? 1 : 0];
+      const chip = (k, txt) => `<button class="${S.estilo === k ? 'on' : ''}" data-cpest="${k}" aria-pressed="${S.estilo === k}">${txt}${DOS}</button>`;
+      E.cpLooks = looks;
+      cap.innerHTML = `${X}<h1>${t('Con una prenda', 'With one garment')}</h1>
+        <div class="at-cp-elegida"><img src="${urlCat(p)}" alt=""><span class="at-cp-n">${esc(p.nombre)}</span><button class="at-enlace" data-cpcambiar>${t('Cambiar', 'Change')}</button></div>
+        <p class="at-cp-et" id="at-cp-et">${t('En qué estilo', 'In which style')}</p>
+        <nav class="at-fila at-cp-est" aria-labelledby="at-cp-et">${chip('', mios.length ? t('Mis estilos', 'My styles') : t('El mío', 'Mine'))}${ESTILOS.map(e => chip(e.k, L(e))).join('')}</nav>
+        ${est ? `<p class="at-vj-sub">${esc(L({ n: est.d }))}</p>` : ''}
+        ${looks.length ? `<div class="at-rej2 at-vj-dias">${looks.map((x, i) => `<figure class="at-t">${baldosa(psDe(x), TW, TH, ` data-cplook="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<figcaption>${esc(ocNombre(x.ocasion))}${x.conT != null ? ` · ${x.conT}°` : ''}</figcaption></figure>`).join('')}</div>
+          ${looks.some(x => x.conT != null) ? `<p class="at-vj-nota">${t('Los que llevan grados son para su temporada: con el tiempo de hoy no le va.', 'Those with degrees are for its season: it doesn’t suit today’s weather.')}</p>` : ''}`
+          : `<p class="at-vj-sub">${est ? t(`Con tu ropa aún no sale un look ${L(est).toLowerCase()} con esta prenda. Prueba otro estilo.`, `Your clothes don’t make a ${L(est).toLowerCase()} look with this garment yet. Try another style.`) : t('Con tu ropa aún no sale un look con esta prenda.', 'Your clothes don’t make a look with this garment yet.')}</p>`}`;
+      deslizable(cap.querySelector('.at-cp-est'));
+      const on = cap.querySelector('.at-cp-est .on'); if (on && S.estilo) requestAnimationFrame(() => on.scrollIntoView({ block: 'nearest', inline: 'center' }));
+    }
+    cap.onclick = e => {
+      const b = e.target.closest('.x,[data-cpp],[data-cpcambiar],[data-cpest],[data-cplook]'); if (!b) return;
+      if (b.classList.contains('x')) { if (S.cambiar && p) { S.cambiar = false; return abrirConPrenda(); } return cap.remove(); }
+      if (b.dataset.cpp) { S.id = b.dataset.cpp; S.cambiar = false; cap.scrollTop = 0; return abrirConPrenda(); }
+      if (b.dataset.cpcambiar != null) { S.cambiar = true; cap.scrollTop = 0; return abrirConPrenda(); }
+      if (b.dataset.cpest != null) { S.estilo = b.dataset.cpest; return abrirConPrenda(); }
+      if (b.dataset.cplook) { const x = E.cpLooks[+b.dataset.cplook]; cap.remove(); return abrirIdea(x); }
+    };
+  }
+
+  /* ---------- ¿ME LO COMPRO?, en Looks → Ideas (08/11, Gabriela: «uno escanea piezas en tiendas y que la app le diga un porcentaje de utilidad, es decir, si
+     tendría muchas combinaciones en su clóset»): una foto en la tienda; se le quita el fondo como al subir y el motor la prueba con tu ropa en su temporada
+     (Motor.utilidad): de tus prendas que irían con ella, con cuántas sale en algún look bueno; cuántos looks, para qué ocasiones, si ya tienes algo igual y
+     los mejores looks. No se guarda nada: si la compras, «La he comprado» la lleva a Subir con todo rellenado ---------- */
+  const NOM_CON = { Arriba: ['prendas de abajo', 'bottoms'], Abajo: ['prendas de arriba', 'tops'], Vestidos: ['zapatos y abrigos', 'shoes and coats'], Abrigo: ['prendas', 'garments'], Calzado: ['prendas', 'garments'], Bolsos: ['prendas', 'garments'], Accesorios: ['prendas', 'garments'] };
+  const fraseUtil = u => !u.nLooks ? t('Con tu ropa no sale ningún look con ella', 'Your clothes don’t make any look with it')
+    : u.pct >= 70 ? t('Le sacarías mucho partido', 'You’d get a lot of wear from it') : u.pct >= 45 ? t('Le sacarías partido', 'You’d get good wear from it')
+    : u.pct >= 20 ? t('Combina con poco de lo que tienes', 'It goes with little of what you have') : t('Casi no combina con tu ropa', 'It barely goes with your clothes');
+  function prendaCompra(it) { // la prenda tal y como la vería el motor, sin guardarla
+    const p = { id: it.pid, nombre: it.nombre, tipo: it.tipo, color: it.color, x: it.x, catM: it.catM, detalles: it.detalles || [], color2: it.color2, estampado: it.estampado, est: it.est, usos: [], estado: '' };
+    if (it.alfa) { p.cat = it.alfa; p.catAR = it.alfaAR; } else p.foto = it.blob;
+    p.estacion = it.estacion = estacionPorPrenda(p); return p;
+  }
+  function calcularCompra(C) {
+    C.p = prendaCompra(C.it);
+    C.u = Motor.utilidad({ prenda: C.p, prendas: activas(), perfil: E.perfil, hoy: hoyISO(), excluir: E.perfil?.gustos?.fuera || [], colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
+  }
+  function abrirCompra() {
+    const cap = capaDe('at-compra', 'at-cm', t('¿Me lo compro?', 'Should I buy it?')), C = E.compra = E.compra || { fase: 'foto' };
+    const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button>`, h1 = `<h1>${t('¿Me lo compro?', 'Should I buy it?')}</h1>`;
+    const foto = txt => `<label class="at-btn at-cm-foto">${txt}<input type="file" accept="image/*" data-cmfoto aria-label="${txt}"></label>`;
+    if (C.fase === 'foto') cap.innerHTML = `${X}${h1}<p class="at-vj-sub">${t('Hazle una foto en la tienda y te digo cuánto partido le sacarías con tu ropa.', 'Take a photo in the shop and I’ll tell you how much wear you’d get from it with your clothes.')}</p>
+      <div class="at-cm-guia" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg></div>
+      ${C.error ? `<p class="at-cm-error" role="alert">${esc(C.error)}</p>` : ''}${foto(t('Hacer o elegir una foto', 'Take or choose a photo'))}
+      <p class="at-cm-pie">${t('La prenda sola, colgada o en la mano. La foto no se guarda en tu clóset.', 'Just the garment, hanging or in your hand. The photo isn’t saved to your closet.')}</p>`;
+    else if (C.fase === 'mirando') cap.innerHTML = `${X}${h1}${C.url ? `<div class="at-cm-prenda"><img src="${C.url}" alt=""></div>` : ''}<p class="at-vj-sub" role="status">${t('Mirando la prenda y probándola con tu ropa…', 'Looking at the garment and trying it with your clothes…')}</p>`;
+    else {
+      const { it, u } = C, [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25), nom = NOM_CON[it.tipo] || NOM_CON.Abrigo, L = x => x[en() ? 1 : 0];
+      // el tiro (pantalones, faldas) o el largo (lo de arriba) cambian mucho: con «prefiero no enseñar la cintura», un pantalón de tiro bajo casi no va con tops cortos
+      const fc = Motor.ficha(C.p), forma = it.tipo === 'Abajo' && fc.subtipo !== 'malla' ? [t('Tiro', 'Rise'), 'tiro', [['alto', t('Alto', 'High')], ['medio', t('Medio', 'Mid')], ['bajo', t('Bajo', 'Low')]]]
+        : it.tipo === 'Arriba' ? [t('Hasta dónde llega', 'Where it ends'), 'largo', [['crop', t('Sobre el ombligo', 'Above the navel')], ['cintura', t('Cintura', 'Waist')], ['cadera', t('Cadera', 'Hip')], ['largo', t('Más abajo', 'Longer')]]] : null;
+      const par = u.parecidas.map(P).filter(Boolean).slice(0, 3), psL = x => conZapato(x.ids.map(id => id === C.p.id ? C.p : P(id)).filter(Boolean), specDe(x), x.como);
+      cap.innerHTML = `${X}${h1}
+        <div class="at-cm-prenda"><img src="${urlCat(C.p)}" alt="${esc(it.nombre)}"></div>
+        <p class="at-cm-nom">${esc(it.nombre)}</p>
+        ${u.pct != null ? `<p class="at-cm-pct"><b>${u.pct}</b><span>%</span></p><p class="at-cm-frase">${fraseUtil(u)}</p>` : `<p class="at-cm-frase">${fraseUtil(u)}</p>`}
+        <ul class="at-cm-datos">
+          ${u.posibles ? `<li>${t(`Va con ${u.con.length} de tus ${u.posibles} ${L(nom)} de su temporada`, `Goes with ${u.con.length} of your ${u.posibles} ${L(nom)} for its season`)}</li>` : ''}
+          ${u.nLooks ? `<li>${t(`${u.nLooks} ${u.nLooks === 1 ? 'look' : 'looks'}: ${u.ocasiones.map(ocNombre).join(', ').toLowerCase()}`, `${u.nLooks} looks: ${u.ocasiones.map(ocNombre).join(', ').toLowerCase()}`)}</li>` : ''}
+        </ul>
+        ${forma ? `<div class="at-cm-fb"><p class="at-cm-et" id="at-cm-fe">${forma[0]}</p><div class="at-fila at-cm-forma" role="group" aria-labelledby="at-cm-fe" style="--n:${forma[2].length > 3 ? 2 : forma[2].length}">${forma[2].map(([k, n]) => `<button class="${it.est?.[forma[1]] === k ? 'on' : ''}" data-cmforma="${k}" aria-pressed="${it.est?.[forma[1]] === k}">${n}${DOS}</button>`).join('')}</div>${it.est?.[forma[1]] ? '' : `<p class="at-cm-pie">${t('Márcalo: cambia mucho con qué lo puedes llevar.', 'Mark it: it changes a lot what you can wear it with.')}</p>`}</div>` : ''}
+        ${par.length ? `<div class="at-cm-par"><p>${t('Ya tienes algo muy parecido', 'You already have something very similar')}</p><div>${par.map(q => `<button class="at-cm-parb" data-cmficha="${q.id}" aria-label="${esc(q.nombre)}"><img src="${urlCat(q)}" alt=""><span>${esc(q.nombre)}</span></button>`).join('')}</div></div>` : ''}
+        <details class="at-cm-corr"${C.corr ? ' open' : ''}><summary>${t('¿No es esto? Corrígelo', 'Not right? Fix it')}</summary>
+          <label class="at-cm-campo"><span>${t('Nombre', 'Name')}</span><input data-cmnom value="${esc(it.nombre)}"></label>
+          <label class="at-cm-campo"><span>${t('Categoría', 'Category')}</span><select data-cmcat>${opsCat(catDe(C.p))}</select></label>
+          <p class="at-cm-et">${t('Color', 'Colour')}</p><div class="at-cm-col">${COLORES.filter(([c]) => c !== 'Estampado').map(([c, h]) => `<button type="button" class="${c === it.color ? 'on' : ''}" data-cmcolor="${c}" aria-label="${c}" aria-pressed="${c === it.color}" style="background:${h}"></button>`).join('')}</div>
+        </details>
+        ${u.looks.length ? `<h2 class="at-vj-h2">${t('Así te la pondrías', 'How you’d wear it')}</h2><div class="at-rej2 at-vj-dias">${u.looks.map(x => `<figure class="at-t">${baldosaFija(psL(x), TW, TH, ocNombre(x.ocasion))}<figcaption>${esc(ocNombre(x.ocasion))}</figcaption></figure>`).join('')}</div>` : ''}
+        <div class="at-cm-bts"><button class="at-btn" data-cmanadir>${t('La he comprado: a mi clóset', 'I bought it: add to my closet')}</button>${foto(t('Probar otra prenda', 'Try another garment')).replace('at-btn at-cm-foto', 'at-enlace at-cm-foto at-cm-otra')}</div>`;
+    }
+    cap.querySelectorAll('[data-cmfoto]').forEach(inp => inp.onchange = async e => {
+      const file = e.target.files?.[0]; e.target.value = ''; if (!file) return;
+      if (C.url) URL.revokeObjectURL(C.url); Object.assign(C, { fase: 'mirando', error: null, corr: false, url: URL.createObjectURL(file) }); abrirCompra(); cap.scrollTop = 0;
+      try {
+        const r = await procesarPrenda(file, { alfa: true });
+        if (r.noPrenda) throw new Error(t('Esta foto no parece una prenda. Prueba con la prenda sola, sin gente delante.', 'This photo doesn’t look like a garment. Try with just the garment, nobody in front.'));
+        C.it = Object.assign(r, { id: uid(), pid: 'compra-' + uid(), estado: 'listo', url: URL.createObjectURL(r.blob), nombre: nombreReconocido(r.x, r.color) || (r.cat ? nombreSubida(r, r.cat) : nombreAuto(r.tipo, r.color)) });
+        await new Promise(res => requestAnimationFrame(() => setTimeout(res, 30))); // que se vea «Mirando…» antes del cálculo
+        calcularCompra(C); C.fase = 'listo';
+      } catch (x) { C.fase = 'foto'; C.error = x?.message && !/^[A-Z]\w+Error/.test(x.message) ? x.message : t('No he podido leer la foto. Prueba con otra.', 'I couldn’t read the photo. Try another one.'); }
+      if (cap.isConnected) { abrirCompra(); cap.scrollTop = 0; }
+    });
+    const rehacer = () => { C.corr = true; calcularCompra(C); const y = cap.scrollTop; abrirCompra(); cap.scrollTop = y; };
+    const nm = cap.querySelector('[data-cmnom]'); if (nm) nm.onchange = e => { const v = e.target.value.trim(); if (!v || v === C.it.nombre) return; C.it.nombre = v; C.it.propio = 1; rehacer(); };
+    const sc = cap.querySelector('[data-cmcat]'); if (sc) sc.onchange = e => { const c = e.target.value, it = C.it, k0 = (SUBCATS[c] || []).find(k => NOM_X[k]);
+      if (TIPO_DE_CAT[c] !== it.tipo) delete it.est; it.tipo = TIPO_DE_CAT[c]; it.catM = c; it.x = k0 || null; if (!it.propio) it.nombre = k0 ? nombreReconocido(k0, it.color) : nombreSubida(it, c); rehacer(); };
+    cap.onclick = e => {
+      const b = e.target.closest('.x,[data-cmcolor],[data-cmanadir],[data-cmficha],[data-cmforma]'); if (!b) return;
+      if (b.dataset.cmforma) { const it = C.it, k = it.tipo === 'Abajo' ? 'tiro' : 'largo'; it.est = { ...(it.est || {}) }; if (it.est[k] === b.dataset.cmforma) delete it.est[k]; else it.est[k] = b.dataset.cmforma; return rehacer(); }
+      if (b.classList.contains('x')) { if (C.url) URL.revokeObjectURL(C.url); E.compra = null; return cap.remove(); }
+      if (b.dataset.cmcolor) { const it = C.it, c = b.dataset.cmcolor; if (c === it.color) return; it.color = c; if (!it.propio) it.nombre = it.x && NOM_X[it.x] ? nombreReconocido(it.x, c) : nombreSubida(it, catDe(C.p)); return rehacer(); }
+      if (b.dataset.cmficha) { cap.remove(); return abrirFicha(b.dataset.cmficha); }
+      if (b.dataset.cmanadir != null) { // a Subir, con la foto y lo corregido; desde ahí se guarda como cualquier prenda
+        const it = C.it; delete it.alfa; delete it.alfaAR; delete it.pid; delete it.propio; if (it.catM) it.cat = it.catM;
+        cap.remove(); E.compra = null; E.subida = [it]; E.sDet = null; ir('subir', 1); pintarSubida();
+      }
     };
   }
 

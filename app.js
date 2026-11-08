@@ -1392,6 +1392,8 @@ function claveMuestra(ps, spec) {
   if (col[0] === 'marrones') return 'botines-camel-plataforma';
   return k === 'botines_tacon' ? 'botines-negros-tacon' : 'botines-negros-planos';
 }
+// 08/11: un look de deporte sin calzado lleva zapatillas (suyas de deporte o de muestra), nunca unos tacones
+const specLook = c => c.zspec || (c.ocasion === 'Deporte' ? { tipo: 'zapatillas', deporte: 1 } : null);
 function conZapato(ps, spec, como) {
   let r = ps;
   if (ps.length && !ps.some(p => p.tipo === 'Calzado') && ps.some(p => ['Abajo', 'Vestidos'].includes(p.tipo))) {
@@ -1433,7 +1435,9 @@ function pieLook(ps) {
 // temperatura, ocasión y el porqué) y salen primero; el generador automático solo rellena lo que falte
 function zapatoPara(spec, ps) {
   if (!spec) return null; let mejor = null, mp = -Infinity; // 0.112: con zapatos subidos siempre devuelve uno suyo, aunque ninguno sea del tipo pedido
-  for (const z of activas().filter(p => p.tipo === 'Calzado')) {
+  // 08/11: en un look de deporte sin calzado, solo zapatillas de deporte suyas; si no tiene, las de muestra (antes salían unos tacones)
+  const zs = activas().filter(p => p.tipo === 'Calzado' && (!spec.deporte || (typeof Motor !== 'undefined' && Motor.aptoDeporte({ p, _f: Motor.ficha(p) }))));
+  for (const z of zs) {
     const n = `${z.nombre || ''} ${z.x || ''}`.toLowerCase(), tipo = (spec.tipo || '').toLowerCase().replace(/s$/, '').replace(/e$/, '');
     let s = (tipo && n.includes(tipo.slice(0, 5)) ? 1.2 : 0) + (spec.color && (z.color || '').toLowerCase().startsWith(spec.color.slice(0, 4)) ? .5 : 0) + afinZapato(z, ps, E.tiempo?.t) * .3;
     if (s > mp) { mp = s; mejor = z; }
@@ -2135,7 +2139,9 @@ async function procesarPrenda(file, op = {}) {
     } catch (e) { /* sin modelo: por la forma */ }
     const fondo = fondoIrregular(orig);
     const aBlob = (cv, q) => new Promise(r => cv.toBlob(r, 'image/jpeg', q));
-    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, x, rec: cat ? 1 : 0, recortada, noPrenda, fondo, giro, dudoso: !recortada || dudoso, cv: nube && recortada ? 5 : 2 };
+    // 08/11, «¿Me lo compro?»: la prenda sin fondo (PNG transparente, ajustado a ella) para pintarla en los looks sin guardarla
+    const alfa = op.alfa && recortada ? await new Promise(r => pieza.toBlob(r, 'image/png')) : null;
+    return { blob: await aBlob(out, .88), original: await aBlob(orig, .86), color, tipo, cat, x, rec: cat ? 1 : 0, recortada, noPrenda, fondo, giro, dudoso: !recortada || dudoso, cv: nube && recortada ? 5 : 2, ...(alfa ? { alfa, alfaAR: pieza.width / pieza.height } : {}) };
   } finally { URL.revokeObjectURL(u); }
 }
 // nombre automático legible: «Top negro», «Pantalón azul claro», «Zapatos blancos»
@@ -2289,7 +2295,7 @@ async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
   if (enGratis() && E.prendas.length + listos.length > TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas: te quedan ${Math.max(0, TOPE_GRATIS - E.prendas.length)}.`, `The free version holds ${TOPE_GRATIS} garments: ${Math.max(0, TOPE_GRATIS - E.prendas.length)} left.`));
   listos.forEach(it => { if (it.detalles?.length) it.notas = it.detalles.join(', ').toLowerCase().replace(/^./, c => c.toUpperCase()); });
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, catAuto: 1, notas: it.notas || '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 5 : it.cv || 1, recMano: it.recMano || undefined, detalles: it.detalles?.length ? it.detalles : undefined, catM: it.catM || undefined, estampado: it.estampado || undefined, color2: it.color2 || undefined, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined }));
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, catAuto: 1, notas: it.notas || '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 5 : it.cv || 1, recMano: it.recMano || undefined, detalles: it.detalles?.length ? it.detalles : undefined, catM: it.catM || undefined, estampado: it.estampado || undefined, color2: it.color2 || undefined, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined, est: it.est && Object.keys(it.est).length ? { ...it.est } : undefined })); // est: tiro o largo marcados en «¿Me lo compro?»
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 600); }).catch(() => { }); setTimeout(estilizarNuevas, 1500);
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet'); setTimeout(enderezarTodas, 2500);
@@ -2641,7 +2647,7 @@ function sacalePartido(p) {
 // filtro por ocasión y tres formas de verlos a prueba (?looks=1 rejilla de 2 · 2 uno a uno · 3 lista)
 E.lkTab = ({ ideas: 'ideas', cal: 'cal', hoy: 'hoy', mios: 'mios' })[new URLSearchParams(location.search).get('lk')] || 'mios'; E.lkOc = 'Todo'; E.lkI = 0;
 const lkVista = () => { const v = new URLSearchParams(location.search).get('looks') || localStorage.getItem('tc_looks'); return ['1', '2', '3', '4', '5'].includes(v) ? v : '1'; }; // 0.49 (Gabriela, 22/10: «aplica el mismo estilo a todas las nuevas… y corregimos sobre esa base»): rejilla como el Clóset cerrado; // 4 y 5 (21/10, «adapta la interfaz a mi estilo»): sobre blanco, sin cajas
-const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(conZapato(c.ids.map(P).filter(Boolean), c.zspec, c.como), mini);
+const figLook = (c, mini) => c.img && planDemo() === 'pro' ? `<img class="av" src="${c.img}" alt="">` : maniqui(conZapato(c.ids.map(P).filter(Boolean), specLook(c), c.como), mini);
 const usosTxt = c => c.usos?.length ? veces(c.usos.length) : t('sin estrenar', 'not worn yet');
 // 0.12 · pestañas de Looks: en la propuesta, «Hoy · Mis looks · Calendario» («la opción de hoy puede ser una opción de looks»); «Ideas para hoy» desaparece
 const lkTabs = act => `<div class="mc-cats lk-tabs"><button class="${act === 'mios' ? 'activo' : ''}" data-lktab="mios">${t('Mis looks', 'My looks')}</button><button class="${act === 'ideas' ? 'activo' : ''}" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="${act === 'cal' ? 'activo' : ''}" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>`;
@@ -2674,7 +2680,7 @@ function pintarLooks() {
   const cab = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
     <div class="mc-cats lk-tabs"><button class="${ideas || E.lkTab === 'cal' ? '' : 'activo'}" data-lktab="mios">${t('Mis looks', 'My looks')}</button><button class="${ideas ? 'activo' : ''}" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button><button class="${E.lkTab === 'cal' ? 'activo' : ''}" data-lktab="cal">${t('Calendario', 'Calendar')}</button></div>
     ${ideas || ocs.length < 3 ? '' : `<div class="lk-ocs">${ocs.map(o => `<button class="${o === E.lkOc ? 'on' : ''}" data-lkoc="${o}">${o === 'Todo' ? t('Todo', 'All') : ocNombre(o)}</button>`).join('')}</div>`}`;
-  const zap = c => pieLook(conZapato(c.ids.map(P).filter(Boolean), c.zspec)); // 0.111: paleta y estilo en vez del zapato escrito y el porqué
+  const zap = c => pieLook(conZapato(c.ids.map(P).filter(Boolean), specLook(c))); // 0.111: paleta y estilo en vez del zapato escrito y el porqué
   const pie = c => ideas ? `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span>${zap(c)}<span class="lk-acc"><button data-gguardar="${c.i}">${t('Guardar', 'Save')}</button><button data-ghoy="${c.i}">${t('Me lo pongo', 'Wear it')}</button></span>`
     : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span>${zap(c)}<span class="lk-us">${usosTxt(c)}</span>`;
   const abre = c => ideas ? '' : ` data-look="${c.id}"`;
