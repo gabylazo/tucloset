@@ -577,3 +577,5 @@ html.at .pn-f > .pn-v:last-child:has(> .pn-ic) { margin-right: 0; }
 html.at .co-ops button { padding: 10px 2px 12px; }
 html.at .co-ops button.on::after { width: 11px; height: 11px; margin-left: -5.5px; bottom: -4px; } /* (c) el mismo botón de dos agujeros que en las pestañas */
 html.at .at-vj-campo input::-webkit-calendar-picker-indicator { width: 20px; height: 20px; padding: 0; color: transparent; cursor: pointer; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A3526' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5'/%3E%3Cpath d='M3.5 9.5h17M8 3v4M16 3v4'/%3E%3C/svg%3E") center / 20px no-repeat; } /* (d) el calendario en nogal, como los demás iconos */
+/* 08/11: en el iPhone la barra de abajo mide también la zona segura; sin este hueco, lo último de cada pantalla quedaba debajo de la barra */
+html.at #p-yo::after, html.at #p-closet::after, html.at #p-looks::after, html.at #p-colores::after, html.at #p-cuenta::after { content: ''; display: block; height: env(safe-area-inset-bottom); }

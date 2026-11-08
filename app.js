@@ -3084,7 +3084,9 @@ function tarjetaAvatar() {
   return `<section class="av-tarjeta${avatarEnCurso ? ' creando' : ''}" aria-busy="${avatarEnCurso}"><h2 class="es-tit">${t('Tu avatar', 'Your avatar')}</h2>${img}<p class="av-p">${txt}</p>${bot}
     ${!av && fotos && !avatarEnCurso ? `<p class="av-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Tus fotos se envían una vez para crearlo. El avatar se guarda en tu cuenta, privado.', 'Your photos are sent once to create it. The avatar is kept in your account, private.') : t('Tus fotos se envían una vez para crearlo y no se guardan. El avatar se queda en tu móvil.', 'Your photos are sent once to create it and are not stored. The avatar stays on your phone.')}</p>` : ''}</section>`;
 }
-document.addEventListener('toggle', e => { if (e.target.classList?.contains('av-des')) avatarAbierto = e.target.open; }, true);
+document.addEventListener('toggle', e => { if (!e.target.classList?.contains('av-des')) return; avatarAbierto = e.target.open;
+  // 08/11 (Gabriela: «cuando doy en plegar el avatar la página no baja»): al plegar, la página encoge mucho de golpe y Safari se quedaba sin poder desplazarse; se recoloca la posición y se deja la fila del avatar a la vista
+  if (!e.target.open) requestAnimationFrame(() => { const p = e.target.closest('.pantalla'); if (p) p.scrollTop = Math.max(0, Math.min(p.scrollTop, p.scrollHeight - p.clientHeight)); e.target.scrollIntoView({ block: 'center' }); }); }, true);
 document.addEventListener('click', e => { const b = e.target.closest('[data-avatar]'); if (!b) return; const k = b.dataset.avatar;
   if (k === 'crear') crearAvatar(); else if (k === 'borrar') borrarAvatar(); else if (k === 'ver' && tieneAvatar()) { const kf = puestoFijo(); verFoto([{ src: URL.createObjectURL(kf ? E.puestos[kf] : E.perfil.avatar), alt: t('Tu avatar', 'Your avatar') }]); }
   else if (k === 'fijar') { fijarPuesto(b.dataset.k); avatarAbierto = true; const c = b.closest('.av-tarjeta'); if (c) c.outerHTML = tarjetaAvatar(); } });
