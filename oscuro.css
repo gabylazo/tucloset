@@ -810,6 +810,14 @@ html.oscuro .dx-mas.dx-peq{border-top:0}
 html.oscuro .dx-mas.dx-peq summary{color:var(--sec)}
 html.oscuro .dx-cuenta{color:var(--tinta)}
 html.oscuro .dx-cuenta input{accent-color:var(--tinta)}
+html.oscuro .yo-ajustes{background:none;border:0;color:var(--tinta)}
+html.oscuro .yo-ajustes svg{fill:none;stroke:currentColor}
+html.oscuro .yo-ajustes span{color:var(--sec)}
+html.oscuro .yo-fm{background:none;border:0;border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);color:var(--tinta)}
+html.oscuro .yo-fm .dg-mini{background:var(--baldosa,var(--o-fondo))}
+html.oscuro .yo-fm .dg-mini svg{fill:none;stroke:var(--sec)}
+html.oscuro .yo-fm-txt small{color:var(--sec)}
+html.oscuro .yo-fm-fl{fill:none;stroke:var(--sec)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}

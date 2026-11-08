@@ -1512,6 +1512,7 @@ function ir(nombre, datos) {
   if (nombre === 'yo') pintarYo();
   if (nombre === 'cuenta') pintarCuenta();
   if (nombre === 'colores') pintarMisColores();
+  document.querySelectorAll('.pn-base').forEach(c => c.remove()); // Ajustes no tapa la pantalla a la que se va
   if (nombre !== 'closet' && $('mc-hoja') && !$('mc-hoja').hidden) hojaFiltros(false); // la hoja de filtros no se queda abierta en otra pantalla
   E.pantalla = nombre;
   document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.id === 'p-' + nombre));
@@ -2803,22 +2804,25 @@ function cambiarModo() {
 const filaP = ({ id, attr = '', ic, tit, val = '', rojo, flecha = true, apagada, oro, tag = 'button' }) => `<${tag} class="pn-f${rojo ? ' rojo' : ''}${apagada ? ' apagada' : ''}"${id ? ` id="${id}"` : ''} ${attr}>${ic ? icY(ic) : ''}<span class="pn-t">${tit}</span>${val !== '' ? `<span class="pn-v${oro ? ' oro' : ''}">${val}</span>` : ''}${flecha ? '<svg class="pn-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>' : ''}</${tag}>`;
 const grupoP = (tit, filas, nota) => `<section class="pn-g">${tit ? `<h2 class="pn-gt">${tit}</h2>` : ''}<div class="pn-c">${filas}</div>${nota ? `<p class="pn-nota">${nota}</p>` : ''}</section>`;
 function abrirPanel(tit, html, enlazar) {
-  document.querySelectorAll('.pn-capa').forEach(c => c.remove());
-  const cap = document.createElement('div'); cap.className = 'pn-capa';
-  cap.innerHTML = `<header class="pn-cab"><button class="pn-volver" aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h1>${tit}</h1><span></span></header><div class="pn-cuerpo">${html}</div>`;
+  document.querySelectorAll('.pn-capa:not(.pn-base)').forEach(c => c.remove()); // 08/11: la pantalla de Ajustes (pn-base) se queda debajo
+  const cap = document.createElement('div'), hid = 'pn-t' + (++abrirPanel.n || (abrirPanel.n = 1)); cap.className = 'pn-capa'; // 08/11: diálogo con su título (axe pedía región)
+  cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', hid);
+  cap.innerHTML = `<header class="pn-cab"><button class="pn-volver" aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h1 id="${hid}">${tit}</h1><span></span></header><div class="pn-cuerpo">${html}</div>`;
   document.body.appendChild(cap); cap.querySelector('.pn-volver').onclick = () => cap.remove();
   if (enlazar) enlazar(cap); return cap;
 }
 function pintarPanelYo() {
+  if (!$('yo-panel')) return; // vive en la pantalla de Ajustes (abrirAjustes)
   const pf = E.perfil || {}, c = cuenta(), es = idioma() === 'en';
   const ciudad = pf.ciudad || E.tiempo?.nombre || pf.lugar || t('tu ubicación', 'your location');
   $('yo-panel').innerHTML =
     grupoP(t('Tu cuenta', 'Your account'),
       (NUBE ? filaP({ attr: 'data-ir="cuenta"', ic: 'cuenta', tit: t('Cuenta', 'Account'), val: c ? (c.correo || '') : t('Entrar o crear', 'Sign in or create') }) : '')
-      + filaP({ id: 'yo-plan-info', ic: 'plan', tit: t('Plan', 'Plan'), val: t('Prueba gratis', 'Free trial'), oro: true }))
-    + grupoP(t('Ajustes', 'Settings'),
-      filaP({ attr: 'data-diag="fotos"', ic: 'medidas', tit: t('Medidas y fotos', 'Measurements and photos'), val: pf.selfie && pf.cuerpo ? t('2 fotos', '2 photos') : pf.selfie || pf.cuerpo ? t('1 foto', '1 photo') : '' })
-      + filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
+      + filaP({ id: 'yo-plan-info', ic: 'plan', tit: t('Plan', 'Plan'), val: t('Prueba gratis', 'Free trial'), oro: true })
+      + filaP({ id: 'yo-vercomo', ic: 'probar', tit: t('Ver la app como', 'View the app as'), val: nomPlan(planDemo()) }),
+      enGratis() && E.prendas.length > TOPE_GRATIS ? t(`En la gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`) : '')
+    + grupoP(t('La app', 'The app'),
+      filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
       + filaP({ id: 'yo-modo', ic: 'modo', tit: t('Modo oscuro', 'Dark mode'), val: document.documentElement.classList.contains('oscuro') ? t('Sí', 'On') : t('No', 'Off'), flecha: false })
       + filaP({ id: 'yo-idioma', ic: 'idioma', tit: t('Idioma', 'Language'), val: es ? 'English' : 'Español' })
       + filaP({ id: 'yo-avisos', ic: 'avisos', tit: t('Notificaciones', 'Notifications'), val: t('Pronto', 'Soon'), flecha: false, apagada: true }))
@@ -2832,10 +2836,25 @@ function pintarPanelYo() {
       + filaP({ id: 'yo-closet', ic: 'probar', tit: t('Clóset', 'Closet'), val: CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes'), flecha: false })
       + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))
       + `</div></details>`;
-  $('yo-modo').onclick = cambiarModo; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
+  $('yo-vercomo').onclick = panelVerComo; $('yo-modo').onclick = cambiarModo; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
   $('yo-avisos').onclick = () => toast(t('Las notificaciones llegarán con la app del móvil', 'Notifications will come with the mobile app'));
   $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
+}
+// 08/11 (Gabriela: «la parte de Yo creo que tiene muchas cosas que tienen poco que ver, como mezclando ajustes de la app con cosas del usuario como medidas,
+// colorimetría, avatar y esas cosas… estudia la mejor forma de distribuirlos»): Yo queda para lo tuyo (tu clóset, silueta, estilo, colores, medidas y fotos,
+// avatar) y los ajustes de la app pasan a su propia pantalla, detrás del engranaje de arriba a la derecha, como en Instagram o Zara. Lo que se abre desde
+// Ajustes (idioma, ciudad, plan…) se pone encima y, al volver, se vuelve a Ajustes.
+function abrirAjustes() {
+  document.querySelectorAll('.pn-capa').forEach(c => c.remove());
+  const cap = abrirPanel(t('Ajustes', 'Settings'), '<div id="yo-panel"></div>'); cap.classList.add('pn-base');
+  pintarPanelYo();
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-ajustes]')) abrirAjustes(); });
+function panelVerComo() {
+  const op = k => filaP({ attr: `data-vercomo="${k}"`, tit: nomPlan(k), val: planDemo() === k ? icY('ok') : '', flecha: false });
+  abrirPanel(t('Ver la app como', 'View the app as'), grupoP('', VERSIONES.map(op).join(''), t('Tu ropa y tus looks no cambian: solo ves lo que ve cada plan.', 'Your clothes and looks stay the same: you only see what each plan sees.')),
+    cap => cap.addEventListener('click', e => { if (e.target.closest('[data-vercomo]')) setTimeout(() => cap.remove(), 0); }));
 }
 function panelIdioma() {
   const op = (k, n) => filaP({ attr: `data-lng="${k}"`, tit: n, val: idioma() === k ? icY('ok') : '', flecha: false });
@@ -3204,6 +3223,19 @@ document.addEventListener('click', async e => { const b = e.target.closest('[dat
 document.addEventListener('click', async e => { const b = e.target.closest('[data-diag]'); if (!b) return; const k = b.dataset.diag; if (k === 'plan') return panelPlan(); if (k === 'fotos') return panelDiagFotos();
   if (diagPendiente() && !diagFallo) { toast(t('Analizando…', 'Analysing…')); await diagHastaAlDia(); }
   const dg = E.perfil?.diag; if (!dg?.color && !dg?.cuerpo) return panelDiagFotos(); panelDiag([], k.split('-')[1]); });
+// 08/11: tus medidas y tus fotos, en Yo (antes en Ajustes): una fila con las dos fotos en pequeño y las medidas; abre «Tus medidas y tus fotos»
+function bloqueFotosYo() {
+  const pf = E.perfil || {}, md = pf.medidas || {}, en = idioma() === 'en';
+  const mini = (k, ic) => pf[k] instanceof Blob ? `<span class="dg-mini hecha"><img src="${URL.createObjectURL(pf[k])}" alt=""></span>` : `<span class="dg-mini"><svg aria-hidden="true"><use href="#${ic}"/></svg></span>`;
+  const alt = md.altura > 0 ? (md.altura / 100).toLocaleString(en ? 'en' : 'es', { minimumFractionDigits: 2 }) + ' m' : '';
+  const cinta = md.pecho > 0 && md.cintura > 0 && md.cadera > 0 ? `${md.pecho} · ${md.cintura} · ${md.cadera} cm` : '';
+  const n = (pf.selfie instanceof Blob ? 1 : 0) + (pf.cuerpo instanceof Blob ? 1 : 0);
+  const l1 = [alt, cinta].filter(Boolean).map(x => `<span class="yo-nw">${x}</span>`).join(' · ') || t('Añade tus medidas', 'Add your measurements'); // en móviles estrechos no se queda «cm» suelto
+  const l2 = n === 2 ? t('Tu cara y cuerpo entero', 'Your face and full body') : n === 1 ? t('Falta una foto', 'One photo missing') : t('Añade tus dos fotos', 'Add your two photos');
+  return `<section class="yo-fm-sec"><h2 class="es-tit">${t('Tus medidas y fotos', 'Your measurements and photos')}</h2>
+    <button class="yo-fm" data-diag="fotos"><span class="yo-fm-fotos">${mini('selfie', 'ic-camara')}${mini('cuerpo', 'ic-cuerpo')}</span>
+      <span class="yo-fm-txt"><span>${l1}</span><small>${l2}</small></span><svg class="yo-fm-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></section>`;
+}
 function pintarYo() {
   const pf = E.perfil || {}, es = idioma() === 'en' ? 1 : 0;
   const fila = (attr, tit, val, oro, flecha = true) => `<button class="item" ${attr}>${tit}<span class="valor${oro ? ' oro' : ''}">${val}${flecha ? '<svg><use href="#ic-flecha"/></svg>' : ''}</span></button>`;
@@ -3226,10 +3258,9 @@ function pintarYo() {
   $('yo-lista').innerHTML = ent(dg?.cuerpo || pf.cuerpo ? 'data-diag="ver-silueta"' : 'data-diag="fotos"', t('Mi silueta', 'My figure'), mira('cuerpo', 'cuerpo'))
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? (ests.length > 2 ? ests.slice(0, 2).map(min).join(', ') + ` +${ests.length - 2}` : ests.map(min).join(t(' y ', ' and '))) : t('elígelo', 'choose it'))
     + ent(dg?.color || pf.selfie ? 'data-diag="ver-color"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
-  let ver = $('yo-ver'); if (!ver) { ver = document.createElement('div'); ver.id = 'yo-ver'; $('yo-lista').after(ver); }
-  ver.innerHTML = `<h2 class="es-tit">${t('Ver la app como', 'View the app as')}</h2><div class="at-fila at-vj-ops">${VERSIONES.map(k => `<button class="${planDemo() === k ? 'on' : ''}" data-vercomo="${k}" aria-pressed="${planDemo() === k}">${nomPlan(k)}<span class="at-dos" aria-hidden="true"></span></button>`).join('')}</div>`
-    + (enGratis() && E.prendas.length > TOPE_GRATIS ? `<p class="yo-ver-n">${t(`En la gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`)}</p>` : '');
-  let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; ver.after(td); } td.innerHTML = tarjetaDiag() + tarjetaAvatar();
+  $('yo-lista').setAttribute('aria-label', t('Tu perfil', 'Your profile')); $('yo-ajustes-t').textContent = t('Ajustes', 'Settings');
+  let fm = $('yo-fm'); if (!fm) { fm = document.createElement('div'); fm.id = 'yo-fm'; $('yo-lista').after(fm); } fm.innerHTML = bloqueFotosYo();
+  let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; fm.after(td); } td.innerHTML = tarjetaDiag() + tarjetaAvatar();
   pintarPanelYo();
   if (pend && !diagCorriendo) diagHastaAlDia().then(() => { if (E.pantalla === 'yo') pintarYo(); });
 }
