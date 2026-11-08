@@ -65,6 +65,14 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
 @media (min-width: 760px) { .cifras { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .uso { margin-top: 12px; padding: 18px 18px 12px; }
 .uso p { margin: 0 0 6px; text-align: center; font-size: 14px; color: var(--gris); }
+.redes { margin-top: 12px; }
+.redes p { margin: 0 0 8px; text-align: center; font-size: 14px; color: var(--gris); }
+.redes table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.redes th, .redes td { padding: 8px 4px; border-top: 1px solid var(--raya); text-align: right; font-weight: 400; }
+.redes thead th { border-top: 0; font-size: 13px; color: var(--gris); }
+.redes th:first-child { text-align: left; }
+.redes td { font-variant-numeric: tabular-nums; }
+.redes .vacio { display: block; text-align: center; font-size: 14px; color: var(--gris); }
 .barras { display: flex; align-items: flex-end; gap: 6px; height: 120px; }
 .barras div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
 .barras i { display: block; width: 100%; max-width: 32px; background: var(--tinta); min-height: 1px; }
@@ -180,6 +188,11 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
 
   // personas que abrieron la app cada día, últimos 14 días
   const dias = [...Array(14)].map((_, i) => dia(13 - i)), porDia = dias.map(k => new Set(d.uso.filter(u => u.dia === k).map(u => u.usuaria)).size), max = Math.max(1, ...porDia);
+  // 09/11: visitas que llegan desde cada red (?o=) y cuentas creadas en esa visita, últimos 30 días
+  const RED = { ig: 'Instagram', tt: 'TikTok', pin: 'Pinterest', g: 'Google', cartel: 'Cartel' }, nomRed = o => RED[o] || (/^mail/.test(o) ? 'Correo ' + o.slice(4) : /-ad\d+$/.test(o) ? 'Anuncio ' + o : o);
+  const vis = {}; (d.visitas || []).filter(v => v.dia >= dia(29)).forEach(v => { const x = vis[v.origen] = vis[v.origen] || { n: 0, a: 0 }; x.n += v.n; x.a += v.altas; });
+  const filasRed = Object.entries(vis).sort((a, b) => b[1].n - a[1].n);
+  const redes = `<div class="tarjeta redes"><p>Visitas desde las redes, 30 días</p>${filasRed.length ? `<table><thead><tr><th scope="col">Red</th><th scope="col">Visitas</th><th scope="col">Cuentas nuevas</th></tr></thead><tbody>${filasRed.map(([o, x]) => `<tr><th scope="row">${esc(nomRed(o))}</th><td>${x.n}</td><td>${x.a}</td></tr>`).join('')}</tbody></table>` : '<span class="vacio">Todavía ninguna. Cuentan los enlaces con ?o=ig, ?o=tt o ?o=pin.</span>'}</div>`;
   const barras = `<div class="barras" role="img" aria-label="Personas que abrieron la app cada día, últimos 14 días: ${porDia.join(', ')}">${dias.map((k, i) => `<div><em>${porDia[i] || ''}</em><i style="height:${Math.round(porDia[i] / max * 80)}%"></i><small>${+k.slice(8)}</small></div>`).join('')}</div>`;
 
   let enc = '<p class="vacio">Aún no hay respuestas.</p>';
@@ -205,6 +218,7 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
     <div class="cifras"><div><b>${d.usuarias.length}</b><span>cuentas</span></div><div><b>${activas7}</b><span>activas, 7 días</span></div><div><b>${prendas}</b><span>prendas</span></div>
     <div><b>0</b><span>suscriptoras</span></div><div><b>${d.entradas7}</b><span>entradas, 7 días</span></div><div><b>${fallos7}</b><span>fallos, 7 días</span></div>${d.catalogoMes ? `<div><b>${d.catalogoMes.hechas}</b><span>fotos de catálogo este mes · ${String(d.catalogoMes.usd).replace(".", ",")} $ de ${d.catalogoMes.tope}</span></div>` : ""}</div>
     <div class="tarjeta uso"><p>Personas que abren la app cada día</p>${barras}</div>
+    ${redes}
     <div class="rejilla mirar" style="margin-top:12px">${(P.mirar || []).map(x => x.url ? `<a href="${esc(x.url)}"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></a>` : `<div class="tarjeta"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></div>`).join('')}</div></section>
 
   <section id="funciones"><h2>Funciones de la app</h2>

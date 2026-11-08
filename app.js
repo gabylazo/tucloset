@@ -187,6 +187,7 @@ const API = (() => { try { const q = localStorage.getItem('tc_api'); if (q) retu
 // mientras el servidor no esté publicado, la web pública no enseña las cuentas (en local, sí, con el servidor de pruebas)
 const NUBE = true; // 0.76: servidor publicado en Cloudflare (tucloset-api.apptucloset.workers.dev)
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { } } };
+let ORIGEN = ''; // 09/11: la red desde la que llegó esta visita (?o=ig|tt|pin…); vive solo mientras la página está abierta
 const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.parse(LS.get('tc_cuenta') || 'null'); } catch (e) { return null; } };
 async function api(ruta, op = {}) {
   const c = cuenta(), h = { ...(op.headers || {}) }; if (c?.token) h.Authorization = 'Bearer ' + c.token;
@@ -414,7 +415,7 @@ const ERR_CUENTA = { correo: ['Escribe un correo válido', 'Enter a valid email'
 async function abrirCuenta(modo, correo, clave, nombre) {
   // 0.93 (Sheila, 24/10: «tengo mucho problema para entrar a mi cuenta»: con el clóset de pruebas abierto, entrar se bloqueaba): se pasa sola a «Mi ropa»
   if (CLOSET_ACT) { CLOSET_ACT = ''; try { localStorage.setItem('tc_closet', ''); } catch (e) { } BD.cerrar(); E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {}; E.propuestas = []; E.generados = []; urls.clear(); alfa.clear(); }
-  let r; try { r = await api('/api/' + modo, { method: 'POST', json: { correo, clave, nombre } }); } catch (e) { toast(t('Sin conexión con el servidor. Inténtalo en un momento.', 'Cannot reach the server. Try again shortly.')); return false; }
+  let r; try { r = await api('/api/' + modo, { method: 'POST', json: { correo, clave, nombre, o: modo === 'alta' && ORIGEN || undefined } }); } catch (e) { toast(t('Sin conexión con el servidor. Inténtalo en un momento.', 'Cannot reach the server. Try again shortly.')); return false; }
   const d = await r.json().catch(() => ({}));
   if (!r.ok) { const m = ERR_CUENTA[d.error]; toast(m ? t(m[0], m[1]) : t('No se ha podido. Inténtalo de nuevo.', 'It did not work. Try again.')); return false; }
   LS.set('tc_cuenta', JSON.stringify({ token: d.token, correo: d.correo, nombre: d.nombre })); LS.set('tc_nube_ver', '0'); LS.set('tc_nube_ids', '[]');
@@ -2889,7 +2890,8 @@ async function panelPrivacidad() {
       <li>${icY('nube')}<span>${c ? t('Tus prendas, sus fotos, tus looks y tu calendario se guardan en tu cuenta para verlos en cualquier móvil.', 'Your garments, their photos, your looks and your calendar are kept in your account so you can see them on any phone.') : t('Sin cuenta, todo se queda en este móvil.', 'Without an account, everything stays on this phone.')}</span></li>
       <li>${icY('camara')}<span>${E.perfil?.fotosCuenta ? t('Tu selfie y tu foto de cuerpo se guardan en tu cuenta, privadas, porque así lo elegiste. Lo cambias en Yo → Tus medidas y fotos.', 'Your selfie and body photo are kept in your account, private, because you chose so. Change it in Me → Your measurements and photos.') : t('Tu selfie y tu foto de cuerpo se quedan en este móvil.', 'Your selfie and body photo stay on this phone.')} ${t('Si creas tu avatar, se envían una vez para hacerlo.', 'If you create your avatar, they are sent once to make it.')}</span></li>
       <li>${icY('percha')}<span>${t('Para quitar el fondo de tu ropa y hacer la foto de catálogo, la foto de la prenda pasa por nuestro servidor y por la IA de imagen de Google.', 'To remove the background of your clothes and make the catalogue photo, the garment photo goes through our server and Google’s image AI.')}</span></li>
-      <li>${icY('ciudad')}<span>${t('Tu ciudad o tu ubicación solo se usan para darte el tiempo.', 'Your city or location is only used for the weather.')}</span></li></ul>`)
+      <li>${icY('ciudad')}<span>${t('Tu ciudad o tu ubicación solo se usan para darte el tiempo.', 'Your city or location is only used for the weather.')}</span></li>
+      <li>${icY('info')}<span>${t('Si llegas desde un enlace nuestro en una red social, contamos esa visita: solo el día y la red, sin cookies ni nada tuyo.', 'If you arrive from one of our links on social media, we count that visit: only the day and the network, with no cookies and nothing about you.')}</span></li></ul>`)
     + grupoP(t('Permisos', 'Permissions'), filaP({ tag: 'div', ic: 'ciudad', tit: t('Ubicación', 'Location'), val: ubic, flecha: false }) + filaP({ tag: 'div', ic: 'camara', tit: t('Cámara', 'Camera'), val: t('Solo al subir fotos', 'Only when uploading'), flecha: false }),
       t('Los permisos se cambian en los ajustes del navegador o del móvil.', 'Permissions are changed in your browser or phone settings.'))
     + grupoP(t('Tus datos', 'Your data'), filaP({ id: 'pv-exportar', ic: 'bajar', tit: t('Descargar una copia', 'Download a copy'), flecha: false })
@@ -3461,6 +3463,8 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
 (async () => {
   if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true })); // 0.127: primero todos los scripts (el diseño y el motor); si no, en un móvil lento la primera pantalla salía con el diseño antiguo
   entrada(new URLSearchParams(location.search));
+  // 09/11: contador de visitas por red (parámetro común de la coordinación de marketing). Se manda una vez y se quita «o» de la dirección: al recargar no cuenta otra vez y no se guarda nada en el móvil
+  try { const q = new URLSearchParams(location.search), o = (q.get('o') || '').toLowerCase(); if (q.has('o') && window.top === window) { q.delete('o'); history.replaceState(history.state, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); if (/^[a-z0-9-]{1,24}$/.test(o)) { ORIGEN = o; api('/api/visita', { method: 'POST', json: { o }, tiempo: 10000 }).catch(() => { }); } } } catch (e) { }
   E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {};
   E.puestos = (await BD.get('puestos').catch(() => null)) || {};
   try { navigator.storage?.persist?.(); } catch (e) { }
