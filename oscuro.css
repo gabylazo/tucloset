@@ -826,6 +826,13 @@ html.oscuro [aria-checked="true"] .pn-sw{background:var(--tinta)}
 html.oscuro [aria-checked="true"] .pn-sw::after{background:var(--o-fondo)}
 html.oscuro .dx-sin .dx-caja b{color:var(--tinta)}
 html.oscuro .dx-sin .dx-caja small{color:var(--sec)}
+html.oscuro .dlg-cod b{color:var(--tinta)}
+html.oscuro .cod-campo input{border:1px solid var(--tinta);background:var(--o-fondo);color:var(--tinta);border-radius:0}
+html.oscuro .cod-e{color:#8E3B2E!important}
+html.oscuro.oscuro .dlg-cod{background:var(--o-fondo,#1A1410)}
+html.oscuro.oscuro .cod-campo input{background:transparent}
+html.oscuro.oscuro .cod-e{color:#E8776B!important}
+html.oscuro .s-clas{color:var(--sec)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}

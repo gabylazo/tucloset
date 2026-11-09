@@ -1714,3 +1714,24 @@ html{touch-action:manipulation}
 .dx-sin .dx-caja{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px}
 .dx-sin .dx-caja b{font-weight:400;font-size:16px;color:var(--tinta)}
 .dx-sin .dx-caja small{font-size:13px;color:var(--sec)}
+
+/* 09/11: «No me parezco» (rehacer el avatar diciendo qué falla) */
+.pn-cuerpo .pr-op{justify-content:center;margin:18px 0 22px}
+.pn-cuerpo .pr-op + .boton{display:flex;width:auto;margin:0 auto;padding:0 28px}
+.pn-cuerpo .pr-op ~ .pn-nota{text-align:center}
+
+/* 09/11: código del correo al crear la cuenta o entrar desde un móvil nuevo */
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.dlg-cod{text-align:center}
+.dlg-cod b{display:block;margin-top:2px;color:var(--tinta);font-weight:500;overflow-wrap:anywhere}
+.cod-campo{display:block;margin:18px auto 0}
+.cod-campo input{width:100%;max-width:240px;height:56px;border:1px solid var(--tinta);background:#fff;color:var(--tinta);font-family:inherit;font-size:28px;font-weight:500;line-height:1;letter-spacing:.35em;text-align:center;padding:0 0 0 .35em;border-radius:0}
+.cod-e{min-height:22px;margin-top:8px!important;font-size:14px!important;color:#8E3B2E!important}
+.dlg-cod .botones{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.cod-pie{font-size:14px!important}
+#cod-otra{font-size:14px;min-height:44px;margin-top:2px}
+html.oscuro .dlg-cod{background:var(--o-fondo,#1A1410)}
+html.oscuro .cod-campo input{background:transparent}
+html.oscuro .cod-e{color:#E8776B!important}
+/* 09/11: mientras el servidor afina el nombre y los detalles de la prenda */
+.s-clas{margin:6px 20px 0;font-size:12px;line-height:1.4;color:var(--sec);text-align:center;font-weight:300}
