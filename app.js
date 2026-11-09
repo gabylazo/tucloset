@@ -189,6 +189,18 @@ const NUBE = true; // 0.76: servidor publicado en Cloudflare (tucloset-api.apptu
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { } } };
 let ORIGEN = ''; // 09/11: la red desde la que llegó esta visita (?o=ig|tt|pin…); vive solo mientras la página está abierta
 const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.parse(LS.get('tc_cuenta') || 'null'); } catch (e) { return null; } };
+// 09/11 (Gabriela: «acabo de abrir el perfil de Sheila desde mi móvil… se ha unido al mío y ha sumado sus prendas a mi clóset; una cuenta enlazada a un clóset, no
+// mezclar, Instagram no funciona así»): al cerrar sesión el móvil se quedaba con el clóset y, al entrar en otra cuenta, bajarNube lo juntaba con el de esa cuenta y
+// subía la mezcla. Ahora el clóset de este móvil es de una sola cuenta (tc_dueno): al cerrar sesión se quita del móvil y, al entrar en otra cuenta, se vacía antes
+const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo'];
+const dueno = () => (LS.get('tc_dueno') || '').toLowerCase();
+try { const c0 = JSON.parse(LS.get('tc_cuenta') || 'null'); if (c0?.correo && !LS.get('tc_dueno')) LS.set('tc_dueno', c0.correo.toLowerCase()); } catch (e) { } // móviles de antes: el clóset es de la cuenta abierta
+const deCuenta = p => !p.ejemplo && !!(p.nube || p.nubeC || p.fotoSub); // la prenda ya estuvo en alguna cuenta
+async function vaciarMovil() {
+  for (const k of await BD.claves()) await BD.del(k);
+  LS_CUENTA.forEach(k => LS.set(k, null));
+  E.prendas = []; E.conjuntos = []; E.agenda = {}; E.perfil = {}; E.puestos = {}; E.propuestas = []; E.generados = []; urls.clear(); urlsCat.clear(); alfa.clear();
+}
 async function api(ruta, op = {}) {
   const c = cuenta(), h = { ...(op.headers || {}) }; if (c?.token) h.Authorization = 'Bearer ' + c.token;
   if (op.json !== undefined) { h['Content-Type'] = 'application/json'; op.body = JSON.stringify(op.json); }
@@ -229,7 +241,7 @@ const avisarFallo = (paso, e, b) => { try { fetch(API + '/api/aviso?d=' + encode
 function docLocal() {
   // 06/11 (Gabriela: «no se guardan las medidas»): las medidas solo vivían en el móvil donde se apuntaban; entraba desde tres sitios (Safari, la app del inicio
   // y el ordenador) y en los otros no estaban. Ahora van con la cuenta, como el diagnóstico; las fotos siguen solo en el móvil
-  return { perfil: sinBlobs({ ...E.perfil }), conjuntos: E.conjuntos, agenda: E.agenda, borradas: JSON.parse(LS.get('tc_nube_borradas') || '[]'),
+  return { perfil: sinBlobs({ ...E.perfil }), conjuntos: E.conjuntos, agenda: E.agenda, borradas: JSON.parse(LS.get('tc_nube_borradas') || '[]'), reinicio: LS.get('tc_reinicio') || undefined,
     prendas: E.prendas.filter(p => !p.ejemplo).map(p => ({ ...sinBlobs(p), conFoto: !!p.foto, conOriginal: !!p.original })) };
 }
 E.nube = { estado: '', cuando: LS.get('tc_nube_cuando') || '' };
@@ -379,6 +391,8 @@ async function bajarNube() {
   const r = await api('/api/datos', { tiempo: 30000 }); if (!r.ok) return false;
   const { doc, version } = await r.json(); if (!doc) return false;
   const borr = new Set(doc.borradas || []); LS.set('tc_nube_borradas', JSON.stringify(doc.borradas || []));
+  // 09/11: un clóset que la Dirección ha limpiado («reinicio») se baja tal cual una vez: lo que este móvil tenía de más (prendas, looks y agenda de otra cuenta) se quita
+  const rein = !!doc.reinicio && doc.reinicio !== LS.get('tc_reinicio');
   const locales = new Map(E.prendas.map(p => [p.id, p]));
   // 0.94 (Gabriela, 24/10: «se demora mucho y no me deja entrar»): las fotos bajaban de una en una (50 con las originales) antes de dejarte entrar;
   // ahora bajan 6 a la vez, solo las recortadas antes de entrar, y las originales después, por detrás
@@ -396,10 +410,11 @@ async function bajarNube() {
   const aLaVez = async (tareas, n) => { let i = 0; await Promise.all(Array.from({ length: Math.min(n, tareas.length) }, async () => { while (i < tareas.length) await tareas[i++](); })); };
   await aLaVez(fotos, 6);
   if (originales.length) setTimeout(async () => { await aLaVez(originales, 3); await BD.set('prendas', E.prendas).catch(() => { }); }, 2000);
-  for (const [id, l] of locales) if (!borr.has(id)) nuevas.push(l);
+  if (!rein) for (const [id, l] of locales) if (!borr.has(id)) nuevas.push(l);
   E.prendas = nuevas;
-  const cj = new Map((doc.conjuntos || []).map(c => [c.id, c])); E.conjuntos.forEach(c => { if (!cj.has(c.id)) cj.set(c.id, c); }); E.conjuntos = [...cj.values()];
-  E.agenda = { ...E.agenda, ...(doc.agenda || {}) };
+  const cj = new Map((doc.conjuntos || []).map(c => [c.id, c])); if (!rein) E.conjuntos.forEach(c => { if (!cj.has(c.id)) cj.set(c.id, c); }); E.conjuntos = [...cj.values()];
+  E.agenda = rein ? { ...(doc.agenda || {}) } : { ...E.agenda, ...(doc.agenda || {}) };
+  if (doc.reinicio) LS.set('tc_reinicio', doc.reinicio);
   // 06/11 (Gabriela: «apunto mis medidas 20 veces y no se guardan después de analizar, y además sigue analizando mal»): el diagnóstico sale de las fotos y las medidas,
   // que solo viven en este móvil; si al subir había conflicto con la nube (409), la bajada pisaba el diagnóstico recién hecho con el viejo de la nube y volvía
   // «según tu foto». Ahora, en el móvil que tiene las fotos o las medidas, manda su diagnóstico (y lo que sale de él)
@@ -418,19 +433,33 @@ async function abrirCuenta(modo, correo, clave, nombre) {
   let r; try { r = await api('/api/' + modo, { method: 'POST', json: { correo, clave, nombre, o: modo === 'alta' && ORIGEN || undefined } }); } catch (e) { toast(t('Sin conexión con el servidor. Inténtalo en un momento.', 'Cannot reach the server. Try again shortly.')); return false; }
   const d = await r.json().catch(() => ({}));
   if (!r.ok) { const m = ERR_CUENTA[d.error]; toast(m ? t(m[0], m[1]) : t('No se ha podido. Inténtalo de nuevo.', 'It did not work. Try again.')); return false; }
+  const nuevo = String(d.correo || correo || '').toLowerCase();
+  if (dueno() && dueno() !== nuevo) await vaciarMovil(); // el clóset de este móvil era de otra cuenta: se quita antes de bajar el suyo
   LS.set('tc_cuenta', JSON.stringify({ token: d.token, correo: d.correo, nombre: d.nombre })); LS.set('tc_nube_ver', '0'); LS.set('tc_nube_ids', '[]');
+  if (!dueno() && E.prendas.some(p => !p.ejemplo)) {
+    // un móvil sin dueño con ropa: si esa ropa ya estuvo en otra cuenta (móviles de antes que cerraron sesión), se quita; si no, se pregunta si se añade
+    let enNube = new Set(); if (modo === 'entrar') { try { const r2 = await api('/api/datos', { tiempo: 30000 }); if (r2.ok) enNube = new Set(((await r2.json()).doc?.prendas || []).map(p => p.id)); } catch (e) { } }
+    const mias = E.prendas.filter(p => !p.ejemplo);
+    if (mias.some(p => deCuenta(p) && !enNube.has(p.id))) { const c = LS.get('tc_cuenta'); await vaciarMovil(); LS.set('tc_cuenta', c); LS.set('tc_nube_ver', '0'); LS.set('tc_nube_ids', '[]'); }
+    else if (modo === 'entrar' && mias.some(p => !enNube.has(p.id)) && !await confirmar(t('¿Añadimos la ropa de este móvil?', 'Add the clothes on this phone?'),
+      t(`En este móvil hay ${mias.length} prendas que no están en ninguna cuenta. Si dices que no, se quitan de este móvil y entras solo con lo de tu cuenta.`, `This phone has ${mias.length} garments that are not in any account. If you say no, they are removed from this phone and you get only what is in your account.`),
+      t('Añadirlas a mi cuenta', 'Add them to my account'), t('No, solo mi cuenta', 'No, only my account'))) { const c = LS.get('tc_cuenta'); await vaciarMovil(); LS.set('tc_cuenta', c); LS.set('tc_nube_ver', '0'); LS.set('tc_nube_ids', '[]'); }
+  }
+  LS.set('tc_dueno', nuevo);
   if (modo === 'entrar') { E.nube.estado = 'bajando'; try { await bajarNube(); } catch (e) { avisarFallo('bajar', e); } setTimeout(medirTodas, 1500); } // 0.95 (Gabriela, 24/10: «se demora demasiado»): al entrar ya no se repasan las prendas con el reconocedor (45 MB y varios minutos en el móvil)
   subirNube().catch(() => { }); return true; // 0.146: lo de este móvil sube por detrás; entrar ya no espera a las fotos
 }
 async function cerrarSesion() {
-  if (!await confirmar(t('¿Cerrar sesión?', 'Sign out?'), t('Tu clóset sigue guardado en tu cuenta. En este móvil se queda lo que ya tienes.', 'Your closet stays saved in your account. This phone keeps what it has.'), t('Cerrar sesión', 'Sign out'))) return;
-  await subirNube().catch(() => { }); api('/api/salir', { method: 'POST' }).catch(() => { }); LS.set('tc_cuenta', null); pintarCuenta(); toast(t('Sesión cerrada', 'Signed out'));
+  if (!await confirmar(t('¿Cerrar sesión?', 'Sign out?'), t('Tu clóset sigue guardado en tu cuenta. De este móvil se quita hasta que vuelvas a entrar.', 'Your closet stays saved in your account. It is removed from this phone until you sign in again.'), t('Cerrar sesión', 'Sign out'))) return;
+  await subirNube().catch(() => { });
+  if (E.nube.estado === 'error' && !await confirmar(t('Hay cambios sin guardar', 'Unsaved changes'), t('No se han podido subir a tu cuenta. Si cierras sesión ahora, se pierden.', 'They could not be uploaded to your account. If you sign out now, they are lost.'), t('Cerrar igualmente', 'Sign out anyway'), t('Esperar', 'Wait'))) return;
+  await api('/api/salir', { method: 'POST', tiempo: 8000 }).catch(() => { }); await vaciarMovil(); location.reload();
 }
 async function borrarCuenta() {
   if (!await confirmar(t('¿Borrar tu cuenta?', 'Delete your account?'), t('Se borran del servidor tu clóset, tus fotos y tus looks. En este móvil se queda una copia. No se puede deshacer.', 'Your closet, photos and looks are deleted from the server. This phone keeps a copy. Cannot be undone.'), t('Borrar cuenta', 'Delete account'))) return;
   const r = await api('/api/cuenta', { method: 'DELETE' }).catch(() => null);
   if (!r?.ok) return toast(t('No se ha podido borrar. Inténtalo de nuevo.', 'Could not delete. Try again.'));
-  ['tc_cuenta', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando'].forEach(k => LS.set(k, null)); E.prendas.forEach(p => { delete p.nube; delete p.nubeO; delete p.fotoSub; delete p.fotoSubO; }); await BD.set('prendas', E.prendas); pintarCuenta(); toast(t('Cuenta borrada', 'Account deleted'));
+  ['tc_cuenta', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando'].forEach(k => LS.set(k, null)); E.prendas.forEach(p => { delete p.nube; delete p.nubeO; delete p.nubeC; delete p.conCat; delete p.fotoSub; delete p.fotoSubO; }); ['tc_dueno', 'tc_reinicio'].forEach(k => LS.set(k, null)); await BD.set('prendas', E.prendas); pintarCuenta(); toast(t('Cuenta borrada', 'Account deleted'));
 }
 const haceRato = iso => { if (!iso) return ''; const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? t('ahora mismo', 'just now') : m < 60 ? t(`hace ${m} min`, `${m} min ago`) : m < 1440 ? t(`hace ${Math.round(m / 60)} h`, `${Math.round(m / 60)} h ago`) : new Date(iso).toLocaleDateString(idioma()); };
 function estadoNube() { const e = E.nube.estado; return e === 'subiendo' ? t('Guardando…', 'Saving…') : e === 'bajando' ? t('Trayendo tu clóset…', 'Bringing your closet…') : e === 'error' ? t('Sin conexión: se guardará al volver', 'Offline: will save when back') : E.nube.cuando ? t(`Guardado ${haceRato(E.nube.cuando)}`, `Saved ${haceRato(E.nube.cuando)}`) : t('Pendiente de guardar', 'Not saved yet'); }
