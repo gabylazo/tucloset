@@ -192,7 +192,7 @@ const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.p
 // 09/11 (Gabriela: «acabo de abrir el perfil de Sheila desde mi móvil… se ha unido al mío y ha sumado sus prendas a mi clóset; una cuenta enlazada a un clóset, no
 // mezclar, Instagram no funciona así»): al cerrar sesión el móvil se quedaba con el clóset y, al entrar en otra cuenta, bajarNube lo juntaba con el de esa cuenta y
 // subía la mezcla. Ahora el clóset de este móvil es de una sola cuenta (tc_dueno): al cerrar sesión se quita del móvil y, al entrar en otra cuenta, se vacía antes
-const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo'];
+const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo', 'tc_admin'];
 const dueno = () => (LS.get('tc_dueno') || '').toLowerCase();
 try { const c0 = JSON.parse(LS.get('tc_cuenta') || 'null'); if (c0?.correo && !LS.get('tc_dueno')) LS.set('tc_dueno', c0.correo.toLowerCase()); } catch (e) { } // móviles de antes: el clóset es de la cuenta abierta
 const deCuenta = p => !p.ejemplo && !!(p.nube || p.nubeC || p.fotoSub); // la prenda ya estuvo en alguna cuenta
@@ -2823,6 +2823,7 @@ const IC_Y = {
   salir: '<path d="M14 5H6v14h8"/><path d="M10.5 12H20M16.5 8.5 20 12l-3.5 3.5"/>',
   borrar: '<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7"/>',
   camara: '<path d="M4 8h3.5l1.5-2h6l1.5 2H20v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  control: '<path d="M4 19.5h16M6.5 16.5V11M10.5 16.5V6.5M14.5 16.5v-4M18.5 16.5V9"/>',
   probar: '<path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
   ok: '<path d="m5 12.5 4.5 4.5L19 7.5"/>'
 };
@@ -2852,8 +2853,7 @@ function pintarPanelYo() {
   $('yo-panel').innerHTML =
     grupoP(t('Tu cuenta', 'Your account'),
       (NUBE ? filaP({ attr: 'data-ir="cuenta"', ic: 'cuenta', tit: t('Cuenta', 'Account'), val: c ? (c.correo || '') : t('Entrar o crear', 'Sign in or create') }) : '')
-      + filaP({ id: 'yo-plan-info', ic: 'plan', tit: t('Plan', 'Plan'), val: t('Prueba gratis', 'Free trial'), oro: true })
-      + filaP({ id: 'yo-vercomo', ic: 'probar', tit: t('Ver la app como', 'View the app as'), val: nomPlan(planDemo()) }),
+      + filaP({ id: 'yo-plan-info', ic: 'plan', tit: t('Plan', 'Plan'), val: t('Prueba gratis', 'Free trial'), oro: true }),
       enGratis() && E.prendas.length > TOPE_GRATIS ? t(`En la gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`) : '')
     + grupoP(t('La app', 'The app'),
       filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
@@ -2865,22 +2865,28 @@ function pintarPanelYo() {
       filaP({ id: 'yo-ayuda', ic: 'ayuda', tit: t('Preguntas frecuentes', 'FAQ') })
       + filaP({ tag: 'a', attr: 'href="mailto:app@tucloset.app"', ic: 'correo', tit: t('Escríbenos', 'Write to us'), val: 'app@tucloset.app', flecha: false })
       + filaP({ ic: 'info', tit: t('Versión', 'Version'), val: ($('yo-version')?.textContent || '').split(' · ')[0].replace('TuCloset web ', ''), flecha: false, tag: 'div' }))
-    + `<details class="pn-pruebas"><summary>${t('Herramientas de prueba', 'Test tools')}</summary><div class="pn-c">`
+    // 09/11 (decisión 34 y Gabriela: «un enlace al que solo podamos acceder Sheila y yo»): lo de probar y el centro de control, solo para las socias
+    // (cuentas de ADMINS, que /api/yo marca como admin), al final de Ajustes. Las demás no ven «Ver la app como» ni el clóset de pruebas.
+    + (socia() ? grupoP(t('Para probar', 'For testing'),
+      filaP({ tag: 'a', attr: 'href="control.html"', ic: 'control', tit: t('Centro de control', 'Control centre') })
+      + filaP({ id: 'yo-vercomo', ic: 'probar', tit: t('Ver la app como', 'View the app as'), val: nomPlan(planDemo()) })
       + filaP({ id: 'yo-closet', ic: 'probar', tit: t('Clóset', 'Closet'), val: CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes'), flecha: false })
-      + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))
-      + `</div></details>`;
-  $('yo-vercomo').onclick = panelVerComo; $('yo-modo').onclick = cambiarModo; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
-  $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
+      + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))) : '');
+  if ($('yo-vercomo')) $('yo-vercomo').onclick = panelVerComo; $('yo-modo').onclick = cambiarModo; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
+  if ($('yo-closet')) $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
 }
 // 08/11 (Gabriela: «la parte de Yo creo que tiene muchas cosas que tienen poco que ver, como mezclando ajustes de la app con cosas del usuario como medidas,
 // colorimetría, avatar y esas cosas… estudia la mejor forma de distribuirlos»): Yo queda para lo tuyo (tu clóset, silueta, estilo, colores, medidas y fotos,
 // avatar) y los ajustes de la app pasan a su propia pantalla, detrás del engranaje de arriba a la derecha, como en Instagram o Zara. Lo que se abre desde
 // Ajustes (idioma, ciudad, plan…) se pone encima y, al volver, se vuelve a Ajustes.
+const socia = () => !PUBLICA || LS.get('tc_admin') === '1';
 function abrirAjustes() {
   document.querySelectorAll('.pn-capa').forEach(c => c.remove());
   const cap = abrirPanel(t('Ajustes', 'Settings'), '<div id="yo-panel"></div>'); cap.classList.add('pn-base');
   pintarPanelYo();
+  // la primera vez con la cuenta abierta, el servidor dice si es una de las socias (se guarda hasta cerrar sesión)
+  if (cuenta()?.token && LS.get('tc_admin') == null) api('/api/yo', { tiempo: 10000 }).then(r => r.ok ? r.json() : null).then(j => { if (!j) return; LS.set('tc_admin', j.admin ? '1' : '0'); pintarPanelYo(); }).catch(() => { });
 }
 document.addEventListener('click', e => { if (e.target.closest('[data-ajustes]')) abrirAjustes(); });
 function panelVerComo() {

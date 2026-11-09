@@ -151,10 +151,33 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
 .mensaje p { color: var(--gris); }
 .boton { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px; margin-top: 18px; border: 1px solid var(--tinta); text-decoration: none; letter-spacing: .08em; font-size: 14px; }
 .pie { text-align: center; color: var(--gris); font-size: 13px; margin-top: 40px; }
+
+/* 09/11: volver a la app (se entra desde Ajustes → Centro de control) */
+.cab { position: relative; }
+.volver { position: absolute; left: 8px; top: 12px; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 8px; font-size: 14px; text-decoration: none; color: var(--gris); }
+.volver svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.volver:hover { color: var(--tinta); }
+
+/* 09/11: usuarias y dinero (Gabriela: «cuántos usuarios tienen, el uso de cada usuario y todos los datos que nos sirvan para llevar una contabilidad») */
+.cifras.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 760px) { .cifras.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.ficha .correo { word-break: break-all; }
+.ficha .cuando { margin: 4px 0 12px; font-size: 14px; color: var(--gris); }
+.nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.nums div { display: flex; flex-direction: column-reverse; align-items: center; text-align: center; background: var(--blanco); padding: 10px 4px; }
+.nums dt { font-size: 12px; line-height: 1.25; color: var(--gris); }
+.nums dd { margin: 0 0 4px; font: 400 26px/1 'Bellefair', serif; font-variant-numeric: tabular-nums; }
+.mes .filas li span:first-child { color: var(--tinta); }
+.mes .filas li.tot { border-bottom: 0; font-weight: 500; }
+.mes .filas li.tot span:last-child { color: var(--tinta); font-size: 15px; }
+.acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 12px; }
+button.boton { background: var(--blanco); color: var(--tinta); font: inherit; font-size: 14px; letter-spacing: .08em; cursor: pointer; }
+button.boton:hover { background: var(--suave); }
 </style>
 </head>
 <body>
 <header class="cab">
+  <a class="volver" href="./"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Volver a la app</a>
   <img src="iconos/icono-129-180.png" alt="">
   <h1 class="marca">Tu<span>Closet</span></h1>
   <p>Centro de control</p>
@@ -184,7 +207,7 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
   const activas7 = new Set(d.uso.filter(u => u.dia >= dia(6)).map(u => u.usuaria)).size;
   const fallos7 = d.avisos.filter(a => a.fecha >= new Date(hoy - 7 * 864e5).toISOString()).length;
   const prendas = d.usuarias.reduce((s, u) => s + u.prendas, 0);
-  const secciones = [['toca', 'Os toca'], ['cifras', 'Cifras'], ['funciones', 'Funciones'], ['fases', 'Fases'], ['equipo', 'Equipo'], ['cuentas', 'Cuentas'], ['mas', 'Más']];
+  const secciones = [['toca', 'Os toca'], ['cifras', 'Cifras'], ['usuarias', 'Usuarias'], ['dinero', 'Dinero'], ['funciones', 'Funciones'], ['fases', 'Fases'], ['equipo', 'Equipo'], ['cuentas', 'Cuentas'], ['mas', 'Más']];
 
   // personas que abrieron la app cada día, últimos 14 días
   const dias = [...Array(14)].map((_, i) => dia(13 - i)), porDia = dias.map(k => new Set(d.uso.filter(u => u.dia === k).map(u => u.usuaria)).size), max = Math.max(1, ...porDia);
@@ -195,6 +218,55 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
   const redes = `<div class="tarjeta redes"><p>Visitas desde las redes, 30 días</p>${filasRed.length ? `<table><thead><tr><th scope="col">Red</th><th scope="col">Visitas</th><th scope="col">Cuentas nuevas</th></tr></thead><tbody>${filasRed.map(([o, x]) => `<tr><th scope="row">${esc(nomRed(o))}</th><td>${x.n}</td><td>${x.a}</td></tr>`).join('')}</tbody></table>` : '<span class="vacio">Todavía ninguna. Cuentan los enlaces con ?o=ig, ?o=tt o ?o=pin.</span>'}</div>`;
   const barras = `<div class="barras" role="img" aria-label="Personas que abrieron la app cada día, últimos 14 días: ${porDia.join(', ')}">${dias.map((k, i) => `<div><em>${porDia[i] || ''}</em><i style="height:${Math.round(porDia[i] / max * 80)}%"></i><small>${+k.slice(8)}</small></div>`).join('')}</div>`;
 
+  // 09/11: usuarias (ficha de cada una) y dinero (contabilidad por mes), con descarga en CSV para Excel
+  const usd = n => (Math.round(n * 100) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' $';
+  const suma = (lista, f) => (lista || []).filter(f).reduce((s, x) => s + (+x.v || 0), 0);
+  const G = (d.gasto || []).map(g => ({ ...g, v: g.c })), GN = (d.gasto || []).map(g => ({ ...g, v: g.ok }));
+  const R = (d.recortes || []).map(x => ({ ...x, v: x.n })), I = (d.inspos || []).map(x => ({ ...x, v: x.n }));
+  const UT = Object.fromEntries((d.usoTotal || []).map(x => [x.usuaria, x]));
+  const VE = { gratis: 'Gratis', basico: 'Básico', pro: 'Pro' };
+  const fichas = d.usuarias.map(u => { const x = UT[u.id] || {}, ult = [x.ultimo, (u.actualizado || '').slice(0, 10)].filter(Boolean).sort().pop() || null;
+    return { ...u, ultimo: ult, dias30: x.dias30 || 0, dias: x.dias || 0, usd: suma(G, g => g.usuaria === u.id),
+      cat: suma(GN, g => g.usuaria === u.id && g.s === 'catalogo'), av: suma(GN, g => g.usuaria === u.id && g.s === 'avatar'), pu: suma(GN, g => g.usuaria === u.id && g.s === 'puesto'),
+      rec: suma(R, g => g.usuaria === u.id), ins: suma(I, g => g.usuaria === u.id) }; })
+    .sort((a, b) => (b.ultimo || '').localeCompare(a.ultimo || '') || (b.creada || '').localeCompare(a.creada || ''));
+  const socias = new Set(fichas.filter(u => u.socia).map(u => u.id));
+  const act = (n, sinSocias) => new Set(d.uso.filter(u => u.dia >= dia(n - 1) && !(sinSocias && socias.has(u.usuaria))).map(u => u.usuaria)).size;
+  const nuevas7 = d.usuarias.filter(u => u.creada >= new Date(hoy - 7 * 864e5).toISOString()).length;
+  const lunes = x => { x = new Date(x); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; };
+  const semanas = [...Array(8)].map((_, i) => { const l = lunes(hoy); l.setDate(l.getDate() - 7 * (7 - i)); return l; });
+  const altasSem = semanas.map((l, i) => d.usuarias.filter(u => { const c = new Date(u.creada); return c >= l && (i === 7 || c < semanas[i + 1]); }).length);
+  const barrasDe = (vals, etq, aria) => { const m = Math.max(1, ...vals); return `<div class="barras" role="img" aria-label="${aria}: ${vals.join(', ')}">${vals.map((v, i) => `<div><em>${v || ''}</em><i style="height:${Math.round(v / m * 80)}%"></i><small>${etq[i]}</small></div>`).join('')}</div>`; };
+  const ficha = u => `<div class="tarjeta ficha"><div class="cabeza"><h3 class="correo">${esc(u.correo)}</h3><small>${[u.socia ? 'Socia' : '', VE[u.ve] || ''].filter(Boolean).join(' · ')}</small></div>
+    <p class="cuando">Alta ${fecha(u.creada)} · último día ${fecha(u.ultimo)}</p>
+    <dl class="nums"><div><dt>días de uso, 30 días</dt><dd>${u.dias30}</dd></div><div><dt>prendas</dt><dd>${u.prendas}</dd></div><div><dt>looks</dt><dd>${u.looks}</dd></div><div><dt>gasto de IA</dt><dd>${u.usd ? usd(u.usd).replace(' $', '') : '0'}<small style="font-size:14px"> $</small></dd></div></dl></div>`;
+  // dinero: cada mes con lo que se ha pedido a la IA (servidor) y las tandas de la Dirección desde el Mac (panel)
+  const DIR = Object.fromEntries((P.iaDireccion || []).map(x => [x.mes, x.usd]));
+  const meses = [...new Set([...(d.gasto || []), ...(d.recortes || []), ...(d.inspos || [])].map(x => x.mes).concat(Object.keys(DIR)))].sort().reverse().slice(0, 12);
+  const mesAhora = new Date().toISOString().slice(0, 7);
+  const nomMes = m => { const s = new Date(m + '-15').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }); return s[0].toUpperCase() + s.slice(1); };
+  const iaMes = (m, sinSocias) => suma(G, g => g.mes === m && !(sinSocias && socias.has(g.usuaria))) + (sinSocias ? 0 : DIR[m] || 0);
+  const porActiva = act(30, true) ? usd(iaMes(mesAhora, true) / act(30, true)) : '—';
+  const fijosTot = (P.fijos || []).reduce((s, [, v]) => s + v, 0);
+  const mesCard = m => { const n = s => suma(GN, g => g.mes === m && g.s === s), c = s => suma(G, g => g.mes === m && g.s === s);
+    const fila = (t, v) => `<li><span>${t}</span><span>${v}</span></li>`;
+    return `<div class="tarjeta mes"><h3>${nomMes(m)}</h3><ul class="filas">
+      ${fila('Fotos de catálogo', `${n('catalogo')} · ${usd(c('catalogo'))}`)}${fila('Avatares', `${n('avatar')} · ${usd(c('avatar'))}`)}${fila('Puesto en mí', `${n('puesto')} · ${usd(c('puesto'))}`)}
+      ${DIR[m] ? fila('Tandas de la Dirección', usd(DIR[m])) : ''}${fila('Recortes de fondo', `${suma(R, x => x.mes === m)} · gratis`)}${fila('Lecturas de looks', `${suma(I, x => x.mes === m)} · gratis`)}
+      <li class="tot"><span>Total de IA</span><span>${usd(iaMes(m))}</span></li></ul></div>`; };
+  const csv = (nombre, filas) => { const txt = '\ufeff' + filas.map(f => f.map(v => { const x = typeof v === 'number' ? String(Math.round(v * 1000) / 1000).replace('.', ',') : String(v ?? '');
+      return /[;"\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; }).join(';')).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' })); a.download = nombre; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); };
+  const CSV = {
+    usuarias: () => csv('tucloset-usuarias.csv', [['Cuenta', 'Socia', 'Alta', 'Último día', 'Días de uso (30 días)', 'Días de uso (total)', 'Prendas', 'Con foto de catálogo', 'Looks', 'Puestas', 'Versión que ve', 'Ropa', 'Diagnóstico', 'Fotos de catálogo IA', 'Avatares', 'Puesto en mí', 'Recortes', 'Lecturas de looks', 'Gasto de IA ($)'],
+      ...fichas.map(u => [u.correo, u.socia ? 'sí' : 'no', (u.creada || '').slice(0, 10), u.ultimo || '', u.dias30, u.dias, u.prendas, u.catalogo, u.looks, u.usos, VE[u.ve] || '', u.ropa || '', u.diag ? 'sí' : 'no', u.cat, u.av, u.pu, u.rec, u.ins, u.usd])]),
+    dinero: () => csv('tucloset-contabilidad.csv', [['Mes', 'Concepto', 'Cantidad', 'Dólares', 'Euros'],
+      ...meses.slice().reverse().flatMap(m => [[m, 'Ingresos', 0, '', 0],
+        ...['catalogo', 'avatar', 'puesto'].map(s => [m, { catalogo: 'Fotos de catálogo', avatar: 'Avatares', puesto: 'Puesto en mí' }[s], suma(GN, g => g.mes === m && g.s === s), suma(G, g => g.mes === m && g.s === s), '']),
+        [m, 'Tandas de la Dirección (IA)', '', DIR[m] || 0, ''], [m, 'Recortes de fondo (gratis)', suma(R, x => x.mes === m), 0, ''], [m, 'Lecturas de looks (gratis)', suma(I, x => x.mes === m), 0, '']]),
+      ...(P.fijos || []).map(([n, v]) => ['al mes', 'Fijo previsto: ' + n, '', '', v])]),
+    uso: () => { const k = [...new Set(d.uso.map(u => u.dia))].sort(); csv('tucloset-uso-por-dia.csv', [['Día', 'Personas', 'Personas sin vosotras', 'Aperturas'], ...k.map(x => { const u = d.uso.filter(y => y.dia === x); return [x, u.length, u.filter(y => !socias.has(y.usuaria)).length, u.reduce((s, y) => s + y.n, 0)]; })]); } };
+
   let enc = '<p class="vacio">Aún no hay respuestas.</p>';
   if (d.encuestas.length) { const cuenta = {}; d.encuestas.forEach(x => Object.entries(x.r).forEach(([q, v]) => { (cuenta[q] = cuenta[q] || {}); [].concat(v).forEach(o => cuenta[q][o] = (cuenta[q][o] || 0) + 1); }));
     enc = Object.entries(cuenta).map(([q, ops]) => `<h4 class="grupo">${esc(q)}</h4><ul class="filas">${Object.entries(ops).sort((a, b) => b[1] - a[1]).map(([o, n]) => `<li><span>${esc(o)}</span><span>${n}</span></li>`).join('')}</ul>`).join(''); }
@@ -202,11 +274,8 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
   const F = P.funciones || [], grupos = [...new Set(F.map(f => f.g))], hechas = F.filter(f => f.e === 'hecho').length;
   const leyenda = `<div class="leyenda"><span>${est('hecho')}Hecho</span><span>${est('marcha')}En marcha</span><span>${est('falta')}Falta</span><span>${est('espera')}Espera</span></div>`;
   const mas = [
-    ['Usuarias', `${d.usuarias.length}`, `<div class="desliza" tabindex="0" role="region" aria-label="Tabla de usuarias"><table class="tabla"><thead><tr><th>Cuenta</th><th>Alta</th><th class="num">Prendas</th><th class="num">Looks</th><th class="num">Puestas</th><th>Versión</th><th>Última vez</th></tr></thead>
-      <tbody>${d.usuarias.sort((a, b) => (b.actualizado || '').localeCompare(a.actualizado || '')).map(u => `<tr><td>${esc(u.correo)}</td><td>${fecha(u.creada)}</td><td class="num">${u.prendas}</td><td class="num">${u.looks}</td><td class="num">${u.usos}</td><td>${esc({ gratis: 'Gratis', basico: 'Básico', pro: 'Pro' }[u.ve] || '—')}</td><td>${fecha(u.actualizado)}</td></tr>`).join('')}</tbody></table></div>`],
     ['Encuesta de las pruebas', d.encuestas.length ? `${d.encuestas.length}` : '', enc],
     ...(P.docs || []).map(x => [x.t, '', x.html]),
-    ['Gastos fijos al mes', P.fijos ? `${P.fijos.reduce((s, [, v]) => s + v, 0)} €` : '', `<ul class="filas">${(P.fijos || []).map(([n, v]) => `<li><span>${esc(n)}</span><span>${v} €</span></li>`).join('')}</ul>`],
     ['Fallos', `${d.avisos.length}`, d.avisos.length ? `<ul class="filas">${d.avisos.slice(0, 20).map(a => `<li><code>${esc(a.d)}</code><span>${hora(a.fecha)}</span></li>`).join('')}</ul>` : '<p class="vacio">Ningún fallo.</p>'],
   ];
 
@@ -220,6 +289,20 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
     <div class="tarjeta uso"><p>Personas que abren la app cada día</p>${barras}</div>
     ${redes}
     <div class="rejilla mirar" style="margin-top:12px">${(P.mirar || []).map(x => x.url ? `<a href="${esc(x.url)}"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></a>` : `<div class="tarjeta"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></div>`).join('')}</div></section>
+
+  <section id="usuarias"><h2>Usuarias</h2>
+    <div class="cifras c4"><div><b>${d.usuarias.length}</b><span>cuentas${socias.size ? `, ${socias.size} vuestras` : ''}</span></div><div><b>${act(7)}</b><span>activas, 7 días</span></div><div><b>${act(30)}</b><span>activas, 30 días</span></div><div><b>${nuevas7}</b><span>nuevas, 7 días</span></div></div>
+    <div class="tarjeta uso"><p>Cuentas nuevas cada semana</p>${barrasDe(altasSem, semanas.map(l => `${l.getDate()}/${l.getMonth() + 1}`), 'Cuentas nuevas cada semana, últimas 8 semanas')}</div>
+    <div class="rejilla" style="margin-top:12px">${fichas.map(ficha).join('')}</div>
+    <p class="nota">Cada cuenta, con su correo abreviado. Vuestras pruebas y las de la Dirección cuentan como uso vuestro.</p>
+    <div class="acciones"><button class="boton" type="button" data-csv="usuarias">Descargar usuarias (CSV)</button><button class="boton" type="button" data-csv="uso">Descargar uso por día (CSV)</button></div></section>
+
+  <section id="dinero"><h2>Dinero</h2>
+    <div class="cifras c4"><div><b>0 €</b><span>ingresos este mes</span></div><div><b>${usd(iaMes(mesAhora)).replace(' $', '')}<small style="font-size:24px"> $</small></b><span>IA este mes</span></div><div><b>${fijosTot} €</b><span>fijos previstos al mes</span></div><div><b>${porActiva.replace(' $', '')}${porActiva === '—' ? '' : '<small style="font-size:24px"> $</small>'}</b><span>IA por usuaria activa, sin vosotras</span></div></div>
+    <div class="rejilla" style="margin-top:12px">${meses.length ? meses.map(mesCard).join('') : '<p class="vacio">Todavía no hay gastos.</p>'}
+      <div class="tarjeta mes"><h3>Fijos previstos al mes</h3><ul class="filas">${(P.fijos || []).map(([n, v]) => `<li><span>${esc(n)}</span><span>${v} €</span></li>`).join('')}<li class="tot"><span>Total</span><span>${fijosTot} €</span></li></ul></div></div>
+    <p class="nota">La IA se paga en dólares a Google. Los recortes y las lecturas de looks son gratis dentro del cupo de Cloudflare. Sin cobros todavía.</p>
+    <div class="acciones"><button class="boton" type="button" data-csv="dinero">Descargar contabilidad (CSV)</button></div></section>
 
   <section id="funciones"><h2>Funciones de la app</h2>
     <div class="grande"><b>${hechas}</b><span> de ${F.length} hechas</span>${barra(pct(hechas, F.length))}</div>${leyenda}
@@ -248,6 +331,7 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
     raiz.querySelectorAll('nav a').forEach(a => a.getAttribute('href') === '#' + ok ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
     window.scrollTo(0, 0); };
   addEventListener('hashchange', mostrar); mostrar();
+  raiz.addEventListener('click', e => { const b = e.target.closest('[data-csv]'); if (b) CSV[b.dataset.csv](); });
 })();
 </script>
 </body>
