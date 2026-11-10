@@ -193,7 +193,7 @@ const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.p
 // 09/11 (Gabriela: «acabo de abrir el perfil de Sheila desde mi móvil… se ha unido al mío y ha sumado sus prendas a mi clóset; una cuenta enlazada a un clóset, no
 // mezclar, Instagram no funciona así»): al cerrar sesión el móvil se quedaba con el clóset y, al entrar en otra cuenta, bajarNube lo juntaba con el de esa cuenta y
 // subía la mezcla. Ahora el clóset de este móvil es de una sola cuenta (tc_dueno): al cerrar sesión se quita del móvil y, al entrar en otra cuenta, se vacía antes
-const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_sinc_v', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo', 'tc_admin', 'tc_intercambio', 'tc_pareja'];
+const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_sinc_v', 'tc_pu_f', 'tc_pu_v', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo', 'tc_admin', 'tc_intercambio', 'tc_pareja'];
 const dueno = () => (LS.get('tc_dueno') || '').toLowerCase();
 try { const c0 = JSON.parse(LS.get('tc_cuenta') || 'null'); if (c0?.correo && !LS.get('tc_dueno')) LS.set('tc_dueno', c0.correo.toLowerCase()); } catch (e) { } // móviles de antes: el clóset es de la cuenta abierta
 const deCuenta = p => !p.ejemplo && !!(p.nube || p.nubeC || p.fotoSub); // la prenda ya estuvo en alguna cuenta
@@ -277,6 +277,12 @@ async function subirNube(reintento) {
       // la selfie, la foto de cuerpo y el avatar van también a su cuenta (privadas: solo se piden con su sesión) y vuelven a cualquier móvil u ordenador donde entre
       { const pf = E.perfil || {}; if (pf.fotosCuenta) for (const k of FOTOS_DIAG) if (pf[k] instanceof Blob && pf[k + 'Sub'] !== firma(pf[k]) && LS.get('tc_bajada_' + k) !== firma(pf[k])) {
         try { await subirFoto('/api/foto/diag-' + k, pf[k]); pf[k + 'Sub'] = firma(pf[k]); LS.set('tc_bajada_' + k, pf[k + 'Sub']); cambio = true; await BD.set('perfil', E.perfil); } catch (e) { fallos++; } } }
+      // 10/11: lo que te pruebas con el avatar, también a la cuenta; y fuera de la cuenta lo que ya no está (lo borra el primer móvil que suba)
+      { const pf = E.perfil || {}, fl = fLocales(); let pc = false;
+        if (pf.fotosCuenta) for (const x of pf.probados || []) { const b = E.puestos?.[x.k]; if (b instanceof Blob && fl[x.k] === x.f && x.s !== firma(b)) {
+          try { await subirFoto('/api/foto/' + x.f, b); x.s = firma(b); pc = true; } catch (e) { fallos++; } } }
+        for (const f of [...(pf.probadosFuera || [])]) { try { const r = await api('/api/foto/' + f, { method: 'DELETE' }); if (r.ok) { pf.probadosFuera = pf.probadosFuera.filter(q => q !== f); pc = true; } } catch (e) { } }
+        if (pc) { cambio = true; await BD.set('perfil', E.perfil); } }
       if (cambio) { await BD.set('prendas', E.prendas); d = await ponerDatos(); if (!d) { if (reintento) throw new Error('datos 409'); await bajarNube(); nubeEnCurso = null; return subirNube(true); } }
       E.nube = { estado: fallos ? 'error' : 'ok', cuando: d.actualizado };
     } catch (e) { E.nube.estado = 'error'; avisarFallo('datos', e); }
@@ -402,7 +408,7 @@ function borrarDe(k) { // lo que salió de cada permiso: las fotos, las medidas 
   }
   if (pf.avatarSub) api('/api/foto/diag-avatar', { method: 'DELETE' }).catch(() => { });
   ['avatar', 'avatarAR', 'avatarDe', 'avatarF', 'avatarSub'].forEach(x => delete pf[x]); LS.set('tc_bajada_avatar', null);
-  E.puestos = {}; fijarPuesto(''); LS.set('tc_puestos_orden', null); BD.set('puestos', {}).catch(() => { });
+  vaciarProbados();
   E.propuestas = []; E.generados = [];
 }
 async function retirarPermiso(k) {
@@ -416,7 +422,7 @@ async function retirarPermiso(k) {
 function aplicarRetiradas() { // lo retirado aquí o en otro móvil: si algo vuelve (una subida que choca y se junta con la cuenta, un móvil atrasado), se borra otra vez
   const pm = E.perfil?.permisos || {}, pf = E.perfil || {}; let hay = false;
   if (pm.diag && !pm.diag.si && (pf.selfie || pf.cuerpo || pf.selfieSub || pf.cuerpoSub || pf.medidas || pf.diag || pf.diagEspera || pf.tipoCuerpo || pf.colores?.fuente === 'foto')) { borrarDe('diag'); hay = true; }
-  if (pm.avatar && !pm.avatar.si && (pf.avatar || pf.avatarSub || pf.avatarF || Object.keys(E.puestos || {}).length)) { borrarDe('avatar'); hay = true; }
+  if (pm.avatar && !pm.avatar.si && (pf.avatar || pf.avatarSub || pf.avatarF || Object.keys(E.puestos || {}).length || (pf.probados || []).length)) { borrarDe('avatar'); hay = true; }
   return hay;
 }
 function diagAEspera() { // las cuentas de antes del 10/11: lo que salió de las fotos no se usa hasta que den el permiso
@@ -446,6 +452,71 @@ async function bajarFotosDiag() { // las que faltan en este móvil u ordenador y
     try { const r = await api('/api/foto/diag-' + k, { tiempo: 30000 }); if (r.ok) { const b = await r.blob(); if (b.size > 1000) { pf[k] = b; LS.set('tc_bajada_' + k, firma(b)); hay = true; } } } catch (e) { } }
   if (hay) { await BD.set('perfil', E.perfil); if (E.pantalla === 'yo') pintarYo(); }
 }
+// 10/11 (Gabriela: «sí, pásalo también a la cuenta; la cuenta es la que manda, se abra donde se abra»): lo que te pruebas con el avatar va con la cuenta.
+// perfil.probados = [{ k, f, t, u, s }]: k la clave del look puesto, f su foto en la cuenta (pu-…, una por cada vez que se hace), t cuándo se hizo, u la última vez que
+// se puso en Yo, s lo subido. perfil.probadosFuera: fotos que hay que borrar de la cuenta. perfil.avatarFijo/avatarFijoT: lo que llevas puesto ahora en Yo.
+// En este móvil, la copia (BD «puestos») y qué foto de la cuenta es cada una (tc_pu_f).
+const MAX_PUESTOS = 30;
+const hashTxt = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+const fLocales = () => { try { return JSON.parse(LS.get('tc_pu_f') || '{}') || {}; } catch (e) { return {}; } };
+const ponerFLocales = m => LS.set('tc_pu_f', JSON.stringify(m));
+const probados = () => (E.perfil?.probados || []).slice().sort((a, b) => (b.u || '').localeCompare(a.u || ''));
+function nuevoProbado(k, blob) {
+  const pf = E.perfil = E.perfil || {}, t = new Date().toISOString(), f = 'pu-' + hashTxt(k + '|' + t) + hashTxt(t + '|' + k), fl = fLocales();
+  const fuera = (pf.probados || []).filter(x => x.k === k); pf.probados = (pf.probados || []).filter(x => x.k !== k).concat({ k, f, t, u: t });
+  for (const x of probados().slice(MAX_PUESTOS)) { fuera.push(x); delete E.puestos[x.k]; delete fl[x.k]; } // fuera el que hace más que no te pruebas
+  pf.probados = pf.probados.filter(x => !fuera.includes(x)); pf.probadosFuera = [...new Set([...(pf.probadosFuera || []), ...fuera.map(x => x.f)])];
+  E.puestos[k] = blob; fl[k] = f; ponerFLocales(fl);
+}
+function vaciarProbados() { // avatar nuevo o borrado: lo probado ya no vale, aquí ni en la cuenta
+  const pf = E.perfil = E.perfil || {};
+  pf.probadosFuera = [...new Set([...(pf.probadosFuera || []), ...(pf.probados || []).map(x => x.f)])]; pf.probados = [];
+  // probadosDesde: lo probado antes ya no vale en ningún móvil (la lista de fotos que borrar se vacía en cuanto se borran, así que no basta)
+  pf.avatarFijo = ''; pf.avatarFijoT = pf.probadosDesde = new Date().toISOString(); E.puestos = {}; LS.set('tc_pu_f', null); BD.set('puestos', {}).catch(() => { });
+}
+function juntarProbados(dp, pl) { // los dos lados: misma clave con otra foto → la más nueva; lo echado en cualquiera de los dos, fuera
+  const fuera = new Set([...(dp.probadosFuera || []), ...(pl.probadosFuera || [])]), m = new Map(), desde = [dp.probadosDesde || '', pl.probadosDesde || ''].sort().pop();
+  for (const x of [...(dp.probados || []), ...(pl.probados || [])]) {
+    if (fuera.has(x.f)) continue; if ((x.t || '') < desde) { fuera.add(x.f); continue; } const y = m.get(x.k); // lo de antes de desde es de un avatar de antes
+    if (!y) { m.set(x.k, { ...x }); continue; }
+    if (y.f === x.f) { if ((x.u || '') > (y.u || '')) y.u = x.u; y.s = y.s || x.s; continue; }
+    const [gana, pierde] = (x.t || '') > (y.t || '') ? [{ ...x }, y] : [y, x]; fuera.add(pierde.f); if ((pierde.u || '') > (gana.u || '')) gana.u = pierde.u; m.set(x.k, gana);
+  }
+  const l = [...m.values()].sort((a, b) => (b.u || '').localeCompare(a.u || '')); l.slice(MAX_PUESTOS).forEach(x => fuera.add(x.f));
+  const r = { probados: l.slice(0, MAX_PUESTOS), probadosFuera: [...fuera] }; if (desde) r.probadosDesde = desde;
+  const fijo = (pl.avatarFijoT || '') > (dp.avatarFijoT || '') ? pl : dp; if (fijo.avatarFijoT) { r.avatarFijo = fijo.avatarFijo || ''; r.avatarFijoT = fijo.avatarFijoT; }
+  return r;
+}
+function limpiarPuestosLocales() { // la copia de este móvil: fuera lo que ya no está en la cuenta o es otra versión (se baja la buena)
+  const pr = new Map((E.perfil?.probados || []).map(x => [x.k, x.f])), fl = fLocales(); let hay = false;
+  for (const k of Object.keys(E.puestos || {})) if (pr.get(k) !== fl[k]) { delete E.puestos[k]; delete fl[k]; hay = true; }
+  for (const k of Object.keys(fl)) if (!(E.puestos?.[k] instanceof Blob)) { delete fl[k]; hay = true; }
+  if (hay) { ponerFLocales(fl); BD.set('puestos', E.puestos).catch(() => { }); } return hay;
+}
+function migrarProbados() { // una vez por móvil: lo que ya había aquí (antes del 10/11) pasa a la lista de la cuenta
+  if (LS.get('tc_pu_v')) return; const pf = E.perfil; if (!pf) return;
+  const ks = Object.keys(E.puestos || {}).filter(k => E.puestos[k] instanceof Blob);
+  if (ks.length) {
+    let ord = []; try { ord = JSON.parse(LS.get('tc_puestos_orden') || '[]'); } catch (e) { }
+    const ya = new Set((pf.probados || []).map(x => x.k)), fl = fLocales(), ahora = Date.now(), t = new Date(ahora).toISOString(); pf.probados = pf.probados || [];
+    ks.sort((a, b) => (ord.indexOf(a) + 1 || 999) - (ord.indexOf(b) + 1 || 999)).forEach((k, i) => {
+      if (ya.has(k)) return; const f = 'pu-' + hashTxt(k + '|' + t) + hashTxt(t + '|' + k); pf.probados.push({ k, f, t, u: new Date(ahora - (i + 1) * 1000).toISOString() }); fl[k] = f; });
+    ponerFLocales(fl);
+    const fijo = LS.get('tc_avatar_fijo'); if (!pf.avatarFijoT) { pf.avatarFijo = fijo && E.puestos[fijo] instanceof Blob ? fijo : ''; pf.avatarFijoT = t; }
+  }
+  LS.set('tc_pu_v', '1'); LS.set('tc_puestos_orden', null); LS.set('tc_avatar_fijo', null);
+}
+let bajandoPuestos = null;
+async function bajarPuestos() { // lo probado que está en la cuenta y no en este móvil
+  if (bajandoPuestos || !cuenta()) return bajandoPuestos;
+  bajandoPuestos = (async () => {
+    E.puestos = E.puestos || {}; const fl = fLocales(); let hay = false;
+    for (const x of probados()) { if (!x.s || (E.puestos[x.k] instanceof Blob && fl[x.k] === x.f)) continue;
+      try { const r = await api('/api/foto/' + x.f, { tiempo: 30000 }); if (r.ok) { const b = await r.blob(); if (b.size > 1000) { E.puestos[x.k] = b; fl[x.k] = x.f; hay = true; } } } catch (e) { } }
+    if (hay) { ponerFLocales(fl); await BD.set('puestos', E.puestos).catch(() => { }); if (E.pantalla === 'yo') pintarYo(); }
+  })();
+  try { await bajandoPuestos; } finally { bajandoPuestos = null; }
+}
 // 07/11 (Gabriela: «2. sí»): la primera vez que alguien con cuenta tiene fotos del diagnóstico, se le pregunta una vez si se guardan en su cuenta, sin nada elegido
 // de antemano; la respuesta se cambia en Medidas y fotos
 async function preguntarFotosCuenta() {
@@ -461,8 +532,9 @@ async function preguntarFotosCuenta() {
 }
 async function fotosEnCuenta(si) {
   const pf = E.perfil = E.perfil || {}; pf.fotosCuenta = !!si;
-  if (!si) { for (const k of FOTOS_DIAG) { if (pf[k + 'Sub']) api('/api/foto/diag-' + k, { method: 'DELETE' }).catch(() => { }); delete pf[k + 'Sub']; } }
-  await ponerPermiso('fotos', !!si); if (si) bajarFotosDiag(); // 10/11: es la casilla 3 de la privacidad (guarda fecha y versión)
+  if (!si) { for (const k of FOTOS_DIAG) { if (pf[k + 'Sub']) api('/api/foto/diag-' + k, { method: 'DELETE' }).catch(() => { }); delete pf[k + 'Sub']; }
+    for (const x of pf.probados || []) if (x.s) { api('/api/foto/' + x.f, { method: 'DELETE' }).catch(() => { }); delete x.s; } }
+  await ponerPermiso('fotos', !!si); if (si) { bajarFotosDiag(); bajarPuestos(); } // 10/11: es la casilla 3 de la privacidad (guarda fecha y versión)
 }
 async function bajarNube() {
   if (!cuenta()) return false;
@@ -505,12 +577,14 @@ async function bajarNube() {
   const vieja = k => FOTOS_DIAG.includes(k) && dp.fotosCuenta && dp[k + 'Sub'] && firma(pl[k]) !== dp[k + 'Sub'] && (migr || LS.get('tc_bajada_' + k) === firma(pl[k]));
   const medMia = pl.medidas && Object.keys(pl.medidas).length && (!dp.medidas || (pl.medidasT || '') > (dp.medidasT || ''));
   const mio = pl.diag && (pl.diag.t || '') > (dp.diag?.t || '');
-  E.perfil = { ...dp, ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => (v instanceof Blob && !vieja(k)) || (medMia && ['medidas', 'medidasT'].includes(k)) || (mio && ['diag', 'tipoCuerpo', 'caras'].includes(k)))) };
+  const avAqui = pl.avatar instanceof Blob && !vieja('avatar') && firma(pl.avatar) !== dp.avatarSub; // un avatar hecho aquí y aún sin subir: con su fecha y su firma
+  E.perfil = { ...dp, ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => (v instanceof Blob && !vieja(k)) || (medMia && ['medidas', 'medidasT'].includes(k)) || (mio && ['diag', 'tipoCuerpo', 'caras'].includes(k)) || (avAqui && ['avatarAR', 'avatarF', 'avatarDe'].includes(k)))) };
+  Object.assign(E.perfil, juntarProbados(dp, pl)); limpiarPuestosLocales();
   if (mio && pl.colores?.fuente === 'foto') E.perfil.colores = { ...(E.perfil.colores || {}), est: pl.colores.est, sub: pl.colores.sub, fuente: 'foto' };
   LS.set('tc_sinc_v', '1');
   E.perfil.permisos = juntarPermisos(doc.perfil?.permisos, pl.permisos); if (aplicarRetiradas() | diagAEspera()) programarNube(); // 10/11: permisos
   LS.set('tc_nube_ver', version); LS.set('tc_nube_ids', JSON.stringify((doc.prendas || []).map(p => p.id)));
-  await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda); bajarFotosDiag();
+  await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda); bajarFotosDiag(); bajarPuestos();
   if (estacionesAuto()) await guardar(); // 0.101: estación por tipo, también para lo que llega de otros móviles
   E.propuestas = []; E.generados = []; E.nubeBajada = true; return true;
 }
@@ -700,11 +774,12 @@ const LARGO = { 'a t-shirt': 66, 'a blouse': 64, 'a shirt': 72, 'a polo shirt': 
   'a pair of shoes': 26, 'a pair of sneakers': 28, 'a pair of boots': 32, 'a pair of knee high boots': 46, 'a pair of ankle boots': 27, 'a pair of high heels': 25, 'a pair of sandals': 25, 'a pair of ballet flats': 24, 'a pair of loafers': 26,
   'a handbag': 28, 'a shoulder bag': 30, 'a crossbody bag': 24, 'a tote bag': 42, 'a clutch bag': 25, 'a backpack': 42,
   'a belt': 30, 'a scarf': 40, 'a hat': 36, 'a cap': 26, 'a sunglasses': 15, sunglasses: 15, 'a necklace': 22, earrings: 9, 'a bracelet': 10, 'a watch': 10, gloves: 22 };
-const LARGO_NOMBRE = [[/minifalda|falda corta|mini/, 40], [/falda (larga|maxi)|maxifalda/, 95], [/falda midi|midi/, 78], [/falda/, 62], [/short|bermuda/, 38], [/malla|legging/, 92], [/pantal|vaquer|jean|jogger/, 102],
-  [/vestido largo|mono/, 140], [/vestido/, 100], [/abrigo|gabardina|trench/, 102], [/parka/, 85], [/americana|blazer/, 72], [/chaqueta|cazadora|plumas/, 66],
-  [/top corto|crop/, 42], [/camisa/, 72], [/sudadera/, 68], [/bota alta|mosquetera/, 46], [/bota/, 32], [/bot[ií]n/, 27], [/tote|shopper|mochila/, 42], [/cartera|clutch|de mano/, 25], [/bandolera/, 24]];
+// 10/11 (Sheila: «el top es súper grande con respecto a la falda»): manda el nombre; lo reconocido en la foto (p.x) solo afina cuando el nombre es genérico («Falda corta deportiva» con «a skirt» medía 62 cm, y «Vestido midi» caía en el largo de las faldas midi)
+const LARGO_NOMBRE = [[/vestido largo|maxivestido|mono/, 140], [/vestido midi/, 112], [/vestido corto|minivestido|vestido mini/, 85], [/minifalda|falda corta|falda mini/, 40], [/falda (larga|maxi)|maxifalda/, 95], [/falda midi/, 78], [/short|bermuda/, 38], [/malla|legging/, 92],
+  [/abrigo|gabardina|trench/, 102], [/parka/, 85], [/americana|blazer/, 72], [/chaqueta|cazadora|plumas/, 66], [/top corto|crop/, 42], [/bota alta|mosquetera/, 46], [/bot[ií]n/, 27], [/tote|shopper|mochila/, 42], [/cartera|clutch|de mano/, 25], [/bandolera/, 24]];
+const LARGO_GENERICO = [[/vestido/, 100], [/falda/, 62], [/pantal|vaquer|jean|jogger/, 102], [/camisa/, 72], [/sudadera/, 68], [/bota/, 32]];
 const LARGO_TIPO = { Arriba: 62, Abrigo: 72, Abajo: 100, Vestidos: 100, Calzado: 26, Bolsos: 30, Accesorios: 20 };
-const largoDe = p => LARGO[p.x] || (LARGO_NOMBRE.find(([r]) => r.test((p.nombre || '').toLowerCase())) || [])[1] || LARGO_TIPO[p.tipo] || 40;
+const largoDe = p => { const n = (p.nombre || '').toLowerCase(), f = l => (l.find(([r]) => r.test(n)) || [])[1]; return f(LARGO_NOMBRE) || LARGO[p.x] || f(LARGO_GENERICO) || LARGO_TIPO[p.tipo] || 40; };
 const tamAntiguo = p => { const M = MEDIDA[p.tipo] || [40, 40]; if (!p.caja) return M; let w = M[0], h = w * p.caja[4]; const tope = M[1] * 1.25; if (h > tope) { h = tope; w = h / p.caja[4]; } return [w, h]; };
 // 0.87 (Gabriela, 24/10: «la escala de las prendas en el básico me sigue pareciendo desproporcionada»): tres maneras de escalar para que elijan.
 // real = medidas de verdad; revista = como los bodegones de moda (calzado y bolso más grandes, la parte de arriba algo menor); equilibrada = todo más parecido de tamaño
@@ -904,11 +979,16 @@ async function usarCat(p, conservarNube) {
   if (conservarNube) p.nubeConserva = 1; else for (const k of ['', '-o']) api('/api/foto/' + p.id + k, { method: 'DELETE' }).catch(() => { }); // la de catálogo es ya la única foto
   E.propuestas = []; await guardar(); medirTodas(); return true;
 }
-const DIAS_PREV = 7 * 864e5, puedeDeshacerCat = p => p.fotoPrev instanceof Blob && p.fCat && Date.now() - (p.fotoPrevT || 0) < DIAS_PREV;
+// 10/11 (Sheila: «si una prenda no coincide con la original después de plancharla, ¿qué hago?»): la foto de antes solo estaba en el móvil que la estilizó; las prendas
+// de antes guardan su foto en la cuenta (nubeConserva), así que «No se parece» sale en cualquier móvil y la trae de la cuenta al abrirlo
+const DIAS_PREV = 7 * 864e5, puedeDeshacerCat = p => !!p.fCat && ((p.fotoPrev instanceof Blob && Date.now() - (p.fotoPrevT || 0) < DIAS_PREV) || !!p.nubeConserva);
 async function limpiarFotoPrev() { let n = 0; for (const p of E.prendas) if (p.fotoPrev && Date.now() - (p.fotoPrevT || 0) >= DIAS_PREV) { delete p.fotoPrev; delete p.fotoPrevT; n++; } if (n) await BD.set('prendas', E.prendas).catch(() => { }); }
 // «No se parece» (ficha, hasta 7 días después): probar otra vez con el modelo bueno, desde la foto de antes, o volver a la foto de antes
-function noSeParece(p) {
+async function noSeParece(p) {
   $('cat-capa')?.remove(); if (!puedeDeshacerCat(p)) return;
+  if (!(p.fotoPrev instanceof Blob)) { // de la cuenta (prendas de antes): la foto que tenía antes de la de catálogo
+    try { const r = await api('/api/foto/' + p.id, { tiempo: 30000 }); if (r.ok) { const b = await r.blob(); if (b.size > 1000) { p.fotoPrev = b; p.fotoPrevT = Date.now(); } } } catch (e) { }
+    if (!(p.fotoPrev instanceof Blob)) return toast(t('Hace falta conexión para traer tu foto', 'You need a connection to fetch your photo')); }
   const u0 = URL.createObjectURL(p.fotoPrev), nom = String(p.nombre || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const cap = document.createElement('div'); cap.id = 'cat-capa'; cap.className = 'ay-capa at-vj at-rep'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'cat-t');
   cap.innerHTML = `<h1 id="cat-t" tabindex="-1">${nom}</h1><p class="at-vj-sub">${t('¿La foto de catálogo no se parece a tu prenda?', 'Doesn’t the catalogue photo look like your garment?')}</p>
@@ -2984,7 +3064,7 @@ const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no
   ['Mi estilo', 'Cómo aprende la app lo que me gusta', 'En Yo → Mi estilo, «Looks que te encantan»: sube hasta cinco fotos de looks que te gusten (tuyos, de Pinterest o de Instagram). La app lee la ropa, sus colores y su estilo, y te propone más looks parecidos. La foto no se guarda.'],
   ['Mi estilo', 'Cómo copio el estilo de alguien', 'En el Pro, Looks → Ideas → «Inspírate en…»: elige una referencia y la app arma looks con tu ropa en ese estilo.'],
   ['Mi estilo', 'Cómo funciona mi diagnóstico', 'En Yo → Tus medidas y fotos: apunta tus medidas con la cinta (el contorno de pecho, cintura y cadera) y sube una foto de cara y una de cuerpo entero. La app calcula tu silueta y tus colores. En el Pro, los looks los tienen en cuenta.'],
-  ['Mi estilo', 'Cómo me veo los looks puestos', 'En el Pro, Yo → Tu avatar: con tu foto de cara y la de cuerpo entero la app crea tu avatar. Después, en Hoy, toca la figura junto a «Me lo pongo». Lo último que te pruebas se queda en Yo.'],
+  ['Mi estilo', 'Cómo me veo los looks puestos', 'En el Pro, Yo → Tu avatar: con tu foto de cara y la de cuerpo entero la app crea tu avatar. Después, en Hoy, toca la figura junto a «Me lo pongo». Lo último que te pruebas se queda en Yo, en todos los sitios donde entres con tu cuenta.'],
   ['Mi cuenta y datos', 'Dónde se guarda mi ropa', 'Con cuenta, tu ropa y tus looks se guardan en tu cuenta y los ves en cualquier móvil en el que entres. Tus fotos de cara y de cuerpo se quedan en tu móvil, salvo que elijas guardarlas en tu cuenta (privadas).'],
   ['Mi cuenta y datos', 'Dónde están los ajustes', 'En Yo, en el engranaje de arriba a la derecha: tu cuenta, tu plan, la ciudad del tiempo, el modo oscuro, el idioma, tus datos y la ayuda.'],
   ['Mi cuenta y datos', 'Cómo paso mi clóset a otro móvil', 'Entra con tu correo y tu contraseña en el otro móvil: tu clóset aparece solo. Sin cuenta, en Ajustes → Tus datos y permisos, «Descargar una copia» y, en el otro móvil, «Recuperar una copia».'],
@@ -3333,7 +3413,9 @@ const DIAG_V = 5;
 const diagPendiente = () => { if (!permiso('diag')) return false; const d = E.perfil?.diag, f = d?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo) || (a.med && a.med !== f.med) || (a.selfie && f.resp != null && a.resp !== f.resp) || ((a.selfie || a.cuerpo || a.med) && (d?.v || 1) < DIAG_V)); };
 let diagCorriendo = null, diagFallo = 0;
 const diagAuto = () => diagCorriendo || (diagCorriendo = hacerDiagnostico(() => { }).catch(() => { diagFallo++; return null; }).finally(() => { diagCorriendo = null; }));
-async function diagHastaAlDia() { let r = null; for (let i = 0; i < 3 && diagPendiente() && !diagFallo; i++) r = await diagAuto(); return r; }
+// 10/11: si tras los tres intentos sigue pendiente (el análisis terminó sin resultado y sin error), cuenta como fallo. Si no, Yo y Tu tipo de cuerpo volvían a
+// pintarse y a analizar sin fin: en la prueba colgaba la página y en un móvil repetía el análisis gastando batería. Se rearma al cambiar una foto (diagFallo = 0)
+async function diagHastaAlDia() { let r = null; for (let i = 0; i < 3 && diagPendiente() && !diagFallo; i++) r = await diagAuto(); if (diagPendiente() && !diagFallo) diagFallo++; return r; }
 const textoProb = (R, k) => (R?.problemas?.[k] || R?.problemas?.error || ['', ''])[idioma() === 'en' ? 1 : 0];
 function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; en el Pro, las fotos o el resultado
   const pf = E.perfil || {}, dg = pf.diag, es = idioma() === 'en' ? 1 : 0, pro = planDemo() === 'pro';
@@ -3398,7 +3480,7 @@ async function crearAvatar(nota) {
     if (!r.ok) { const j = await r.json().catch(() => ({})); return toast(errorAvatar(r.status, j.error)); }
     const fin = await afinarCat(await r.blob()); if (!fin) return toast(errorAvatar(502));
     Object.assign(E.perfil, { avatar: fin.blob, avatarAR: fin.ar, avatarDe: firmaAvatar(), avatarF: new Date().toISOString() });
-    E.puestos = {}; fijarPuesto(''); await BD.set('puestos', {}); await guardar(); avatarAbierto = true; toast(t('Tu avatar está listo', 'Your avatar is ready')); setTimeout(preguntarFotosCuenta, 1200);
+    vaciarProbados(); await guardar(); avatarAbierto = true; toast(t('Tu avatar está listo', 'Your avatar is ready')); setTimeout(preguntarFotosCuenta, 1200);
   } catch (e) { toast(t('Sin conexión: prueba otra vez', 'No connection: try again')); }
   finally { avatarEnCurso = false; if (E.pantalla === 'yo') pintarYo(); }
 }
@@ -3422,16 +3504,23 @@ async function borrarAvatar() { // 10/11: borrar el avatar es retirar su permiso
 // el look puesto: el avatar y hasta 6 prendas (primero lo que se ve más), con la foto de catálogo si la hay; lo ya hecho sale de este móvil sin gastar
 // 07/11 (Gabriela: «quiero que el avatar, cuando se pruebe una ropa, se quede ahí fijo en la opción de avatar, no que desaparezca»): lo último que te pruebas se queda
 // puesto en tu avatar (Yo → Tu avatar), con los anteriores debajo para volver a ellos; se guarda en este móvil, como los looks puestos
-const ordenPuestos = () => { try { return JSON.parse(LS.get('tc_puestos_orden') || '[]'); } catch (e) { return []; } };
-function fijarPuesto(k) { LS.set('tc_avatar_fijo', k || null); if (k) LS.set('tc_puestos_orden', JSON.stringify([k, ...ordenPuestos().filter(x => x !== k)].slice(0, 30))); }
-const puestoFijo = () => { const k = LS.get('tc_avatar_fijo'); return k && E.puestos?.[k] instanceof Blob ? k : ''; };
+const ordenPuestos = () => probados().map(x => x.k);
+function fijarPuesto(k) { // lo que llevas puesto en Yo, con la cuenta (10/11)
+  const pf = E.perfil = E.perfil || {}, ahora = new Date().toISOString(); pf.avatarFijo = k || ''; pf.avatarFijoT = ahora;
+  const x = k && (pf.probados || []).find(q => q.k === k); if (x) x.u = ahora;
+  BD.set('perfil', pf).catch(() => { }); programarNube();
+}
+const puestoFijo = () => { const k = E.perfil?.avatarFijo; return k && E.puestos?.[k] instanceof Blob ? k : ''; };
+const ORDEN_PUESTO = ['Vestidos', 'Arriba', 'Abajo', 'Abrigo', 'Calzado', 'Bolsos', 'Accesorios'];
+const selLook = ps => ps.filter(p => !p.muestra && (p.cat instanceof Blob || p.foto instanceof Blob)).sort((a, b) => ORDEN_PUESTO.indexOf(a.tipo) - ORDEN_PUESTO.indexOf(b.tipo)).slice(0, 6);
+const clavePuesto = ps => { const sel = selLook(ps); return sel.length ? sel.map(p => p.id).sort().join('+') + '|' + (E.perfil?.avatarF || '') : ''; };
+// 10/11 (Gabriela: «los conjuntos que ya tengan avatar se quedan así… distinguiéndolo con el maniquí que indica avatar coloreado, como que ya tienes esa prueba»)
+const yaProbado = ps => { if (planDemo() !== 'pro' || !tieneAvatar()) return false; const k = clavePuesto(ps); return !!k && (E.puestos?.[k] instanceof Blob || (E.perfil?.probados || []).some(x => x.k === k && x.s)); };
 async function puestoEnMi(ps, como, otra, soloGuardado) {
   const pf = E.perfil || {}; if (!(pf.avatar instanceof Blob)) return { error: t('Primero crea tu avatar en Yo', 'First create your avatar in Me') };
   if (!permiso('avatar')) return { error: errorAvatar(403, 'permiso') };
-  const orden = ['Vestidos', 'Arriba', 'Abajo', 'Abrigo', 'Calzado', 'Bolsos', 'Accesorios'];
-  const sel = ps.filter(p => !p.muestra && (p.cat instanceof Blob || p.foto instanceof Blob)).sort((a, b) => orden.indexOf(a.tipo) - orden.indexOf(b.tipo)).slice(0, 6);
-  if (!sel.length) return { error: t('Este look aún no tiene fotos', 'This look has no photos yet') };
-  const k = sel.map(p => p.id).sort().join('+') + '|' + (pf.avatarF || '');
+  const sel = selLook(ps); if (!sel.length) return { error: t('Este look aún no tiene fotos', 'This look has no photos yet') };
+  const k = clavePuesto(ps);
   E.puestos = E.puestos || (await BD.get('puestos').catch(() => null)) || {};
   if (!otra && E.puestos[k] instanceof Blob) { if (!soloGuardado) fijarPuesto(k); return { blob: E.puestos[k], k }; }
   if (soloGuardado) return { nada: true };
@@ -3443,8 +3532,7 @@ async function puestoEnMi(ps, como, otra, soloGuardado) {
     const r = await apiAvatar('/api/avatar?que=puesto' + (otra ? '&otra=1' : ''), fd);
     if (!r.ok) { const j = await r.json().catch(() => ({})); return { error: errorAvatar(r.status, j.error, true) }; }
     const fin = await afinarCat(await r.blob()); if (!fin) return { error: errorAvatar(502) };
-    const ks = Object.keys(E.puestos), ord = ordenPuestos(); if (ks.length >= 30) delete E.puestos[ks.find(x => x !== k && !ord.includes(x)) || ord.filter(x => x !== k).pop() || ks[0]]; // fuera el que hace más que no te pruebas
-    E.puestos[k] = fin.blob; fijarPuesto(k); await BD.set('puestos', E.puestos).catch(() => { }); return { blob: fin.blob, k };
+    nuevoProbado(k, fin.blob); fijarPuesto(k); await BD.set('puestos', E.puestos).catch(() => { }); return { blob: fin.blob, k };
   } catch (e) { return { error: t('Sin conexión: prueba otra vez', 'No connection: try again') }; }
 }
 // la tarjeta de Yo, solo en el Pro: sin fotos, lleva a ponerlas; con fotos, «Crear mi avatar»; con avatar, el avatar (se toca para verlo), «Rehacer» y «Borrar»
@@ -3529,11 +3617,11 @@ function panelDiagFotos() {
           : malos.some(m => +(cap.querySelector(`[data-med="${m}"]`).value.replace(',', '.')) < LIM[m][0]) ? t('Parece el ancho: mide el contorno, con la cinta alrededor del cuerpo (una cintura suele medir entre 55 y 110 cm).', 'That looks like a width: measure all the way round with the tape (a waist is usually 55–110 cm).')
           : t('Revisa esa cifra: parece demasiado grande.', 'Check that number: it looks too large.');
         if (!ok) return;
-        E.perfil = E.perfil || {}; const m = { ...(E.perfil.medidas || {}) }; if (txt) m[k] = v; else delete m[k]; E.perfil.medidas = m; E.perfil.medidasT = new Date().toISOString();
+        E.perfil = E.perfil || {}; const m = { ...(E.perfil.medidas || {}) }; if (txt) m[k] = v; else delete m[k]; E.perfil.medidas = m; E.perfil.medidasT = new Date().toISOString(); diagFallo = 0;
         clearTimeout(medT); medT = setTimeout(guardar, 400); $('dg-analizar').disabled = !(permiso('diag') && (E.perfil.selfie || E.perfil.cuerpo || firmaMed()));
       };
     });
-    cap.querySelectorAll('[data-dgfoto]').forEach(inp => inp.onchange = async () => { const f = inp.files?.[0]; if (!f || !permiso('diag')) return; try { const r = await procesarFoto(f); E.perfil = E.perfil || {}; E.perfil[inp.dataset.dgfoto] = r.blob; await guardar(); panelDiagFotos(); setTimeout(preguntarFotosCuenta, 400); } catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); } });
+    cap.querySelectorAll('[data-dgfoto]').forEach(inp => inp.onchange = async () => { const f = inp.files?.[0]; if (!f || !permiso('diag')) return; try { const r = await procesarFoto(f); E.perfil = E.perfil || {}; E.perfil[inp.dataset.dgfoto] = r.blob; diagFallo = 0; await guardar(); panelDiagFotos(); setTimeout(preguntarFotosCuenta, 400); } catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); } });
     $('dg-analizar').onclick = async () => {
       const b = $('dg-analizar'), est = $('dg-estado'); b.disabled = true;
       try { const { res, R } = await hacerDiagnostico(x => { est.textContent = x; });
@@ -3712,7 +3800,7 @@ function pintarSilueta() {
 }
 async function guardarFotoPerfil(k, file) {
   if (!permiso('diag')) return toast(t('Marca antes el permiso de debajo', 'First tick the permission below'));
-  try { const r = await procesarFoto(file); E.perfil = E.perfil || {}; E.perfil[k] = r.blob; await guardar(); pintarSilueta(); toast(k === 'selfie' ? t('Selfie guardada', 'Selfie saved') : t('Foto de cuerpo guardada', 'Body photo saved'));
+  try { const r = await procesarFoto(file); E.perfil = E.perfil || {}; E.perfil[k] = r.blob; diagFallo = 0; await guardar(); pintarSilueta(); toast(k === 'selfie' ? t('Selfie guardada', 'Selfie saved') : t('Foto de cuerpo guardada', 'Body photo saved'));
     // 0.12: con las dos fotos del alta, el diagnóstico se hace solo, por detrás («no son cosas aisladas, las fotos del inicio con las opciones que pones en Yo»)
     diagFallo = 0; diagHastaAlDia().then(r => { if (E.pantalla === 'cuerpo') pintarCuerpo(); if (r && (r.res.color || r.res.cuerpo)) toast(t('Listo: tus colores y tu tipo de cuerpo están en Yo', 'Done: your colours and body type are in Me')); }); }
   catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); }
@@ -3860,8 +3948,8 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   // 09/11: contador de visitas por red (parámetro común de la coordinación de marketing). Se manda una vez y se quita «o» de la dirección: al recargar no cuenta otra vez y no se guarda nada en el móvil
   try { const q = new URLSearchParams(location.search), o = (q.get('o') || '').toLowerCase(); if (q.has('o') && window.top === window) { q.delete('o'); history.replaceState(history.state, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); if (/^[a-z0-9-]{1,24}$/.test(o)) { ORIGEN = o; api('/api/visita', { method: 'POST', json: { o }, tiempo: 10000 }).catch(() => { }); } } } catch (e) { }
   E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {};
+  E.puestos = (await BD.get('puestos').catch(() => null)) || {}; migrarProbados();
   if (aplicarRetiradas() | diagAEspera()) await BD.set('perfil', E.perfil).catch(() => { }); // 10/11: sin el permiso del diagnóstico, su resultado queda aparte
-  E.puestos = (await BD.get('puestos').catch(() => null)) || {};
   try { navigator.storage?.persist?.(); } catch (e) { }
   if (E.perfil?.estilos?.some(k => ESTILO_VIEJO[k])) E.perfil.estilos = [...new Set(E.perfil.estilos.map(k => ESTILO_VIEJO[k] || k))]; // 0.52: los 6 estilos viejos pasan a los 13 // 0.45: que el navegador no borre el clóset para hacer sitio
   let migra = estacionesAuto() > 0; E.conjuntos.forEach(c => { if (c.ejemplo && c.img && !c.img.includes('-recorte')) { c.img = c.img.replace('.webp', '-recorte.webp'); migra = true; } }); if (migra) await guardar();

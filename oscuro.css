@@ -1015,6 +1015,7 @@ html.at.oscuro .av-priv svg{fill:none;stroke:currentColor}
 html.at.oscuro .at-puestob{color:var(--tinta)}
 html.at.oscuro .at-puestob svg{fill:none;stroke:currentColor}
 html.at.oscuro .at-puestob[aria-pressed="true"]{box-shadow:inset 0 -2px 0 var(--oro)}
+html.at.oscuro .at-puestob.probado svg,html.at.oscuro .at-probado svg,html.at.oscuro .at-probado-i svg{fill:var(--oro);stroke:var(--tinta)}
 html.at.oscuro .at-puesto-esp{color:var(--sec)}
 html.at.oscuro .at-enlace[data-puesto][aria-pressed="true"]{color:var(--tinta);text-decoration-color:var(--oro)}
 html.at.oscuro .av-des summary{border-top:1px solid var(--linea, rgba(241,233,222,.15));border-bottom:1px solid var(--linea, rgba(241,233,222,.15))}

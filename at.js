@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.210'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.212'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -43,7 +43,8 @@ if (AT) (() => {
   const svg = d => `<svg class="at-ic" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
   const I = {
     sol: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>'),
-    armario: svg('<path d="M8 6.5a4 4 0 0 1 8 0M5.5 6.5h13M6.5 6.5v14h11v-14M12 6.5v14M7 20.5v1.5M17 20.5v1.5"/><circle cx="11" cy="13.5" r=".5"/><circle cx="13" cy="13.5" r=".5"/>'),
+    // 10/11 (Sheila): en la barra, al entrar en el Clóset las puertas se abren y se ve la barra con una percha (at.css, .at-puerta)
+    armario: svg('<path d="M8 6.5a4 4 0 0 1 8 0M5.5 6.5h13M6.5 6.5v14h11v-14M7 20.5v1.5M17 20.5v1.5"/><path class="at-dentro" d="M8.4 9.6h7.2M12 9.6v.8M12 10.4l2.6 2.8H9.4z"/><g class="at-puerta at-pi"><path d="M6.5 6.5H12v14H6.5z"/><circle cx="11" cy="13.5" r=".5"/></g><g class="at-puerta at-pd"><path d="M12 6.5h5.5v14H12z"/><circle cx="13" cy="13.5" r=".5"/></g>'),
     mas: svg('<path d="M12 5v14M5 12h14"/>'),
     percha: svg('<path d="M12 7.5a2 2 0 1 1 2-2c0 1-2 1.3-2 2.6V9M12 9l8.5 6.5c.6.5.3 1.5-.5 1.5H4c-.8 0-1.1-1-.5-1.5Z"/>'),
     yo: svg('<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20.5c1.2-3.6 4-5.3 7.5-5.3s6.3 1.7 7.5 5.3"/>'),
@@ -83,6 +84,7 @@ if (AT) (() => {
     if (conCat(p)) { if (p.catAR) return 1 / p.catAR; const s = urlCat(p), a = AR.get(s); if (a) return 1 / a; medir(s); return 1.2; }
     return p.caja?.[4] || 1.2;
   }
+  const ANCHO = { Arriba: [30, 70], Abrigo: [46, 80], Abajo: [36, 66], Vestidos: [34, 72] }; // cm, la prenda puesta y vista de frente
   function medidas(p) {
     const r = razon(p);
     if (p.tipo === 'Calzado') return [26, 26 * r];
@@ -90,6 +92,11 @@ if (AT) (() => {
     if (p.tipo === 'Accesorios') { const L = 20; return r >= 1 ? [L / r, L] : [L, L * r]; }
     // con manga larga la foto llega hasta el puño: casi 60 cm aunque el cuerpo sea corto (03/11: un top corto de manga larga salía diminuto junto al pantalón)
     let L = largoDe(p); if (['Arriba', 'Abrigo'].includes(p.tipo) && typeof Motor !== 'undefined' && Motor.ficha(p).manga === 'larga') L = Math.max(L, 58);
+    // 10/11 (Sheila: «imagina el cuerpo de la usuaria y haz distribuciones visualmente proporcionales»): en las fotos sobre la cama las mangas abiertas o una falda doblada
+    // dan anchos que nada tienen que ver con un cuerpo (una minifalda de 28 cm junto a una cazadora de 113). El ancho se lleva a lo que mide esa prenda puesta y, para no
+    // deformar la foto, cambia el largo, como mucho un 25 %. Las fotos de catálogo casi nunca se salen del margen.
+    const [a0, a1] = ANCHO[p.tipo] || [0, 1e4], w = L / r, wo = Math.min(a1, Math.max(a0, w));
+    if (wo !== w) L = Math.min(L * 1.25, Math.max(L * .75, wo * r));
     return [L / r, L];
   }
   const eje = p => conCat(p) || p.muestra ? .5 : (p.caja?.[5] ?? .5);
@@ -220,7 +227,9 @@ if (AT) (() => {
     return `<div class="at-look" style="width:${W}px;height:${H}px"><div class="at-lz" style="width:${(c.W * s).toFixed(1)}px;height:${(c.H * s).toFixed(1)}px">${piezas(c, fichas)}</div></div>`;
   }
   // un look en su baldosa, con aire: un 12 % arriba y abajo y un 17 % a cada lado (24 px y 27 px en la de la ficha; Gabriela: «tiene que quedar más holgado»)
-  const baldosa = (ps, W, H, attr = '') => `<button class="at-bal" style="width:${W}px;height:${H}px"${attr}>${figura(ps, W - 2 * Math.round(W * .17), H - 2 * Math.round(H * .12))}</button>`;
+  // 10/11: el look que ya te has probado con el avatar lleva la figura rellena en la esquina (y lo dice a quien no ve la pantalla)
+  const baldosa = (ps, W, H, attr = '') => { const pr = yaProbado(ps); if (pr) attr = attr.replace(/aria-label="([^"]*)"/, (m, a) => `aria-label="${a}, ${t('ya te lo has probado', 'already tried on')}"`);
+    return `<button class="at-bal" style="width:${W}px;height:${H}px"${attr}>${figura(ps, W - 2 * Math.round(W * .17), H - 2 * Math.round(H * .12))}${pr ? `<span class="at-probado" aria-hidden="true">${IC_PUESTO}</span>` : ''}</button>`; };
   const specDe = specLook;
   const psDe = x => conZapato(x.ids.map(P).filter(Boolean), specDe(x), x.como);
   // los demás sitios que pintan looks (calendario, «Sácale partido»…) usan la misma composición
@@ -233,7 +242,7 @@ if (AT) (() => {
 
   /* ---------- 07/11, «Puesto en mí» (Pro, con avatar; Gabriela: «subiendo dos fotos te hagan todo el análisis y el avatar»): el look se ve puesto en tu avatar
      en lugar del collage; otra vez el mismo botón, vuelve el collage. Lo ya hecho sale del móvil al momento; lo nuevo tarda unos 20 segundos ---------- */
-  const botonPuesto = () => planDemo() === 'pro' && tieneAvatar() ? `<button class="at-puestob" data-puesto aria-pressed="false" aria-label="${t('Verlo puesto en mí', 'See it on me')}">${IC_PUESTO}</button>` : '';
+  const botonPuesto = ps => planDemo() === 'pro' && tieneAvatar() ? `<button class="at-puestob${ps && yaProbado(ps) ? ' probado' : ''}" data-puesto aria-pressed="false" aria-label="${ps && yaProbado(ps) ? t('Verlo puesto en mí: ya te lo has probado', 'See it on me: already tried on') : t('Verlo puesto en mí', 'See it on me')}">${IC_PUESTO}</button>` : '';
   // 07/11 (Gabriela: «quiero que el avatar, cuando se pruebe una ropa, se quede ahí fijo»): si lo dejas puesto, al pasar de look sigue puesto; lo ya probado sale del
   // móvil al momento y lo que no te has probado se queda en collage hasta que toques la figura (no se pide solo, para no gastar). Lo último probado se queda en Yo → Tu avatar
   async function verPuesto(b, zona, ps, como, otra, auto) {
@@ -251,6 +260,7 @@ if (AT) (() => {
     if (!r) { b.classList.add('cargando'); r = await puestoEnMi(ps, como, otra); b.classList.remove('cargando'); }
     if (!capa.isConnected) return;
     if (r.error) { capa.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); LS.set('tc_ver_avatar', null); return toast(r.error); }
+    if (b.classList.contains('at-puestob') && !b.classList.contains('probado')) { b.classList.add('probado'); b.setAttribute('aria-label', t('Verlo puesto en mí: ya te lo has probado', 'See it on me: already tried on')); }
     capa.innerHTML = `<img src="${URL.createObjectURL(r.blob)}" alt="${t('Tú con este look', 'You wearing this look')}"><button class="at-enlace at-puesto-otra">${t('No se parece: otra vez', 'Not right: try again')}</button>`;
     capa.querySelector('.at-puesto-otra').onclick = e => { e.stopPropagation(); verPuesto(b, zona, ps, como, true); };
   }
@@ -338,7 +348,7 @@ if (AT) (() => {
       : `<button class="at-conp" data-hzcon>${I.percha}${t('Con una prenda', 'With a garment')}</button>`;
     const ocB = `<div class="at-cab-fila">${ocBoton(oc)}${conB}</div>`;
     pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocB + '</header>')}${ocs}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}${nota}</div>
-      <div class="at-pie"><button class="at-fav${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button>${botonPuesto()}</div></div>`;
+      <div class="at-pie"><button class="at-fav${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button>${botonPuesto(ps)}</div></div>`;
     // el look ocupa el hueco que de verdad queda entre la cabecera y el botón (en cada móvil es distinto)
     const z = $('at-hoy'), ajustar = () => { const fig = z.querySelector('.at-look'); if (!fig || !z.clientHeight) return;
       const resto = [...z.children].filter(x => x !== fig && !x.classList.contains('at-flecha')).reduce((s, x) => s + x.offsetHeight + 6, 0), libre = Math.floor(z.clientHeight - resto - 12);
@@ -532,7 +542,7 @@ if (AT) (() => {
       <h1 class="at-h1">${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</h1>
       <div class="at-centro">${figura(psDe(c), W, H, true)}</div>
       <div class="at-acciones"><button class="at-btn" data-atl="pongo">${t('Me lo pongo', 'I’ll wear it')}</button>
-        <div class="at-enlaces">${botonPuesto() ? `<button class="at-enlace" data-atl="puesto" data-puesto aria-pressed="false">${t('Verlo puesto', 'See it on me')}</button>` : ''}<button class="at-enlace" data-atl="cal" aria-expanded="${!!E.atCal}">${t('Al calendario', 'To the calendar')}</button><button class="at-enlace" data-atl="borrar">${t('Borrar', 'Delete')}</button></div>
+        <div class="at-enlaces">${botonPuesto() ? `<button class="at-enlace${yaProbado(psDe(c)) ? ' probado' : ''}" data-atl="puesto" data-puesto aria-pressed="false">${yaProbado(psDe(c)) ? `<span class="at-probado-i" aria-hidden="true">${IC_PUESTO}</span>${t('Verlo puesto: ya te lo has probado', 'See it on me: already tried on')}` : t('Verlo puesto', 'See it on me')}</button>` : ''}<button class="at-enlace" data-atl="cal" aria-expanded="${!!E.atCal}">${t('Al calendario', 'To the calendar')}</button><button class="at-enlace" data-atl="borrar">${t('Borrar', 'Delete')}</button></div>
         ${E.atCal ? `<div class="at-fila at-dias">${dias.map(([d, n]) => `<button data-atdia="${d}">${n}</button>`).join('')}</div>` : ''}</div>`;
     r.onclick = async e => {
       const b = e.target.closest('[data-atl],[data-atfav],[data-atdia]'); if (!b) return;

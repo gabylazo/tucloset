@@ -451,6 +451,13 @@ html.at .at-pie:has(.at-puestob)::after { display: none; }
 html.at .at-puestob { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: var(--tinta); flex: none; }
 html.at .at-puestob svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.4; }
 html.at .at-puestob[aria-pressed="true"] { box-shadow: inset 0 -2px 0 var(--oro); }
+/* 10/11: ya te lo has probado con el avatar → la figura rellena de dorado (en Hoy, en el look abierto y en la esquina de cada baldosa) */
+html.at .at-puestob.probado svg, html.at .at-probado svg, html.at .at-probado-i svg { fill: var(--oro); stroke: var(--tinta); }
+html.at .at-bal { position: relative; }
+html.at .at-probado { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+html.at .at-probado svg { width: 18px; height: 18px; stroke-width: 1.3; }
+html.at .at-probado-i { display: inline-flex; width: 18px; height: 18px; margin-right: 4px; vertical-align: -3px; }
+html.at .at-probado-i svg { width: 18px; height: 18px; stroke-width: 1.3; }
 html.at .at-puestob.cargando svg { animation: av-lat 1.2s ease-in-out infinite; }
 html.at .at-puesto { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
 html.at .at-puesto img { flex: 1; min-height: 0; max-width: 100%; object-fit: contain; }
@@ -597,3 +604,13 @@ html.at .at-par-par + .at-par-par { border-top: 1px solid var(--linea, rgba(74, 
 html.at .at-par-par .at-rej2 { padding: 0; }
 html.at .at-par-por { text-align: center; font-size: 14px; color: var(--sec); margin: 10px 0 0; }
 html.at .at-par-enl { width: auto; margin: 0 auto; padding: 0 24px; }
+
+/* 10/11 (Sheila, mensaje 1956): el armario de la barra abre sus puertas al entrar en el Clóset y se ve dentro; al salir se cierran */
+html.at .at-puerta { transform-box: fill-box; transition: transform .6s cubic-bezier(.45, 0, .2, 1); }
+html.at .at-pi { transform-origin: left center; }
+html.at .at-pd { transform-origin: right center; }
+html.at .at-puerta path, html.at .at-puerta circle { vector-effect: non-scaling-stroke; }
+html.at .at-dentro { opacity: 0; transition: opacity .3s ease .15s; }
+html.at .tabs button.activo .at-pi, html.at .tabs button.activo .at-pd { transform: scaleX(-.6); } /* 11/11: a -.34 las puertas se leían como bandas macizas y el icono parecía una bolsa */
+html.at .tabs button.activo .at-dentro { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { html.at .at-puerta, html.at .at-dentro { transition: none; } }
