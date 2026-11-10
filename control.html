@@ -162,6 +162,17 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
 /* 09/11: usuarias y dinero (Gabriela: «cuántos usuarios tienen, el uso de cada usuario y todos los datos que nos sirvan para llevar una contabilidad») */
 .cifras.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (min-width: 760px) { .cifras.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.flecha { font-size: 16px; margin-left: 4px; vertical-align: middle; }
+.flecha.sube { color: #2F5D47; } .flecha.baja { color: #8E3B2E; }
+small.gris { color: var(--gris); font-size: 13px; }
+.hbarras { list-style: none; margin: 0; padding: 0; }
+.hbarras li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 6px 0; font-size: 14px; }
+.hbarras li span { grid-column: 1 / -1; overflow-wrap: anywhere; }
+.red-t { margin: 0 0 6px; }
+.red-n { display: flex; gap: 8px; align-items: baseline; margin: 0 0 6px; font-size: 14px; color: var(--gris); }
+.hbarras i { display: block; height: 10px; background: var(--raya); }
+.hbarras i.top { background: var(--tinta); }
+.hbarras em { font-style: normal; color: var(--gris); }
 .cifras.c3, .redes .cifras.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
 .redes .cifras div { background: var(--blanco); padding: 14px 4px; }
 .redes .cifras b { font-size: 36px; }
@@ -211,7 +222,7 @@ button.boton:hover { background: var(--suave); }
   const activas7 = new Set(d.uso.filter(u => u.dia >= dia(6)).map(u => u.usuaria)).size;
   const fallos7 = d.avisos.filter(a => a.fecha >= new Date(hoy - 7 * 864e5).toISOString()).length;
   const prendas = d.usuarias.reduce((s, u) => s + u.prendas, 0);
-  const secciones = [['toca', 'Os toca'], ['cifras', 'Cifras'], ['usuarias', 'Usuarias'], ['dinero', 'Dinero'], ['funciones', 'Funciones'], ['fases', 'Fases'], ['equipo', 'Equipo'], ['cuentas', 'Cuentas'], ['mas', 'Más']];
+  const secciones = [['toca', 'Os toca'], ['cifras', 'Cifras'], ['usuarias', 'Usuarias'], ['dinero', 'Dinero'], ['redes', 'Redes'], ['funciones', 'Funciones'], ['fases', 'Fases'], ['equipo', 'Equipo'], ['cuentas', 'Cuentas'], ['mas', 'Más']];
 
   // personas que abrieron la app cada día, últimos 14 días
   const dias = [...Array(14)].map((_, i) => dia(13 - i)), porDia = dias.map(k => new Set(d.uso.filter(u => u.dia === k).map(u => u.usuaria)).size), max = Math.max(1, ...porDia);
@@ -258,12 +269,49 @@ button.boton:hover { background: var(--suave); }
   const iaMes = (m, sinSocias) => suma(G, g => g.mes === m && !(sinSocias && socias.has(g.usuaria))) + (sinSocias ? 0 : DIR[m] || 0);
   const porActiva = act(30, true) ? usd(iaMes(mesAhora, true) / act(30, true)) : '—';
   const fijosTot = (P.fijos || []).reduce((s, [, v]) => s + v, 0);
+  // 10/11 (plan común de Coordinación de marketing): cada pago aprobado por Gabriela (control/gastos.csv), la IA pasada a euros con el cambio del BCE, saldo y tope
+  const PAG = (P.gastos || []).map(g => ({ ...g, e: +(g.euros_aprox || (g.moneda === 'EUR' ? g.importe : 0)) || 0 }));
+  const pagosEur = PAG.reduce((s, g) => s + g.e, 0), cuotasMes = PAG.reduce((s, g) => s + (g.cada === 'mensual' ? g.e : g.cada === 'anual' ? g.e / 12 : 0), 0);
+  const iaTotUsd = suma(G, () => true) + Object.values(DIR).reduce((s, v) => s + v, 0), cambio = P.usdEur?.v || null;
+  const gastado = pagosEur + (cambio ? iaTotUsd * cambio : 0), tope = P.tope?.eur || 0;
+  const eur2 = n => (Math.round(n * 100) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  const nomCada = { unico: 'una vez', 'único': 'una vez', mensual: 'al mes', anual: 'al año' };
   const mesCard = m => { const n = s => suma(GN, g => g.mes === m && g.s === s), c = s => suma(G, g => g.mes === m && g.s === s);
     const fila = (t, v) => `<li><span>${t}</span><span>${v}</span></li>`;
     return `<div class="tarjeta mes"><h3>${nomMes(m)}</h3><ul class="filas">
       ${fila('Fotos de catálogo', `${n('catalogo')} · ${usd(c('catalogo'))}`)}${fila('Avatares', `${n('avatar')} · ${usd(c('avatar'))}`)}${fila('Puesto en mí', `${n('puesto')} · ${usd(c('puesto'))}`)}
       ${DIR[m] ? fila('Tandas de la Dirección', usd(DIR[m])) : ''}${fila('Recortes de fondo', `${suma(R, x => x.mes === m)} · gratis`)}${fila('Lecturas de looks', `${suma(I, x => x.mes === m)} · gratis`)}
       <li class="tot"><span>Total de IA</span><span>${usd(iaMes(m))}</span></li></ul></div>`; };
+  // 10/11: redes (estudio A7 de Coordinación): 4 cifras con su ▲/▼ frente a la semana anterior, cada red y las piezas que mejor funcionaron
+  const semISO = dt => { const x = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate())), n = x.getUTCDay() || 7; x.setUTCDate(x.getUTCDate() + 4 - n); const a = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); return x.getUTCFullYear() + '-W' + String(Math.ceil(((x - a) / 864e5 + 1) / 7)).padStart(2, '0'); };
+  const MED = (P.medidas || []).filter(x => x.semana), semanasMed = [...new Set(MED.map(x => x.semana))].sort(), semU = semanasMed.at(-1), semA = semanasMed.at(-2);
+  const num = v => v === '' || v == null ? null : +String(v).replace(',', '.');
+  const sumaMed = (sem, k, red) => { const v = MED.filter(x => x.semana === sem && (!red || x.red === red)).map(x => num(x[k])).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : null; };
+  const interes = x => { const v = num(x.visualizaciones), c = (num(x.compartidos) || 0) + (num(x.guardados) || 0); return v ? c / v * 1000 : null; };
+  const mediana = a => { const v = a.filter(x => x != null).sort((x, y) => x - y); return v.length ? (v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : null; };
+  const intSem = sem => sem ? mediana(MED.filter(x => x.semana === sem && x.pieza !== 'cuenta').map(interes)) : null;
+  const ROJ = /^(ig|tt|pin)(-|$)/, visDe = (a, b, f) => (d.visitas || []).filter(v => v.dia >= dia(b) && v.dia <= dia(a) && f(v.origen)).reduce((s, v) => s + v.n, 0);
+  const visRed7 = visDe(0, 6, o => ROJ.test(o)), visRedA = visDe(7, 13, o => ROJ.test(o));
+  const EFs = (d.espera?.filas || []), altas7 = EFs.filter(x => x.dia >= dia(6)).length, altasA = EFs.filter(x => x.dia >= dia(13) && x.dia < dia(6)).length;
+  const flecha = (a, b) => a == null || b == null || a === b ? '' : `<small class="flecha ${a > b ? 'sube' : 'baja'}">${a > b ? '▲' : '▼'}<span class="vh">${a > b ? 'sube' : 'baja'} frente a la semana anterior</span></small>`;
+  const cifraR = (v, et, ant) => `<div><b>${v == null ? '—' : (Math.round(v * 10) / 10).toLocaleString('es-ES')}${flecha(v, ant)}</b><span>${et}</span></div>`;
+  const REDES = [['ig', 'Instagram'], ['tt', 'TikTok'], ['pin', 'Pinterest']];
+  const cuentaDe = n => (P.cuentas || []).find(c => c.s.startsWith(n)) || {};
+  const segDe = r => (P.seguidores || []).filter(x => x.red === r).sort((a, b) => a.fecha.localeCompare(b.fecha)).at(-1);
+  const tarjRed = ([r, n]) => { const c = cuentaDe(n), sg = segDe(r), v30 = visDe(0, 29, o => o === r || o.startsWith(r + '-'));
+    const fila = (t, v) => `<li><span>${t}</span><span>${v == null ? '—' : v.toLocaleString('es-ES')}</span></li>`;
+    return `<div class="tarjeta"><h3 class="red-t">${n}</h3><p class="red-n">${est(c.e || 'falta')}<span>${esc(c.n || '')}</span></p><ul class="filas">
+      ${fila('Seguidores' + (sg ? ` (${fecha(sg.fecha)})` : ''), sg ? num(sg.seguidores) : null)}${fila('Visualizaciones, última semana', semU ? sumaMed(semU, 'visualizaciones', r) : null)}
+      ${fila('Guardados', semU ? sumaMed(semU, 'guardados', r) : null)}${fila('Clics al enlace', semU ? sumaMed(semU, 'clics_enlace', r) : null)}${fila('Visitas a la web, 30 días', v30)}</ul></div>`; };
+  const piezas = semU ? MED.filter(x => x.semana === semU && x.pieza !== 'cuenta').map(x => ({ ...x, i: interes(x) })).filter(x => x.i != null).sort((a, b) => b.i - a.i).slice(0, 8) : [];
+  const maxI = Math.max(1, ...piezas.map(x => x.i));
+  const redesSec = `<section id="redes"><h2>Redes</h2>
+    <div class="cifras c4">${cifraR(semU ? sumaMed(semU, 'visualizaciones') : null, 'visualizaciones, última semana', semA ? sumaMed(semA, 'visualizaciones') : null)}${cifraR(intSem(semU), 'interés: compartidos y guardados por cada 1.000', intSem(semA))}${cifraR(visRed7, 'visitas a la web desde las redes, 7 días', visRedA)}${cifraR(altas7, 'apuntadas a la lista de espera, 7 días', altasA)}</div>
+    ${semU ? '' : '<p class="vacio">Sin cifras de las redes hasta la primera medición: viernes 13/11.</p>'}
+    <div class="rejilla" style="margin-top:12px">${REDES.map(tarjRed).join('')}</div>
+    ${piezas.length ? `<div class="tarjeta" style="margin-top:12px"><div class="cabeza"><h3>Lo que mejor funcionó</h3><small>semana ${esc(semU.slice(6))}</small></div><ul class="hbarras">${piezas.map((x, k) => `<li><span>${esc((REDES.find(r => r[0] === x.red) || [, x.red])[1] + ' · ' + x.pieza)}</span><i style="width:${Math.round(x.i / maxI * 100)}%"${k ? '' : ' class="top"'}></i><em>${(Math.round(x.i * 10) / 10).toLocaleString('es-ES')}</em></li>`).join('')}</ul></div>` : ''}
+    ${redes}
+    <p class="nota">De dónde sale: las redes no tienen una forma automática de darnos sus cifras, así que se apuntan cada viernes en una sola pasada${semU ? ` (última: semana ${esc(semU.slice(6))})` : ''}. Las visitas y las apuntadas salen del servidor, en directo. Semana actual: ${semISO(hoy).slice(6)}.</p></section>`;
   const csv = (nombre, filas) => { const txt = '\ufeff' + filas.map(f => f.map(v => { const x = typeof v === 'number' ? String(Math.round(v * 1000) / 1000).replace('.', ',') : String(v ?? '');
       return /[;"\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; }).join(';')).join('\r\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' })); a.download = nombre; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); };
@@ -274,7 +322,8 @@ button.boton:hover { background: var(--suave); }
       ...meses.slice().reverse().flatMap(m => [[m, 'Ingresos', 0, '', 0],
         ...['catalogo', 'avatar', 'puesto'].map(s => [m, { catalogo: 'Fotos de catálogo', avatar: 'Avatares', puesto: 'Puesto en mí' }[s], suma(GN, g => g.mes === m && g.s === s), suma(G, g => g.mes === m && g.s === s), '']),
         [m, 'Tandas de la Dirección (IA)', '', DIR[m] || 0, ''], [m, 'Recortes de fondo (gratis)', suma(R, x => x.mes === m), 0, ''], [m, 'Lecturas de looks (gratis)', suma(I, x => x.mes === m), 0, '']]),
-      ...(P.fijos || []).map(([n, v]) => ['al mes', 'Fijo previsto: ' + n, '', '', v])]),
+      ...(P.fijos || []).map(([n, v]) => ['al mes', 'Fijo previsto: ' + n, '', '', v]),
+      ...PAG.map(g => [g.fecha, 'Pago (' + (nomCada[g.cada] || g.cada) + '): ' + g.concepto, '', g.moneda === 'USD' ? +g.importe : '', g.e])]),
     uso: () => { const k = [...new Set(d.uso.map(u => u.dia))].sort(); csv('tucloset-uso-por-dia.csv', [['Día', 'Personas', 'Personas sin vosotras', 'Aperturas'], ...k.map(x => { const u = d.uso.filter(y => y.dia === x); return [x, u.length, u.filter(y => !socias.has(y.usuaria)).length, u.reduce((s, y) => s + y.n, 0)]; })]); } };
 
   let enc = '<p class="vacio">Aún no hay respuestas.</p>';
@@ -310,10 +359,16 @@ button.boton:hover { background: var(--suave); }
 
   <section id="dinero"><h2>Dinero</h2>
     <div class="cifras c4"><div><b>0 €</b><span>ingresos este mes</span></div><div><b>${usd(iaMes(mesAhora)).replace(' $', '')}<small style="font-size:24px"> $</small></b><span>IA este mes</span></div><div><b>${fijosTot} €</b><span>fijos previstos al mes</span></div><div><b>${porActiva.replace(' $', '')}${porActiva === '—' ? '' : '<small style="font-size:24px"> $</small>'}</b><span>IA por usuaria activa, sin vosotras</span></div></div>
+    <div class="cifras c4" style="margin-top:12px"><div><b>${eur2(gastado).replace(' €', '')}<small style="font-size:24px"> €</small></b><span>gastado en total</span></div><div><b>0 €</b><span>ingresado</span></div><div><b>${(gastado > 0 ? '−' : '') + eur2(gastado).replace(' €', '')}<small style="font-size:24px"> €</small></b><span>saldo</span></div><div><b>—</b><span>coste por clienta (aún sin clientas)</span></div></div>
+    ${tope ? `<div class="tarjeta" style="margin-top:12px"><div class="cabeza"><h3>Frente al tope</h3><small>${eur2(gastado)} de ${eur(tope)}</small></div>${barra(Math.min(100, pct(gastado, tope)))}<p class="nota" style="margin:0">${esc(P.tope.nota)}</p></div>` : ''}
+    <div class="tarjeta" style="margin-top:12px"><div class="cabeza"><h3>Pagos</h3><small>${PAG.length} · cuotas ${eur2(cuotasMes)} al mes</small></div>${PAG.length ? `<ul class="filas">${PAG.slice().reverse().map(g => `<li><span>${esc(g.concepto)}<br><small class="gris">${fecha(g.fecha)} · ${esc(nomCada[g.cada] || g.cada)} · paga ${esc(g.paga)}${g.justificante ? ' · ' + esc(g.justificante) : ''}</small></span><span>${g.moneda === 'EUR' ? eur2(+g.importe) : esc(g.importe + ' ' + g.moneda)}</span></li>`).join('')}</ul>` : '<p class="vacio">Ningún pago todavía.</p>'}</div>
+    <p class="nota">De dónde sale: los pagos, de la lista que se apunta en cuanto Gabriela aprueba uno; la IA, del servidor en directo y de las tandas de la Dirección${cambio ? `, pasada a euros con el cambio del BCE del ${fecha(P.usdEur.fecha)} (1 $ = ${String(cambio).replace('.', ',')} €)` : ' (sin cambio del dólar hoy: el total no la incluye)'}. Panel de la Dirección: ${esc(P.actualizado || '')}.</p>
     <div class="rejilla" style="margin-top:12px">${meses.length ? meses.map(mesCard).join('') : '<p class="vacio">Todavía no hay gastos.</p>'}
       <div class="tarjeta mes"><h3>Fijos previstos al mes</h3><ul class="filas">${(P.fijos || []).map(([n, v]) => `<li><span>${esc(n)}</span><span>${v} €</span></li>`).join('')}<li class="tot"><span>Total</span><span>${fijosTot} €</span></li></ul></div></div>
     <p class="nota">La IA se paga en dólares a Google. Los recortes y las lecturas de looks son gratis dentro del cupo de Cloudflare. Sin cobros todavía.</p>
     <div class="acciones"><button class="boton" type="button" data-csv="dinero">Descargar contabilidad (CSV)</button></div></section>
+
+  ${redesSec}
 
   <section id="funciones"><h2>Funciones de la app</h2>
     <div class="grande"><b>${hechas}</b><span> de ${F.length} hechas</span>${barra(pct(hechas, F.length))}</div>${leyenda}
@@ -322,7 +377,8 @@ button.boton:hover { background: var(--suave); }
   <section id="fases"><h2>Fases y presupuesto</h2>
     <div class="fases">${(P.fases || []).map(f => `<div class="tarjeta"><h3>${esc(f.n)}</h3><span class="eur">${eur(f.m)}</span><small>${esc(f.i.slice(0, 5))} – ${esc(f.f.slice(0, 5))}</small>${barra(Math.round(f.a * 100))}<small style="margin-top:6px">${Math.round(f.a * 100)} %</small></div>`).join('')}</div>
     ${P.presupuesto ? `<div class="total"><b>${eur(P.presupuesto.total)}</b><span>hasta octubre de 2027 · ${P.presupuesto.antes} € antes de cobrar</span></div>` : ''}
-    <div class="fechas">${(P.calendario || []).map(x => `<div><b>${esc(x.f.slice(0, 5))}</b><span>${esc(x.q.replace(/ \(propuesta\)$/, ''))}</span></div>`).join('')}</div></section>
+    <div class="fechas">${(P.calendario || []).map(x => `<div><b>${esc(x.f.slice(0, 5))}</b><span>${esc(x.q.replace(/ \(propuesta\)$/, ''))}</span></div>`).join('')}</div>
+    ${(P.legal || []).length ? `<div class="tarjeta" style="margin-top:12px"><div class="cabeza"><h3>Legal y riesgos</h3><small>${P.legal.filter(x => x.e !== 'hecho').length} abiertos</small></div><ul class="lista">${P.legal.map(x => `<li>${est(x.e)}<span>${esc(x.t)}<br><small class="gris">${esc(x.n)}</small></span></li>`).join('')}</ul></div>` : ''}</section>
 
   <section id="equipo"><h2>Equipo</h2>${leyenda}
     <div class="rejilla">${(P.departamentos || []).map(x => { const h = x.tareas.filter(t => t.e === 'hecho').length; return `<div class="tarjeta"><div class="cabeza"><h3>${esc(x.n)}</h3><small>${h} de ${x.tareas.length}</small></div>${barra(pct(h, x.tareas.length))}<ul class="lista">${x.tareas.map(tk => `<li>${est(tk.e)}<span>${esc(tk.t)}</span></li>`).join('')}</ul></div>`; }).join('')}</div></section>
