@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.214'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.215'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -342,7 +342,7 @@ if (AT) (() => {
     const fav = esFav(pr.ids), puesto = pr.ids.length > 0 && pr.ids.every(id => (P(id)?.usos || []).includes(hoyISO()));
     // 03/11, tarde (Gabriela: «la página de inicio me da la sensación de apretado… y desorden»; «no me gusta eso de no me gusta»): la ocasión pasa a la cabecera, bajo la
     // fecha; debajo del look, si hace falta, la nota; y abajo, juntos y centrados, el corazón y «Me lo pongo»
-    const nota = pr.tipo === 'con' && pr.conT != null ? `<p class="at-nota">${t(`Para un día de unos ${pr.conT}° (hoy no le va)`, `For a day of about ${pr.conT}° (not today’s weather)`)}</p>` : pr.tipo === 'agenda' && pr.ev ? `<p class="at-nota at-nota-plan">${esc(pr.ev.nombre || ocNombre(pr.ev.oc))}${pr.ev.hora ? ' · ' + pr.ev.hora : ''}</p>` : E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'With your coat on top: add it and it will show here' : `Con tu ${pr.capaFalta || 'abrigo'} encima: ${/a$/.test(pr.capaFalta || '') ? 'súbela' : 'súbelo'} y saldrá aquí`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : '';
+    const nota = pr.tipo === 'con' && pr.conT != null ? `<p class="at-nota">${t(`Para un día de unos ${pr.conT}° (hoy no le va)`, `For a day of about ${pr.conT}° (not today’s weather)`)}</p>` : pr.tipo === 'agenda' && pr.ev ? `<p class="at-nota at-nota-plan">${esc(pr.ev.nombre || ocNombre(pr.ev.oc))}${pr.ev.hora ? ' · ' + pr.ev.hora : ''}</p>` : E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'Goes with a coat on top: add yours and it will show in the look' : `Va con ${pr.capaFalta || 'abrigo'} encima: si ${/a$/.test(pr.capaFalta || '') ? 'la' : 'lo'} subes, sale en el look`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : '';
     // junto a la ocasión, «Con una prenda»; elegida, su foto pequeña y su nombre (tocarla cambia de prenda) y la equis para volver a los looks de siempre
     const conB = pc ? `<span class="at-conp on"><button class="at-conp-n" data-hzcon aria-label="${t('Con', 'With')} ${esc(pc.nombre)}: ${t('cambiar la prenda', 'change the garment')}"><img src="${urlCat(pc)}" alt=""><span class="at-conp-t">${esc(pc.nombre)}</span></button><button class="at-conp-x" data-hzconx aria-label="${t('Quitar la prenda', 'Remove the garment')}">${I.cerrar}</button></span>`
       : `<button class="at-conp" data-hzcon>${I.percha}${t('Con una prenda', 'With a garment')}</button>`;

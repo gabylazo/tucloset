@@ -849,6 +849,7 @@ html.oscuro .pm-cas input:focus-visible{outline:2px solid var(--oro);outline-off
 html.oscuro .dx-perm{border-bottom:1px solid var(--linea)}
 html.oscuro .dx-bloq{border:0}
 html.oscuro .col-nom{color:var(--sec)}
+html.oscuro .toast-acc{background:none;border:0;color:inherit;text-decoration:underline}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}

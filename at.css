@@ -568,7 +568,7 @@ html.at #p-yo .dg-cab h2 { font-size: 15px; letter-spacing: .06em; color: var(--
 html.at .at-hoy .at-nota, html.at .at-hoy .cal-falta { margin-top: 10px; }
 
 /* 08/11 · estudio de diseño (cambio 18): un look solo, centrado (no pegado a la izquierda). 10/11 · decisión 35: también el último cuando la rejilla acaba con uno solo */
-html.at .at-rej2 > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+html.at .at-rej2 > :last-child:nth-child(odd) { grid-column: 1 / -1; width: calc(50% - 6px); justify-self: center; } /* 11/11 (análisis, punto 49): la baldosa del ancho de una columna, así su corazón no se queda fuera */
 
 /* 08/11 · estudio de diseño (cambio 19): estos botones, del ancho de su texto y centrados (regla del 03/11) */
 html.at #pn-ciudad-ok, html.at #p-yo .dg-tarjeta .boton, html.at .s-aviso div .boton { width: fit-content; min-width: 0; max-width: 100%; justify-self: center; margin-left: auto; margin-right: auto; padding-left: 24px; padding-right: 24px; }

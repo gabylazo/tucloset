@@ -86,7 +86,7 @@ const nomColor = c => idioma() === 'en' ? COLOR_EN[c] || c : c;
 /* ---------- idioma ---------- */
 const T = {
   ac_crear: ['Crea tu clóset', 'Create your closet'], ac_nombre: ['Tu nombre', 'Your name'], ac_ciudad: ['Tu ciudad', 'Your city'], ac_ubic: ['Usar mi ubicación', 'Use my location'],
-  ac_nota: ['La ciudad es solo para el tiempo. Con correo, tu clóset se guarda en tu cuenta; tu selfie y tu foto de cuerpo, nunca.', 'The city is only for the weather. With an email your closet is saved to your account; your selfie and body photo, never.'], ac_clave_pista: ['mínimo 8 caracteres', 'at least 8 characters'],
+  ac_nota: ['La ciudad es solo para el tiempo. Con correo, tu clóset se guarda en tu cuenta. Tu selfie y tu foto de cuerpo se quedan en tu móvil, salvo que elijas guardarlas también en tu cuenta.', 'The city is only for the weather. With an email your closet is saved to your account. Your selfie and body photo stay on your phone unless you choose to keep them in your account too.'], ac_clave_pista: ['mínimo 8 caracteres', 'at least 8 characters'],
   ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Con estas dos fotos la app saca tu tipo de cuerpo y tus colores. Sirven para todo: no te las volverá a pedir.', 'With these two photos the app works out your body type and colours. They are used for everything: you will not be asked again.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_estilo: ['Tu estilo', 'Your style'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
   ac_entrar: ['Hola de nuevo', 'Welcome back'], ac_correo: ['Correo', 'Email'], ac_clave: ['Contraseña', 'Password'], ac_olvido: ['¿La has olvidado?', 'Forgot it?'], ac_entrar_bt: ['Entrar', 'Sign in'], ac_o: ['o', 'or'],
   ac_apple: ['Continuar con Apple', 'Continue with Apple'], ac_google: ['Continuar con Google', 'Continue with Google'], ac_no_tengo: ['¿Aún no tienes cuenta? Crea tu clóset', 'No account yet? Create your closet'],
@@ -129,7 +129,9 @@ const fecha = (iso, corta) => { if (!iso) return '—'; const d = new Date(iso);
 /* ---------- utilidades ---------- */
 const $ = id => document.getElementById(id);
 // 08/11 (estudio de diseño, cambio 16): sin la barra de abajo (alta, editar, nuevo look) o con una capa encima, el aviso sale arriba: abajo tapaba el botón de seguir
-let toastT; function toast(m) { const e = $('toast'); e.textContent = m; e.classList.toggle('arriba', $('tabs').classList.contains('oculta') || !!document.querySelector('.ay-capa, .pn-capa, .sp-capa')); e.classList.add('visible'); clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove('visible'), 2200); }
+// 11/11 (análisis de la app, puntos 31, 46, 59 y 95): un aviso puede llevar una acción («Deshacer», 8 s) y el que no la lleva se quita al cambiar de pantalla (ir), para que no salga en otra
+let toastT, toastAt = 0; function toast(m, accion) { const e = $('toast'); e.textContent = m; if (accion) { const b = document.createElement('button'); b.type = 'button'; b.className = 'toast-acc'; b.textContent = accion[0]; b.onclick = () => { clearTimeout(toastT); e.classList.remove('visible', 'con-acc'); accion[1](); }; e.append(' ', b); } e.classList.toggle('con-acc', !!accion); e.classList.toggle('arriba', $('tabs').classList.contains('oculta') || !!document.querySelector('.ay-capa, .pn-capa, .sp-capa')); e.classList.add('visible'); clearTimeout(toastT); toastAt = Date.now(); toastT = setTimeout(() => e.classList.remove('visible', 'con-acc'), accion ? 8000 : 2200); }
+function quitarToast() { const e = $('toast'); if (!e.classList.contains('visible') || e.classList.contains('con-acc') || Date.now() - toastAt < 400) return; clearTimeout(toastT); e.classList.remove('visible'); }
 function confirmar(titulo, texto, si, no) { return new Promise(res => { $('dlg-t').textContent = titulo; $('dlg-p').textContent = texto; $('dlg-si').textContent = si || t('Sí', 'Yes'); $('dlg-no').textContent = no || t('Cancelar', 'Cancel'); const d = $('dlg'); d.showModal(); $('dlg-si').onclick = () => { d.close(); res(true); }; $('dlg-no').onclick = () => { d.close(); res(false); }; }); }
 // 06/11: si se cambia la foto de una prenda, la de catálogo ya no es de esa foto: se quita (también de la nube) y la nueva vuelve a ser la suya
 function quitarCat(p) { if (!p || !(p.cat || p.conCat)) return; if (p.conCat) api('/api/foto/' + p.id + '-c', { method: 'DELETE' }).catch(() => { }); p.cat = null; urlsCat.delete(p.id); for (const k of ['conCat', 'nubeC', 'catAR', 'fCat']) delete p[k]; }
@@ -170,7 +172,7 @@ function pintarMisColores() {
   const est = listo ? estacionColor(r) : null, e = EST_COLOR[est];
   const mios = e ? [...new Set(E.prendas.filter(p => e.si.includes(p.color) && ['Arriba', 'Vestidos', 'Abrigo'].includes(p.tipo)).map(p => p.id))].slice(0, 6) : [];
   $('co-raiz').innerHTML = `<p class="co-sub">${t('Cuatro preguntas para saber qué colores te favorecen cerca de la cara. Mírate a la luz del día, sin maquillaje fuerte.', 'Four questions to find the colours that suit you near your face. Look in daylight, without heavy make-up.')}</p>`
-    + PREG_COLOR.map(([k, q, ops]) => `<div class="co-preg"><b>${q[es]}</b><div class="co-ops">${ops.map(([v, a, b]) => `<button class="${r[k] === v ? 'on' : ''}" data-copreg="${k}" data-coval="${v}">${es ? b : a}</button>`).join('')}</div></div>`).join('')
+    + PREG_COLOR.map(([k, q, ops]) => `<div class="co-preg"><b>${q[es]}</b><div class="co-ops">${ops.map(([v, a, b]) => `<button class="${r[k] === v ? 'on' : ''}" aria-pressed="${r[k] === v}" data-copreg="${k}" data-coval="${v}">${es ? b : a}</button>`).join('')}</div></div>`).join('')
     // 06/11: con la foto de la cara, las respuestas afinan el diagnóstico (no dan otra estación aparte)
     + (E.perfil?.selfie && E.perfil?.diag?.color ? (listo ? `<div class="co-res dx-volver"><p>${t('Tus respuestas ya cuentan en tu diagnóstico.', 'Your answers now count in your analysis.')}</p><button class="boton" data-diag="ver-color">${t('Ver mis colores', 'See my colours')}</button></div>` : '') : e ? `<div class="co-res"><span class="mini-et">${t('Tu estación', 'Your season')}</span><h2>${e.n[es]}</h2><p>${e.d[es]}</p>
       <div class="co-tela">${e.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>
@@ -1744,6 +1746,7 @@ function generarLooksAuto(n, plan) {
 /* ---------- navegación ---------- */
 const SIN_TABS = ['inicio', 'alta', 'entrar', 'planes', 'silueta', 'cuerpo', 'estilo', 'anadir', 'nuevo-look', 'subir'];
 function ir(nombre, datos) {
+  quitarToast();
   if (nombre === 'inicio' && !$('intro')) $('p-inicio').classList.add('aparece');
   if (nombre === 'anadir') prepararAnadir(datos);
   if (nombre === 'subir' && !datos) prepararSubir();
@@ -1958,7 +1961,7 @@ function pintarAgenda(raiz) {
   let celdas = ''; for (let i = 0; i < pri; i++) celdas += '<i></i>';
   for (let n = 1; n <= nd; n++) {
     const k = diaISO(new Date(m.getFullYear(), m.getMonth(), n)), evs = eventosDe(k), conLook = evs.some(ev => lookDe(k, ev)) || E.prendas.some(p => (p.usos || []).includes(k));
-    celdas += `<button class="${k === d ? 'on' : ''}${k === hoy ? ' hoy' : ''}${k < hoy ? ' pasado' : ''}" data-agdia="${k}"><b>${n}</b>${evs.length ? `<em class="${conLook ? 'lleno' : ''}"></em>` : ''}</button>`;
+    celdas += `<button class="${k === d ? 'on' : ''}${k === hoy ? ' hoy' : ''}${k < hoy ? ' pasado' : ''}" data-agdia="${k}"${evs.length || conLook ? ` aria-label="${n}, ${evs.length ? t('con planes', 'with plans') : t('con un look', 'with an outfit')}"` : ''}><b>${n}</b>${evs.length || conLook ? `<em class="${conLook ? 'lleno' : ''}"></em>` : ''}</button>`;
   }
   const sem = (en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D']).map(x => `<span>${x}</span>`).join('');
   const evs = eventosDe(d), fijos = E.perfil?.fijos || [];
@@ -2473,7 +2476,7 @@ function pintarSubida() {
   const n = E.subida.length, raiz = $('s-raiz'), X = `<button class="x" data-ir="closet" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>`;
   const mas = (txt, cls) => `<label class="${cls}">${txt}<input type="file" accept="image/*" multiple data-sfotos></label>`;
   const det = n === 1 ? E.subida[0] : E.subida.find(i => i.id === E.sDet);
-  if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Una prenda por foto', 'One garment per photo')}</div></div>${avisoSinNube()}<div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div><p class="consejo">${t('La app quita el fondo y te propone tipo y color.', 'The app removes the background and suggests type and colour.')}</p>${reglasFoto()}<div class="bts"><label class="boton">${t('Hacer una foto', 'Take a photo')}<input type="file" accept="image/*" capture="environment" data-sfotos></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}<span class="txt">${t('Hasta 20 a la vez', 'Up to 20 at a time')}</span></div></div>`;
+  if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Hasta 20 fotos a la vez, una prenda en cada una', 'Up to 20 photos at once, one garment in each')}</div></div>${avisoSinNube()}<div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div><p class="consejo">${t('La app quita el fondo y te propone tipo y color.', 'The app removes the background and suggests type and colour.')}</p>${reglasFoto()}<div class="bts"><label class="boton">${t('Hacer una foto', 'Take a photo')}<input type="file" accept="image/*" capture="environment" data-sfotos></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}<span class="txt">${t('Hasta 20 a la vez', 'Up to 20 at a time')}</span></div></div>`;
   else if (det) {
     const i = E.subida.indexOf(det), listo = det.estado === 'listo';
     const ops = (lista, sel, k, nom) => `<div class="ops">${lista.map(x => `<button type="button" class="${x === sel ? 'on' : ''}" data-s${k}="${x}">${nom(x)}</button>`).join('')}</div>`;
@@ -3777,7 +3780,7 @@ function pintarYo() {
   const sil = pf.selfie && pf.cuerpo ? t('fotos listas', 'photos ready') : pf.selfie || pf.cuerpo ? t('falta una foto', 'one photo missing') : t('por descubrir', 'to discover');
   const ests = (pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean), colO = pf.colores?.est ? EST_COLOR[pf.colores.est] : null;
   const ent = (attr, tit, val) => `<button class="y3-a" ${attr}>${tit}<small>${val}</small></button>`;
-  const dg = pf.diag, pend = diagPendiente() && !diagFallo, mira = (k, f) => dg?.[k] ? min(dg[k].n[es]) : !permiso('diag') && (pf[f] || pf.diagEspera) ? t('falta tu permiso', 'needs your OK') : pf[f] ? (pend ? t('analizando…', 'analysing…') : t('prueba otra foto', 'try another photo')) : t('falta la foto', 'photo missing');
+  const dg = pf.diag, pend = diagPendiente() && !diagFallo, mira = (k, f) => dg?.[k] ? min(dg[k].n[es]) : !permiso('diag') && (pf[f] || pf.diagEspera) ? t('falta tu permiso', 'needs your OK') : pf[f] ? (pend ? t('analizando…', 'analysing…') : t('prueba otra foto', 'try another photo')) : k === 'color' ? t('con tu selfie', 'from your selfie') : t('con tu foto', 'from your photo'); // 11/11 (análisis, punto 79): una invitación, no una tarea pendiente
   $('yo-lista').innerHTML = ent(dg?.cuerpo || pf.cuerpo ? 'data-diag="ver-silueta"' : 'data-diag="fotos"', t('Mi silueta', 'My figure'), mira('cuerpo', 'cuerpo'))
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? (ests.length > 2 ? ests.slice(0, 2).map(min).join(', ') + ` +${ests.length - 2}` : ests.map(min).join(t(' y ', ' and '))) : t('elígelo', 'choose it'))
     + ent(dg?.color || pf.selfie ? 'data-diag="ver-color"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
@@ -3946,7 +3949,16 @@ $('an-otra').onclick = () => guardarPrenda(true);
 function borrarFotosNube(p) { if (!cuenta() || !p || p.ejemplo) return; for (const k of ['', '-o', '-c']) api('/api/foto/' + p.id + k, { method: 'DELETE' }).catch(() => { }); }
 async function borrarPrenda(p) {
   if (!p || !await confirmar(t('¿Borrar esta prenda?', 'Delete this garment?'), t('Se quita del clóset y de sus conjuntos.', 'It is removed from the closet and its outfits.'), t('Borrar', 'Delete'))) return;
-  borrarFotosNube(p); E.prendas = E.prendas.filter(x => x.id !== p.id); E.conjuntos.forEach(c => c.ids = c.ids.filter(id => id !== p.id)); E.conjuntos = E.conjuntos.filter(c => c.ids.length >= 1); await guardar(); E.propuestas = []; ir('closet'); toast(t('Prenda borrada', 'Garment deleted'));
+  // 11/11 (análisis, punto 31): «Deshacer» durante 8 s; las fotos de la cuenta se borran a los 10 s, si no se ha deshecho
+  const i = E.prendas.indexOf(p), looksAntes = E.conjuntos.map(c => ({ ...c, ids: [...c.ids] }));
+  E.prendas = E.prendas.filter(x => x.id !== p.id); E.conjuntos.forEach(c => c.ids = c.ids.filter(id => id !== p.id)); E.conjuntos = E.conjuntos.filter(c => c.ids.length >= 1); await guardar(); E.propuestas = []; ir('closet');
+  const fotos = setTimeout(() => borrarFotosNube(p), 10000);
+  toast(t('Prenda borrada', 'Garment deleted'), [t('Deshacer', 'Undo'), async () => {
+    clearTimeout(fotos); if (P(p.id)) return;
+    E.prendas.splice(Math.min(Math.max(i, 0), E.prendas.length), 0, p); E.conjuntos = looksAntes;
+    const b = new Set(JSON.parse(LS.get('tc_nube_borradas') || '[]')); if (b.delete(p.id)) LS.set('tc_nube_borradas', JSON.stringify([...b])); // si ya se subió el borrado, que los otros móviles no la quiten
+    await guardar(); E.propuestas = []; E.generados = []; if (E.pantalla === 'closet') pintarCloset(); toast(t('Prenda recuperada', 'Garment restored'));
+  }]);
 }
 $('an-borrar').onclick = () => borrarPrenda(E.editando);
 $('nl-guardar').onclick = guardarLook;

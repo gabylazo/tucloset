@@ -1761,7 +1761,7 @@ html.oscuro .pn-error{color:#E8776B}
 .pm-cas input:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
 .dx-perm{margin-top:8px;padding-bottom:6px;border-bottom:1px solid var(--linea)}
 .dx-bloq{border:0;padding:0;margin:0;min-width:0}
-.dx-bloq:disabled .dx-sec,.dx-bloq:disabled .dx-boton{opacity:.4}
+.dx-bloq:disabled .dx-sec,.dx-bloq:disabled .dx-boton{opacity:.6} /* 11/11 (análisis, punto 82): a .4 no se leía y parecía roto */
 .dx-bloq>.dx-nota{margin-top:18px}
 .dx-cuenta-cas{margin-top:18px}
 #ac-perm{width:100%;margin-top:14px}
@@ -1771,3 +1771,6 @@ html.oscuro .pn-error{color:#E8776B}
 /* 11/11 (Sheila, mensaje 1996): con 39 colores, el nombre del elegido sale debajo de las muestras */
 .col-nom{margin:8px 0 0;font-size:13px;color:var(--sec)}
 .colores .col-nom{flex-basis:100%;margin:2px 0 0}
+/* 11/11 (análisis, punto 31): aviso con acción («Deshacer»); el aviso normal no se toca, este sí */
+.toast.con-acc{pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:4px;padding-top:2px;padding-bottom:2px}
+.toast-acc{min-height:44px;padding:0 10px;margin-left:6px;background:none;border:0;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
