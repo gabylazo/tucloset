@@ -1751,3 +1751,20 @@ html.oscuro .cod-e{color:#E8776B!important}
 .pn-par-unir{margin-top:12px}
 .pn-error{color:#8E3B2E;font-size:14px;line-height:1.45;margin:10px 4px 0;min-height:1px}
 html.oscuro .pn-error{color:#E8776B}
+/* 10/11 · permisos (Legal T3 y T4; privacidad, apdo. 5): la casilla con el texto de la privacidad, nunca marcada de antemano; sin el permiso del
+   diagnóstico, medidas, fotos y «Analizar» quedan quietos */
+.pm-cas{display:flex;gap:12px;align-items:flex-start;max-width:420px;margin:0 auto;padding:10px 0;text-align:left;font-size:13px;line-height:1.5;color:var(--tinta);cursor:pointer}
+.pm-cas input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:1px 0 0;border:1.5px solid var(--tinta);border-radius:0;background:none;display:grid;place-items:center;cursor:pointer}
+.pm-cas input::after{content:'';width:11px;height:6px;border-left:1.8px solid #FFFFFF;border-bottom:1.8px solid #FFFFFF;transform:translateY(-1px) rotate(-45deg);opacity:0}
+.pm-cas input:checked{background:var(--tinta)}
+.pm-cas input:checked::after{opacity:1}
+.pm-cas input:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
+.dx-perm{margin-top:8px;padding-bottom:6px;border-bottom:1px solid var(--linea)}
+.dx-bloq{border:0;padding:0;margin:0;min-width:0}
+.dx-bloq:disabled .dx-sec,.dx-bloq:disabled .dx-boton{opacity:.4}
+.dx-bloq>.dx-nota{margin-top:18px}
+.dx-cuenta-cas{margin-top:18px}
+#ac-perm{width:100%;margin-top:14px}
+.ac-fotos label.bloq{opacity:.4;cursor:default}
+.av-tarjeta .pm-cas{margin-top:12px}
+.av-tarjeta .at-btn:disabled{opacity:.4;cursor:default}

@@ -841,6 +841,13 @@ html.oscuro .pn-par-intro{color:var(--tinta)}
 html.oscuro .pn-par-n{color:var(--tinta)}
 html.oscuro .pn-error{color:#8E3B2E}
 html.oscuro.oscuro .pn-error{color:#E8776B}
+html.oscuro .pm-cas{color:var(--tinta)}
+html.oscuro .pm-cas input{border:1.5px solid var(--tinta);border-radius:0;background:none}
+html.oscuro .pm-cas input::after{border-left:1.8px solid var(--o-fondo);border-bottom:1.8px solid var(--o-fondo)}
+html.oscuro .pm-cas input:checked{background:var(--tinta)}
+html.oscuro .pm-cas input:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
+html.oscuro .dx-perm{border-bottom:1px solid var(--linea)}
+html.oscuro .dx-bloq{border:0}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}

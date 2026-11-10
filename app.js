@@ -364,6 +364,82 @@ document.addEventListener('error', e => {
   if (!fotosMal.size) return; clearTimeout(fotosMalT); fotosMalT = setTimeout(() => { const ids = fotosMal; fotosMal = new Set(); repararFotos(ids).catch(() => { }); }, 800);
 }, true);
 const FOTOS_DIAG = ['selfie', 'cuerpo', 'avatar'];
+/* ---------- permisos (10/11, Legal T3 y T4; privacidad, apdo. 5) ----------
+   Tres casillas, nunca marcadas de antemano: diag (analizar en el móvil tus fotos y tus medidas), avatar (mandar tus fotos a Google para el avatar y «Verlo puesto»;
+   solo Pro) y fotos (guardar las fotos del diagnóstico en tu cuenta). Cada sí o no queda con su fecha y la versión del texto: en perfil.permisos, que viaja con la
+   cuenta, y en el servidor (POST /api/permiso; el del avatar lo mira el servidor antes de llamar a Google). Con un permiso retirado no puede quedar nada de lo que
+   salió de él, aquí ni en los otros móviles de la cuenta (aplicarRetiradas, al arrancar y al bajar de la cuenta: sin el permiso no se pueden añadir fotos ni medidas,
+   así que lo que aparezca es viejo). Lo que ya salió de las fotos antes de que existiera el permiso queda aparte (diagEspera) hasta que lo den. */
+const PERMISO_V = 'privacidad-2026-11-10';
+const PERMISOS = {
+  diag: ['Quiero que TuCloset analice en mi móvil mi foto de cara, mi foto de cuerpo y mis medidas para calcular mis colores y mi silueta. Sé que son datos muy personales, que las fotos se quedan en mi móvil salvo que yo elija guardarlas en mi cuenta, y que el análisis no dice nada sobre mi salud. Puedo retirar este permiso cuando quiera en Yo → Tus medidas y fotos, sin perder el resto de mi cuenta.',
+    'I want TuCloset to analyse on my phone my face photo, my full-body photo and my measurements to work out my colours and my figure. I know these are very personal data, that the photos stay on my phone unless I choose to keep them in my account, and that the analysis says nothing about my health. I can withdraw this permission at any time in Me → Your measurements and photos, without losing the rest of my account.'],
+  avatar: ['Quiero crear mi avatar. Sé que, para hacerlo, mi foto de cara, mi foto de cuerpo y mi silueta se envían una vez a Google (Gemini), que puede tratarlas fuera de la Unión Europea; que, cada vez que me pruebo un look, se envían también mi avatar y mi foto de cara; que TuCloset no las guarda en su servidor salvo que yo elija guardarlas en mi cuenta; y que puedo borrar mi avatar cuando quiera.',
+    'I want to create my avatar. I know that, to make it, my face photo, my full-body photo and my figure are sent once to Google (Gemini), which may process them outside the European Union; that each time I try on a look, my avatar and my face photo are sent too; that TuCloset does not keep them on its server unless I choose to keep them in my account; and that I can delete my avatar at any time.'],
+  fotos: ['Guardar mis fotos en mi cuenta, privadas, para verlas en otros móviles. Si no la marco, se quedan solo en este móvil.',
+    'Keep my photos in my account, private, to see them on other phones. If I leave it unticked, they stay only on this phone.']
+};
+const permiso = k => E.perfil?.permisos?.[k]?.si === true;
+const casillaPermiso = (k, id) => `<label class="pm-cas"><input type="checkbox" ${id ? `id="${id}"` : `data-permiso="${k}"`} ${permiso(k) ? 'checked' : ''}><span>${t(...PERMISOS[k])}</span></label>`;
+async function permisoAlServidor(k) {
+  const p = E.perfil?.permisos?.[k]; if (!cuenta() || !p) return false;
+  try { return (await api('/api/permiso', { method: 'POST', json: { que: k, si: !!p.si, v: p.v }, tiempo: 15000 })).ok; } catch (e) { return false; }
+}
+async function ponerPermiso(k, si) {
+  E.perfil = E.perfil || {}; E.perfil.permisos = { ...(E.perfil.permisos || {}), [k]: { si: !!si, fecha: new Date().toISOString(), v: PERMISO_V } };
+  if (k === 'diag' && si) sacarDeEspera();
+  await guardar(); programarNube(); return permisoAlServidor(k);
+}
+// de cada permiso manda el último sí o no, venga del móvil o de la cuenta
+const juntarPermisos = (a, b) => { const r = { ...(a || {}) }; for (const [k, v] of Object.entries(b || {})) if (v && (!r[k] || (v.fecha || '') > (r[k].fecha || ''))) r[k] = v; return r; };
+function borrarDe(k) { // lo que salió de cada permiso: las fotos, las medidas y el análisis (diag); el avatar y lo que te has visto puesto (diag y avatar)
+  const pf = E.perfil || {};
+  if (k === 'diag') {
+    for (const f of ['selfie', 'cuerpo']) { if (pf[f + 'Sub']) api('/api/foto/diag-' + f, { method: 'DELETE' }).catch(() => { }); delete pf[f]; delete pf[f + 'Sub']; LS.set('tc_bajada_' + f, null); }
+    ['medidas', 'diag', 'diagEspera', 'tipoCuerpo'].forEach(x => delete pf[x]);
+    if (pf.colores?.fuente === 'foto') { delete pf.colores.est; delete pf.colores.sub; delete pf.colores.fuente; }
+    ['tc_diag_medidas', 'tc_diag_caras'].forEach(x => { try { localStorage.removeItem(x); } catch (e) { } });
+  }
+  if (pf.avatarSub) api('/api/foto/diag-avatar', { method: 'DELETE' }).catch(() => { });
+  ['avatar', 'avatarAR', 'avatarDe', 'avatarF', 'avatarSub'].forEach(x => delete pf[x]); LS.set('tc_bajada_avatar', null);
+  E.puestos = {}; fijarPuesto(''); LS.set('tc_puestos_orden', null); BD.set('puestos', {}).catch(() => { });
+  E.propuestas = []; E.generados = [];
+}
+async function retirarPermiso(k) {
+  const txt = k === 'diag' ? t('Borramos tus fotos de cara y de cuerpo, tus medidas, tu análisis y tu avatar, en este móvil y en tu cuenta. Tu ropa y tus looks se quedan.', 'We delete your face and body photos, your measurements, your analysis and your avatar, on this phone and in your account. Your clothes and looks stay.')
+    : t('Borramos tu avatar y los looks que te has visto puestos, en este móvil y en tu cuenta. Para crear otro tendrás que volver a dar el permiso.', 'We delete your avatar and the looks you tried on, on this phone and in your account. To create another one you will need to give your permission again.');
+  if (!await confirmar(k === 'diag' ? t('¿Retiras el permiso?', 'Withdraw your permission?') : t('¿Borrar tu avatar?', 'Delete your avatar?'), txt, k === 'diag' ? t('Retirar y borrar', 'Withdraw and delete') : t('Borrar', 'Delete'))) return false;
+  borrarDe(k); await ponerPermiso(k, false);
+  if (k === 'diag' && E.perfil.permisos.avatar?.si) await ponerPermiso('avatar', false);
+  return true;
+}
+function aplicarRetiradas() { // lo retirado aquí o en otro móvil: si algo vuelve (una subida que choca y se junta con la cuenta, un móvil atrasado), se borra otra vez
+  const pm = E.perfil?.permisos || {}, pf = E.perfil || {}; let hay = false;
+  if (pm.diag && !pm.diag.si && (pf.selfie || pf.cuerpo || pf.selfieSub || pf.cuerpoSub || pf.medidas || pf.diag || pf.diagEspera || pf.tipoCuerpo || pf.colores?.fuente === 'foto')) { borrarDe('diag'); hay = true; }
+  if (pm.avatar && !pm.avatar.si && (pf.avatar || pf.avatarSub || pf.avatarF || Object.keys(E.puestos || {}).length)) { borrarDe('avatar'); hay = true; }
+  return hay;
+}
+function diagAEspera() { // las cuentas de antes del 10/11: lo que salió de las fotos no se usa hasta que den el permiso
+  const pf = E.perfil; if (!pf || permiso('diag')) return false;
+  const col = pf.colores?.fuente === 'foto'; if (!pf.diag && !pf.tipoCuerpo && !col) return false;
+  const x = pf.diagEspera || {}; pf.diagEspera = { diag: pf.diag || x.diag || null, tipoCuerpo: pf.tipoCuerpo || x.tipoCuerpo || null, col: col ? { est: pf.colores.est, sub: pf.colores.sub } : x.col || null };
+  delete pf.diag; delete pf.tipoCuerpo; if (col) { delete pf.colores.est; delete pf.colores.sub; delete pf.colores.fuente; }
+  E.propuestas = []; E.generados = []; return true;
+}
+function sacarDeEspera() {
+  const pf = E.perfil, x = pf?.diagEspera; if (!x) return;
+  if (x.diag && !pf.diag) pf.diag = x.diag; if (x.tipoCuerpo && !pf.tipoCuerpo) pf.tipoCuerpo = x.tipoCuerpo;
+  if (x.col?.est && !pf.colores?.est) pf.colores = { ...(pf.colores || { r: {} }), est: x.col.est, sub: x.col.sub, fuente: 'foto' };
+  delete pf.diagEspera; E.propuestas = []; E.generados = [];
+}
+// el permiso del diagnóstico, desde Medidas y fotos o desde el alta: al quitarlo, si hay algo que borrar, se pregunta y se borra
+async function cambiarPermisoDiag(ck) {
+  const pf = E.perfil || {};
+  if (ck.checked) await ponerPermiso('diag', true);
+  else if (pf.selfie || pf.cuerpo || pf.medidas || pf.diag || pf.diagEspera || pf.avatar) { if (!await retirarPermiso('diag')) { ck.checked = true; return false; } toast(t('Permiso retirado: hemos borrado tus fotos, tus medidas y tu análisis', 'Permission withdrawn: we deleted your photos, measurements and analysis')); }
+  else await ponerPermiso('diag', false);
+  return true;
+}
 async function bajarFotosDiag() { // las que faltan en este móvil u ordenador y están en su cuenta; lo bajado no se vuelve a subir (tc_bajada_*)
   const pf = E.perfil || {}; if (!pf.fotosCuenta || !cuenta()) return; let hay = false;
   for (const k of FOTOS_DIAG) if (!(pf[k] instanceof Blob) && pf[k + 'Sub']) {
@@ -373,19 +449,20 @@ async function bajarFotosDiag() { // las que faltan en este móvil u ordenador y
 // 07/11 (Gabriela: «2. sí»): la primera vez que alguien con cuenta tiene fotos del diagnóstico, se le pregunta una vez si se guardan en su cuenta, sin nada elegido
 // de antemano; la respuesta se cambia en Medidas y fotos
 async function preguntarFotosCuenta() {
-  const pf = E.perfil || {}; if (!cuenta() || pf.fotosCuenta || pf.fotosCuentaVista || !(pf.selfie instanceof Blob || pf.cuerpo instanceof Blob || pf.avatar instanceof Blob)) return;
-  pf.fotosCuentaVista = 1; await guardar(); programarNube();
+  const pf = E.perfil || {}; if (!cuenta() || pf.permisos?.fotos || pf.fotosCuentaVista >= 2 || !(permiso('diag') || tieneAvatar()) || !(pf.selfie instanceof Blob || pf.cuerpo instanceof Blob || pf.avatar instanceof Blob)) return;
+  pf.fotosCuentaVista = 2; await guardar(); programarNube();
   const si = await confirmar(t('¿Guardamos tus fotos en tu cuenta?', 'Keep your photos in your account?'),
-    t('Así no se pierden y las ves en el móvil y en el ordenador. Son privadas: solo las ves tú. Puedes cambiarlo en Medidas y fotos.', 'That way they are never lost and you see them on your phone and computer. They are private: only you see them. You can change it in Measurements and photos.'),
+    t('Privadas, para verlas en otros móviles y en el ordenador. Si no, se quedan solo en este móvil. Puedes cambiarlo en Tus medidas y fotos.', 'Private, to see them on other phones and on your computer. If not, they stay only on this phone. You can change it in Your measurements and photos.'),
     t('Guardarlas', 'Keep them'), t('Solo en este móvil', 'Only on this phone'));
-  if (!si) return; await fotosEnCuenta(true); toast(t('Tus fotos se guardan en tu cuenta', 'Your photos are kept in your account'));
+  if (!si) { await fotosEnCuenta(false); const ck = $('dg-cuenta'); if (ck) ck.checked = false; return; }
+  await fotosEnCuenta(true); toast(t('Tus fotos se guardan en tu cuenta', 'Your photos are kept in your account'));
   const ck = $('dg-cuenta'), pv = $('dg-priv'); if (ck) ck.checked = true; if (pv) pv.innerHTML = IC_CANDADO + t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer');
   if (E.pantalla === 'yo') pintarYo();
 }
 async function fotosEnCuenta(si) {
   const pf = E.perfil = E.perfil || {}; pf.fotosCuenta = !!si;
   if (!si) { for (const k of FOTOS_DIAG) { if (pf[k + 'Sub']) api('/api/foto/diag-' + k, { method: 'DELETE' }).catch(() => { }); delete pf[k + 'Sub']; } }
-  await guardar(); programarNube(); if (si) bajarFotosDiag();
+  await ponerPermiso('fotos', !!si); if (si) bajarFotosDiag(); // 10/11: es la casilla 3 de la privacidad (guarda fecha y versión)
 }
 async function bajarNube() {
   if (!cuenta()) return false;
@@ -426,6 +503,7 @@ async function bajarNube() {
   const pl = E.perfil || {}, mio = (pl.selfie instanceof Blob || pl.cuerpo instanceof Blob || pl.medidas) && pl.diag;
   E.perfil = { ...(doc.perfil || {}), ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => v instanceof Blob || (k === 'medidas' && v && Object.keys(v).length) || (mio && ['diag', 'tipoCuerpo'].includes(k)))) }; // fotos y medidas: solo en el móvil
   if (mio && pl.colores?.fuente === 'foto') E.perfil.colores = { ...(E.perfil.colores || {}), est: pl.colores.est, sub: pl.colores.sub, fuente: 'foto' };
+  E.perfil.permisos = juntarPermisos(doc.perfil?.permisos, pl.permisos); if (aplicarRetiradas() | diagAEspera()) programarNube(); // 10/11: permisos
   LS.set('tc_nube_ver', version); LS.set('tc_nube_ids', JSON.stringify((doc.prendas || []).map(p => p.id)));
   await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda); bajarFotosDiag();
   if (estacionesAuto()) await guardar(); // 0.101: estación por tipo, también para lo que llega de otros móviles
@@ -1571,6 +1649,7 @@ function ir(nombre, datos) {
   if (nombre === 'nuevo-look') prepararNuevoLook(datos);
   if (nombre === 'hoy') pintarHoy();
   if (nombre === 'cuerpo') pintarCuerpo();
+  if (nombre === 'silueta') pintarSilueta(); // 10/11: la casilla del permiso, al día
   if (nombre === 'estilo') pintarEstilo();
   if (nombre === 'closet') pintarCloset();
   if (nombre === 'looks') pintarLooks();
@@ -2941,6 +3020,7 @@ const IC_Y = {
   salir: '<path d="M14 5H6v14h8"/><path d="M10.5 12H20M16.5 8.5 20 12l-3.5 3.5"/>',
   borrar: '<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7"/>',
   camara: '<path d="M4 8h3.5l1.5-2h6l1.5 2H20v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  avatar: '<circle cx="12" cy="4.8" r="2.4"/><path d="M8.2 21.5 9 13.8 7.3 10.6c-.4-.9.2-2.1 1.2-2.4L12 7.4l3.5.8c1 .3 1.6 1.5 1.2 2.4L15 13.8l.8 7.7"/>',
   control: '<path d="M4 19.5h16M6.5 16.5V11M10.5 16.5V6.5M14.5 16.5v-4M18.5 16.5V9"/>',
   probar: '<path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
   ok: '<path d="m5 12.5 4.5 4.5L19 7.5"/>'
@@ -3155,12 +3235,16 @@ async function panelPrivacidad() {
   abrirPanel(t('Tus datos y permisos', 'Your data and permissions'),
     grupoP(t('Qué se guarda', 'What is kept'), `<ul class="pn-lista">
       <li>${icY('nube')}<span>${c ? t('Tus prendas, sus fotos, tus looks y tu calendario se guardan en tu cuenta para verlos en cualquier móvil.', 'Your garments, their photos, your looks and your calendar are kept in your account so you can see them on any phone.') : t('Sin cuenta, todo se queda en este móvil.', 'Without an account, everything stays on this phone.')}</span></li>
-      <li>${icY('camara')}<span>${E.perfil?.fotosCuenta ? t('Tu selfie y tu foto de cuerpo se guardan en tu cuenta, privadas, porque así lo elegiste. Lo cambias en Yo → Tus medidas y fotos.', 'Your selfie and body photo are kept in your account, private, because you chose so. Change it in Me → Your measurements and photos.') : t('Tu selfie y tu foto de cuerpo se quedan en este móvil.', 'Your selfie and body photo stay on this phone.')} ${t('Si creas tu avatar, se envían una vez para hacerlo.', 'If you create your avatar, they are sent once to make it.')}</span></li>
+      <li>${icY('camara')}<span>${E.perfil?.fotosCuenta ? t('Tu selfie y tu foto de cuerpo se guardan en tu cuenta, privadas, porque así lo elegiste. Lo cambias en Yo → Tus medidas y fotos.', 'Your selfie and body photo are kept in your account, private, because you chose so. Change it in Me → Your measurements and photos.') : t('Tu selfie y tu foto de cuerpo se quedan en este móvil.', 'Your selfie and body photo stay on this phone.')} ${t('Si creas tu avatar, se envían a Google (Gemini) para hacerlo, y tu avatar y tu cara, cada vez que te pruebas un look.', 'If you create your avatar, they are sent to Google (Gemini) to make it, and your avatar and face each time you try on a look.')}</span></li>
       <li>${icY('percha')}<span>${t('Para quitar el fondo de tu ropa y hacer la foto de catálogo, la foto de la prenda pasa por nuestro servidor y por la IA de imagen de Google.', 'To remove the background of your clothes and make the catalogue photo, the garment photo goes through our server and Google’s image AI.')}</span></li>
       ${c && LS.get('tc_pareja') ? `<li>${icY('pareja')}<span>${t('Tu pareja ve tus prendas y sus fotos para combinar looks con los suyos. Tus medidas, tus fotos y tu diagnóstico, no. Lo quitas en Ajustes → Pareja.', 'Your partner sees your garments and their photos to match looks with theirs. Not your measurements, photos or analysis. Turn it off in Settings → Partner.')}</span></li>` : ''}
       <li>${icY('ciudad')}<span>${t('Tu ciudad o tu ubicación solo se usan para darte el tiempo.', 'Your city or location is only used for the weather.')}</span></li>
       <li>${icY('info')}<span>${t('Si llegas desde un enlace nuestro en una red social, contamos esa visita: solo el día y la red, sin cookies ni nada tuyo.', 'If you arrive from one of our links on social media, we count that visit: only the day and the network, with no cookies and nothing about you.')}</span></li></ul>`)
-    + grupoP(t('Permisos', 'Permissions'), filaP({ tag: 'div', ic: 'ciudad', tit: t('Ubicación', 'Location'), val: ubic, flecha: false }) + filaP({ tag: 'div', ic: 'camara', tit: t('Cámara', 'Camera'), val: t('Solo al subir fotos', 'Only when uploading'), flecha: false }),
+    + grupoP(t('Lo que nos has permitido', 'What you have allowed'), filaP({ id: 'pv-pdiag', ic: 'camara', tit: t('Analizar tus fotos y medidas', 'Analyse your photos and measurements'), val: permiso('diag') ? t('Sí', 'Yes') : t('No', 'No') })
+      + (planDemo() === 'pro' ? filaP({ id: 'pv-pavatar', ic: 'avatar', tit: t('Tu avatar', 'Your avatar'), val: permiso('avatar') ? t('Sí', 'Yes') : t('No', 'No') }) : '')
+      + (c ? filaP({ id: 'pv-pfotos', ic: 'nube', tit: t('Tus fotos en tu cuenta', 'Your photos in your account'), val: E.perfil?.fotosCuenta ? t('Sí', 'Yes') : t('No', 'No') }) : ''),
+      t('Se dan y se retiran en Yo → Tus medidas y fotos y en Tu avatar. Al retirarlos, borramos lo que salió de ellos.', 'You give and withdraw them in Me → Your measurements and photos and in Your avatar. When you withdraw one, we delete what came from it.'))
+    + grupoP(t('Permisos del móvil', 'Phone permissions'), filaP({ tag: 'div', ic: 'ciudad', tit: t('Ubicación', 'Location'), val: ubic, flecha: false }) + filaP({ tag: 'div', ic: 'camara', tit: t('Cámara', 'Camera'), val: t('Solo al subir fotos', 'Only when uploading'), flecha: false }),
       t('Los permisos se cambian en los ajustes del navegador o del móvil.', 'Permissions are changed in your browser or phone settings.'))
     + grupoP(t('Tus datos', 'Your data'), filaP({ id: 'pv-exportar', ic: 'bajar', tit: t('Descargar una copia', 'Download a copy'), flecha: false })
       + filaP({ tag: 'label', ic: 'subir', tit: t('Recuperar una copia', 'Restore a copy'), flecha: false, attr: 'id="pv-importar"' }).replace('</label>', '<input type="file" accept="application/json,.json" hidden></label>')
@@ -3168,6 +3252,8 @@ async function panelPrivacidad() {
       + (c ? filaP({ id: 'pv-cuenta', ic: 'borrar', tit: t('Borrar mi cuenta', 'Delete my account'), rojo: true, flecha: false }) : '')),
     cap => {
       cap.querySelector('#pv-exportar').onclick = exportar;
+      cap.querySelector('#pv-pdiag').onclick = () => panelDiagFotos(); if (cap.querySelector('#pv-pfotos')) cap.querySelector('#pv-pfotos').onclick = () => panelDiagFotos();
+      if (cap.querySelector('#pv-pavatar')) cap.querySelector('#pv-pavatar').onclick = () => { document.querySelectorAll('.pn-capa').forEach(x => x.remove()); ir('yo'); avatarAbierto = true; setTimeout(() => document.querySelector('.av-tarjeta')?.scrollIntoView({ block: 'center' }), 200); };
       cap.querySelector('#pv-importar input').onchange = e => e.target.files[0] && importar(e.target.files[0]);
       cap.querySelector('#pv-borrar').onclick = async () => { if (await confirmar(t('¿Borrar todo?', 'Delete everything?'), t('Prendas, fotos, conjuntos y usos de este móvil. Lo que esté en tu cuenta no se borra.', 'Garments, photos, outfits and uses on this phone. What is in your account is not deleted.'), t('Borrar todo', 'Delete all'))) { for (const k of await BD.claves()) await BD.del(k); localStorage.removeItem('tc_tiempo'); location.reload(); } };
       if (cap.querySelector('#pv-cuenta')) cap.querySelector('#pv-cuenta').onclick = async () => { await borrarCuenta(); cap.remove(); pintarYo(); };
@@ -3194,6 +3280,7 @@ function puntosDiag(ps) {
   return s;
 }
 async function hacerDiagnostico(estado) {
+  if (!permiso('diag')) throw new Error('permiso'); // 10/11 (Legal, T3)
   const pf = E.perfil || {}, { D, R } = await diagMod(), res = { fecha: hoyISO(), avisos: {}, fotos: firmaFotos(), v: DIAG_V };
   estado(t('Preparando el análisis (la primera vez tarda un poco más)…', 'Getting the analysis ready (slower the first time)…')); await D.cargar();
   if (pf.selfie) {
@@ -3237,7 +3324,7 @@ function carasGuardadas(c) {
 //  4, 06/11: en la silueta ya no cuentan el brazo que sujeta el móvil, los bolsos ni la mano en la cadera;
 //  5, 06/11: con la 4 Gabriela seguía saliendo con hombros más anchos que la cadera; la cadera se mide más abajo y sin recortar las caderas anchas)
 const DIAG_V = 5;
-const diagPendiente = () => { const d = E.perfil?.diag, f = d?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo) || (a.med && a.med !== f.med) || (a.selfie && f.resp != null && a.resp !== f.resp) || ((a.selfie || a.cuerpo || a.med) && (d?.v || 1) < DIAG_V)); };
+const diagPendiente = () => { if (!permiso('diag')) return false; const d = E.perfil?.diag, f = d?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo) || (a.med && a.med !== f.med) || (a.selfie && f.resp != null && a.resp !== f.resp) || ((a.selfie || a.cuerpo || a.med) && (d?.v || 1) < DIAG_V)); };
 let diagCorriendo = null, diagFallo = 0;
 const diagAuto = () => diagCorriendo || (diagCorriendo = hacerDiagnostico(() => { }).catch(() => { diagFallo++; return null; }).finally(() => { diagCorriendo = null; }));
 async function diagHastaAlDia() { let r = null; for (let i = 0; i < 3 && diagPendiente() && !diagFallo; i++) r = await diagAuto(); return r; }
@@ -3255,14 +3342,14 @@ function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; e
   return `<section class="dg-tarjeta"><div class="dg-cab"><h2>${t('Tu diagnóstico', 'Your analysis')}</h2><span class="dg-pro">Pro</span></div>
     <div class="dg-fotos">${mini('selfie', 'ic-camara')}${mini('cuerpo', 'ic-cuerpo')}</div>
     <p>${AT ? t('Dos fotos para tus colores y tu silueta. Se quedan en tu móvil.', 'Two photos for your colours and figure. They stay on your phone.') : t('Una foto de tu cara y otra de cuerpo entero: la app analiza tus colores, tu silueta y la ropa que te favorece. Las fotos no salen de tu móvil.', 'A face photo and a full-body photo: the app analyses your colours, your figure and the clothes that suit you. Photos never leave your phone.')}</p>
-    ${pf.selfie || pf.cuerpo ? `<p class="dg-d">${diagPendiente() && !diagFallo ? t('Analizando tus fotos…', 'Analysing your photos…') : t('No he podido leer tus fotos. Prueba con otras.', 'I could not read your photos. Try others.')}</p><button class="boton linea" data-diag="fotos">${t('Ver mis fotos', 'See my photos')}</button>` : `<button class="boton" data-diag="fotos">${t('Hacer las fotos', 'Take the photos')}</button>`}</section>`;
+    ${pf.selfie || pf.cuerpo ? `<p class="dg-d">${!permiso('diag') ? t('Falta tu permiso para analizarlas.', 'Your permission is needed to analyse them.') : diagPendiente() && !diagFallo ? t('Analizando tus fotos…', 'Analysing your photos…') : t('No he podido leer tus fotos. Prueba con otras.', 'I could not read your photos. Try others.')}</p><button class="boton linea" data-diag="fotos">${t('Ver mis fotos', 'See my photos')}</button>` : `<button class="boton" data-diag="fotos">${t('Hacer las fotos', 'Take the photos')}</button>`}</section>`;
 }
 // 07/11 (Gabriela: «con la foto que yo puse de mi cara y la foto del cuerpo con la que me hicieron el diagnóstico se puede hacer un avatar… el objetivo es que subiendo
 // dos fotos te hagan todo el análisis y el avatar»): el avatar sale de esas dos fotos. Se envían una vez al servidor (Gemini) y no se guardan allí; el avatar se queda
 // solo en este móvil (perfil.avatar, como las fotos). «Puesto en mí» viste el avatar con las fotos de catálogo de un look; cada resultado se guarda aquí (BD «puestos»).
 const IC_PUESTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.8" r="2.4"/><path d="M8.2 21.5 9 13.8 7.3 10.6c-.4-.9.2-2.1 1.2-2.4L12 7.4l3.5.8c1 .3 1.6 1.5 1.2 2.4L15 13.8l.8 7.7"/></svg>';
 const firmaAvatar = () => [E.perfil?.selfie?.size || 0, E.perfil?.cuerpo?.size || 0].join(':');
-const tieneAvatar = () => E.perfil?.avatar instanceof Blob;
+const tieneAvatar = () => E.perfil?.avatar instanceof Blob && permiso('avatar'); // 10/11: sin su permiso, el avatar no se enseña ni se usa
 let avatarEnCurso = false, avatarAbierto = false; // avatarAbierto: la fila del avatar desplegada (se abre sola al crearlo)
 async function jpegBlanco(b, max = 1024) {
   const u = URL.createObjectURL(b);
@@ -3281,20 +3368,27 @@ function siluetaTxt() {
   else if (b?.ratios?.hombros_cadera) x.push(`shoulders to hips width ${(+b.ratios.hombros_cadera).toFixed(2)}, waist to hips width ${(+(b.ratios.cintura_cadera || .7)).toFixed(2)}`);
   return x.join('; ');
 }
-const errorAvatar = (st, e, puesto) => st === 403 ? t('El avatar aún está en pruebas', 'The avatar is still being tested')
+const errorAvatar = (st, e, puesto) => e === 'permiso' ? t('Falta tu permiso: márcalo en Yo → Tu avatar', 'Your permission is needed: tick it in Me → Your avatar') : st === 403 ? t('El avatar aún está en pruebas', 'The avatar is still being tested')
   : e === 'tope' ? (puesto ? t('Por hoy ya no quedan más. Vuelve mañana', 'No more for today. Come back tomorrow') : t('Por hoy ya has creado tres avatares. Vuelve mañana', 'You’ve created three avatars today. Come back tomorrow'))
   : e === 'tope-mes' ? t('Este mes ya no quedan. Vuelve el mes que viene', 'None left this month. Come back next month')
   : st === 401 ? t('Entra en tu cuenta', 'Sign in') : t('No ha salido bien. Prueba otra vez', 'It didn’t work. Try again');
+// 10/11: si el servidor aún no tiene apuntado el permiso del avatar (se dio sin conexión), se le manda y se prueba una vez más
+async function apiAvatar(ruta, fd) {
+  let r = await api(ruta, { method: 'POST', body: fd, tiempo: 150000 });
+  if (r.status === 403 && (await r.clone().json().catch(() => ({}))).error === 'permiso' && permiso('avatar') && await permisoAlServidor('avatar')) r = await api(ruta, { method: 'POST', body: fd, tiempo: 150000 });
+  return r;
+}
 async function crearAvatar(nota) {
   const pf = E.perfil || {}; if (avatarEnCurso) return;
   if (!cuenta()) return toast(t('Entra en tu cuenta para crear tu avatar', 'Sign in to create your avatar'));
   if (!(pf.selfie instanceof Blob) || !(pf.cuerpo instanceof Blob)) return panelDiagFotos();
+  if (!permiso('avatar')) return toast(errorAvatar(403, 'permiso'));
   avatarEnCurso = true; if (E.pantalla === 'yo') pintarYo();
   try {
     const fd = new FormData(); fd.append('cara', await jpegBlanco(pf.selfie), 'cara.jpg'); fd.append('cuerpo', await jpegBlanco(pf.cuerpo), 'cuerpo.jpg');
     const sil = siluetaTxt(); if (sil) fd.append('silueta', sil);
     if (nota?.length && pf.avatar instanceof Blob) { fd.append('nota', nota.join(',')); fd.append('previo', await jpegBlanco(pf.avatar, 768), 'previo.jpg'); } // 09/11: «No me parezco»
-    const r = await api('/api/avatar?que=avatar', { method: 'POST', body: fd, tiempo: 150000 });
+    const r = await apiAvatar('/api/avatar?que=avatar', fd);
     if (!r.ok) { const j = await r.json().catch(() => ({})); return toast(errorAvatar(r.status, j.error)); }
     const fin = await afinarCat(await r.blob()); if (!fin) return toast(errorAvatar(502));
     Object.assign(E.perfil, { avatar: fin.blob, avatarAR: fin.ar, avatarDe: firmaAvatar(), avatarF: new Date().toISOString() });
@@ -3316,10 +3410,8 @@ function panelParecido() {
       if (e.target.closest('#pr-ok')) { const nota = [...cap.querySelectorAll('[data-par][aria-pressed="true"]')].map(x => x.dataset.par); cap.remove(); avatarAbierto = true; crearAvatar(nota); } });
   });
 }
-async function borrarAvatar() {
-  if (!await confirmar(t('¿Borrar tu avatar?', 'Delete your avatar?'), t('Se borra de este móvil, con los looks que te has visto puestos.', 'It is deleted from this phone, with the looks you tried on.'), t('Borrar', 'Delete'))) return;
-  if (E.perfil.avatarSub) api('/api/foto/diag-avatar', { method: 'DELETE' }).catch(() => { });
-  ['avatar', 'avatarAR', 'avatarDe', 'avatarF', 'avatarSub'].forEach(k => delete E.perfil[k]); E.puestos = {}; fijarPuesto(''); await BD.set('puestos', {}); await guardar(); pintarYo();
+async function borrarAvatar() { // 10/11: borrar el avatar es retirar su permiso (casilla 2 de la privacidad: «puedo borrar mi avatar cuando quiera»)
+  if (await retirarPermiso('avatar')) pintarYo();
 }
 // el look puesto: el avatar y hasta 6 prendas (primero lo que se ve más), con la foto de catálogo si la hay; lo ya hecho sale de este móvil sin gastar
 // 07/11 (Gabriela: «quiero que el avatar, cuando se pruebe una ropa, se quede ahí fijo en la opción de avatar, no que desaparezca»): lo último que te pruebas se queda
@@ -3328,7 +3420,8 @@ const ordenPuestos = () => { try { return JSON.parse(LS.get('tc_puestos_orden') 
 function fijarPuesto(k) { LS.set('tc_avatar_fijo', k || null); if (k) LS.set('tc_puestos_orden', JSON.stringify([k, ...ordenPuestos().filter(x => x !== k)].slice(0, 30))); }
 const puestoFijo = () => { const k = LS.get('tc_avatar_fijo'); return k && E.puestos?.[k] instanceof Blob ? k : ''; };
 async function puestoEnMi(ps, como, otra, soloGuardado) {
-  const pf = E.perfil || {}; if (!tieneAvatar()) return { error: t('Primero crea tu avatar en Yo', 'First create your avatar in Me') };
+  const pf = E.perfil || {}; if (!(pf.avatar instanceof Blob)) return { error: t('Primero crea tu avatar en Yo', 'First create your avatar in Me') };
+  if (!permiso('avatar')) return { error: errorAvatar(403, 'permiso') };
   const orden = ['Vestidos', 'Arriba', 'Abajo', 'Abrigo', 'Calzado', 'Bolsos', 'Accesorios'];
   const sel = ps.filter(p => !p.muestra && (p.cat instanceof Blob || p.foto instanceof Blob)).sort((a, b) => orden.indexOf(a.tipo) - orden.indexOf(b.tipo)).slice(0, 6);
   if (!sel.length) return { error: t('Este look aún no tiene fotos', 'This look has no photos yet') };
@@ -3341,7 +3434,7 @@ async function puestoEnMi(ps, como, otra, soloGuardado) {
     for (const [i, p] of sel.entries()) fd.append('p' + i, await jpegBlanco(p.cat instanceof Blob ? p.cat : p.foto, 768), `p${i}.jpg`);
     fd.append('nombres', JSON.stringify(sel.map(p => p.nombre || ''))); if (como) fd.append('como', como);
     if (pf.selfie instanceof Blob) fd.append('cara', await jpegBlanco(pf.selfie, 768), 'cara.jpg'); // 09/11 (Gabriela: «mejorar un poco más el parecido»): la cara de verdad, para que no se pierda
-    const r = await api('/api/avatar?que=puesto' + (otra ? '&otra=1' : ''), { method: 'POST', body: fd, tiempo: 150000 });
+    const r = await apiAvatar('/api/avatar?que=puesto' + (otra ? '&otra=1' : ''), fd);
     if (!r.ok) { const j = await r.json().catch(() => ({})); return { error: errorAvatar(r.status, j.error, true) }; }
     const fin = await afinarCat(await r.blob()); if (!fin) return { error: errorAvatar(502) };
     const ks = Object.keys(E.puestos), ord = ordenPuestos(); if (ks.length >= 30) delete E.puestos[ks.find(x => x !== k && !ord.includes(x)) || ord.filter(x => x !== k).pop() || ks[0]]; // fuera el que hace más que no te pruebas
@@ -3365,14 +3458,17 @@ function tarjetaAvatar() {
   const txt = avatarEnCurso ? t('Creando tu avatar… tarda unos 30 segundos.', 'Creating your avatar… it takes about 30 seconds.')
     : av ? (viejas ? t('Tus fotos han cambiado.', 'Your photos have changed.') : t(`En Hoy, toca ${IC_PUESTO} para verte el look puesto.`, `In Today, tap ${IC_PUESTO} to see the look on you.`))
     : fotos ? t('Con tus dos fotos, para verte los looks puestos.', 'From your two photos, to see the looks on you.') : t('Con una foto de tu cara y otra de cuerpo entero.', 'From a photo of your face and a full-body one.');
+  const perm = permiso('avatar'), cas = !perm && !avatarEnCurso && fotos ? casillaPermiso('avatar') : '';
   const bot = avatarEnCurso ? '' : av ? `<div class="av-acc"><button class="at-enlace" data-avatar="crear">${t('Rehacer', 'Redo')}</button><button class="at-enlace" data-avatar="borrar">${t('Borrar', 'Delete')}</button></div>`
-    : `<button class="at-btn" data-${fotos ? 'avatar="crear"' : 'diag="fotos"'}>${fotos ? t('Crear mi avatar', 'Create my avatar') : t('Añadir mis fotos', 'Add my photos')}</button>`;
-  return `<section class="av-tarjeta${avatarEnCurso ? ' creando' : ''}" aria-busy="${avatarEnCurso}"><h2 class="es-tit">${t('Tu avatar', 'Your avatar')}</h2>${img}<p class="av-p">${txt}</p>${bot}
-    ${!av && fotos && !avatarEnCurso ? `<p class="av-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Tus fotos se envían una vez para crearlo. El avatar se guarda en tu cuenta, privado.', 'Your photos are sent once to create it. The avatar is kept in your account, private.') : t('Tus fotos se envían una vez para crearlo y no se guardan. El avatar se queda en tu móvil.', 'Your photos are sent once to create it and are not stored. The avatar stays on your phone.')}</p>` : ''}</section>`;
+    : `<button class="at-btn" data-${fotos ? 'avatar="crear"' : 'diag="fotos"'} ${fotos && !perm ? 'disabled' : ''}>${fotos ? t('Crear mi avatar', 'Create my avatar') : t('Añadir mis fotos', 'Add my photos')}</button>`;
+  return `<section class="av-tarjeta${avatarEnCurso ? ' creando' : ''}" aria-busy="${avatarEnCurso}"><h2 class="es-tit">${t('Tu avatar', 'Your avatar')}</h2>${img}<p class="av-p">${txt}</p>${cas}${bot}
+    ${!av && fotos && !avatarEnCurso && perm ? `<p class="av-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Tus fotos se envían una vez para crearlo. El avatar se guarda en tu cuenta, privado.', 'Your photos are sent once to create it. The avatar is kept in your account, private.') : t('Tus fotos se envían una vez para crearlo y no se guardan. El avatar se queda en tu móvil.', 'Your photos are sent once to create it and are not stored. The avatar stays on your phone.')}</p>` : ''}</section>`;
 }
 document.addEventListener('toggle', e => { if (!e.target.classList?.contains('av-des')) return; avatarAbierto = e.target.open;
   // 08/11 (Gabriela: «cuando doy en plegar el avatar la página no baja»): al plegar, la página encoge mucho de golpe y Safari se quedaba sin poder desplazarse; se recoloca la posición y se deja la fila del avatar a la vista
   if (!e.target.open) requestAnimationFrame(() => { const p = e.target.closest('.pantalla'); if (p) p.scrollTop = Math.max(0, Math.min(p.scrollTop, p.scrollHeight - p.clientHeight)); e.target.scrollIntoView({ block: 'center' }); }); }, true);
+document.addEventListener('change', async e => { const ck = e.target.closest?.('[data-permiso="avatar"]'); if (!ck) return; // 10/11: la casilla 2, en la tarjeta del avatar
+  if (ck.checked) { await ponerPermiso('avatar', true); avatarAbierto = true; } if (E.pantalla === 'yo') pintarYo(); });
 document.addEventListener('click', e => { const b = e.target.closest('[data-avatar]'); if (!b) return; const k = b.dataset.avatar;
   if (k === 'crear') crearAvatar(); else if (k === 'parecido') panelParecido(); else if (k === 'borrar') borrarAvatar(); else if (k === 'ver' && tieneAvatar()) { const kf = puestoFijo(); verFoto([{ src: URL.createObjectURL(kf ? E.puestos[kf] : E.perfil.avatar), alt: t('Tu avatar', 'Your avatar') }]); }
   else if (k === 'fijar') { fijarPuesto(b.dataset.k); avatarAbierto = true; const c = b.closest('.av-tarjeta'); if (c) c.outerHTML = tarjetaAvatar(); } });
@@ -3394,7 +3490,10 @@ function panelDiagFotos() {
     : `<label class="dx-foto dx-sin"><span class="dx-caja"><svg aria-hidden="true"><use href="#${ic}"/></svg><b>${tit}</b><small>${t('Opcional', 'Optional')}</small></span><span class="dx-acc">${t('Añadir', 'Add')}</span><input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label>`;
   const consejos = [[t('Tu cara', 'Your face'), [t('De frente', 'Facing the camera'), t('Con luz de día', 'In daylight'), t('Sin filtros ni gafas', 'No filters or glasses'), t('El pelo suelto', 'Hair down')]],
     [t('Cuerpo entero', 'Full body'), [t('De pie y de frente', 'Standing, facing the camera'), t('Con ropa ajustada', 'In fitted clothes'), t('Los brazos un poco separados', 'Arms slightly away from your body'), t('Si salen los pies, mido también tus piernas', 'If your feet show, I also measure your legs')]]];
+  const pd = permiso('diag');
   abrirPanel(t('Tus medidas y tus fotos', 'Your measurements and photos'), `<div class="dx">
+    <section class="dx-sec dx-perm">${casillaPermiso('diag', 'pm-diag')}</section>
+    <fieldset class="dx-bloq" ${pd ? '' : 'disabled'} aria-describedby="pm-diag-nota">${pd ? '' : `<p class="dx-nota" id="pm-diag-nota">${t('Marca el permiso para apuntar tus medidas y añadir tus fotos.', 'Tick the permission to enter your measurements and add your photos.')}</p>`}
     <section class="dx-sec"><h2 class="dx-h">${t('Tus medidas', 'Your measurements')}</h2>${FIG_MED}
       <div class="dx-campos dos">${campo('altura', t('Altura', 'Height'), 'cm')}${campo('peso', t('Peso', 'Weight'), 'kg')}</div>
       <div class="dx-campos tres">${campo('pecho', t('Pecho', 'Bust'), 'cm')}${campo('cintura', t('Cintura', 'Waist'), 'cm')}${campo('cadera', t('Cadera', 'Hips'), 'cm')}</div>
@@ -3404,10 +3503,11 @@ function panelDiagFotos() {
       <div class="dx-fotos">${foto('selfie', t('Tu cara', 'Your face'), 'ic-camara')}${foto('cuerpo', t('Cuerpo entero', 'Full body'), 'ic-cuerpo')}</div>
       <details class="dx-mas"><summary>${t('Cómo hacer las fotos', 'How to take the photos')}</summary><div class="dx-cons">${consejos.map(([h, l]) => `<div><h3>${h}</h3><ul>${l.map(x => `<li>${IC_BIEN}${x}</li>`).join('')}</ul></div>`).join('')}</div></details></section>
     <div class="dg-estado" id="dg-estado" aria-live="polite"></div>
-    <button class="boton dx-boton" id="dg-analizar" ${pf.selfie || pf.cuerpo || firmaMed() ? '' : 'disabled'}>${t('Analizar', 'Analyse')}</button>
-    ${cuenta() ? `<label class="dx-cuenta"><input type="checkbox" id="dg-cuenta" ${pf.fotosCuenta ? 'checked' : ''}><span>${t('Guardar mis fotos en mi cuenta', 'Keep my photos in my account')}</span></label>` : ''}
+    <button class="boton dx-boton" id="dg-analizar" ${pd && (pf.selfie || pf.cuerpo || firmaMed()) ? '' : 'disabled'}>${t('Analizar', 'Analyse')}</button></fieldset>
+    ${cuenta() ? `<label class="pm-cas dx-cuenta-cas"><input type="checkbox" id="dg-cuenta" ${pf.fotosCuenta ? 'checked' : ''}><span>${t(...PERMISOS.fotos)}</span></label>` : ''}
     <p class="dx-priv" id="dg-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer') : t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`, cap => {
     setTimeout(preguntarFotosCuenta, 600);
+    cap.querySelector('#pm-diag').onchange = async e => { const ck = e.target; if (await cambiarPermisoDiag(ck)) { panelDiagFotos(); if (E.pantalla === 'yo') pintarYo(); } };
     const ck = cap.querySelector('#dg-cuenta'); if (ck) ck.onchange = async () => { await fotosEnCuenta(ck.checked); cap.querySelector('#dg-priv').innerHTML = IC_CANDADO + (ck.checked ? t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer') : t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')); };
     const LIM = { altura: [120, 220], peso: [30, 250], pecho: [60, 170], cintura: [45, 170], cadera: [60, 180] }; let medT = 0;
     cap.querySelectorAll('[data-med]').forEach(inp => {
@@ -3424,10 +3524,10 @@ function panelDiagFotos() {
           : t('Revisa esa cifra: parece demasiado grande.', 'Check that number: it looks too large.');
         if (!ok) return;
         E.perfil = E.perfil || {}; const m = { ...(E.perfil.medidas || {}) }; if (txt) m[k] = v; else delete m[k]; E.perfil.medidas = m;
-        clearTimeout(medT); medT = setTimeout(guardar, 400); $('dg-analizar').disabled = !(E.perfil.selfie || E.perfil.cuerpo || firmaMed());
+        clearTimeout(medT); medT = setTimeout(guardar, 400); $('dg-analizar').disabled = !(permiso('diag') && (E.perfil.selfie || E.perfil.cuerpo || firmaMed()));
       };
     });
-    cap.querySelectorAll('[data-dgfoto]').forEach(inp => inp.onchange = async () => { const f = inp.files?.[0]; if (!f) return; try { const r = await procesarFoto(f); E.perfil = E.perfil || {}; E.perfil[inp.dataset.dgfoto] = r.blob; await guardar(); panelDiagFotos(); setTimeout(preguntarFotosCuenta, 400); } catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); } });
+    cap.querySelectorAll('[data-dgfoto]').forEach(inp => inp.onchange = async () => { const f = inp.files?.[0]; if (!f || !permiso('diag')) return; try { const r = await procesarFoto(f); E.perfil = E.perfil || {}; E.perfil[inp.dataset.dgfoto] = r.blob; await guardar(); panelDiagFotos(); setTimeout(preguntarFotosCuenta, 400); } catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); } });
     $('dg-analizar').onclick = async () => {
       const b = $('dg-analizar'), est = $('dg-estado'); b.disabled = true;
       try { const { res, R } = await hacerDiagnostico(x => { est.textContent = x; });
@@ -3502,7 +3602,7 @@ async function panelDiag(pendientes = [], tab) {
     <div class="dx-panel" role="tabpanel" id="dxp-color" aria-labelledby="dxt-color" ${tab === 'color' ? '' : 'hidden'}>${col}</div>
     <div class="dx-panel" role="tabpanel" id="dxp-silueta" aria-labelledby="dxt-silueta" ${tab === 'silueta' ? '' : 'hidden'}>${sil}</div>
     ${!pro && (c || b) ? `<p class="dx-nota">${t('Con el Pro, tus looks usan también tu silueta y ves qué prendas de tu clóset te favorecen.', 'With Pro, your looks also use your figure and you see which of your clothes suit you.')}</p>` : ''}
-    <p class="dx-priv">${IC_CANDADO}${t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`;
+    <p class="dx-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer') : t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`;
   abrirPanel(t('Tu diagnóstico', 'Your analysis'), html, cap => cap.addEventListener('click', e => {
     const tb = e.target.closest('[data-dxtab]');
     if (tb) { const k = tb.dataset.dxtab; cap.querySelectorAll('[data-dxtab]').forEach(x => x.setAttribute('aria-selected', x === tb)); cap.querySelectorAll('.dx-panel').forEach(p => { p.hidden = p.id !== 'dxp-' + k; }); cap.querySelector('.pn-cuerpo')?.scrollTo?.({ top: 0 }); return; }
@@ -3545,7 +3645,7 @@ function pintarYo() {
   const sil = pf.selfie && pf.cuerpo ? t('fotos listas', 'photos ready') : pf.selfie || pf.cuerpo ? t('falta una foto', 'one photo missing') : t('por descubrir', 'to discover');
   const ests = (pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean), colO = pf.colores?.est ? EST_COLOR[pf.colores.est] : null;
   const ent = (attr, tit, val) => `<button class="y3-a" ${attr}>${tit}<small>${val}</small></button>`;
-  const dg = pf.diag, pend = diagPendiente() && !diagFallo, mira = (k, f) => dg?.[k] ? min(dg[k].n[es]) : pf[f] ? (pend ? t('analizando…', 'analysing…') : t('prueba otra foto', 'try another photo')) : t('falta la foto', 'photo missing');
+  const dg = pf.diag, pend = diagPendiente() && !diagFallo, mira = (k, f) => dg?.[k] ? min(dg[k].n[es]) : !permiso('diag') && (pf[f] || pf.diagEspera) ? t('falta tu permiso', 'needs your OK') : pf[f] ? (pend ? t('analizando…', 'analysing…') : t('prueba otra foto', 'try another photo')) : t('falta la foto', 'photo missing');
   $('yo-lista').innerHTML = ent(dg?.cuerpo || pf.cuerpo ? 'data-diag="ver-silueta"' : 'data-diag="fotos"', t('Mi silueta', 'My figure'), mira('cuerpo', 'cuerpo'))
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? (ests.length > 2 ? ests.slice(0, 2).map(min).join(', ') + ` +${ests.length - 2}` : ests.map(min).join(t(' y ', ' and '))) : t('elígelo', 'choose it'))
     + ent(dg?.color || pf.selfie ? 'data-diag="ver-color"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
@@ -3598,10 +3698,14 @@ async function guardarAlta() {
   await guardar(); cargarTiempo(true); ir('silueta');
 }
 function pintarSilueta() {
-  const pf = E.perfil || {};
-  [['selfie', 'l-selfie'], ['cuerpo', 'l-cuerpo']].forEach(([k, id]) => { const l = $(id); const bl = pf[k]; l.classList.toggle('hecho', !!bl); l.querySelectorAll('img,i').forEach(x => x.remove()); if (bl) { const im = document.createElement('img'); im.src = URL.createObjectURL(bl); l.prepend(im); const i = document.createElement('i'); i.textContent = '✓'; l.append(i); } });
+  const pf = E.perfil || {}, pd = permiso('diag'), ap = $('ac-perm');
+  if (ap) { ap.innerHTML = casillaPermiso('diag', 'pm-diag-alta'); ap.querySelector('input').onchange = async e => { await cambiarPermisoDiag(e.target); pintarSilueta(); }; }
+  ['f-selfie', 'f-cuerpo'].forEach(id => { const i = $(id), l = i?.closest('label'); if (!i) return; i.disabled = !pd; l.classList.toggle('bloq', !pd); // 10/11: las fotos, con el permiso
+    l.onclick = () => { if (!permiso('diag')) toast(t('Marca antes el permiso de debajo', 'First tick the permission below')); }; });
+  [['selfie', 'l-selfie'], ['cuerpo', 'l-cuerpo']].forEach(([k, id]) => { const l = $(id); const bl = pf[k]; l.classList.toggle('hecho', !!bl); l.querySelectorAll('img,i').forEach(x => x.remove()); if (bl) { const im = document.createElement('img'); im.alt = ''; im.src = URL.createObjectURL(bl); l.prepend(im); const i = document.createElement('i'); i.textContent = '✓'; l.append(i); } });
 }
 async function guardarFotoPerfil(k, file) {
+  if (!permiso('diag')) return toast(t('Marca antes el permiso de debajo', 'First tick the permission below'));
   try { const r = await procesarFoto(file); E.perfil = E.perfil || {}; E.perfil[k] = r.blob; await guardar(); pintarSilueta(); toast(k === 'selfie' ? t('Selfie guardada', 'Selfie saved') : t('Foto de cuerpo guardada', 'Body photo saved'));
     // 0.12: con las dos fotos del alta, el diagnóstico se hace solo, por detrás («no son cosas aisladas, las fotos del inicio con las opciones que pones en Yo»)
     diagFallo = 0; diagHastaAlDia().then(r => { if (E.pantalla === 'cuerpo') pintarCuerpo(); if (r && (r.res.color || r.res.cuerpo)) toast(t('Listo: tus colores y tu tipo de cuerpo están en Yo', 'Done: your colours and body type are in Me')); }); }
@@ -3750,6 +3854,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   // 09/11: contador de visitas por red (parámetro común de la coordinación de marketing). Se manda una vez y se quita «o» de la dirección: al recargar no cuenta otra vez y no se guarda nada en el móvil
   try { const q = new URLSearchParams(location.search), o = (q.get('o') || '').toLowerCase(); if (q.has('o') && window.top === window) { q.delete('o'); history.replaceState(history.state, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); if (/^[a-z0-9-]{1,24}$/.test(o)) { ORIGEN = o; api('/api/visita', { method: 'POST', json: { o }, tiempo: 10000 }).catch(() => { }); } } } catch (e) { }
   E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {};
+  if (aplicarRetiradas() | diagAEspera()) await BD.set('perfil', E.perfil).catch(() => { }); // 10/11: sin el permiso del diagnóstico, su resultado queda aparte
   E.puestos = (await BD.get('puestos').catch(() => null)) || {};
   try { navigator.storage?.persist?.(); } catch (e) { }
   if (E.perfil?.estilos?.some(k => ESTILO_VIEJO[k])) E.perfil.estilos = [...new Set(E.perfil.estilos.map(k => ESTILO_VIEJO[k] || k))]; // 0.52: los 6 estilos viejos pasan a los 13 // 0.45: que el navegador no borre el clóset para hacer sitio
