@@ -614,3 +614,7 @@ html.at .at-dentro { opacity: 0; transition: opacity .3s ease .15s; }
 html.at .tabs button.activo .at-pi, html.at .tabs button.activo .at-pd { transform: scaleX(-.6); } /* 11/11: a -.34 las puertas se leían como bandas macizas y el icono parecía una bolsa */
 html.at .tabs button.activo .at-dentro { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { html.at .at-puerta, html.at .at-dentro { transition: none; } }
+/* 11/11: nombre del color elegido debajo de las muestras (Editar, Subir y Antes de comprar) */
+html.at .col-nom { margin: 8px 0 0; font-size: 13px; letter-spacing: .02em; color: var(--sec); }
+html.at .colores .col-nom { flex-basis: 100%; margin: 2px 0 0; }
+html.at .colores .col-nom, html.at #s-raiz .ops.col + .col-nom { text-align: center; }

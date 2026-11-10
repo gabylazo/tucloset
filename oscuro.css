@@ -848,6 +848,7 @@ html.oscuro .pm-cas input:checked{background:var(--tinta)}
 html.oscuro .pm-cas input:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
 html.oscuro .dx-perm{border-bottom:1px solid var(--linea)}
 html.oscuro .dx-bloq{border:0}
+html.oscuro .col-nom{color:var(--sec)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}
@@ -1063,6 +1064,7 @@ html.at.oscuro #s-raiz .uno .ops.col button,html.at.oscuro .colores button,html.
 html.at.oscuro #s-raiz .uno .ops.col button.on,html.at.oscuro .colores button.sel,html.at.oscuro .at-cm-col button.on{outline:2px solid var(--tinta);outline-offset:3px}
 html.at.oscuro .at-par-par + .at-par-par{border-top:1px solid var(--linea, rgba(241,233,222, .12))}
 html.at.oscuro .at-par-por{color:var(--sec)}
+html.at.oscuro .col-nom{color:var(--sec)}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz

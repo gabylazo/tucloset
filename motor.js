@@ -14,7 +14,7 @@ const Motor = (() => {
   const DEPORTE_RE = /(^|[^a-z0-9])(deporte|deportiv|tenis|padel|running|yoga|pilates|gimnasio|gym|fitness|entreno|entrenamiento)/;
   const A_DEPORTE = { falda_mini: 'falda_deportiva', falda_midi: 'falda_deportiva', falda_plisada: 'falda_deportiva', falda_generica: 'falda_deportiva', camiseta: 'camiseta_tecnica', camiseta_tirantes: 'top_deportivo', top: 'top_deportivo', top_corto: 'top_deportivo', chaqueta: 'chaqueta_deportiva', pantalon_generico: 'jogger' };
   const SUB_EST = { pantalon_de_vestir: 'pantalon_vestir', camiseta_sin_mangas: 'camiseta_tirantes' }; // el vocabulario de la ficha de la estilista (28/10)
-  const COLOR_FINO = ['Mostaza', 'Burdeos', 'Terracota', 'Camel', 'Crema', 'Caqui']; // si el nombre lo dice, manda sobre el color general de la app («body mostaza» guardado como Amarillo)
+  const COLOR_FINO = ['Mostaza', 'Burdeos', 'Terracota', 'Camel', 'Crema', 'Caqui', 'Verde menta', 'Verde salvia', 'Verde oliva', 'Verde botella', 'Azul marino', 'Azul petróleo', 'Azul eléctrico', 'Turquesa', 'Fucsia', 'Coral', 'Chocolate', 'Antracita', 'Nude', 'Melocotón', 'Mantequilla']; // 11/11: más colores (sin Dorado ni Plateado: «bolso con cadena dorada» sigue siendo del color del bolso) // si el nombre lo dice, manda sobre el color general de la app («body mostaza» guardado como Amarillo)
   const VOL = { ajuste: { regular: 1 }, corte: {} };
   const CONTRARIOS = [['minimalista', 'eclectico'], ['oldmoney', 'urbano'], ['glam', 'casual']];
   // los zapatos de muestra de la app (prototipo/app/zapatos/): solo salen si la usuaria no ha subido ninguno
@@ -257,11 +257,11 @@ const Motor = (() => {
     s -= Math.abs((z.form ?? 3) - media) * .15;
     if (pf.tacon_num != null && z.tacon_num > pf.tacon_num) s -= .6;
     if (B?.corte === 'acampanado') s += z.tacon === 'plano' ? -1 : .5;
-    if (z.color === 'Negro' && ['Negro', 'Gris', 'Azul'].some(x => cols.has(x))) s += .4;
+    if (z.color === 'Negro' && ['Negro', 'Gris', 'Azul', 'Antracita', 'Azul marino'].some(x => cols.has(x))) s += .4;
     const V = B || l.vestido?._f; if (V && z.color === V.color) s += .1; if (Math.abs((z.form ?? 3) - media) <= 1) s += .1; // tono sobre tono y mismo registro (Moda, 06/11)
     if (z.color === 'Blanco') { if ((denim || cols.has('Gris') || cols.has('Blanco')) && media < 3) s += .45; if (media >= 3) s -= .3; if (ctx.lluvia) s -= .3; }
-    if (['Marrón', 'Camel'].includes(z.color)) { if (fam.has('tierra') || denim || cols.has('Azul')) s += .4; if (cols.has('Negro')) s -= .3; }
-    if (z.color === 'Beige' && fam.has('tierra')) s += .2;
+    if (['Marrón', 'Camel', 'Chocolate'].includes(z.color)) { if (fam.has('tierra') || denim || cols.has('Azul') || cols.has('Azul marino')) s += .4; if (cols.has('Negro')) s -= .3; }
+    if (['Beige', 'Nude'].includes(z.color) && fam.has('tierra')) s += .2;
     if (ctx.t_ref >= 26 && z.abierto) s += .2;
     for (const [k, v] of Object.entries(h?.pref || {})) if (v.includes(z[k])) s += .1;
     return s - (c.p?.usos?.length || 0) * .002;

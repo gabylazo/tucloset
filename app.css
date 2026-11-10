@@ -1768,3 +1768,6 @@ html.oscuro .pn-error{color:#E8776B}
 .ac-fotos label.bloq{opacity:.4;cursor:default}
 .av-tarjeta .pm-cas{margin-top:12px}
 .av-tarjeta .at-btn:disabled{opacity:.4;cursor:default}
+/* 11/11 (Sheila, mensaje 1996): con 39 colores, el nombre del elegido sale debajo de las muestras */
+.col-nom{margin:8px 0 0;font-size:13px;color:var(--sec)}
+.colores .col-nom{flex-basis:100%;margin:2px 0 0}

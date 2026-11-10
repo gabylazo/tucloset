@@ -75,7 +75,13 @@ const hoyISO = () => new Date().toISOString().slice(0, 10);
 const TIPOS = ['Arriba', 'Abajo', 'Vestidos', 'Abrigo', 'Calzado', 'Bolsos', 'Accesorios'];
 const ESTACIONES = ['Todo el año', 'Verano', 'Entretiempo', 'Invierno'];
 const OCASIONES = ['Diario', 'Oficina', 'Noche', 'Deporte', 'Evento', 'Viaje'];
-const COLORES = [['Negro', '#1B1B1B'], ['Blanco', '#F4F4F4'], ['Gris', '#8E8E8E'], ['Beige', '#D8C7A8'], ['Crema', '#F1E8D6'], ['Camel', '#B98A4F'], ['Marrón', '#6B4A2B'], ['Rojo', '#B4332E'], ['Burdeos', '#6E1F2B'], ['Rosa', '#E6B4BC'], ['Naranja', '#D97B3A'], ['Terracota', '#B8603F'], ['Amarillo', '#E1C04A'], ['Mostaza', '#C9962B'], ['Verde', '#4E7A4A'], ['Caqui', '#8A8358'], ['Azul claro', '#8FB2CC'], ['Azul', '#2F4E7A'], ['Morado', '#6E4C86'], ['Lila', '#B9A3CF'], ['Estampado', 'repeating-linear-gradient(45deg,#C9A24B 0 6px,#fff 6px 12px)']];
+const COLORES = [['Negro', '#1B1B1B'], ['Antracita', '#3B3D42'], ['Gris', '#8E8E8E'], ['Gris claro', '#C8C8C6'], ['Blanco', '#F4F4F4'], ['Crema', '#F1E8D6'], ['Beige', '#D8C7A8'], ['Nude', '#E2C2A6'], ['Camel', '#B98A4F'], ['Marrón', '#6B4A2B'], ['Chocolate', '#4A2E1F'],
+  ['Rojo', '#B4332E'], ['Burdeos', '#6E1F2B'], ['Rosa', '#E6B4BC'], ['Fucsia', '#C8217A'], ['Coral', '#EE7766'], ['Melocotón', '#F3BE9E'], ['Naranja', '#D97B3A'], ['Terracota', '#B8603F'], ['Mostaza', '#C9962B'], ['Amarillo', '#E1C04A'], ['Mantequilla', '#F2E3A2'],
+  ['Verde menta', '#A9DCC3'], ['Verde salvia', '#9DAE8C'], ['Verde', '#4E7A4A'], ['Verde oliva', '#5F6436'], ['Caqui', '#8A8358'], ['Verde botella', '#1E4A34'], ['Azul claro', '#8FB2CC'], ['Turquesa', '#26A69A'], ['Azul eléctrico', '#2B54D6'], ['Azul', '#2F4E7A'], ['Azul petróleo', '#1D5260'], ['Azul marino', '#1F2B47'],
+  ['Lila', '#B9A3CF'], ['Morado', '#6E4C86'], ['Dorado', '#C6A24E'], ['Plateado', '#BFC1C6'], ['Estampado', 'repeating-linear-gradient(45deg,#C9A24B 0 6px,#fff 6px 12px)']];
+// 11/11 (Sheila, mensaje 1996: «una gama de colores más actual… quiero actualizar la prenda con verde menta y no me deja»): de 21 a 39, por familias; el nombre sale al elegir
+const COLOR_EN = { Negro: 'Black', Antracita: 'Charcoal', Gris: 'Grey', 'Gris claro': 'Light grey', Blanco: 'White', Crema: 'Cream', Beige: 'Beige', Nude: 'Nude', Camel: 'Camel', Marrón: 'Brown', Chocolate: 'Chocolate', Rojo: 'Red', Burdeos: 'Burgundy', Rosa: 'Pink', Fucsia: 'Fuchsia', Coral: 'Coral', Melocotón: 'Peach', Naranja: 'Orange', Terracota: 'Terracotta', Mostaza: 'Mustard', Amarillo: 'Yellow', Mantequilla: 'Butter yellow', 'Verde menta': 'Mint green', 'Verde salvia': 'Sage green', Verde: 'Green', 'Verde oliva': 'Olive green', Caqui: 'Khaki', 'Verde botella': 'Bottle green', 'Azul claro': 'Light blue', Turquesa: 'Turquoise', 'Azul eléctrico': 'Electric blue', Azul: 'Blue', 'Azul petróleo': 'Teal', 'Azul marino': 'Navy', Lila: 'Lilac', Morado: 'Purple', Dorado: 'Gold', Plateado: 'Silver', Estampado: 'Print' };
+const nomColor = c => idioma() === 'en' ? COLOR_EN[c] || c : c;
 
 /* ---------- idioma ---------- */
 const T = {
@@ -716,9 +722,9 @@ function colorCercano(r, g, b) { // nombre del color por tono, saturación y luz
   if (h >= 30 && h < 42 && sat > .75 && l > .18 && l < .6) return l < .5 ? 'Mostaza' : 'Amarillo';
   if (h < 42) return sat > .55 && l > .35 && l < .7 ? 'Naranja' : l < .32 ? 'Marrón' : l > .6 ? 'Beige' : 'Camel';
   if (h < 68) return sat > .45 && l < .8 ? (l < .47 ? 'Mostaza' : 'Amarillo') : l < .5 ? 'Caqui' : 'Beige';
-  if (h < 170) return h < 110 && sat < .35 && l < .55 ? 'Caqui' : 'Verde';
-  if (h < 255) return l > .55 || sat < .35 ? 'Azul claro' : 'Azul';
-  return l < .55 ? 'Morado' : h < 300 ? 'Lila' : 'Rosa';
+  if (h < 170) return h < 110 && sat < .35 && l < .55 ? 'Caqui' : l > .7 && h > 120 ? 'Verde menta' : l < .25 ? 'Verde botella' : 'Verde'; // 11/11: colores nuevos
+  if (h < 255) return l > .55 || sat < .35 ? 'Azul claro' : l < .25 ? 'Azul marino' : 'Azul';
+  return l < .55 ? (h >= 300 && sat > .5 && l > .3 ? 'Fucsia' : 'Morado') : h < 300 ? 'Lila' : 'Rosa';
 }
 
 /* ---------- estilo de la app, plan de demostración, color del conjunto y maniquí ---------- */
@@ -1351,7 +1357,7 @@ const estacionesAptas = () => { const tmp = E.tiempo?.t; if (tmp == null) return
    (2) estilo: no mezclar deportivo con noche (zapatillas con vestido de fiesta); (3) el calzado y el bolso se eligen para cada conjunto
    (neutros, del mismo tono o del color del conjunto); (4) abrigo si hace frío; (5) que salga lo que menos te pones;
    (6) en el Pro, con tu tipo de cuerpo, se ordenan primero los que te favorecen. */
-const NEUTROS = new Set(['Negro', 'Blanco', 'Gris', 'Beige', 'Crema', 'Camel', 'Marrón', 'Caqui', 'Azul claro', 'Azul']);
+const NEUTROS = new Set(['Negro', 'Blanco', 'Gris', 'Beige', 'Crema', 'Camel', 'Marrón', 'Caqui', 'Azul claro', 'Azul', 'Antracita', 'Gris claro', 'Nude', 'Chocolate', 'Azul marino', 'Verde oliva', 'Dorado', 'Plateado']);
 const CASAN = new Set(['Rosa|Azul claro', 'Rosa|Gris', 'Rojo|Azul', 'Rojo|Azul claro', 'Amarillo|Azul', 'Amarillo|Azul claro', 'Naranja|Azul', 'Verde|Camel', 'Verde|Beige', 'Morado|Gris', 'Rosa|Rojo', 'Verde|Azul claro', 'Rosa|Verde']);
 const CHOCAN = new Set(['Rojo|Naranja', 'Rojo|Verde', 'Morado|Amarillo', 'Morado|Naranja', 'Naranja|Rosa', 'Amarillo|Rosa', 'Rojo|Morado', 'Naranja|Verde']);
 const par = (a, b) => [a, b].sort().join('|');
@@ -2024,7 +2030,7 @@ E.f = { ocasion: [], estacion: [], color: [], uso: [], estado: [] };
 const FILTROS = () => [
   ['ocasion', t('Ocasión', 'Occasion'), OCASIONES.map(o => [o, ocNombre(o)])],
   ['estacion', t('Estación', 'Season'), ESTACIONES.map(x => [x, x])],
-  ['color', 'Color', COLORES.map(([n, c]) => [n, c])],
+  ['color', 'Color', COLORES.filter(([n]) => E.f.color.includes(n) || E.prendas.some(p => p.color === n)).map(([n, c]) => [n, c])], // 11/11: solo los colores de tu ropa (con 39, todos eran demasiados)
   ['uso', t('Uso', 'Use'), [['nueva', t('Sin estrenar', 'Never worn')], ['olvidada', t('Sin poner en 3 meses', 'Not worn in 3 months')], ['mas', t('Las que más uso', 'Most worn')]]],
   ['estado', t('Estado', 'Status'), [['', t('Lista para poner', 'Ready to wear')], ['lavar', t('Sucia', 'In the wash')], ['guardada', t('Guardada', 'Stored')]]]
 ];
@@ -2060,7 +2066,7 @@ function pintarCloset() {
 }
 function pintarFiltros() {
   $('mc-grupos').innerHTML = FILTROS().map(([k, tit, ops]) => `<div class="mc-gr"><p class="mini-et">${tit}</p><div class="mc-ops">${ops.map(([v, txt]) => k === 'color'
-    ? `<button class="sw ${E.f.color.includes(v) ? 'on' : ''}" data-fil="${k}|${v}" title="${v}" style="background:${txt}"></button>`
+    ? `<button class="sw ${E.f.color.includes(v) ? 'on' : ''}" data-fil="${k}|${v}" title="${nomColor(v)}" aria-label="${nomColor(v)}" aria-pressed="${E.f.color.includes(v)}" style="background:${txt}"></button>`
     : `<button class="${E.f[k].includes(v) ? 'on' : ''}" data-fil="${k}|${v}">${txt}</button>`).join('')}</div>${k === 'ocasion' ? `<small>${t('según el tipo de prenda y tus looks', 'from the garment type and your looks')}</small>` : ''}</div>`).join('');
   const n = E.prendas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && pasaFiltros(p)).length;
   $('mc-ver').textContent = n === 1 ? t('Ver 1 prenda', 'See 1 garment') : t(`Ver ${n} prendas`, `See ${n} garments`);
@@ -2422,7 +2428,7 @@ const subDe = (cat, x, nombre) => SUBCATS[cat]?.includes(x) ? x : SUBCATS[cat]?.
 const opsCat = sel => CATS_ORDEN.map(c => `<option value="${c}"${c === sel ? ' selected' : ''}>${catTxt(c)}</option>`).join('');
 const opsSub = (cat, sel) => `<option value="">${t('Elige…', 'Choose…')}</option>` + (SUBCATS[cat] || []).map(k => `<option value="${k}"${k === sel ? ' selected' : ''}>${NOM_X[k][idioma() === 'en' ? 1 : 0]}</option>`).join('');
 function adjColor(c, f, pl) {
-  if (['Beige', 'Camel', 'Azul claro'].includes(c)) return c.toLowerCase();
+  if (INVARIABLE.test(c)) return c.toLowerCase(); // «falda crema», «vestidos verde menta» (antes «cremas», «burdeoses»)
   let a = c.toLowerCase(); if (f && /o$/.test(a)) a = a.slice(0, -1) + 'a';
   if (pl) a = /[aeo]$/.test(a) ? a + 's' : a === 'marrón' ? 'marrones' : a + 'es';
   return a;
@@ -2433,7 +2439,7 @@ function nombreReconocido(x, color) {
   if (color === 'Estampado') return `${N[0]} estampad${N[2] === 'f' ? 'a' : 'o'}${N[3] ? 's' : ''}`;
   return `${N[0]} ${adjColor(color, N[2] === 'f', N[3])}`;
 }
-const FEM = c => ({ Negro: 'negra', Blanco: 'blanca', Rojo: 'roja', Amarillo: 'amarilla', Morado: 'morada', Estampado: 'estampada' }[c] || c.toLowerCase());
+const FEM = c => adjColor(c, true);
 const nombreSubida = (it, cat) => cat === 'Faldas' ? (idioma() === 'en' ? `${it.color} skirt` : `Falda ${FEM(it.color)}`) : nombreAuto(it.tipo, it.color);
 // 0.61 (Sheila, 23/10: «debería dar unas reglas básicas para que los usuarios obtengan buenas fotos»)
 const REGLAS_FOTO = [
@@ -2456,7 +2462,7 @@ function avisoSinNube() {
 // 06/11 (Gabriela: «cómo me va a poner estampado solo, hay tantos estampados»): con el color «Estampado», al subir se elige cuál; va al nombre, que es lo que lee el motor
 const ESTAMPADOS = { Rayas: ['de rayas', 'Stripes'], Cuadros: ['de cuadros', 'Checks'], Lunares: ['de lunares', 'Polka dots'], Flores: ['de flores', 'Floral'], Animal: ['animal print', 'Animal print'], Otro: ['estampado', 'Other'] };
 // y de qué color (Gabriela: «además vienen con colores… dos son de rayas azules y rosas»; «un top negro corto de puntos, hay que ser más específico»): «Camisa de rayas azules»
-const INVARIABLE = /^(Beige|Crema|Camel|Burdeos|Mostaza|Caqui|Nude|Terracota)$|\s/; // «rayas azul claro», «cuadros burdeos»
+const INVARIABLE = /^(Beige|Crema|Camel|Burdeos|Mostaza|Caqui|Nude|Terracota|Fucsia|Coral|Turquesa|Chocolate|Antracita|Mantequilla|Melocotón|Lila)$|\s/; // «rayas azul claro», «cuadros burdeos»
 const plColor = (c, fem) => { let pl = PLURAL_COLOR[c] || (INVARIABLE.test(c) ? c.toLowerCase() : /[aeo]$/i.test(c) ? c.toLowerCase() + 's' : c.toLowerCase()); return fem ? pl.replace(/os$/, 'as') : pl; };
 const nomEstampado = (x, e, c2) => `${NOM_X[x][0]} ${ESTAMPADOS[e][0]}${c2 && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(e) ? ' ' + plColor(c2, e === 'Rayas' || e === 'Flores') : ''}`;
 // 06/11 (Gabriela: «hay también piezas de encaje, transparentes… hay que tener ese tipo de detalles»): se marcan al subir; van a la ficha y a las notas (los cuidados las leen)
@@ -2478,9 +2484,9 @@ function pintarSubida() {
       ${listo && det.fondo && !det.dudoso && !(det.cv >= 3) && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso: si el recorte sale con restos, toca «Arreglar foto».', 'The background is not plain: if the cut-out keeps bits of it, tap “Fix photo”.')}</p>${reglasFoto()}` : ''}
       ${listo ? `<input class="nom" value="${det.nombre}" data-snom aria-label="${t('Nombre', 'Name')}">${det.clasP ? `<p class="s-clas" role="status">${t('Afinando el nombre y los detalles…', 'Refining the name and details…')}</p>` : ''}
       <div class="fila2 s-cat"><label class="campo"><span>${t('Categoría', 'Category')}</span><select data-scat>${opsCat(catDe(det))}</select></label><label class="campo"><span>${t('Tipo', 'Type')}</span><select data-ssub>${opsSub(catDe(det), subDe(catDe(det), det.x, det.nombre))}</select></label></div>
-      <div class="gr"><p class="mini-et">${t('Color', 'Colour')}</p><div class="ops col">${COLORES.map(([c, h]) => `<button type="button" class="${c === det.color ? 'on' : ''}" data-scolor="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>
+      <div class="gr"><p class="mini-et">${t('Color', 'Colour')}</p><div class="ops col">${COLORES.map(([c, h]) => `<button type="button" class="${c === det.color ? 'on' : ''}" data-scolor="${c}" title="${nomColor(c)}" aria-label="${nomColor(c)}" aria-pressed="${c === det.color}" style="background:${h}"></button>`).join('')}</div><p class="col-nom">${det.color ? nomColor(det.color) : t('Elige su color', 'Pick its colour')}</p></div>
       ${det.color === 'Estampado' ? `<div class="gr"><p class="mini-et">${t('Estampado', 'Pattern')}</p>${ops(Object.keys(ESTAMPADOS), det.estampado, 'estp', k => t(k, ESTAMPADOS[k][1]))}</div>` : ''}
-      ${det.color === 'Estampado' && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(det.estampado) ? `<div class="gr"><p class="mini-et">${t('Color del estampado', 'Pattern colour')}</p><div class="ops col">${COLORES.filter(([c]) => c !== 'Estampado').map(([c, h]) => `<button type="button" class="${c === det.color2 ? 'on' : ''}" data-scolor2="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>` : ''}
+      ${det.color === 'Estampado' && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(det.estampado) ? `<div class="gr"><p class="mini-et">${t('Color del estampado', 'Pattern colour')}</p><div class="ops col">${COLORES.filter(([c]) => c !== 'Estampado').map(([c, h]) => `<button type="button" class="${c === det.color2 ? 'on' : ''}" data-scolor2="${c}" title="${nomColor(c)}" aria-label="${nomColor(c)}" aria-pressed="${c === det.color2}" style="background:${h}"></button>`).join('')}</div>${det.color2 ? `<p class="col-nom">${nomColor(det.color2)}</p>` : ''}</div>` : ''}
       ${(() => { // 09/11 (decisión 31): si la app ya ha encontrado detalles, plegados con su lista a la vista; si no, abiertos
         const bts = `<div class="ops">${Object.keys(DETALLES).map(k => `<button type="button" class="${(det.detalles || []).includes(k) ? 'on' : ''}" data-sdeta="${k}" aria-pressed="${(det.detalles || []).includes(k)}">${t(k, DETALLES[k])}</button>`).join('')}</div>`;
         if (!det.detalles?.length && !det.detaAbierto) return `<div class="gr"><p class="mini-et">${t('Detalles', 'Details')}</p>${bts}</div>`;
@@ -2583,6 +2589,27 @@ function clasificarSubida(it) {
 const BASES_AUTO = () => [...new Set(['Top', 'Pantalón', 'Zapatos', 'Vestido', 'Abrigo', 'Bolso', 'Accesorio', 'Falda', 'Chaleco', ...Object.values(NOM_X).map(v => v[0])])];
 const formasColor = c => c === 'Estampado' ? ['estampado', 'estampada', 'estampados', 'estampadas'] : [0, 1].flatMap(f => [0, 1].map(pl => adjColor(c, f, pl)));
 const nombreDeMaquina = p => /^(Tops|Arriba|Abajo|Calzado)$/.test(p.nombre || '') || p.nombre === nombreAuto(p.tipo, p.color) || BASES_AUTO().some(b => formasColor(p.color || 'Negro').some(a => p.nombre === b + ' ' + a));
+// 11/11 (Sheila, mensaje 1996): con los colores nuevos, lo que ya dice el nombre («Top azul marino» guardado como Azul) pasa al color fino, en todas las cuentas;
+// solo desde el color general que le corresponde y una vez por prenda (colAf), así se puede volver a cambiar a mano
+const COLOR_AFINAR = [['Azul marino', ['Azul'], /azul marino|\bmarino\b|\bnavy\b|azul oscuro/], ['Azul eléctrico', ['Azul'], /electrico|\bklein\b|azulon|cobalto/],
+  ['Azul petróleo', ['Azul', 'Verde'], /petroleo|\bteal\b/], ['Turquesa', ['Azul claro', 'Azul', 'Verde'], /turquesa|aguamarina/], ['Verde menta', ['Verde', 'Azul claro'], /\bmenta\b|\bmint\b|verde agua/],
+  ['Verde salvia', ['Verde', 'Gris'], /salvia|\bsage\b/], ['Verde oliva', ['Verde', 'Caqui'], /\boliva\b|\bolive\b/], ['Verde botella', ['Verde'], /botella|esmeralda|verde oscuro/],
+  ['Antracita', ['Gris', 'Negro'], /antracita|grafito|marengo|gris oscuro/], ['Gris claro', ['Gris', 'Blanco'], /gris claro|gris perla/], ['Chocolate', ['Marrón'], /chocolate/],
+  ['Nude', ['Beige', 'Rosa', 'Crema'], /\bnude\b/], ['Fucsia', ['Rosa', 'Morado', 'Rojo'], /fucsia|magenta|buganvilla/], ['Coral', ['Rosa', 'Naranja', 'Rojo'], /\bcoral/],
+  ['Melocotón', ['Rosa', 'Naranja', 'Beige'], /melocoton|\bpeach\b|albaricoque/], ['Mantequilla', ['Amarillo', 'Crema'], /mantequilla|\bbutter\b|amarillo pastel|vainilla/],
+  ['Dorado', ['Amarillo', 'Mostaza', 'Beige'], /dorad|\bgold\b/], ['Plateado', ['Gris', 'Blanco'], /platead|\bplata\b|\bsilver\b/]];
+async function afinarColores() {
+  if (cuenta() && !E.nubeBajada) return 0;
+  let n = 0;
+  for (const p of E.prendas) {
+    if (p.colAf || p.ejemplo || !p.color) continue;
+    const nom = (p.nombre || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const f = COLOR_AFINAR.find(([, de, re]) => de.includes(p.color) && re.test(nom)); if (!f) continue;
+    p.color = f[0]; p.colAf = 1; n++;
+  }
+  if (n) { await guardar(); programarNube(); E.propuestas = []; E.generados = []; }
+  return n;
+}
 let clasificando = null;
 function clasificarViejas() {
   if (clasificando) return clasificando;
@@ -2765,7 +2792,8 @@ function prepararAnadir(id) {
   pintarLargo(p?.est?.largo || '');
 }
 function pintarColores(sel) {
-  $('an-colores').innerHTML = COLORES.map(([n, c]) => `<button type="button" data-color="${n}" class="${n === sel ? 'sel' : ''}" title="${n}" style="background:${c}"></button>`).join('');
+  $('an-colores').innerHTML = COLORES.map(([n, c]) => `<button type="button" data-color="${n}" class="${n === sel ? 'sel' : ''}" title="${nomColor(n)}" aria-label="${nomColor(n)}" aria-pressed="${n === sel}" style="background:${c}"></button>`).join('')
+    + `<p class="col-nom" aria-live="polite">${sel ? nomColor(sel) : t('Elige su color', 'Pick its colour')}</p>`;
   $('an-colores').dataset.sel = sel;
 }
 function pintarPrevia(url) {
@@ -3988,7 +4016,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
-  limpiarFotoPrev().catch(() => { }); setTimeout(() => clasificarViejas().catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
+  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente

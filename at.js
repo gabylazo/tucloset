@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.212'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.214'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -480,7 +480,7 @@ if (AT) (() => {
     const datos = [sub, forma, (p.detalles || []).join(', ').toLowerCase()].filter(Boolean).map(esc).join(' · ');
     const precio = p.precio ? `${dinero(p.precio)}${usos.length ? ` · ${dinero(p.precio / usos.length)}/${t('puesta', 'wear')}` : ''}` : '';
     const hex = (COLORES.find(([c]) => c === p.color) || [])[1];
-    const chips = [p.color && `<li><i class="at-mancha"${hex ? ` style="background:${hex}"` : ''}></i>${esc(p.color)}</li>`, `<li>${I.cal}${esc(estNombre(p.estacion))}</li>`,
+    const chips = [p.color && `<li><i class="at-mancha"${hex ? ` style="background:${hex}"` : ''}></i>${esc(nomColor(p.color))}</li>`, `<li>${I.cal}${esc(estNombre(p.estacion))}</li>`,
       `<li>${I.percha}${usos.length ? veces(usos.length) : t('Sin estrenar', 'Not worn yet')}</li>`, precio && `<li>${esc(precio)}</li>`].filter(Boolean).join('');
     // sus looks; si aún no tiene, los dos que mejor le van con tu ropa (al tocarlos, se crean)
     let looks = conj.slice(0, 8).map(c => ({ ps: psDe(c), attr: ` data-look="${c.id}" aria-label="${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}"` }));
@@ -998,7 +998,7 @@ if (AT) (() => {
         <details class="at-cm-corr"${C.corr ? ' open' : ''}><summary>${t('¿No es esto? Corrígelo', 'Not right? Fix it')}</summary>
           <label class="campo at-cm-campo"><span>${t('Nombre', 'Name')}</span><input data-cmnom value="${esc(it.nombre)}"></label>
           <label class="campo at-cm-campo"><span>${t('Categoría', 'Category')}</span><select data-cmcat>${opsCat(catDe(C.p))}</select></label>
-          <div class="campo at-cm-campo" role="group" aria-labelledby="at-cm-colet"><span id="at-cm-colet">${t('Color', 'Colour')}</span><div class="at-cm-col">${COLORES.filter(([c]) => c !== 'Estampado').map(([c, h]) => `<button type="button" class="${c === it.color ? 'on' : ''}" data-cmcolor="${c}" aria-label="${c}" aria-pressed="${c === it.color}" style="background:${h}"></button>`).join('')}</div></div>
+          <div class="campo at-cm-campo" role="group" aria-labelledby="at-cm-colet"><span id="at-cm-colet">${t('Color', 'Colour')}</span><div class="at-cm-col">${COLORES.filter(([c]) => c !== 'Estampado').map(([c, h]) => `<button type="button" class="${c === it.color ? 'on' : ''}" data-cmcolor="${c}" title="${nomColor(c)}" aria-label="${nomColor(c)}" aria-pressed="${c === it.color}" style="background:${h}"></button>`).join('')}</div><p class="col-nom">${it.color ? nomColor(it.color) : ''}</p></div>
         </details>
         ${u.looks.length ? `<h2 class="at-vj-h2">${t('Así te la pondrías', 'How you’d wear it')}</h2><div class="at-rej2 at-vj-dias">${u.looks.map(x => `<figure class="at-t">${baldosaFija(psL(x), TW, TH, ocNombre(x.ocasion))}<figcaption>${esc(ocNombre(x.ocasion))}</figcaption></figure>`).join('')}</div>` : ''}
         <div class="at-cm-bts"><button class="at-btn" data-cmanadir>${t('La he comprado: a mi clóset', 'I bought it: add to my closet')}</button>${foto(t('Probar otra prenda', 'Try another garment')).replace('at-btn at-cm-foto', 'at-enlace at-cm-foto at-cm-otra')}</div>`;
