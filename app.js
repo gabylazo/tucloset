@@ -556,6 +556,9 @@ async function bajarNube() {
     // es la única foto de la prenda; en el móvil no se guardan ni la original ni la recortada, y la nube ya no las tiene
     const l = locales.get(q.id), solo = !!(q.fCat && q.conCat); const p = { ...q, foto: (solo && l?.cat) || l?.foto || null, original: solo ? null : l?.original || null, cat: l?.cat || null }; if (l?.fotoTorcida && !solo) p.fotoTorcida = l.fotoTorcida; if (l?.catProp && !q.conCat) { p.catProp = l.catProp; p.catPropAR = l.catPropAR; } // 06/11: la foto de catálogo propuesta, hasta que elija delete p.conFoto; delete p.conOriginal;
     if (solo && l?.cat && l.foto !== l.cat) { urls.delete(q.id); alfa.delete(q.id); p.caja = null; }
+    // 11/11: la foto de antes del móvil no se pierde al bajar; y si otro móvil la estilizó, la foto que tenía este móvil pasa a ser la de antes (7 días)
+    if (solo && l?.fotoPrev instanceof Blob) p.fotoPrev = l.fotoPrev;
+    else if (solo && !q.nubeConserva && l && !l.fCat && l.foto instanceof Blob && l.foto !== l.cat) { p.fotoPrev = l.foto; p.fotoPrevT = q.fotoPrevT || Date.now(); }
     if (q.conCat && (!p.cat || l?.nubeC !== q.nubeC)) (AT ? fotos : originales).push(async () => { try { const f = await api('/api/foto/' + q.id + '-c?v=' + (q.nubeC || ''), { tiempo: 30000 }); if (f.ok) { p.cat = await f.blob(); urlsCat.delete(q.id); if (solo) { p.foto = p.cat; urls.delete(q.id); alfa.delete(q.id); p.caja = null; } if (typeof stRepintar === 'function') stRepintar(); } } catch (e) { } }); // 0.121: foto de catálogo (Gemini)
     if (q.conFoto && !solo && (!l?.foto || l.fotoRota || l.nube !== q.nube)) fotos.push(async () => { try { const f = await api('/api/foto/' + q.id + '?v=' + (q.nube || ''), { tiempo: 30000 }); if (f.ok) { p.foto = await f.blob(); p.fotoSub = firma(p.foto); p.nube = q.nube; delete p.fotoRota; urls.delete(q.id), alfa.delete(q.id); } } catch (e) { } });
     if (q.conOriginal && !solo && (!p.original || l?.originalRota || l?.nubeO !== q.nubeO)) originales.push(async () => { try { const f = await api('/api/foto/' + q.id + '-o?v=' + (q.nubeO || ''), { tiempo: 30000 }); if (f.ok) { p.original = await f.blob(); p.fotoSubO = firma(p.original); p.nubeO = q.nubeO; delete p.originalRota; } } catch (e) { } });
@@ -901,7 +904,7 @@ function abrirRepetidas() {
     <button class="at-enlace" data-rep="">${lista.length > 1 ? t(`Ahora no · quedan ${lista.length - 1} más`, `Not now · ${lista.length - 1} more`) : t('Ahora no', 'Not now')}</button>`;
   document.body.append(cap); $('rep-t').focus({ preventScroll: true });
   cap.onclick = async e => { const b = e.target.closest('[data-rep]'); if (!b) return;
-    if (b.dataset.rep === 'si') { E.prendas = E.prendas.filter(x => x.id !== p.id); E.conjuntos.forEach(c => c.ids = c.ids.map(id => id === p.id ? q.id : id)); E.propuestas = []; await guardar(); toast(t('Quitada la repetida', 'Duplicate removed')); }
+    if (b.dataset.rep === 'si') { borrarFotosNube(p); E.prendas = E.prendas.filter(x => x.id !== p.id); E.conjuntos.forEach(c => c.ids = c.ids.map(id => id === p.id ? q.id : id)); E.propuestas = []; await guardar(); toast(t('Quitada la repetida', 'Duplicate removed')); }
     else if (b.dataset.rep === 'no') { p.noRep = [...(p.noRep || []), q.id]; delete p.duda; await guardar(); }
     else { cap.remove(); return; }
     abrirRepetidas(); };
@@ -976,13 +979,20 @@ async function usarCat(p, conservarNube) {
   Object.assign(p, { cat: b, foto: b, conCat: 1, nubeC: Date.now().toString(36), catAR: p.catPropAR, fCat: 1, caja: null });
   for (const k of ['catProp', 'catPropAR', 'original', 'fotoSub', 'fotoSubO', 'cajaV', 'dudoso', 'recMano']) delete p[k];
   urls.delete(p.id); alfa.delete(p.id); urlsCat.delete(p.id);
-  if (conservarNube) p.nubeConserva = 1; else for (const k of ['', '-o']) api('/api/foto/' + p.id + k, { method: 'DELETE' }).catch(() => { }); // la de catálogo es ya la única foto
+  // 11/11 (Sheila: «si una prenda no coincide con la original después de plancharla, ¿qué hago?»): la foto de antes se queda 7 días también en la cuenta (prevNube), no solo
+  // en el móvil que la estilizó; así «No se parece» sale se abra donde se abra. Pasados los 7 días, limpiarFotoPrev la borra del servidor. La original sin recortar, fuera ya
+  if (conservarNube) p.nubeConserva = 1;
+  else { api('/api/foto/' + p.id + '-o', { method: 'DELETE' }).catch(() => { }); if (p.nube || p.prevNube) { p.prevNube = 1; p.fotoPrevT = p.fotoPrevT || Date.now(); } else api('/api/foto/' + p.id, { method: 'DELETE' }).catch(() => { }); }
   E.propuestas = []; await guardar(); medirTodas(); return true;
 }
 // 10/11 (Sheila: «si una prenda no coincide con la original después de plancharla, ¿qué hago?»): la foto de antes solo estaba en el móvil que la estilizó; las prendas
 // de antes guardan su foto en la cuenta (nubeConserva), así que «No se parece» sale en cualquier móvil y la trae de la cuenta al abrirlo
-const DIAS_PREV = 7 * 864e5, puedeDeshacerCat = p => !!p.fCat && ((p.fotoPrev instanceof Blob && Date.now() - (p.fotoPrevT || 0) < DIAS_PREV) || !!p.nubeConserva);
-async function limpiarFotoPrev() { let n = 0; for (const p of E.prendas) if (p.fotoPrev && Date.now() - (p.fotoPrevT || 0) >= DIAS_PREV) { delete p.fotoPrev; delete p.fotoPrevT; n++; } if (n) await BD.set('prendas', E.prendas).catch(() => { }); }
+const DIAS_PREV = 7 * 864e5, puedeDeshacerCat = p => !!p.fCat && (!!p.nubeConserva || ((p.fotoPrev instanceof Blob || !!p.prevNube) && Date.now() - (p.fotoPrevT || 0) < DIAS_PREV));
+async function limpiarFotoPrev() { let n = 0, nube = 0;
+  for (const p of E.prendas) { if ((!p.fotoPrev && !p.prevNube) || Date.now() - (p.fotoPrevT || 0) < DIAS_PREV) continue;
+    if (p.prevNube && !p.nubeConserva) { if (!cuenta()) continue; try { const r = await api('/api/foto/' + p.id, { method: 'DELETE' }); if (!r.ok) continue; } catch (e) { continue; } nube++; } // sin conexión, la próxima vez
+    delete p.fotoPrev; delete p.fotoPrevT; delete p.prevNube; n++; }
+  if (n) { await BD.set('prendas', E.prendas).catch(() => { }); if (nube) programarNube(); } }
 // «No se parece» (ficha, hasta 7 días después): probar otra vez con el modelo bueno, desde la foto de antes, o volver a la foto de antes
 async function noSeParece(p) {
   $('cat-capa')?.remove(); if (!puedeDeshacerCat(p)) return;
@@ -1005,7 +1015,7 @@ async function noSeParece(p) {
       return fin(); }
     if (k === 'mia') { const prev = p.fotoPrev;
       try { await subirFoto('/api/foto/' + p.id, prev); } catch (e2) { toast(t('Hace falta conexión para volver a tu foto', 'You need a connection to go back to your photo')); delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; }
-      for (const k2 of ['cat', 'conCat', 'nubeC', 'catAR', 'fCat', 'fotoPrev', 'fotoPrevT', 'catOtra']) delete p[k2];
+      for (const k2 of ['cat', 'conCat', 'nubeC', 'catAR', 'fCat', 'fotoPrev', 'fotoPrevT', 'prevNube', 'catOtra']) delete p[k2];
       Object.assign(p, { foto: prev, catNo: 1, nube: Date.now().toString(36), fotoSub: firma(prev) }); urls.delete(p.id); alfa.delete(p.id); urlsCat.delete(p.id);
       api('/api/foto/' + p.id + '-c', { method: 'DELETE' }).catch(() => { }); E.propuestas = []; await guardar(); medirTodas(); toast(t('Vuelve a tener tu foto', 'Your photo is back')); return fin(); }
   };
@@ -3903,9 +3913,12 @@ $('f-cuerpo').onchange = e => e.target.files[0] && guardarFotoPerfil('cuerpo', e
 $('an-guardar').onclick = () => guardarPrenda(false);
 $('an-otra').onclick = () => guardarPrenda(true);
 // 06/11 (Gabriela: «la posibilidad visible de eliminar cualquier prenda subida»): la misma función para la papelera de la ficha y para Editar
+// 11/11: al borrar una prenda a mano (o «Sí, es la misma»), sus fotos se borran también de la cuenta; antes se quedaban en el servidor para siempre.
+// Sin conexión se quedan (el intercambio de clósets de las socias también usa «borradas» y no debe borrar fotos, así que no lo hace el servidor)
+function borrarFotosNube(p) { if (!cuenta() || !p || p.ejemplo) return; for (const k of ['', '-o', '-c']) api('/api/foto/' + p.id + k, { method: 'DELETE' }).catch(() => { }); }
 async function borrarPrenda(p) {
   if (!p || !await confirmar(t('¿Borrar esta prenda?', 'Delete this garment?'), t('Se quita del clóset y de sus conjuntos.', 'It is removed from the closet and its outfits.'), t('Borrar', 'Delete'))) return;
-  E.prendas = E.prendas.filter(x => x.id !== p.id); E.conjuntos.forEach(c => c.ids = c.ids.filter(id => id !== p.id)); E.conjuntos = E.conjuntos.filter(c => c.ids.length >= 1); await guardar(); E.propuestas = []; ir('closet'); toast(t('Prenda borrada', 'Garment deleted'));
+  borrarFotosNube(p); E.prendas = E.prendas.filter(x => x.id !== p.id); E.conjuntos.forEach(c => c.ids = c.ids.filter(id => id !== p.id)); E.conjuntos = E.conjuntos.filter(c => c.ids.length >= 1); await guardar(); E.propuestas = []; ir('closet'); toast(t('Prenda borrada', 'Garment deleted'));
 }
 $('an-borrar').onclick = () => borrarPrenda(E.editando);
 $('nl-guardar').onclick = guardarLook;
