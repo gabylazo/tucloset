@@ -14,8 +14,8 @@
 <link rel="icon" href="iconos/icono-129-180.png">
 <link rel="apple-touch-icon" href="iconos/icono-129-180.png">
 <link rel="stylesheet" href="fuentes.css?v=0.123"><!-- 0.123: letras en la propia web, sin Google Fonts (sin enviar la IP de nadie a Google) -->
-<link rel="stylesheet" href="app.css?v=0.207">
-<script>/* 06/11 noche: propuesta de modo oscuro (Gabriela). ?modo=oscuro lo enciende en ese navegador, ?modo=claro lo apaga; oscuro.css solo se carga encendido */ try { var mq = new URLSearchParams(location.search).get('modo'); if (mq === 'oscuro' || mq === 'claro') localStorage.setItem('tc_modo', mq); document.documentElement.dataset.fondo = '4'; localStorage.removeItem('tc_fondo'); /* 07/11: fondo «Sin tarjeta», elegido por Gabriela */ if (localStorage.getItem('tc_modo') === 'oscuro') { document.documentElement.classList.add('oscuro'); document.querySelector('meta[name="theme-color"]').content = '#1A1410'; document.querySelector('meta[name="color-scheme"]').content = 'dark'; document.write('<link rel="stylesheet" href="oscuro.css?v=0.207">'); } } catch (e) { }</script>
+<link rel="stylesheet" href="app.css?v=0.208">
+<script>/* 06/11 noche: propuesta de modo oscuro (Gabriela). ?modo=oscuro lo enciende en ese navegador, ?modo=claro lo apaga; oscuro.css solo se carga encendido */ try { var mq = new URLSearchParams(location.search).get('modo'); if (mq === 'oscuro' || mq === 'claro') localStorage.setItem('tc_modo', mq); document.documentElement.dataset.fondo = '4'; localStorage.removeItem('tc_fondo'); /* 07/11: fondo «Sin tarjeta», elegido por Gabriela */ if (localStorage.getItem('tc_modo') === 'oscuro') { document.documentElement.classList.add('oscuro'); document.querySelector('meta[name="theme-color"]').content = '#1A1410'; document.querySelector('meta[name="color-scheme"]').content = 'dark'; document.write('<link rel="stylesheet" href="oscuro.css?v=0.208">'); } } catch (e) { }</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -231,7 +231,7 @@
   <nav class="y3-nav" id="yo-lista" aria-label="Tu perfil"></nav>
   <!-- 0.114 (Gabriela, 28/10: «sigo sin ver la opción de ajustes, básico en cualquier app… ubícate en un panel de opciones: letra un poco más oscura, iconos, intuitivo, sin redundancias»): panel por grupos;
        desde el 08/11 vive en su propia pantalla (abrirAjustes) -->
-  <p class="nota" id="yo-version">TuCloset web 0.207 · 10 de noviembre de 2026</p>
+  <p class="nota" id="yo-version">TuCloset web 0.208 · 10 de noviembre de 2026</p>
 </main>
 
 <!-- MIS COLORES (0.111) -->
@@ -258,8 +258,8 @@
 <dialog id="dlg"><h2 id="dlg-t"></h2><p id="dlg-p"></p><div class="botones"><button class="boton" id="dlg-si"></button><button class="boton linea" id="dlg-no"></button></div></dialog>
 </div>
 <script>window.TC_PUBLICA=true</script>
-<script src="app.js?v=0.207"></script>
+<script src="app.js?v=0.208"></script>
 <script>if (AT) document.write('<script src="motor-datos.js?v=0.186"><\/script><script src="motor.js?v=0.204"><\/script>');</script>
-<script src="at.js?v=0.207"></script>
+<script src="at.js?v=0.208"></script>
 </body>
 </html>

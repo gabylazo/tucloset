@@ -120,6 +120,7 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
 .cuentas .tarjeta .e { margin-top: 5px; }
 .cuentas b { font-weight: 500; font-size: 15px; }
 .cuentas span.p { grid-column: 2; font-size: 14px; color: var(--gris); }
+.cuentas a.abrir { grid-column: 2; justify-self: start; display: inline-flex; align-items: center; min-height: 44px; font-size: 15px; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; }
 .nota { text-align: center; font-size: 14px; color: var(--gris); margin: 14px 0 0; }
 
 /* más: todo plegado */
@@ -317,7 +318,7 @@ button.boton:hover { background: var(--suave); }
     <div class="rejilla">${(P.departamentos || []).map(x => { const h = x.tareas.filter(t => t.e === 'hecho').length; return `<div class="tarjeta"><div class="cabeza"><h3>${esc(x.n)}</h3><small>${h} de ${x.tareas.length}</small></div>${barra(pct(h, x.tareas.length))}<ul class="lista">${x.tareas.map(tk => `<li>${est(tk.e)}<span>${esc(tk.t)}</span></li>`).join('')}</ul></div>`; }).join('')}</div></section>
 
   <section id="cuentas"><h2>Cuentas de la empresa</h2>
-    <div class="rejilla cuentas">${(P.cuentas || []).map(x => `<div class="tarjeta">${est(x.e)}<b>${esc(x.s)}</b><span class="p">${esc(x.p)}</span></div>`).join('')}</div>
+    <div class="rejilla cuentas">${(P.cuentas || []).map(x => `<div class="tarjeta">${est(x.e)}<b>${esc(x.s)}</b><span class="p">${esc(x.p)}</span>${/^https:\/\//.test(x.u || '') ? `<a class="abrir" href="${esc(x.u)}" target="_blank" rel="noopener">Abrir ${esc(x.s.split(' ')[0])}</a>` : ''}</div>`).join('')}</div>
     <p class="nota">${esc(P.nota_claves || '')}</p></section>
 
   <section id="mas" class="mas"><h2>Más</h2>
