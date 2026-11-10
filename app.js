@@ -193,7 +193,7 @@ const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.p
 // 09/11 (Gabriela: «acabo de abrir el perfil de Sheila desde mi móvil… se ha unido al mío y ha sumado sus prendas a mi clóset; una cuenta enlazada a un clóset, no
 // mezclar, Instagram no funciona así»): al cerrar sesión el móvil se quedaba con el clóset y, al entrar en otra cuenta, bajarNube lo juntaba con el de esa cuenta y
 // subía la mezcla. Ahora el clóset de este móvil es de una sola cuenta (tc_dueno): al cerrar sesión se quita del móvil y, al entrar en otra cuenta, se vacía antes
-const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo', 'tc_admin', 'tc_intercambio', 'tc_pareja'];
+const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_sinc_v', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo', 'tc_admin', 'tc_intercambio', 'tc_pareja'];
 const dueno = () => (LS.get('tc_dueno') || '').toLowerCase();
 try { const c0 = JSON.parse(LS.get('tc_cuenta') || 'null'); if (c0?.correo && !LS.get('tc_dueno')) LS.set('tc_dueno', c0.correo.toLowerCase()); } catch (e) { } // móviles de antes: el clóset es de la cuenta abierta
 const deCuenta = p => !p.ejemplo && !!(p.nube || p.nubeC || p.fotoSub); // la prenda ya estuvo en alguna cuenta
@@ -276,7 +276,7 @@ async function subirNube(reintento) {
       // 07/11 (Gabriela: «la app debería guardarlas, no depender de nada»; «en el Mac tampoco aparece ninguna foto del análisis»): con «Guardar mis fotos en mi cuenta»,
       // la selfie, la foto de cuerpo y el avatar van también a su cuenta (privadas: solo se piden con su sesión) y vuelven a cualquier móvil u ordenador donde entre
       { const pf = E.perfil || {}; if (pf.fotosCuenta) for (const k of FOTOS_DIAG) if (pf[k] instanceof Blob && pf[k + 'Sub'] !== firma(pf[k]) && LS.get('tc_bajada_' + k) !== firma(pf[k])) {
-        try { await subirFoto('/api/foto/diag-' + k, pf[k]); pf[k + 'Sub'] = firma(pf[k]); cambio = true; await BD.set('perfil', E.perfil); } catch (e) { fallos++; } } }
+        try { await subirFoto('/api/foto/diag-' + k, pf[k]); pf[k + 'Sub'] = firma(pf[k]); LS.set('tc_bajada_' + k, pf[k + 'Sub']); cambio = true; await BD.set('perfil', E.perfil); } catch (e) { fallos++; } } }
       if (cambio) { await BD.set('prendas', E.prendas); d = await ponerDatos(); if (!d) { if (reintento) throw new Error('datos 409'); await bajarNube(); nubeEnCurso = null; return subirNube(true); } }
       E.nube = { estado: fallos ? 'error' : 'ok', cuando: d.actualizado };
     } catch (e) { E.nube.estado = 'error'; avisarFallo('datos', e); }
@@ -370,12 +370,12 @@ const FOTOS_DIAG = ['selfie', 'cuerpo', 'avatar'];
    cuenta, y en el servidor (POST /api/permiso; el del avatar lo mira el servidor antes de llamar a Google). Con un permiso retirado no puede quedar nada de lo que
    salió de él, aquí ni en los otros móviles de la cuenta (aplicarRetiradas, al arrancar y al bajar de la cuenta: sin el permiso no se pueden añadir fotos ni medidas,
    así que lo que aparezca es viejo). Lo que ya salió de las fotos antes de que existiera el permiso queda aparte (diagEspera) hasta que lo den. */
-const PERMISO_V = 'privacidad-2026-11-10';
+const PERMISO_V = 'privacidad-2026-11-10b'; // 10/11 tarde (Gabriela: «hay un texto grandísimo… eso se quita; a la vez que se sube una foto de cara y del cuerpo se tiene que entender ambas cosas»): un solo permiso corto
 const PERMISOS = {
-  diag: ['Quiero que TuCloset analice en mi móvil mi foto de cara, mi foto de cuerpo y mis medidas para calcular mis colores y mi silueta. Sé que son datos muy personales, que las fotos se quedan en mi móvil salvo que yo elija guardarlas en mi cuenta, y que el análisis no dice nada sobre mi salud. Puedo retirar este permiso cuando quiera en Yo → Tus medidas y fotos, sin perder el resto de mi cuenta.',
-    'I want TuCloset to analyse on my phone my face photo, my full-body photo and my measurements to work out my colours and my figure. I know these are very personal data, that the photos stay on my phone unless I choose to keep them in my account, and that the analysis says nothing about my health. I can withdraw this permission at any time in Me → Your measurements and photos, without losing the rest of my account.'],
-  avatar: ['Quiero crear mi avatar. Sé que, para hacerlo, mi foto de cara, mi foto de cuerpo y mi silueta se envían una vez a Google (Gemini), que puede tratarlas fuera de la Unión Europea; que, cada vez que me pruebo un look, se envían también mi avatar y mi foto de cara; que TuCloset no las guarda en su servidor salvo que yo elija guardarlas en mi cuenta; y que puedo borrar mi avatar cuando quiera.',
-    'I want to create my avatar. I know that, to make it, my face photo, my full-body photo and my figure are sent once to Google (Gemini), which may process them outside the European Union; that each time I try on a look, my avatar and my face photo are sent too; that TuCloset does not keep them on its server unless I choose to keep them in my account; and that I can delete my avatar at any time.'],
+  diag: ['Acepto que TuCloset use mis fotos y mis medidas para sacar mis colores y mi silueta, crear mi avatar en el Pro (con Google, que puede tratarlas fuera de la UE) y guardarlas, privadas, en mi cuenta. Puedo retirarlo cuando quiera.',
+    'I agree that TuCloset uses my photos and measurements to work out my colours and figure, create my avatar on Pro (with Google, which may process them outside the EU) and keep them, private, in my account. I can withdraw this at any time.'],
+  avatar: ['Acepto que mis fotos se envíen a Google (puede tratarlas fuera de la UE) para crear mi avatar y probarme los looks.',
+    'I agree that my photos are sent to Google (it may process them outside the EU) to create my avatar and try on looks.'],
   fotos: ['Guardar mis fotos en mi cuenta, privadas, para verlas en otros móviles. Si no la marco, se quedan solo en este móvil.',
     'Keep my photos in my account, private, to see them on other phones. If I leave it unticked, they stay only on this phone.']
 };
@@ -396,7 +396,7 @@ function borrarDe(k) { // lo que salió de cada permiso: las fotos, las medidas 
   const pf = E.perfil || {};
   if (k === 'diag') {
     for (const f of ['selfie', 'cuerpo']) { if (pf[f + 'Sub']) api('/api/foto/diag-' + f, { method: 'DELETE' }).catch(() => { }); delete pf[f]; delete pf[f + 'Sub']; LS.set('tc_bajada_' + f, null); }
-    ['medidas', 'diag', 'diagEspera', 'tipoCuerpo'].forEach(x => delete pf[x]);
+    ['medidas', 'medidasT', 'diag', 'diagEspera', 'tipoCuerpo', 'caras'].forEach(x => delete pf[x]);
     if (pf.colores?.fuente === 'foto') { delete pf.colores.est; delete pf.colores.sub; delete pf.colores.fuente; }
     ['tc_diag_medidas', 'tc_diag_caras'].forEach(x => { try { localStorage.removeItem(x); } catch (e) { } });
   }
@@ -435,7 +435,7 @@ function sacarDeEspera() {
 // el permiso del diagnóstico, desde Medidas y fotos o desde el alta: al quitarlo, si hay algo que borrar, se pregunta y se borra
 async function cambiarPermisoDiag(ck) {
   const pf = E.perfil || {};
-  if (ck.checked) await ponerPermiso('diag', true);
+  if (ck.checked) { await ponerPermiso('diag', true); await ponerPermiso('avatar', true); pf.fotosCuentaVista = 2; await fotosEnCuenta(true); } // 10/11: un solo sí vale para el análisis, el avatar y guardarlas en la cuenta
   else if (pf.selfie || pf.cuerpo || pf.medidas || pf.diag || pf.diagEspera || pf.avatar) { if (!await retirarPermiso('diag')) { ck.checked = true; return false; } toast(t('Permiso retirado: hemos borrado tus fotos, tus medidas y tu análisis', 'Permission withdrawn: we deleted your photos, measurements and analysis')); }
   else await ponerPermiso('diag', false);
   return true;
@@ -497,12 +497,17 @@ async function bajarNube() {
   const cj = new Map((doc.conjuntos || []).map(c => [c.id, c])); if (!rein) E.conjuntos.forEach(c => { if (!cj.has(c.id)) cj.set(c.id, c); }); E.conjuntos = [...cj.values()].filter(c => !fI.size || !(c.ids || []).some(id => fI.has(id)));
   E.agenda = rein ? { ...(doc.agenda || {}) } : fI.size ? { ...E.agenda } : { ...E.agenda, ...(doc.agenda || {}) };
   if (doc.reinicio) LS.set('tc_reinicio', doc.reinicio);
-  // 06/11 (Gabriela: «apunto mis medidas 20 veces y no se guardan después de analizar, y además sigue analizando mal»): el diagnóstico sale de las fotos y las medidas,
-  // que solo viven en este móvil; si al subir había conflicto con la nube (409), la bajada pisaba el diagnóstico recién hecho con el viejo de la nube y volvía
-  // «según tu foto». Ahora, en el móvil que tiene las fotos o las medidas, manda su diagnóstico (y lo que sale de él)
-  const pl = E.perfil || {}, mio = (pl.selfie instanceof Blob || pl.cuerpo instanceof Blob || pl.medidas) && pl.diag;
-  E.perfil = { ...(doc.perfil || {}), ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => v instanceof Blob || (k === 'medidas' && v && Object.keys(v).length) || (mio && ['diag', 'tipoCuerpo'].includes(k)))) }; // fotos y medidas: solo en el móvil
+  // 10/11 (Gabriela: «no hay sincronización entre mi cuenta del móvil y la del Mac, mi avatar cambia»; «igual que la colorimetría, porque hay diferentes fotos de la cara»;
+  // «¿no se supone que la cuenta es única?»): LA CUENTA MANDA. Antes cada móvil se quedaba con sus fotos y su análisis: el que tenía una foto vieja la volvía a subir
+  // encima de la nueva y el avatar y los colores cambiaban de un sitio a otro. Ahora: una foto de este móvil que no se ha cambiado aquí desde la última vez que se subió
+  // o se bajó (tc_bajada_*) se cambia por la de la cuenta; medidas y análisis, los más nuevos (medidasT, diag.t). La primera vez (sin tc_sinc_v), manda la cuenta.
+  const pl = E.perfil || {}, dp = doc.perfil || {}, migr = !LS.get('tc_sinc_v');
+  const vieja = k => FOTOS_DIAG.includes(k) && dp.fotosCuenta && dp[k + 'Sub'] && firma(pl[k]) !== dp[k + 'Sub'] && (migr || LS.get('tc_bajada_' + k) === firma(pl[k]));
+  const medMia = pl.medidas && Object.keys(pl.medidas).length && (!dp.medidas || (pl.medidasT || '') > (dp.medidasT || ''));
+  const mio = pl.diag && (pl.diag.t || '') > (dp.diag?.t || '');
+  E.perfil = { ...dp, ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => (v instanceof Blob && !vieja(k)) || (medMia && ['medidas', 'medidasT'].includes(k)) || (mio && ['diag', 'tipoCuerpo', 'caras'].includes(k)))) };
   if (mio && pl.colores?.fuente === 'foto') E.perfil.colores = { ...(E.perfil.colores || {}), est: pl.colores.est, sub: pl.colores.sub, fuente: 'foto' };
+  LS.set('tc_sinc_v', '1');
   E.perfil.permisos = juntarPermisos(doc.perfil?.permisos, pl.permisos); if (aplicarRetiradas() | diagAEspera()) programarNube(); // 10/11: permisos
   LS.set('tc_nube_ver', version); LS.set('tc_nube_ids', JSON.stringify((doc.prendas || []).map(p => p.id)));
   await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda); bajarFotosDiag();
@@ -3267,7 +3272,7 @@ async function panelPrivacidad() {
    En la cuenta se guarda solo el resultado (estación, silueta); los colores medidos de piel, pelo y ojos se quedan en este móvil. ---------- */
 const VER_APP = (document.querySelector('script[src*="app.js"]')?.src.split('v=')[1]) || '0';
 let DIAG = null; const diagMod = async () => DIAG || (DIAG = { D: await import('./diagnostico.js?v=' + VER_APP), R: await (await fetch('diagnostico-reglas.json?v=' + VER_APP)).json() });
-const medidasLocales = () => { try { return JSON.parse(localStorage.getItem('tc_diag_medidas') || 'null'); } catch (e) { return null; } };
+const medidasLocales = () => { if (E.perfil?.diag?.color?.medida) return E.perfil.diag.color.medida; try { return JSON.parse(localStorage.getItem('tc_diag_medidas') || 'null'); } catch (e) { return null; } }; // 10/11: van en el análisis, con la cuenta
 function puntosDiag(ps) {
   const reglas = planDemo() === 'pro' && E.perfil?.diag?.cuerpo?.puntos; if (!reglas?.length) return 0;
   const ab = ps.find(p => p.tipo === 'Abajo'), ar = ps.find(p => p.tipo === 'Arriba' && !esCapa(p)), dentro = ps.como === 'por dentro'; let s = 0;
@@ -3281,13 +3286,14 @@ function puntosDiag(ps) {
 }
 async function hacerDiagnostico(estado) {
   if (!permiso('diag')) throw new Error('permiso'); // 10/11 (Legal, T3)
-  const pf = E.perfil || {}, { D, R } = await diagMod(), res = { fecha: hoyISO(), avisos: {}, fotos: firmaFotos(), v: DIAG_V };
+  const pf = E.perfil || {}, { D, R } = await diagMod(), res = { fecha: hoyISO(), t: new Date().toISOString(), avisos: {}, fotos: firmaFotos(), v: DIAG_V };
   estado(t('Preparando el análisis (la primera vez tarda un poco más)…', 'Getting the analysis ready (slower the first time)…')); await D.cargar();
   if (pf.selfie) {
     estado(t('Mirando tus colores…', 'Looking at your colours…')); const c = await D.analizarCara(pf.selfie); res.avisos.cara = c.prob.map(p => ({ k: p.k, fatal: p.fatal }));
     if (c.ok) { const cm = D.mediaCaras(carasGuardadas(c)), e = D.estacion(cm, R, pf.colores?.r || {}), S = R.colorimetria.estaciones[e.k];
-      res.color = { k: e.k, familia: e.familia, n: S.n, d: S.d, hex: S.hex, si: S.si, no: S.no, metal: S.metal, consejo: S.consejo, ejes: e.ejes, confianza: e.confianza, fotos: cm.n };
-      try { localStorage.setItem('tc_diag_medidas', JSON.stringify({ piel: cm.piel.hex, pielN: cm.piel.nombre, pelo: cm.pelo?.hex, peloN: cm.pelo?.nombre, ojos: cm.ojos?.hex, ojosN: cm.ojos?.nombre, contraste: cm.contraste, fotos: cm.n })); } catch (er) { } }
+      res.color = { k: e.k, familia: e.familia, n: S.n, d: S.d, hex: S.hex, si: S.si, no: S.no, metal: S.metal, consejo: S.consejo, ejes: e.ejes, confianza: e.confianza, fotos: cm.n,
+        medida: { piel: cm.piel.hex, pielN: cm.piel.nombre, pelo: cm.pelo?.hex, peloN: cm.pelo?.nombre, ojos: cm.ojos?.hex, ojosN: cm.ojos?.nombre, contraste: cm.contraste, fotos: cm.n } };
+      try { localStorage.removeItem('tc_diag_medidas'); } catch (er) { } }
   }
   // 06/11 (Gabriela: «te debe primero preguntar características físicas… y las fotos son para clasificar tu silueta»): con pecho, cintura y cadera manda la cinta
   // (es más exacta); la foto la confirma y da el largo de las piernas si salen los pies
@@ -3310,12 +3316,12 @@ async function hacerDiagnostico(estado) {
 const firmaMed = () => { const m = E.perfil?.medidas || {}; return m.pecho > 0 && m.cintura > 0 && m.cadera > 0 ? [m.pecho, m.cintura, m.cadera].join('-') : ''; };
 const firmaResp = () => { const r = E.perfil?.colores?.r || {}; return ['venas', 'metal', 'tono', 'contraste'].map(k => r[k] || '-').join(''); }; // al cambiar una respuesta de Mis colores se vuelve a calcular
 const firmaFotos = () => ({ selfie: E.perfil?.selfie?.size || 0, cuerpo: E.perfil?.cuerpo?.size || 0, med: firmaMed(), resp: firmaResp() });
-// las últimas 5 selfies analizadas (solo sus colores medidos, en este móvil, nunca en la cuenta): la estación sale de su media
+// las últimas 5 selfies analizadas (solo sus colores medidos, nunca la foto): la estación sale de su media. 10/11: van con la cuenta (perfil.caras), no en cada móvil
 function carasGuardadas(c) {
-  const f = firmaFotos().selfie, x = o => o && { L: o.L, a: o.a, b: o.b }; let h = [];
-  try { h = JSON.parse(localStorage.getItem('tc_diag_caras') || '[]'); } catch (e) { }
+  const f = firmaFotos().selfie, x = o => o && { L: o.L, a: o.a, b: o.b }; let h = E.perfil.caras;
+  if (!Array.isArray(h)) try { h = JSON.parse(localStorage.getItem('tc_diag_caras') || '[]'); } catch (e) { h = []; }
   h = h.filter(q => q.v === DIAG_V && q.f !== f).concat({ v: DIAG_V, f, piel: x(c.piel), pelo: x(c.pelo), ojos: x(c.ojos), contraste: c.contraste, calidad: c.calidad }).slice(-5);
-  try { localStorage.setItem('tc_diag_caras', JSON.stringify(h)); } catch (e) { }
+  E.perfil.caras = h; try { localStorage.removeItem('tc_diag_caras'); } catch (e) { }
   return h;
 }
 // DIAG_V sube cuando cambia el análisis: las fotos guardadas en el móvil se vuelven a analizar solas, sin subirlas otra vez
@@ -3523,7 +3529,7 @@ function panelDiagFotos() {
           : malos.some(m => +(cap.querySelector(`[data-med="${m}"]`).value.replace(',', '.')) < LIM[m][0]) ? t('Parece el ancho: mide el contorno, con la cinta alrededor del cuerpo (una cintura suele medir entre 55 y 110 cm).', 'That looks like a width: measure all the way round with the tape (a waist is usually 55–110 cm).')
           : t('Revisa esa cifra: parece demasiado grande.', 'Check that number: it looks too large.');
         if (!ok) return;
-        E.perfil = E.perfil || {}; const m = { ...(E.perfil.medidas || {}) }; if (txt) m[k] = v; else delete m[k]; E.perfil.medidas = m;
+        E.perfil = E.perfil || {}; const m = { ...(E.perfil.medidas || {}) }; if (txt) m[k] = v; else delete m[k]; E.perfil.medidas = m; E.perfil.medidasT = new Date().toISOString();
         clearTimeout(medT); medT = setTimeout(guardar, 400); $('dg-analizar').disabled = !(permiso('diag') && (E.perfil.selfie || E.perfil.cuerpo || firmaMed()));
       };
     });
