@@ -162,6 +162,9 @@ h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
 /* 09/11: usuarias y dinero (Gabriela: «cuántos usuarios tienen, el uso de cada usuario y todos los datos que nos sirvan para llevar una contabilidad») */
 .cifras.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (min-width: 760px) { .cifras.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.cifras.c3, .redes .cifras.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
+.redes .cifras div { background: var(--blanco); padding: 14px 4px; }
+.redes .cifras b { font-size: 36px; }
 .ficha .correo { word-break: break-all; }
 .ficha .cuando { margin: 4px 0 12px; font-size: 14px; color: var(--gris); }
 .nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
@@ -217,6 +220,12 @@ button.boton:hover { background: var(--suave); }
   const vis = {}; (d.visitas || []).filter(v => v.dia >= dia(29)).forEach(v => { const x = vis[v.origen] = vis[v.origen] || { n: 0, a: 0 }; x.n += v.n; x.a += v.altas; });
   const filasRed = Object.entries(vis).sort((a, b) => b[1].n - a[1].n);
   const redes = `<div class="tarjeta redes"><p>Visitas desde las redes, 30 días</p>${filasRed.length ? `<table><thead><tr><th scope="col">Red</th><th scope="col">Visitas</th><th scope="col">Cuentas nuevas</th></tr></thead><tbody>${filasRed.map(([o, x]) => `<tr><th scope="row">${esc(nomRed(o))}</th><td>${x.n}</td><td>${x.a}</td></tr>`).join('')}</tbody></table>` : '<span class="vacio">Todavía ninguna. Cuentan los enlaces con ?o=ig, ?o=tt o ?o=pin.</span>'}</div>`;
+  // 10/11: lista de espera (apuntadas = pidieron entrar; confirmadas = abrieron el correo de confirmación, según Brevo)
+  const E = d.espera || { abierta: false, confirmadas: null, filas: [] }, EF = E.filas || [];
+  const esOr = {}; EF.forEach(x => { const k = x.origen || ''; esOr[k] = (esOr[k] || 0) + 1; });
+  const filasEs = Object.entries(esOr).sort((a, b) => b[1] - a[1]);
+  const espera = `<div class="tarjeta redes"><p>Lista de espera</p>${!E.abierta && !EF.length ? '<span class="vacio">Cerrada hasta tener Brevo y la privacidad publicada.</span>'
+    : `<div class="cifras c3"><div><b>${EF.length}</b><span>apuntadas</span></div><div><b>${E.confirmadas ?? '—'}</b><span>confirmadas</span></div><div><b>${EF.filter(x => x.dia >= dia(6)).length}</b><span>esta semana</span></div></div>${filasEs.length ? `<table><thead><tr><th scope="col">Desde</th><th scope="col">Apuntadas</th></tr></thead><tbody>${filasEs.map(([o, n]) => `<tr><th scope="row">${esc(o ? nomRed(o) : 'Directo')}</th><td>${n}</td></tr>`).join('')}</tbody></table>` : ''}<span class="vacio">Novedades: ${EF.filter(x => x.nov).length} de ${EF.length}.</span>`}</div>`;
   const barras = `<div class="barras" role="img" aria-label="Personas que abrieron la app cada día, últimos 14 días: ${porDia.join(', ')}">${dias.map((k, i) => `<div><em>${porDia[i] || ''}</em><i style="height:${Math.round(porDia[i] / max * 80)}%"></i><small>${+k.slice(8)}</small></div>`).join('')}</div>`;
 
   // 09/11: usuarias (ficha de cada una) y dinero (contabilidad por mes), con descarga en CSV para Excel
@@ -289,6 +298,7 @@ button.boton:hover { background: var(--suave); }
     <div><b>0</b><span>suscriptoras</span></div><div><b>${d.entradas7}</b><span>entradas, 7 días</span></div><div><b>${fallos7}</b><span>fallos, 7 días</span></div>${d.catalogoMes ? `<div><b>${d.catalogoMes.hechas}</b><span>fotos de catálogo este mes · ${String(d.catalogoMes.usd).replace(".", ",")} $ de ${d.catalogoMes.tope}</span></div>` : ""}</div>
     <div class="tarjeta uso"><p>Personas que abren la app cada día</p>${barras}</div>
     ${redes}
+    ${espera}
     <div class="rejilla mirar" style="margin-top:12px">${(P.mirar || []).map(x => x.url ? `<a href="${esc(x.url)}"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></a>` : `<div class="tarjeta"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></div>`).join('')}</div></section>
 
   <section id="usuarias"><h2>Usuarias</h2>
