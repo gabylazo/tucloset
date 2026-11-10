@@ -531,8 +531,7 @@ html.at .at-cm-parb img { width: 96px; height: 120px; object-fit: contain; backg
 html.at .at-cm-corr { max-width: 360px; margin: 18px auto 0; text-align: left; }
 html.at .at-cm-corr summary { display: flex; align-items: center; justify-content: center; min-height: 44px; list-style: none; font-size: 14px; color: var(--sec); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 html.at .at-cm-corr summary::-webkit-details-marker { display: none; }
-html.at .at-cm-campo { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
-html.at .at-cm-campo input, html.at .at-cm-campo select { min-height: 46px; padding: 0 2px; border: 0; border-bottom: 1px solid var(--linea2, rgba(74, 53, 38, .28)); border-radius: 0; background: #fff; color: var(--tinta); font: 400 16px/1.2 var(--f); letter-spacing: 0; text-transform: none; }
+html.at .at-cm-campo { margin-top: 12px; } /* 10/11 · decisión 33: el mismo campo en recuadro que Subir y Editar (.campo) */
 html.at .at-cm-campo input:focus-visible, html.at .at-cm-campo select:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 html.at .at-cm-et { margin: 18px 0 10px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
 html.at .at-cm-col { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -561,8 +560,8 @@ html.at #p-yo .dg-cab h2 { font-size: 15px; letter-spacing: .06em; color: var(--
 /* 08/11 · estudio de diseño (cambio 14): en Hoy, la nota más cerca del look (el hueco de debajo del look ya separa) */
 html.at .at-hoy .at-nota, html.at .at-hoy .cal-falta { margin-top: 10px; }
 
-/* 08/11 · estudio de diseño (cambio 18): un look solo, centrado (no pegado a la izquierda) */
-html.at .at-rej2 > :only-child { grid-column: 1 / -1; }
+/* 08/11 · estudio de diseño (cambio 18): un look solo, centrado (no pegado a la izquierda). 10/11 · decisión 35: también el último cuando la rejilla acaba con uno solo */
+html.at .at-rej2 > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 
 /* 08/11 · estudio de diseño (cambio 19): estos botones, del ancho de su texto y centrados (regla del 03/11) */
 html.at #pn-ciudad-ok, html.at #p-yo .dg-tarjeta .boton, html.at .s-aviso div .boton { width: fit-content; min-width: 0; max-width: 100%; justify-self: center; margin-left: auto; margin-right: auto; padding-left: 24px; padding-right: 24px; }
@@ -584,3 +583,9 @@ html.at .at-ideas-acc { width: auto; flex-wrap: nowrap; margin: 4px 20px 14px; p
 html.at .at-ideas-acc .at-ib { flex: 1 1 0; min-width: 0; font-size: 13px; color: var(--tinta); text-align: center; }
 html.at .at-ideas-acc .at-ib-t { text-wrap: balance; }
 html.at .at-ideas-acc .dg-pro { margin-left: 5px; }
+
+/* 10/11 · decisión 33: un solo patrón de muestra de color en Revisa tu prenda, Editar y Antes de comprar: cuadrada, de 44 px (tamaño táctil), la elegida con un marco en tinta */
+html.at #s-raiz .uno .ops.col, html.at .colores, html.at .at-cm-col { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 0; }
+html.at #s-raiz .uno .ops.col button, html.at .colores button, html.at .at-cm-col button { width: 44px; height: 44px; min-width: 0; min-height: 0; padding: 0; border: 1px solid var(--linea2, rgba(74, 53, 38, .28)); border-radius: 0; }
+html.at #s-raiz .uno .ops.col button.on, html.at .colores button.sel, html.at .at-cm-col button.on { outline: 2px solid var(--tinta); outline-offset: 3px; }
+html.at .colores button.sel::after { display: none; }

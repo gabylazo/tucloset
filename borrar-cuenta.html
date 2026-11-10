@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<title>Borrar tu cuenta · TuCloset</title>
+<!-- 09/11/2026 (Legal, T2): borrar la cuenta sin abrir la app, con copia antes. La citan el aviso legal y la privacidad, y las tiendas de apps la piden.
+     Sin datos dentro: entra con el correo y la contraseña (y el código por correo, si toca), descarga la copia y borra con DELETE /api/cuenta. -->
+<link rel="icon" href="iconos/icono-129-180.png">
+<link rel="stylesheet" href="fuentes.css?v=0.123">
+<style>
+:root{--tinta:#4A3526;--sec:#6B5A4E;--linea:rgba(74,53,38,.28);--oro:#C9A24B;--rojo:#8E3B2E;--suave:#F6F4F1}
+*{box-sizing:border-box;margin:0}
+html,body{background:#fff;color:var(--tinta)}
+body{font:400 16px/1.5 'Jost',system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:0 20px env(safe-area-inset-bottom)}
+main{max-width:420px;margin:0 auto;padding:48px 0 64px;text-align:center}
+.marca{font:400 28px/1 'Bellefair',Georgia,serif;text-decoration:none;color:inherit}
+.marca b{font-weight:400;color:#8C6A1F}
+h1{font:400 34px/1.15 'Bellefair',Georgia,serif;margin:40px 0 16px}
+p{color:var(--sec)}
+p + p{margin-top:12px}
+.paso{margin-top:32px}
+.oculto{display:none}
+label{display:block;text-align:left;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sec);margin-top:24px}
+input{display:block;width:100%;font:inherit;font-size:17px;color:var(--tinta);border:0;border-bottom:1px solid var(--linea);padding:10px 0;background:none;border-radius:0}
+input:focus{outline:none;border-bottom-color:var(--tinta)}
+input:focus-visible{outline:2px solid var(--oro);outline-offset:4px}
+.codigo{font-size:28px;letter-spacing:.3em;text-align:center}
+button{font:500 12px/1 'Jost',system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;min-height:48px;padding:0 28px;border:1px solid var(--tinta);background:#fff;color:var(--tinta);border-radius:0;cursor:pointer;margin-top:32px}
+button.lleno{background:var(--tinta);color:#fff}
+button.peligro{background:var(--rojo);border-color:var(--rojo);color:#fff}
+button.txt{border:0;min-height:44px;padding:0 8px;margin-top:12px;text-transform:none;letter-spacing:0;font-size:15px;font-weight:400;text-decoration:underline;text-underline-offset:3px;color:var(--sec)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
+.lista{text-align:left;margin:20px 0 0;padding:16px 20px;background:var(--suave);list-style:none;color:var(--sec)}
+.lista li + li{margin-top:6px}
+.lista li::before{content:'·';margin-right:8px;color:var(--tinta)}
+.error{color:var(--rojo);margin-top:16px;min-height:1.5em}
+.nota{font-size:14px;margin-top:24px}
+.nota a,.nota a:visited{color:var(--sec);text-underline-offset:3px}
+.estado{margin-top:16px;font-size:14px}
+</style>
+</head>
+<body>
+<main>
+  <a class="marca" href="./" aria-label="TuCloset">Tu<b>Closet</b></a>
+  <h1 data-t="Borrar tu cuenta|Delete your account">Borrar tu cuenta</h1>
+  <p data-t="Se borran del servidor tu clóset, tus fotos, tus looks, tu calendario y tus datos. No se puede deshacer.|Your closet, photos, looks, calendar and data are deleted from our server. This cannot be undone.">Se borran del servidor tu clóset, tus fotos, tus looks, tu calendario y tus datos. No se puede deshacer.</p>
+  <p data-t="Si tienes la app abierta, también puedes hacerlo en Yo → Ajustes → Cuenta.|If you have the app, you can also do it in Me → Settings → Account.">Si tienes la app abierta, también puedes hacerlo en Yo → Ajustes → Cuenta.</p>
+
+  <form id="f-entrar" class="paso" novalidate>
+    <label for="correo" data-t="Correo|Email">Correo</label>
+    <input id="correo" type="email" autocomplete="username" required>
+    <label for="clave" data-t="Contraseña|Password">Contraseña</label>
+    <input id="clave" type="password" autocomplete="current-password" required>
+    <p class="error" id="e-entrar" role="alert"></p>
+    <button class="lleno" type="submit" data-t="Entrar para borrarla|Sign in to delete it">Entrar para borrarla</button>
+  </form>
+
+  <form id="f-codigo" class="paso oculto" novalidate>
+    <p data-t="Te he mandado un código de 6 cifras a tu correo.|I have sent a 6-digit code to your email.">Te he mandado un código de 6 cifras a tu correo.</p>
+    <label for="codigo" data-t="Código|Code">Código</label>
+    <input id="codigo" class="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+    <p class="error" id="e-codigo" role="alert"></p>
+    <button class="lleno" type="submit" data-t="Confirmar|Confirm">Confirmar</button>
+  </form>
+
+  <section id="s-borrar" class="paso oculto" aria-live="polite">
+    <p data-t="Antes de borrarla, guarda una copia: con ella puedes recuperar tu clóset en la app (Ajustes → Privacidad → Recuperar una copia).|Before deleting it, save a copy: you can restore your closet with it in the app (Settings → Privacy → Restore a copy).">Antes de borrarla, guarda una copia: con ella puedes recuperar tu clóset en la app (Ajustes → Privacidad → Recuperar una copia).</p>
+    <button type="button" id="b-copia" data-t="Descargar mi copia|Download my copy">Descargar mi copia</button>
+    <p class="estado" id="e-copia" role="status"></p>
+    <div id="d-1">
+      <button type="button" class="peligro" id="b-borrar" data-t="Borrar mi cuenta|Delete my account">Borrar mi cuenta</button>
+    </div>
+    <div id="d-2" class="oculto">
+      <ul class="lista">
+        <li data-t="Tu clóset y todas sus fotos|Your closet and all its photos">Tu clóset y todas sus fotos</li>
+        <li data-t="Tus looks, tu calendario y tus viajes|Your looks, calendar and trips">Tus looks, tu calendario y tus viajes</li>
+        <li data-t="Tu perfil, tus medidas, tu diagnóstico y tu avatar|Your profile, measurements, analysis and avatar">Tu perfil, tus medidas, tu diagnóstico y tu avatar</li>
+        <li data-t="Tu correo y tu contraseña|Your email and password">Tu correo y tu contraseña</li>
+      </ul>
+      <button type="button" class="peligro" id="b-seguro" data-t="Sí, borrarla para siempre|Yes, delete it forever">Sí, borrarla para siempre</button>
+      <br><button type="button" class="txt" id="b-no" data-t="No, mejor no|No, keep it">No, mejor no</button>
+    </div>
+    <p class="error" id="e-borrar" role="alert"></p>
+  </section>
+
+  <section id="s-hecho" class="paso oculto" tabindex="-1">
+    <h1 data-t="Tu cuenta está borrada|Your account is deleted">Tu cuenta está borrada</h1>
+    <p data-t="Ya no queda nada tuyo en nuestro servidor. Si tenías la app en un móvil, lo que quede en él puedes quitarlo borrando la app o los datos del navegador.|Nothing of yours is left on our server. If you had the app on a phone, you can remove what is left there by deleting the app or the browser data.">Ya no queda nada tuyo en nuestro servidor. Si tenías la app en un móvil, lo que quede en él puedes quitarlo borrando la app o los datos del navegador.</p>
+  </section>
+
+  <p class="nota"><a href="./" data-t="Volver a TuCloset|Back to TuCloset">Volver a TuCloset</a></p>
+</main>
+<script>
+(() => {
+  const EN = !/^es/i.test(navigator.language || 'es');
+  const t = (es, en) => EN ? en : es, $ = id => document.getElementById(id);
+  if (EN) { document.documentElement.lang = 'en'; document.querySelectorAll('[data-t]').forEach(e => { e.textContent = e.dataset.t.split('|')[1]; }); document.title = 'Delete your account · TuCloset'; }
+  const API = (() => { try { const q = localStorage.getItem('tc_api'); if (q) return q; } catch (e) { } return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://localhost:8787' : 'https://tucloset-api.apptucloset.workers.dev'; })();
+  // el mismo identificador de móvil que la app (si la usa en este navegador, no se le pide el código otra vez)
+  const disp = (() => { let d = null; try { d = localStorage.getItem('tc_disp'); } catch (e) { } if (!/^[0-9a-f]{32}$/.test(d || '')) { d = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join(''); try { localStorage.setItem('tc_disp', d); } catch (e) { } } return d; })();
+  let token = null, reto = null, copia = false;
+  const llamar = async (ruta, op = {}) => { const h = { ...(op.json ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: 'Bearer ' + token } : {}) }; const r = await fetch(API + ruta, { method: op.method || 'GET', headers: h, body: op.json ? JSON.stringify(op.json) : undefined }); return r; };
+  const ERR = { credenciales: t('El correo o la contraseña no son correctos.', 'The email or password is not correct.'), frenado: t('Demasiados intentos. Espera 15 minutos.', 'Too many attempts. Wait 15 minutes.'), codigo: t('El código no es correcto.', 'The code is not correct.'), caducado: t('El código ha caducado. Vuelve a entrar.', 'The code has expired. Sign in again.'), intentos: t('Demasiados intentos. Vuelve a entrar.', 'Too many attempts. Sign in again.'), envio: t('No he podido mandarte el código. Prueba otra vez.', 'I could not send you the code. Try again.'), red: t('Sin conexión. Prueba otra vez.', 'No connection. Try again.') };
+  const listo = d => { token = d.token; $('f-entrar').classList.add('oculto'); $('f-codigo').classList.add('oculto'); $('s-borrar').classList.remove('oculto'); $('b-copia').focus(); };
+  $('f-entrar').onsubmit = async ev => {
+    ev.preventDefault(); const b = ev.submitter || ev.target.querySelector('button'); $('e-entrar').textContent = '';
+    if (!$('correo').value.trim() || !$('clave').value) { $('e-entrar').textContent = t('Escribe tu correo y tu contraseña.', 'Enter your email and password.'); return; }
+    b.disabled = true;
+    try {
+      const r = await llamar('/api/entrar', { method: 'POST', json: { correo: $('correo').value, clave: $('clave').value, disp, en: EN ? 1 : 0 } }), d = await r.json().catch(() => ({}));
+      if (d.token) return listo(d);
+      if (d.codigo) { reto = d.reto; $('f-entrar').classList.add('oculto'); $('f-codigo').classList.remove('oculto'); $('codigo').focus(); return; }
+      $('e-entrar').textContent = ERR[d.error] || ERR.red;
+    } catch (e) { $('e-entrar').textContent = ERR.red; } finally { b.disabled = false; }
+  };
+  $('f-codigo').onsubmit = async ev => {
+    ev.preventDefault(); const b = ev.submitter || ev.target.querySelector('button'); $('e-codigo').textContent = ''; b.disabled = true;
+    try {
+      const r = await llamar('/api/codigo', { method: 'POST', json: { reto, codigo: $('codigo').value, disp } }), d = await r.json().catch(() => ({}));
+      if (d.token) return listo(d);
+      if (d.error === 'caducado' || d.error === 'intentos') { $('f-codigo').classList.add('oculto'); $('f-entrar').classList.remove('oculto'); $('e-entrar').textContent = ERR[d.error]; return; }
+      $('e-codigo').textContent = ERR[d.error] || ERR.red;
+    } catch (e) { $('e-codigo').textContent = ERR.red; } finally { b.disabled = false; }
+  };
+  // la copia, en el formato de «Descargar una copia» de la app: cada prenda con su foto dentro (la de catálogo si la tiene); la app la recupera tal cual
+  const aDatos = b => new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.onerror = () => r(null); f.readAsDataURL(b); });
+  $('b-copia').onclick = async () => {
+    const b = $('b-copia'), e = $('e-copia'); b.disabled = true; e.textContent = t('Preparando tu copia…', 'Preparing your copy…');
+    try {
+      const r = await llamar('/api/datos'); if (!r.ok) throw 0; const { doc } = await r.json(); const d = doc || {}, pr = d.prendas || [], fuera = ['nube', 'nubeO', 'nubeC', 'conCat', 'fotoSub', 'fotoSubO', 'cat', 'original', 'catProp'];
+      let hechas = 0; const salida = new Array(pr.length);
+      const una = async i => { const p = pr[i], q = { ...p }; fuera.forEach(k => delete q[k]); q.foto = null;
+        for (const suf of p.conCat ? ['-c', ''] : ['']) { if (!p.conCat && !p.nube) break; const f = await llamar('/api/foto/' + encodeURIComponent(p.id) + suf).catch(() => null); if (f?.ok) { q.foto = await aDatos(await f.blob()); break; } }
+        salida[i] = q; hechas++; e.textContent = t(`Preparando tu copia… ${hechas} de ${pr.length} prendas`, `Preparing your copy… ${hechas} of ${pr.length} garments`); };
+      let sig = 0; await Promise.all([0, 1, 2, 3].map(async () => { while (sig < pr.length) await una(sig++); }));
+      const datos = { version: 'tucloset-web-0.5', fecha: new Date().toISOString(), perfil: { ...(d.perfil || {}), selfie: null, cuerpo: null, avatar: null }, prendas: salida, conjuntos: d.conjuntos || [], agenda: d.agenda || {} };
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(datos)], { type: 'application/json' })); a.download = `tucloset-copia-${new Date().toISOString().slice(0, 10)}.json`; document.body.append(a); a.click(); a.remove();
+      copia = true; e.textContent = t(`Copia descargada: ${pr.length} prendas.`, `Copy downloaded: ${pr.length} garments.`);
+    } catch (x) { e.textContent = t('No he podido preparar la copia. Prueba otra vez.', 'I could not prepare the copy. Try again.'); } finally { b.disabled = false; }
+  };
+  $('b-borrar').onclick = () => { $('d-1').classList.add('oculto'); $('d-2').classList.remove('oculto'); $('e-borrar').textContent = copia ? '' : t('Aún no has descargado tu copia.', 'You have not downloaded your copy yet.'); $('b-no').focus(); };
+  $('b-no').onclick = () => { $('d-2').classList.add('oculto'); $('d-1').classList.remove('oculto'); $('e-borrar').textContent = ''; $('b-borrar').focus(); };
+  $('b-seguro').onclick = async () => {
+    const b = $('b-seguro'); b.disabled = true; $('e-borrar').textContent = '';
+    try {
+      const r = await llamar('/api/cuenta', { method: 'DELETE' }); if (!r.ok) throw 0;
+      token = null; try { ['tc_cuenta', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_dueno', 'tc_reinicio'].forEach(k => localStorage.removeItem(k)); } catch (e) { }
+      $('s-borrar').classList.add('oculto'); $('s-hecho').classList.remove('oculto'); $('s-hecho').focus();
+    } catch (e) { $('e-borrar').textContent = t('No se ha podido borrar. Prueba otra vez.', 'Could not delete it. Try again.'); b.disabled = false; }
+  };
+})();
+</script>
+</body>
+</html>

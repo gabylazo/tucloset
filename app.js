@@ -60,9 +60,10 @@ const BD = (() => {
       for (const [c, v] of Object.entries(p)) if (v && v.__ref) { const b = bytes[v.__ref]; if (b && b.__bytes instanceof ArrayBuffer) { q[c] = new Blob([b.__bytes], { type: b.t || 'image/jpeg' }); GUARDADAS.set(q[c], v.__ref); } else delete q[c]; }
       return q; });
   }
-  return { cerrar: () => { if (db) db.close(); db = null; }, get: k => op('readonly', s => s.get(k)).then(v => k === 'prendas' ? leerPrendas(v) : CRUDO.has(k) ? deBytes(v) : v),
+  let parado = false; // 10/11: mientras se intercambian los clósets, nada escribe la ropa (un guardado viejo pisaría el cambio)
+  return { parar: v => { parado = v; }, cerrar: () => { if (db) db.close(); db = null; }, get: k => op('readonly', s => s.get(k)).then(v => k === 'prendas' ? leerPrendas(v) : CRUDO.has(k) ? deBytes(v) : v),
     // en cola: pasar fotos a bytes lleva su tiempo y un guardado viejo no puede pisar a uno más nuevo
-    set: (k, v) => (cola = cola.catch(() => { }).then(async () => { if (k === 'prendas') return ponerPrendas(v); if (CRUDO.has(k)) v = await aBytes(v); return op('readwrite', s => s.put(v, k)); })), del: k => op('readwrite', s => s.delete(k)), claves: () => op('readonly', s => s.getAllKeys()) };
+    set: (k, v) => parado && ['prendas', 'conjuntos', 'agenda', 'alfas'].includes(k) ? Promise.resolve() : (cola = cola.catch(() => { }).then(async () => { if (k === 'prendas') return ponerPrendas(v); if (CRUDO.has(k)) v = await aBytes(v); return op('readwrite', s => s.put(v, k)); })), del: k => op('readwrite', s => s.delete(k)), claves: () => op('readonly', s => s.getAllKeys()) };
 })();
 
 /* ---------- estado ---------- */
@@ -192,7 +193,7 @@ const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.p
 // 09/11 (Gabriela: «acabo de abrir el perfil de Sheila desde mi móvil… se ha unido al mío y ha sumado sus prendas a mi clóset; una cuenta enlazada a un clóset, no
 // mezclar, Instagram no funciona así»): al cerrar sesión el móvil se quedaba con el clóset y, al entrar en otra cuenta, bajarNube lo juntaba con el de esa cuenta y
 // subía la mezcla. Ahora el clóset de este móvil es de una sola cuenta (tc_dueno): al cerrar sesión se quita del móvil y, al entrar en otra cuenta, se vacía antes
-const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo', 'tc_admin'];
+const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo', 'tc_admin', 'tc_intercambio'];
 const dueno = () => (LS.get('tc_dueno') || '').toLowerCase();
 try { const c0 = JSON.parse(LS.get('tc_cuenta') || 'null'); if (c0?.correo && !LS.get('tc_dueno')) LS.set('tc_dueno', c0.correo.toLowerCase()); } catch (e) { } // móviles de antes: el clóset es de la cuenta abierta
 const deCuenta = p => !p.ejemplo && !!(p.nube || p.nubeC || p.fotoSub); // la prenda ya estuvo en alguna cuenta
@@ -245,8 +246,8 @@ function docLocal() {
     prendas: E.prendas.filter(p => !p.ejemplo).map(p => ({ ...sinBlobs(p), conFoto: !!p.foto, conOriginal: !!p.original })) };
 }
 E.nube = { estado: '', cuando: LS.get('tc_nube_cuando') || '' };
-let nubeT, nubeEnCurso = null;
-function programarNube() { if (!cuenta()) return; clearTimeout(nubeT); nubeT = setTimeout(() => subirNube().catch(() => { }), 2500); }
+let nubeT, nubeEnCurso = null, INTERCAMBIO = false;
+function programarNube() { if (!cuenta() || INTERCAMBIO) return; clearTimeout(nubeT); nubeT = setTimeout(() => subirNube().catch(() => { }), 2500); }
 async function subirNube(reintento) {
   if (!cuenta()) return; if (nubeEnCurso) { await nubeEnCurso; return programarNube(); }
   nubeEnCurso = (async () => {
@@ -259,7 +260,7 @@ async function subirNube(reintento) {
       const ponerDatos = async () => {
         const r = await api('/api/datos', { method: 'PUT', json: { doc: docLocal(), version: +(LS.get('tc_nube_ver') || 0) }, tiempo: 40000 });
         if (r.status === 409) return null; if (!r.ok) throw new Error('datos ' + r.status);
-        const d = await r.json(); LS.set('tc_nube_ver', d.version); LS.set('tc_nube_ids', JSON.stringify(ahora)); LS.set('tc_nube_cuando', d.actualizado); return d;
+        const d = await r.json(); LS.set('tc_nube_ver', d.version); LS.set('tc_nube_ids', JSON.stringify(ahora)); LS.set('tc_nube_cuando', d.actualizado); LS.set('tc_intercambio', null); return d;
       };
       let d = await ponerDatos();
       if (!d) { if (reintento) throw new Error('datos 409'); await bajarNube(); nubeEnCurso = null; return subirNube(true); }
@@ -390,7 +391,10 @@ async function bajarNube() {
   if (!cuenta()) return false;
   const r = await api('/api/datos', { tiempo: 30000 }); if (!r.ok) return false;
   const { doc, version } = await r.json(); if (!doc) return false;
-  const borr = new Set(doc.borradas || []); LS.set('tc_nube_borradas', JSON.stringify(doc.borradas || []));
+  // 10/11: si un intercambio de clósets no llegó a subir, lo que salió de Mi ropa no vuelve desde la nube
+  let ic = {}; try { ic = JSON.parse(LS.get('tc_intercambio') || '{}') || {}; } catch (e) { }
+  const fI = new Set(ic.fuera || []), dI = new Set(ic.dentro || []); // lo que entró no cuenta como borrado aunque la nube aún lo diga
+  const borr = new Set([...(doc.borradas || []), ...fI].filter(id => !dI.has(id))); LS.set('tc_nube_borradas', JSON.stringify([...borr]));
   // 09/11: un clóset que la Dirección ha limpiado («reinicio») se baja tal cual una vez: lo que este móvil tenía de más (prendas, looks y agenda de otra cuenta) se quita
   const rein = !!doc.reinicio && doc.reinicio !== LS.get('tc_reinicio');
   const locales = new Map(E.prendas.map(p => [p.id, p]));
@@ -398,6 +402,7 @@ async function bajarNube() {
   // ahora bajan 6 a la vez, solo las recortadas antes de entrar, y las originales después, por detrás
   const nuevas = [], fotos = [], originales = [];
   for (const q of doc.prendas || []) {
+    if (fI.has(q.id)) continue;
     // 06/11 (Gabriela: «una vez se estilice la foto, esa foto es la que prevalece y se elimina la original; libera memoria y ganamos en eficiencia»): con fCat, la foto de catálogo
     // es la única foto de la prenda; en el móvil no se guardan ni la original ni la recortada, y la nube ya no las tiene
     const l = locales.get(q.id), solo = !!(q.fCat && q.conCat); const p = { ...q, foto: (solo && l?.cat) || l?.foto || null, original: solo ? null : l?.original || null, cat: l?.cat || null }; if (l?.fotoTorcida && !solo) p.fotoTorcida = l.fotoTorcida; if (l?.catProp && !q.conCat) { p.catProp = l.catProp; p.catPropAR = l.catPropAR; } // 06/11: la foto de catálogo propuesta, hasta que elija delete p.conFoto; delete p.conOriginal;
@@ -412,8 +417,8 @@ async function bajarNube() {
   if (originales.length) setTimeout(async () => { await aLaVez(originales, 3); await BD.set('prendas', E.prendas).catch(() => { }); }, 2000);
   if (!rein) for (const [id, l] of locales) if (!borr.has(id)) nuevas.push(l);
   E.prendas = nuevas;
-  const cj = new Map((doc.conjuntos || []).map(c => [c.id, c])); if (!rein) E.conjuntos.forEach(c => { if (!cj.has(c.id)) cj.set(c.id, c); }); E.conjuntos = [...cj.values()];
-  E.agenda = rein ? { ...(doc.agenda || {}) } : { ...E.agenda, ...(doc.agenda || {}) };
+  const cj = new Map((doc.conjuntos || []).map(c => [c.id, c])); if (!rein) E.conjuntos.forEach(c => { if (!cj.has(c.id)) cj.set(c.id, c); }); E.conjuntos = [...cj.values()].filter(c => !fI.size || !(c.ids || []).some(id => fI.has(id)));
+  E.agenda = rein ? { ...(doc.agenda || {}) } : fI.size ? { ...E.agenda } : { ...E.agenda, ...(doc.agenda || {}) };
   if (doc.reinicio) LS.set('tc_reinicio', doc.reinicio);
   // 06/11 (Gabriela: «apunto mis medidas 20 veces y no se guardan después de analizar, y además sigue analizando mal»): el diagnóstico sale de las fotos y las medidas,
   // que solo viven en este móvil; si al subir había conflicto con la nube (409), la bajada pisaba el diagnóstico recién hecho con el viejo de la nube y volvía
@@ -2302,7 +2307,10 @@ function pintarSubida() {
       <div class="gr"><p class="mini-et">${t('Color', 'Colour')}</p><div class="ops col">${COLORES.map(([c, h]) => `<button type="button" class="${c === det.color ? 'on' : ''}" data-scolor="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>
       ${det.color === 'Estampado' ? `<div class="gr"><p class="mini-et">${t('Estampado', 'Pattern')}</p>${ops(Object.keys(ESTAMPADOS), det.estampado, 'estp', k => t(k, ESTAMPADOS[k][1]))}</div>` : ''}
       ${det.color === 'Estampado' && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(det.estampado) ? `<div class="gr"><p class="mini-et">${t('Color del estampado', 'Pattern colour')}</p><div class="ops col">${COLORES.filter(([c]) => c !== 'Estampado').map(([c, h]) => `<button type="button" class="${c === det.color2 ? 'on' : ''}" data-scolor2="${c}" title="${c}" aria-label="${c}" style="background:${h}"></button>`).join('')}</div></div>` : ''}
-      <div class="gr"><p class="mini-et">${t('Detalles', 'Details')}</p><div class="ops">${Object.keys(DETALLES).map(k => `<button type="button" class="${(det.detalles || []).includes(k) ? 'on' : ''}" data-sdeta="${k}" aria-pressed="${(det.detalles || []).includes(k)}">${t(k, DETALLES[k])}</button>`).join('')}</div></div>
+      ${(() => { // 09/11 (decisión 31): si la app ya ha encontrado detalles, plegados con su lista a la vista; si no, abiertos
+        const bts = `<div class="ops">${Object.keys(DETALLES).map(k => `<button type="button" class="${(det.detalles || []).includes(k) ? 'on' : ''}" data-sdeta="${k}" aria-pressed="${(det.detalles || []).includes(k)}">${t(k, DETALLES[k])}</button>`).join('')}</div>`;
+        if (!det.detalles?.length && !det.detaAbierto) return `<div class="gr"><p class="mini-et">${t('Detalles', 'Details')}</p>${bts}</div>`;
+        return `<details class="gr s-deta" data-sdetabre${det.detaAbierto ? ' open' : ''}><summary><span class="mini-et">${t('Detalles', 'Details')}</span><span class="s-deta-l">${(det.detalles || []).map(k => t(k, DETALLES[k])).join(', ') || t('Ninguno', 'None')}</span></summary>${bts}</details>`; })()}
       <div class="gr"><p class="mini-et">${t('Estación', 'Season')}</p>${ops(ESTACIONES, det.estacion, 'est', estNombre)}</div>
       ${det.recortada ? `<button class="txt sub-l" data-sorig>${det.usaOriginal ? t('Usar el fondo blanco', 'Use white background') : t('Usar la foto original', 'Use the original photo')}</button>` : ''}` : ''}
       <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo && !(det.noPrenda && !det.siPrenda) ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(t('Añadir más prendas', 'Add more garments'), 'txt sub-l')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button><button class="txt sub-l" data-squita>${t('Quitar esta prenda', 'Remove this garment')}</button>`}</div></div>`;
@@ -2325,7 +2333,7 @@ function pintarSubida() {
     else if (d.sguardar !== undefined) guardarSubida();
     else if (d.scolor) { const c = catDe(det); det.color = d.scolor; if (det.x && NOMBRE_AUTO.test(det.nombre) && SUBCATS[c]?.includes(det.x)) det.nombre = nombreReconocido(det.x, det.color); else if (auto || (c === 'Faldas' && det.nombre === nombreSubida(Object.assign({}, det, { color: prev }), c))) det.nombre = nombreSubida(det, c); pintarSubida(); }
     else if (d.sest) { det.estacion = d.sest; pintarSubida(); }
-    else if (d.sdeta) { const l = new Set(det.detalles || []); l.has(d.sdeta) ? l.delete(d.sdeta) : l.add(d.sdeta); det.detalles = [...l]; pintarSubida(); }
+    else if (d.sdeta) { const l = new Set(det.detalles || []); l.has(d.sdeta) ? l.delete(d.sdeta) : l.add(d.sdeta); det.detalles = [...l]; det.detaAbierto = true; pintarSubida(); }
     else if (d.sestp) { const propio = !NOMBRE_AUTO.test(det.nombre) && !/ (de rayas|de cuadros|de lunares|de flores|animal print|estampad[oa])$/.test(det.nombre); det.estampado = d.sestp; if (!propio && det.x && NOM_X[det.x]) det.nombre = nomEstampado(det.x, d.sestp, det.color2); pintarSubida(); }
     else if (d.scolor2) { const propio = !NOMBRE_AUTO.test(det.nombre) && !/ (de rayas|de cuadros|de lunares|de flores)( [a-záéíóú ]+)?$/.test(det.nombre); det.color2 = d.scolor2; if (!propio && det.x && NOM_X[det.x]) det.nombre = nomEstampado(det.x, det.estampado, det.color2); pintarSubida(); }
     // 06/11 (Gabriela: «el icono de recortar tiene que ser mientras estás subiendo, no después, porque me siguen saliendo los pies en un vestido negro corto»)
@@ -2335,6 +2343,7 @@ function pintarSubida() {
     else if (d.sorig !== undefined) { det.usaOriginal = !det.usaOriginal; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(det.usaOriginal ? det.original : det.blob); pintarSubida(); }
   };
   const nom = raiz.querySelector('[data-snom]'); if (nom) nom.oninput = e => { det.nombre = e.target.value; };
+  const dta = raiz.querySelector('[data-sdetabre]'); if (dta && det) dta.ontoggle = () => { det.detaAbierto = dta.open; };
   const sc = raiz.querySelector('[data-scat]'), ss = raiz.querySelector('[data-ssub]');
   // 06/11 (Gabriela: «una camisa rosa que no me deja cambiarle la clasificación y lo pone como tops rosa»): al elegir «Camisas y blusas» el nombre pasaba
   // a «Top rosa» y la categoría, que sale del nombre, volvía a Tops. Ahora la elegida se guarda (catM) y manda; el nombre automático toma el primer tipo de esa categoría
@@ -2979,10 +2988,56 @@ function pintarPanelYo() {
       filaP({ tag: 'a', attr: 'href="control.html"', ic: 'control', tit: t('Centro de control', 'Control centre') })
       + filaP({ id: 'yo-vercomo', ic: 'probar', tit: t('Ver la app como', 'View the app as'), val: nomPlan(planDemo()) })
       + filaP({ id: 'yo-closet', ic: 'probar', tit: t('Clóset', 'Closet'), val: CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes'), flecha: false })
+      + filaP({ id: 'yo-intercambio', ic: 'probar', tit: t('Intercambiar Mi ropa y Pruebas', 'Swap My clothes and Test'), flecha: false })
       + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))) : '');
   if ($('yo-vercomo')) $('yo-vercomo').onclick = panelVerComo; $('yo-modo').onclick = cambiarModo; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
   if ($('yo-closet')) $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
+  if ($('yo-intercambio')) $('yo-intercambio').onclick = () => intercambiarClosets().catch(e => { avisarFallo('intercambio', e); toast(t('No se ha podido. No se ha cambiado nada.', 'It did not work. Nothing was changed.')); });
+}
+// 10/11 (Sheila: «invierte mi clóset de prueba con mi clóset normal y arma mi cuenta como la de Gaby»): las prendas, sus fotos, los looks y la agenda de «Pruebas»
+// pasan a «Mi ropa» (y a la cuenta) y los de «Mi ropa», a «Pruebas». El perfil (estilos, medidas, fotos, avatar) y lo probado en el avatar se quedan donde están.
+// Pulsando otra vez se deshace. En la cuenta, lo que sale se apunta como borrado, pero sus fotos no se borran del servidor, por si se vuelve a cambiar.
+// Al abrir de nuevo, la app hace con lo que entra lo mismo que con cualquier prenda: nombre y detalles con IA, foto de catálogo, recorte
+const MUEVE = k => ['prendas', 'conjuntos', 'agenda', 'alfas'].includes(k) || (typeof k === 'string' && k.startsWith('f:'));
+const kvAbrir = nombre => new Promise((res, rej) => { const r = indexedDB.open(nombre, 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const kvLeer = db => new Promise((res, rej) => { const tx = db.transaction('kv', 'readonly'), st = tx.objectStore('kv'), ks = st.getAllKeys(), vs = st.getAll();
+  tx.oncomplete = () => res(new Map(ks.result.map((k, i) => [k, vs.result[i]]))); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error || new Error('abortada')); });
+const kvCambiar = (db, quitar, poner) => new Promise((res, rej) => { const tx = db.transaction('kv', 'readwrite'), st = tx.objectStore('kv');
+  for (const k of quitar) st.delete(k); for (const [k, v] of poner) st.put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error || new Error('abortada')); });
+async function intercambiarClosets() {
+  await guardar(); clearTimeout(nubeT);
+  const ids = m => (m.get('prendas') || []).filter(p => !p.ejemplo).map(p => p.id);
+  let dA = await kvAbrir('tucloset'), dB = await kvAbrir('tucloset-pruebas'), A = await kvLeer(dA), B = await kvLeer(dB);
+  if (!await confirmar(t('¿Intercambiar los clósets?', 'Swap the closets?'),
+    t(`Las ${ids(B).length} prendas de Pruebas pasan a Mi ropa y a tu cuenta, con sus looks y su agenda. Las ${ids(A).length} de Mi ropa pasan a Pruebas, solo en este móvil. Tu perfil, tus medidas y tu avatar no cambian. Para deshacerlo, vuelve a pulsar aquí.`,
+      `The ${ids(B).length} garments in Test move to My clothes and your account, with their looks and calendar. The ${ids(A).length} in My clothes move to Test, on this phone only. Your profile, measurements and avatar stay. To undo, tap here again.`),
+    t('Intercambiar', 'Swap'))) { dA.close(); dB.close(); return; }
+  // 1. Mi ropa, al día con la cuenta antes de tocar nada (si no hay conexión, no se cambia nada)
+  if (CLOSET_ACT) { CLOSET_ACT = ''; LS.set('tc_closet', ''); BD.cerrar(); E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {}; }
+  if (cuenta()) {
+    toast(t('Guardando tu cuenta…', 'Saving your account…'));
+    if (!await bajarNube().catch(() => false)) { dA.close(); dB.close(); return toast(t('Sin conexión con tu cuenta: no he cambiado nada. Prueba con internet.', 'Cannot reach your account: nothing changed. Try with internet.')); }
+    await subirNube(); if (E.nube.estado === 'error') { dA.close(); dB.close(); return toast(t('Sin conexión con tu cuenta: no he cambiado nada. Prueba con internet.', 'Cannot reach your account: nothing changed. Try with internet.')); }
+  }
+  INTERCAMBIO = true; clearTimeout(nubeT); if (nubeEnCurso) await nubeEnCurso.catch(() => { }); await BD.set('perfil', E.perfil); BD.parar(true); BD.cerrar(); A = await kvLeer(dA); B = await kvLeer(dB);
+  // 2. el cambio, base a base. Primero Mi ropa: si fallara Pruebas, lo de Pruebas sigue allí y lo de Mi ropa, en la cuenta
+  const fuera = ids(A), dentro = ids(B), deA = [...A].filter(([k]) => MUEVE(k)), deB = [...B].filter(([k]) => MUEVE(k));
+  await kvCambiar(dA, deA.map(([k]) => k), deB);
+  await kvCambiar(dB, deB.map(([k]) => k), deA);
+  dA.close(); dB.close();
+  // 3. la cuenta: lo que sale, borrado (sus fotos se quedan en el servidor); lo que entra deja de estarlo
+  LS.set('tc_closet', '');
+  if (cuenta()) {
+    const b = new Set(JSON.parse(LS.get('tc_nube_borradas') || '[]')); fuera.forEach(id => b.add(id)); dentro.forEach(id => b.delete(id));
+    LS.set('tc_nube_borradas', JSON.stringify([...b].slice(-2000))); LS.set('tc_intercambio', JSON.stringify({ fuera, dentro })); LS.set('tc_nube_ids', '[]');
+    E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {};
+    let r = await api('/api/datos', { method: 'PUT', json: { doc: docLocal(), version: +(LS.get('tc_nube_ver') || 0) }, tiempo: 40000 }).catch(() => null);
+    if (r?.status === 409) { const g = await api('/api/datos', { tiempo: 30000 }).catch(() => null), v = g?.ok ? (await g.json()).version : null; if (v != null) r = await api('/api/datos', { method: 'PUT', json: { doc: docLocal(), version: v }, tiempo: 40000 }).catch(() => null); }
+    if (r?.ok) { const d = await r.json(); LS.set('tc_nube_ver', d.version); LS.set('tc_nube_ids', JSON.stringify(dentro)); LS.set('tc_nube_cuando', d.actualizado); LS.set('tc_intercambio', null); }
+  }
+  toast(t(`Hecho: ${dentro.length} prendas en Mi ropa y ${fuera.length} en Pruebas`, `Done: ${dentro.length} garments in My clothes and ${fuera.length} in Test`));
+  setTimeout(() => { location.href = location.pathname + '?repaso=0&pantalla=closet'; }, 1600);
 }
 // 08/11 (Gabriela: «la parte de Yo creo que tiene muchas cosas que tienen poco que ver, como mezclando ajustes de la app con cosas del usuario como medidas,
 // colorimetría, avatar y esas cosas… estudia la mejor forma de distribuirlos»): Yo queda para lo tuyo (tu clóset, silueta, estilo, colores, medidas y fotos,
@@ -3019,7 +3074,7 @@ function panelCiudad() {
 }
 function panelPlan() {
   abrirPanel(t('Plan', 'Plan'), `<p class="pn-lema">${t('Estás viendo la app como', 'You are viewing the app as')} ${({ gratis: t('Gratis', 'Free'), basico: t('Básico', 'Basic'), pro: 'Pro' })[planDemo()] || 'Pro'}.</p>`
-    + grupoP('', filaP({ tag: 'div', tit: t('Gratis', 'Free'), val: t('7 días', '7 days'), flecha: false }) + `<p class="pn-txt">${t('Hasta 10 prendas, con el look de cada día y el calendario.', 'Up to 10 garments, with the daily look and the calendar.')}</p>`)
+    + grupoP('', filaP({ tag: 'div', tit: t('Gratis', 'Free'), val: t('7 días', '7 days'), flecha: false }) + `<p class="pn-txt">${t('Hasta 10 prendas, con el look de cada día y el calendario. Al acabar los 7 días, tu clóset sigue ahí. Para seguir sacándole partido, elige un plan.', 'Up to 10 garments, with the daily look and the calendar. When the 7 days end, your closet is still there. To keep making the most of it, choose a plan.')}</p>`)
     + grupoP('', filaP({ tag: 'div', tit: t('Básico', 'Basic'), val: t('1,99 € al mes', '€1.99 a month'), flecha: false }) + `<p class="pn-txt">${t('Tu clóset sin tope de prendas, el look de cada día, los looks de la estilista, Mi cápsula, el calendario y los cuidados.', 'Your closet with no garment limit, the daily look, the stylist’s looks, My capsule, the calendar and care tips.')}</p>`)
     + grupoP('', filaP({ tag: 'div', tit: 'Pro', val: t('4,99 € al mes', '€4.99 a month'), oro: true, flecha: false }) + `<p class="pn-txt">${t('Además, tu asesora de imagen: tus colores y tu silueta a partir de tus fotos, aplicados a tus looks; «Inspírate en…», Planear un viaje e ideas con cada prenda.', 'Plus your image adviser: your colours and figure from your photos, applied to your looks; “Get inspired by…”, trip planning and ideas for each garment.')}</p>`)
     + `<p class="pn-nota">${t('El pago llegará con la app del móvil. Mientras tanto, todo está abierto.', 'Payment will come with the mobile app. Until then, everything is open.')}</p>`);

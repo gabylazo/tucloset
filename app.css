@@ -1735,3 +1735,11 @@ html.oscuro .cod-campo input{background:transparent}
 html.oscuro .cod-e{color:#E8776B!important}
 /* 09/11: mientras el servidor afina el nombre y los detalles de la prenda */
 .s-clas{margin:6px 20px 0;font-size:12px;line-height:1.4;color:var(--sec);text-align:center;font-weight:300}
+/* 10/11 · decisión 31: en Revisa tu prenda, los detalles plegados cuando ya hay alguno elegido (una línea con lo marcado; se abre al tocar) */
+#s-raiz .uno .s-deta>summary{list-style:none;display:flex;align-items:center;justify-content:center;gap:10px;min-height:44px;cursor:pointer;flex-wrap:wrap;text-align:center}
+#s-raiz .uno .s-deta>summary::-webkit-details-marker{display:none}
+#s-raiz .uno .s-deta>summary .mini-et{color:var(--sec);margin:0}
+#s-raiz .uno .s-deta .s-deta-l{font-size:14px;color:var(--tinta)}
+#s-raiz .uno .s-deta>summary::after{content:"";width:7px;height:7px;border-right:1.5px solid var(--sec);border-bottom:1.5px solid var(--sec);transform:translateY(-2px) rotate(45deg)}
+#s-raiz .uno .s-deta[open]>summary::after{transform:translateY(2px) rotate(225deg)}
+#s-raiz .uno .s-deta>summary:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}

@@ -833,6 +833,10 @@ html.oscuro.oscuro .dlg-cod{background:var(--o-fondo,#1A1410)}
 html.oscuro.oscuro .cod-campo input{background:transparent}
 html.oscuro.oscuro .cod-e{color:#E8776B!important}
 html.oscuro .s-clas{color:var(--sec)}
+html.oscuro #s-raiz .uno .s-deta>summary .mini-et{color:var(--sec)}
+html.oscuro #s-raiz .uno .s-deta .s-deta-l{color:var(--tinta)}
+html.oscuro #s-raiz .uno .s-deta>summary::after{border-right:1.5px solid var(--sec);border-bottom:1.5px solid var(--sec)}
+html.oscuro #s-raiz .uno .s-deta>summary:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}
@@ -1033,8 +1037,6 @@ html.at.oscuro .at-cm-par p{color:var(--sec)}
 html.at.oscuro .at-cm-parb{background:none;border:0;color:var(--tinta)}
 html.at.oscuro .at-cm-parb img{background:var(--baldosa)}
 html.at.oscuro .at-cm-corr summary{color:var(--sec);text-decoration:underline}
-html.at.oscuro .at-cm-campo{color:var(--sec)}
-html.at.oscuro .at-cm-campo input,html.at.oscuro .at-cm-campo select{border:0;border-bottom:1px solid var(--linea2, rgba(241,233,222, .28));border-radius:0;background:var(--o-fondo);color:var(--tinta)}
 html.at.oscuro .at-cm-campo input:focus-visible,html.at.oscuro .at-cm-campo select:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
 html.at.oscuro .at-cm-et{color:var(--sec)}
 html.at.oscuro .at-cm-col button{border:1px solid var(--linea2, rgba(241,233,222, .28));border-radius:50%}
@@ -1045,6 +1047,8 @@ html.at.oscuro .pn-cuerpo > .pn-g0:first-child > .pn-c{border-top:0}
 html.at.oscuro .at-vj-campo input::-webkit-calendar-picker-indicator{color:transparent;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A3526' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5'/%3E%3Cpath d='M3.5 9.5h17M8 3v4M16 3v4'/%3E%3C/svg%3E") center / 20px no-repeat}
 html.at.oscuro .at-ideas-acc{border-top:0;border-bottom:1px solid var(--raya)}
 html.at.oscuro .at-ideas-acc .at-ib{color:var(--tinta)}
+html.at.oscuro #s-raiz .uno .ops.col button,html.at.oscuro .colores button,html.at.oscuro .at-cm-col button{border:1px solid var(--linea2, rgba(241,233,222, .28));border-radius:0}
+html.at.oscuro #s-raiz .uno .ops.col button.on,html.at.oscuro .colores button.sel,html.at.oscuro .at-cm-col button.on{outline:2px solid var(--tinta);outline-offset:3px}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz

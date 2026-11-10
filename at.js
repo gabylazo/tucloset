@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.203'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.207'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -557,10 +557,10 @@ if (AT) (() => {
     if (E.lkTab === 'ideas') return pintarIdeas(raiz);
     const fav = E.lkTab === 'fav', lista = E.conjuntos.filter(c => !fav || c.fav || esFav(c.ids));
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
-    const crear = fav ? '' : `<figure class="at-t"><button class="at-bal at-crear" style="width:${TW}px;height:${TH}px" data-ir="nuevo-look">${I.mas}<span>${t('Crear un look', 'Create a look')}</span></button></figure>`;
+    // 09/11 (decisión 36, pedida por Gabriela): «Crear un look» y «Mi cápsula» en una fila corta, como las acciones de Ideas, y los looks guardados justo debajo
+    const acc = fav ? '' : `<div class="at-iconos at-ideas-acc at-mios-acc" role="group" aria-label="${t('Crear looks', 'Create looks')}"><button class="at-ib" data-ir="nuevo-look"><span class="at-ib-c">${I.mas}</span><span class="at-ib-t">${t('Crear un look', 'Create a look')}</span></button><button class="at-ib" data-capsula><span class="at-ib-c">${I.percha}</span><span class="at-ib-t">${t('Mi cápsula', 'My capsule')}</span></button></div>`;
     const t1 = c => `<figure class="at-t">${baldosa(psDe(c), TW, TH, ` data-look="${c.id}" aria-label="${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}"`)}<figcaption>${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</figcaption></figure>`;
-    const capsula = fav ? '' : `<figure class="at-t"><button class="at-bal at-crear" style="width:${TW}px;height:${TH}px" data-capsula>${I.percha}<span>${t('Mi cápsula', 'My capsule')}</span></button></figure>`;
-    raiz.innerHTML = filaLooks(E.lkTab) + (lista.length || !fav ? `<div class="at-rej2">${crear}${capsula}${lista.map(t1).join('')}</div>`
+    raiz.innerHTML = filaLooks(E.lkTab) + acc + (lista.length ? `<div class="at-rej2">${lista.map(t1).join('')}</div>` : !fav ? `<div class="at-vacio"><p>${t('Aún no has guardado ningún look. Crea uno o guárdalo desde Hoy.', 'You have not saved any looks yet. Create one or save it from Today.')}</p></div>`
       : `<div class="at-vacio"><p>${t('Aún no tienes favoritos. Abre un look y toca el corazón.', 'No favourites yet. Open a look and tap the heart.')}</p></div>`);
     raiz.onclick = e => { if (e.target.closest('[data-capsula]')) return abrirCapsula(); const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
   };
@@ -919,9 +919,9 @@ if (AT) (() => {
         ${forma ? `<div class="at-cm-fb"><p class="at-cm-et" id="at-cm-fe">${forma[0]}</p><div class="at-fila at-cm-forma" role="group" aria-labelledby="at-cm-fe" style="--n:${forma[2].length > 3 ? 2 : forma[2].length}">${forma[2].map(([k, n]) => `<button class="${it.est?.[forma[1]] === k ? 'on' : ''}" data-cmforma="${k}" aria-pressed="${it.est?.[forma[1]] === k}">${n}${DOS}</button>`).join('')}</div>${it.est?.[forma[1]] ? '' : `<p class="at-cm-pie">${t('Márcalo: cambia mucho con qué lo puedes llevar.', 'Mark it: it changes a lot what you can wear it with.')}</p>`}</div>` : ''}
         ${par.length ? `<div class="at-cm-par"><p>${t('Ya tienes algo muy parecido', 'You already have something very similar')}</p><div>${par.map(q => `<button class="at-cm-parb" data-cmficha="${q.id}" aria-label="${esc(q.nombre)}"><img src="${urlCat(q)}" alt=""><span>${esc(q.nombre)}</span></button>`).join('')}</div></div>` : ''}
         <details class="at-cm-corr"${C.corr ? ' open' : ''}><summary>${t('¿No es esto? Corrígelo', 'Not right? Fix it')}</summary>
-          <label class="at-cm-campo"><span>${t('Nombre', 'Name')}</span><input data-cmnom value="${esc(it.nombre)}"></label>
-          <label class="at-cm-campo"><span>${t('Categoría', 'Category')}</span><select data-cmcat>${opsCat(catDe(C.p))}</select></label>
-          <p class="at-cm-et">${t('Color', 'Colour')}</p><div class="at-cm-col">${COLORES.filter(([c]) => c !== 'Estampado').map(([c, h]) => `<button type="button" class="${c === it.color ? 'on' : ''}" data-cmcolor="${c}" aria-label="${c}" aria-pressed="${c === it.color}" style="background:${h}"></button>`).join('')}</div>
+          <label class="campo at-cm-campo"><span>${t('Nombre', 'Name')}</span><input data-cmnom value="${esc(it.nombre)}"></label>
+          <label class="campo at-cm-campo"><span>${t('Categoría', 'Category')}</span><select data-cmcat>${opsCat(catDe(C.p))}</select></label>
+          <div class="campo at-cm-campo" role="group" aria-labelledby="at-cm-colet"><span id="at-cm-colet">${t('Color', 'Colour')}</span><div class="at-cm-col">${COLORES.filter(([c]) => c !== 'Estampado').map(([c, h]) => `<button type="button" class="${c === it.color ? 'on' : ''}" data-cmcolor="${c}" aria-label="${c}" aria-pressed="${c === it.color}" style="background:${h}"></button>`).join('')}</div></div>
         </details>
         ${u.looks.length ? `<h2 class="at-vj-h2">${t('Así te la pondrías', 'How you’d wear it')}</h2><div class="at-rej2 at-vj-dias">${u.looks.map(x => `<figure class="at-t">${baldosaFija(psL(x), TW, TH, ocNombre(x.ocasion))}<figcaption>${esc(ocNombre(x.ocasion))}</figcaption></figure>`).join('')}</div>` : ''}
         <div class="at-cm-bts"><button class="at-btn" data-cmanadir>${t('La he comprado: a mi clóset', 'I bought it: add to my closet')}</button>${foto(t('Probar otra prenda', 'Try another garment')).replace('at-btn at-cm-foto', 'at-enlace at-cm-foto at-cm-otra')}</div>`;
