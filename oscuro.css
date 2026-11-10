@@ -837,6 +837,10 @@ html.oscuro #s-raiz .uno .s-deta>summary .mini-et{color:var(--sec)}
 html.oscuro #s-raiz .uno .s-deta .s-deta-l{color:var(--tinta)}
 html.oscuro #s-raiz .uno .s-deta>summary::after{border-right:1.5px solid var(--sec);border-bottom:1.5px solid var(--sec)}
 html.oscuro #s-raiz .uno .s-deta>summary:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+html.oscuro .pn-par-intro{color:var(--tinta)}
+html.oscuro .pn-par-n{color:var(--tinta)}
+html.oscuro .pn-error{color:#8E3B2E}
+html.oscuro.oscuro .pn-error{color:#E8776B}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}
@@ -1049,6 +1053,8 @@ html.at.oscuro .at-ideas-acc{border-top:0;border-bottom:1px solid var(--raya)}
 html.at.oscuro .at-ideas-acc .at-ib{color:var(--tinta)}
 html.at.oscuro #s-raiz .uno .ops.col button,html.at.oscuro .colores button,html.at.oscuro .at-cm-col button{border:1px solid var(--linea2, rgba(241,233,222, .28));border-radius:0}
 html.at.oscuro #s-raiz .uno .ops.col button.on,html.at.oscuro .colores button.sel,html.at.oscuro .at-cm-col button.on{outline:2px solid var(--tinta);outline-offset:3px}
+html.at.oscuro .at-par-par + .at-par-par{border-top:1px solid var(--linea, rgba(241,233,222, .12))}
+html.at.oscuro .at-par-por{color:var(--sec)}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz

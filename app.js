@@ -193,7 +193,7 @@ const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.p
 // 09/11 (Gabriela: «acabo de abrir el perfil de Sheila desde mi móvil… se ha unido al mío y ha sumado sus prendas a mi clóset; una cuenta enlazada a un clóset, no
 // mezclar, Instagram no funciona así»): al cerrar sesión el móvil se quedaba con el clóset y, al entrar en otra cuenta, bajarNube lo juntaba con el de esa cuenta y
 // subía la mezcla. Ahora el clóset de este móvil es de una sola cuenta (tc_dueno): al cerrar sesión se quita del móvil y, al entrar en otra cuenta, se vacía antes
-const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo', 'tc_admin', 'tc_intercambio'];
+const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo', 'tc_admin', 'tc_intercambio', 'tc_pareja'];
 const dueno = () => (LS.get('tc_dueno') || '').toLowerCase();
 try { const c0 = JSON.parse(LS.get('tc_cuenta') || 'null'); if (c0?.correo && !LS.get('tc_dueno')) LS.set('tc_dueno', c0.correo.toLowerCase()); } catch (e) { } // móviles de antes: el clóset es de la cuenta abierta
 const deCuenta = p => !p.ejemplo && !!(p.nube || p.nubeC || p.fotoSub); // la prenda ya estuvo en alguna cuenta
@@ -2923,6 +2923,7 @@ function abrirAyuda() { // 0.114: con el panel de Yo; cada grupo en su bloque y,
 // Idioma y Ciudad se abren con el mismo panel
 const IC_Y = {
   cuenta: '<circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c1.2-3.6 3.8-5.4 7-5.4s5.8 1.8 7 5.4"/>',
+  pareja: '<circle cx="8.8" cy="8.5" r="2.9"/><circle cx="15.8" cy="9.3" r="2.4"/><path d="M3.5 19.5c.8-3.2 2.8-5 5.3-5s4.5 1.8 5.3 5M13.6 15c.7-.5 1.4-.7 2.2-.7 2 0 3.5 1.5 4.2 4.2"/>',
   plan: '<path d="M12 3.8l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.6l-5 2.6.9-5.6-4-3.9 5.6-.8z"/>',
   ciudad: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
   modo: '<path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/>',
@@ -2970,7 +2971,8 @@ function pintarPanelYo() {
   $('yo-panel').innerHTML =
     grupoP(t('Tu cuenta', 'Your account'),
       (NUBE ? filaP({ attr: 'data-ir="cuenta"', ic: 'cuenta', tit: t('Cuenta', 'Account'), val: c ? (c.correo || '') : t('Entrar o crear', 'Sign in or create') }) : '')
-      + filaP({ id: 'yo-plan-info', ic: 'plan', tit: t('Plan', 'Plan'), val: t('Prueba gratis', 'Free trial'), oro: true }),
+      + filaP({ id: 'yo-plan-info', ic: 'plan', tit: t('Plan', 'Plan'), val: t('Prueba gratis', 'Free trial'), oro: true })
+      + (NUBE ? filaP({ id: 'yo-pareja', ic: 'pareja', tit: t('Pareja', 'Partner'), val: c && LS.get('tc_pareja') ? escH(LS.get('tc_pareja')) : '' }) : ''),
       enGratis() && E.prendas.length > TOPE_GRATIS ? t(`En la gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`) : '')
     + grupoP(t('La app', 'The app'),
       filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
@@ -2990,6 +2992,7 @@ function pintarPanelYo() {
       + filaP({ id: 'yo-closet', ic: 'probar', tit: t('Clóset', 'Closet'), val: CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes'), flecha: false })
       + filaP({ id: 'yo-intercambio', ic: 'probar', tit: t('Intercambiar Mi ropa y Pruebas', 'Swap My clothes and Test'), flecha: false })
       + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))) : '');
+  if ($('yo-pareja')) $('yo-pareja').onclick = panelPareja;
   if ($('yo-vercomo')) $('yo-vercomo').onclick = panelVerComo; $('yo-modo').onclick = cambiarModo; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
   if ($('yo-closet')) $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
@@ -3057,6 +3060,72 @@ function panelVerComo() {
   abrirPanel(t('Ver la app como', 'View the app as'), grupoP('', VERSIONES.map(op).join(''), t('Tu ropa y tus looks no cambian: solo ves lo que ve cada plan.', 'Your clothes and looks stay the same: you only see what each plan sees.')),
     cap => cap.addEventListener('click', e => { if (e.target.closest('[data-vercomo]')) setTimeout(() => cap.remove(), 0); }));
 }
+/* 10/11, PAREJA (Gabriela, 08/11: «una opción de parejas»; eligió la 1: cada una con su cuenta y su clóset, enlazadas con un código): una crea el código en
+   Ajustes → Pareja y se lo da; la otra lo escribe en su app. Enlazadas, en Looks → Ideas, «En pareja» propone a la vez un look tuyo y uno de tu pareja que
+   combinan. El servidor solo le enseña a la pareja las prendas que se pueden poner y sus fotos; nada de medidas, fotos del diagnóstico ni notas. */
+const PAREJA = { datos: null, cuando: 0 };
+async function parejaDatos(forzar) {
+  if (!cuenta()) return null;
+  if (!forzar && PAREJA.datos !== null && Date.now() - PAREJA.cuando < 10 * 60000) return PAREJA.datos;
+  const r = await api('/api/pareja', { tiempo: 20000 }); if (!r.ok) throw new Error('pareja ' + r.status);
+  PAREJA.datos = (await r.json()).pareja || false; PAREJA.cuando = Date.now(); LS.set('tc_pareja', PAREJA.datos ? PAREJA.datos.nombre || t('Enlazada', 'Linked') : null);
+  return PAREJA.datos;
+}
+function panelPareja() { abrirPanel(t('Pareja', 'Partner'), '<div id="pn-pareja"></div>', cap => pintarPareja(cap)); }
+async function pintarPareja(cap, codigo) {
+  const z = cap.querySelector('#pn-pareja'); if (!z) return;
+  const intro = `<p class="pn-par-intro">${t('Enlaza tu clóset con el de tu pareja y, en Looks → Ideas, «En pareja» te propondrá a la vez un look para ti y otro para tu pareja que combinan.', 'Link your closet with your partner’s and, in Looks → Ideas, «As a couple» will suggest a look for you and one for your partner that go together.')}</p>`;
+  if (!cuenta()) { z.innerHTML = intro + grupoP('', filaP({ attr: 'data-ir="cuenta"', ic: 'cuenta', tit: t('Entrar o crear tu cuenta', 'Sign in or create your account') }), t('Cada una necesita su cuenta de TuCloset.', 'Each of you needs a TuCloset account.')); z.querySelector('[data-ir]').addEventListener('click', () => cap.remove()); return; }
+  if (!codigo) z.innerHTML = `<p class="pn-nota pn-par-carga">${t('Un momento…', 'One moment…')}</p>`;
+  let d; try { d = await parejaDatos(true); } catch (e) { z.innerHTML = intro + `<p class="pn-error" role="alert">${t('Sin conexión. Prueba otra vez en un momento.', 'No connection. Try again in a moment.')}</p>`; return; }
+  pintarPanelYo();
+  if (d) {
+    z.innerHTML = grupoP('', filaP({ tag: 'div', ic: 'pareja', tit: t('Enlazada con', 'Linked with'), val: escH(d.nombre || t('tu pareja', 'your partner')), flecha: false })
+      + filaP({ id: 'pn-par-fuera', ic: 'borrar', tit: t('Desenlazar', 'Unlink'), rojo: true, flecha: false }),
+      t('Tu pareja ve tus prendas y sus fotos para combinar looks con los suyos, y tú las suyas. Vuestras medidas, fotos del diagnóstico y notas, no.', 'Your partner sees your garments and their photos to match looks with theirs, and you see theirs. Not your measurements, analysis photos or notes.'));
+    z.querySelector('#pn-par-fuera').onclick = async () => {
+      if (!await confirmar(t('¿Desenlazar?', 'Unlink?'), t('Dejaréis de ver la ropa de la otra. Vuestros clósets no cambian.', 'You will stop seeing each other’s clothes. Your closets don’t change.'), t('Desenlazar', 'Unlink'))) return;
+      const r = await api('/api/pareja', { method: 'DELETE', tiempo: 15000 }).catch(() => null); if (!r?.ok) return toast(t('Sin conexión: no se ha desenlazado', 'No connection: not unlinked'));
+      PAREJA.datos = false; LS.set('tc_pareja', null); toast(t('Desenlazadas', 'Unlinked')); pintarPareja(cap);
+    };
+    return;
+  }
+  z.innerHTML = intro + (codigo ? `<div class="pn-par-cod"><p class="pn-par-n" aria-label="${t('Tu código', 'Your code')}: ${codigo.split('').join(' ')}">${codigo}</p>
+      <p class="pn-nota">${t('Dáselo a tu pareja: lo escribe en su TuCloset, en Ajustes → Pareja. Vale 24 horas.', 'Give it to your partner: they type it in their TuCloset, in Settings → Partner. Valid for 24 hours.')}</p>
+      <button class="boton linea" id="pn-par-copiar">${t('Copiar el código', 'Copy the code')}</button></div>`
+      : `<button class="boton" id="pn-par-crear">${t('Crear un código', 'Create a code')}</button>`)
+    + `<label class="pn-campo"><span>${t('¿Te han dado un código?', 'Have you been given a code?')}</span><input id="pn-par-in" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="8" placeholder="${t('Por ejemplo, K7M2QX', 'For example, K7M2QX')}"></label>
+      <button class="boton linea pn-par-unir" id="pn-par-unir">${t('Enlazar', 'Link')}</button><p class="pn-error" id="pn-par-err" role="alert"></p>`;
+  const err = z.querySelector('#pn-par-err');
+  if (z.querySelector('#pn-par-crear')) z.querySelector('#pn-par-crear').onclick = async e => {
+    const bt = e.currentTarget; bt.disabled = true; const r = await api('/api/pareja/codigo', { method: 'POST', tiempo: 15000 }).catch(() => null);
+    if (r?.status === 409) return pintarPareja(cap);
+    if (!r?.ok) { bt.disabled = false; err.textContent = t('Sin conexión. Prueba otra vez en un momento.', 'No connection. Try again in a moment.'); return; }
+    pintarPareja(cap, (await r.json()).codigo);
+  };
+  if (z.querySelector('#pn-par-copiar')) z.querySelector('#pn-par-copiar').onclick = async () => { try { await navigator.clipboard.writeText(codigo); toast(t('Código copiado', 'Code copied')); } catch (e) { toast(codigo); } };
+  z.querySelector('#pn-par-unir').onclick = async e => {
+    const v = z.querySelector('#pn-par-in').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (v.length !== 6) { err.textContent = t('El código tiene 6 letras y números.', 'The code has 6 letters and numbers.'); return; }
+    const bt = e.currentTarget; bt.disabled = true; err.textContent = '';
+    const r = await api('/api/pareja/unir', { method: 'POST', json: { codigo: v }, tiempo: 15000 }).catch(() => null), j = r ? await r.json().catch(() => ({})) : {};
+    if (r?.ok) { PAREJA.datos = null; toast(t(`Enlazadas${j.nombre ? ' con ' + j.nombre : ''}`, `Linked${j.nombre ? ' with ' + j.nombre : ''}`)); return pintarPareja(cap); }
+    bt.disabled = false;
+    err.textContent = !r ? t('Sin conexión. Prueba otra vez en un momento.', 'No connection. Try again in a moment.')
+      : j.error === 'tuyo' ? t('Ese código lo has creado tú: dáselo a tu pareja para que lo escriba en su app.', 'You created that code: give it to your partner to type in their app.')
+      : j.error === 'ocupada' ? t('Esa cuenta ya está enlazada con otra persona.', 'That account is already linked with someone else.')
+      : j.error === 'frenado' ? t('Demasiados intentos. Prueba dentro de 15 minutos.', 'Too many attempts. Try again in 15 minutes.')
+      : j.error === 'ya' ? t('Ya estás enlazada.', 'You are already linked.') : t('Ese código no vale o ha caducado. Pide uno nuevo.', 'That code isn’t valid or has expired. Ask for a new one.');
+  };
+}
+// las fotos de las prendas de la pareja: la de catálogo si la tiene; si no, la recortada. Solo en memoria (no se guardan en el móvil)
+async function fotosPareja(ps) {
+  await Promise.all(ps.filter(p => !p.cat && !p.foto && !p.sinFotoPar && (p.conCat || p.conFoto)).map(async p => {
+    const c = !!p.conCat; let r = await api('/api/pareja/foto/' + p.id + (c ? '-c' : ''), { tiempo: 30000 }).catch(() => null);
+    if (!r?.ok && c && p.conFoto && !p.fCat) r = await api('/api/pareja/foto/' + p.id, { tiempo: 30000 }).catch(() => null);
+    if (!r?.ok) { p.sinFotoPar = 1; return; } const b = await r.blob(); if (c && r.url.endsWith('-c')) p.cat = b; else p.foto = b;
+  }));
+}
 function panelIdioma() {
   const op = (k, n) => filaP({ attr: `data-lng="${k}"`, tit: n, val: idioma() === k ? icY('ok') : '', flecha: false });
   abrirPanel(t('Idioma', 'Language'), grupoP('', op('es', 'Español') + op('en', 'English')), cap => cap.onclick = async e => {
@@ -3088,6 +3157,7 @@ async function panelPrivacidad() {
       <li>${icY('nube')}<span>${c ? t('Tus prendas, sus fotos, tus looks y tu calendario se guardan en tu cuenta para verlos en cualquier móvil.', 'Your garments, their photos, your looks and your calendar are kept in your account so you can see them on any phone.') : t('Sin cuenta, todo se queda en este móvil.', 'Without an account, everything stays on this phone.')}</span></li>
       <li>${icY('camara')}<span>${E.perfil?.fotosCuenta ? t('Tu selfie y tu foto de cuerpo se guardan en tu cuenta, privadas, porque así lo elegiste. Lo cambias en Yo → Tus medidas y fotos.', 'Your selfie and body photo are kept in your account, private, because you chose so. Change it in Me → Your measurements and photos.') : t('Tu selfie y tu foto de cuerpo se quedan en este móvil.', 'Your selfie and body photo stay on this phone.')} ${t('Si creas tu avatar, se envían una vez para hacerlo.', 'If you create your avatar, they are sent once to make it.')}</span></li>
       <li>${icY('percha')}<span>${t('Para quitar el fondo de tu ropa y hacer la foto de catálogo, la foto de la prenda pasa por nuestro servidor y por la IA de imagen de Google.', 'To remove the background of your clothes and make the catalogue photo, the garment photo goes through our server and Google’s image AI.')}</span></li>
+      ${c && LS.get('tc_pareja') ? `<li>${icY('pareja')}<span>${t('Tu pareja ve tus prendas y sus fotos para combinar looks con los suyos. Tus medidas, tus fotos y tu diagnóstico, no. Lo quitas en Ajustes → Pareja.', 'Your partner sees your garments and their photos to match looks with theirs. Not your measurements, photos or analysis. Turn it off in Settings → Partner.')}</span></li>` : ''}
       <li>${icY('ciudad')}<span>${t('Tu ciudad o tu ubicación solo se usan para darte el tiempo.', 'Your city or location is only used for the weather.')}</span></li>
       <li>${icY('info')}<span>${t('Si llegas desde un enlace nuestro en una red social, contamos esa visita: solo el día y la red, sin cookies ni nada tuyo.', 'If you arrive from one of our links on social media, we count that visit: only the day and the network, with no cookies and nothing about you.')}</span></li></ul>`)
     + grupoP(t('Permisos', 'Permissions'), filaP({ tag: 'div', ic: 'ciudad', tit: t('Ubicación', 'Location'), val: ubic, flecha: false }) + filaP({ tag: 'div', ic: 'camara', tit: t('Cámara', 'Camera'), val: t('Solo al subir fotos', 'Only when uploading'), flecha: false }),

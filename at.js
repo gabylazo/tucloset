@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.207'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.209'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -56,6 +56,7 @@ if (AT) (() => {
     caja: svg('<path d="M3.5 7.5h17v3h-17zM5 10.5v9h14v-9M10 14h4"/>'),
     bolsa: svg('<path d="M5.5 8h13l-1 12h-11z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/><path d="M12 17.4s-2.6-1.6-2.6-3.4a1.4 1.4 0 0 1 2.6-.8 1.4 1.4 0 0 1 2.6.8c0 1.8-2.6 3.4-2.6 3.4z"/>'),
     pin: svg('<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>'),
+    pareja: svg('<circle cx="8.8" cy="8.5" r="2.9"/><circle cx="15.8" cy="9.3" r="2.4"/><path d="M3.5 19.5c.8-3.2 2.8-5 5.3-5s4.5 1.8 5.3 5M13.6 15c.7-.5 1.4-.7 2.2-.7 2 0 3.5 1.5 4.2 4.2"/>'),
     chispa: svg('<path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8z"/><path d="M18.5 16v4M16.5 18h4"/>'),
     tina: svg('<path d="M3.5 8.5l2 10h13l2-10"/><path d="M3.5 8.5c1.5 1.3 2.9 1.3 4.3 0s2.9-1.3 4.2 0 2.9 1.3 4.2 0 2.9-1.3 4.3 0"/>'),
     girar: svg('<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/>'),
@@ -660,13 +661,14 @@ if (AT) (() => {
     const vendria = r.falta?.length && !en() && activas().length ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';
     // 08/11 (Gabriela, mensaje 1909: «no le gusta cómo están distribuidos así en una columna en el centro»): las tres, en una fila de iconos como las acciones de la ficha
     const ibI = (attr, ic, w, pro) => `<button class="at-ib" ${attr}><span class="at-ib-c">${ic}</span><span class="at-ib-t">${w}${pro ? '<span class="dg-pro">Pro</span>' : ''}</span></button>`;
-    const insp = oc === 'Todos' ? `<div class="at-iconos at-ideas-acc" role="group" aria-label="${t('Más formas de buscar looks', 'More ways to find looks')}">${ibI('data-conprenda', I.percha, t('Con una prenda', 'With one garment'))}${ibI('data-compra', I.bolsa, t('Antes de comprar', 'Before you buy'))}${ibI('data-inspira', I.chispa, t('Inspírate en…', 'Get inspired by…'), planDemo() !== 'pro')}</div>` : '';
+    const insp = oc === 'Todos' ? `<div class="at-iconos at-ideas-acc" role="group" aria-label="${t('Más formas de buscar looks', 'More ways to find looks')}">${ibI('data-conprenda', I.percha, t('Con una prenda', 'With one garment'))}${ibI('data-compra', I.bolsa, t('Antes de comprar', 'Before you buy'))}${ibI('data-inspira', I.chispa, t('Inspírate en…', 'Get inspired by…'), planDemo() !== 'pro')}${NUBE ? ibI('data-pareja', I.pareja, t('En pareja', 'As a couple')) : ''}</div>` : '';
     const vj = oc === 'Viaje' ? `<div class="at-vj-entrada"><button class="at-enlace" data-viaje>${t('Planear un viaje', 'Plan a trip')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button>${viajes().map(v => `<button class="at-enlace" data-viaje="${v.id}">${esc(v.destino)} · ${rango(v)}</button>`).join('')}</div>` : '';
     raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${insp}${vj}${w && !vj ? `<p class="at-para">${t('Para hoy', 'For today')}, ${Math.round(w.t)}°</p>` : ''}`
       + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio">${activas().length ? `<p>${oc === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte. Cuando la subas, tus looks saldrán aquí.', 'No sportswear yet. Once you add some, your looks will appear here.')) : t('Con lo que tienes aún no sale un look completo para esta ocasión. Cuando subas más, saldrá aquí.', 'What you have doesn’t make a complete look for this occasion yet.')}</p>` : `<p>${t('Sube tu ropa y aquí saldrán tus ideas.', 'Add your clothes and your ideas will appear here.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>`}</div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
     deslizable(raiz.querySelector('.at-ocs-ideas'));
     raiz.onclick = async e => {
-      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje],[data-inspira],[data-conprenda],[data-compra]'); if (!b) return;
+      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje],[data-inspira],[data-conprenda],[data-compra],[data-pareja]'); if (!b) return;
+      if (b.dataset.pareja != null) return abrirPareja();
       if (b.dataset.viaje != null) return abrirViaje(b.dataset.viaje);
       if (b.dataset.conprenda != null) return abrirConPrenda();
       if (b.dataset.compra != null) return abrirCompra();
@@ -874,6 +876,71 @@ if (AT) (() => {
       if (b.dataset.cpest != null) { S.estilo = b.dataset.cpest; return abrirConPrenda(); }
       if (b.dataset.cplook) { const x = E.cpLooks[+b.dataset.cplook]; cap.remove(); return abrirIdea(x); }
     };
+  }
+
+  /* ---------- EN PAREJA, en Looks → Ideas (10/11; Gabriela, 08/11: «una opción de parejas»; eligió cuentas propias enlazadas con un código, Ajustes → Pareja):
+     para la ocasión elegida, el motor saca tus looks con tu ropa y los de tu pareja con la suya (con su «¿Qué ropa llevas?» y sus estilos) y se emparejan
+     los que mejor combinan entre sí: un color vivo en común, o los dos en neutros; dos colores vivos distintos compiten. Tres parejas, sin repetir look.
+     La ropa de la pareja no se guarda en este móvil: se pide a su cuenta al abrir y sus fotos viven solo en memoria. ---------- */
+  const NEUTROS = new Set(['Negro', 'Blanco', 'Gris', 'Beige', 'Crema', 'Camel', 'Marrón', 'Azul marino', 'Vaquero', 'Denim', 'Topo', 'Arena', 'Hueso', 'Crudo']);
+  function combinanPareja(a, b) {
+    const col = ps => [...new Set(ps.filter(p => p.tipo !== 'Calzado').map(p => p.color).filter(Boolean))], ca = col(a), cb = col(b);
+    const viva = c => !NEUTROS.has(c), va = ca.filter(viva), vb = cb.filter(viva), comun = ca.filter(c => cb.includes(c)), cv = comun.filter(viva);
+    const nom = c => c === 'Estampado' ? t('estampado', 'print') : c.toLowerCase();
+    if (cv.length) return { n: 2, por: t(`Los dos con ${nom(cv[0])}`, `Both with ${nom(cv[0])}`) };
+    if (!va.length && !vb.length) return { n: comun.length ? 1.4 : 1.1, por: t('Los dos en tonos neutros', 'Both in neutral tones') };
+    if (va.length && vb.length) return { n: comun.length ? .2 : -.8, por: '' };
+    return { n: comun.length ? 1 : .6, por: comun.length ? t(`Los dos con ${nom(comun[0])}`, `Both with ${nom(comun[0])}`) : t('Un solo color vivo entre los dos', 'A single bright colour between you') };
+  }
+  function hacerPares(d, oc) {
+    if (PAREJA.base !== d) { PAREJA.base = d; PAREJA.ps = new Map(d.prendas.map(p => [p.id, { ...p, usos: [], estado: '', detalles: p.detalles || [] }])); }
+    const opc = { tiempo: E.tiempo, plan: oc, n: 8, hoy: hoyISO(), ...(oc === 'Noche' ? { hora: 20 } : {}) };
+    const lista = r => (r.looks.length ? r.looks : r.casi || []).map(Motor.aPropuesta);
+    const mios = deVerdad(oc, lista(Motor.looks({ ...opc, prendas: activas(), perfil: E.perfil, excluir: E.perfil?.gustos?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est] }))).slice(0, 6);
+    const suyosPs = [...PAREJA.ps.values()], suyos = lista(Motor.looks({ ...opc, prendas: suyosPs, perfil: { ropa: d.ropa || '', estilos: d.estilos || [] } }))
+      .filter(x => oc !== 'Deporte' || x.ids.some(id => esDeporte(PAREJA.ps.get(id) || {}))).slice(0, 6);
+    const A = mios.map(x => ({ x, ps: psDe(x) })), B = suyos.map(x => { const ps = x.ids.map(id => PAREJA.ps.get(id)).filter(Boolean); if (x.como) ps.como = x.como; return { x, ps }; });
+    const todos = [];
+    A.forEach((a, i) => B.forEach((b, j) => { const c = combinanPareja(a.ps, b.ps); todos.push({ a, b, por: c.por, n: c.n - (i + j) * .12 }); }));
+    todos.sort((p, q) => q.n - p.n);
+    const usados = new Set(), pares = [];
+    for (const p of todos) { if (pares.length >= 3) break; if (usados.has('a' + mios.indexOf(p.a.x)) || usados.has('b' + suyos.indexOf(p.b.x))) continue; usados.add('a' + mios.indexOf(p.a.x)); usados.add('b' + suyos.indexOf(p.b.x)); pares.push(p); }
+    return { pares, mios: mios.length, suyos: suyos.length, suyasPrendas: suyosPs.length };
+  }
+  async function abrirPareja() {
+    const cap = capaDe('at-pareja', 'at-cp at-par', t('En pareja', 'As a couple')), S = E.parS = E.parS || { oc: 'Diario' };
+    const cab = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button><h1>${t('En pareja', 'As a couple')}</h1>`;
+    const enlazar = txt => `${cab}<p class="at-vj-sub">${txt}</p><button class="boton linea at-par-enl" data-parajustes>${t('Enlazar con mi pareja', 'Link with my partner')}</button>`;
+    cap.onclick = e => {
+      const b = e.target.closest('.x,[data-paroc],[data-parlook],[data-parajustes],[data-parotra]'); if (!b) return;
+      if (b.classList.contains('x')) return cap.remove();
+      if (b.dataset.parajustes != null) { cap.remove(); return panelPareja(); }
+      if (b.dataset.paroc) { S.oc = b.dataset.paroc; return abrirPareja(); }
+      if (b.dataset.parotra != null) { PAREJA.datos = null; return abrirPareja(); }
+      if (b.dataset.parlook) { const x = E.parLooks[+b.dataset.parlook]; cap.remove(); return abrirIdea(x); }
+    };
+    if (!cuenta()) { cap.innerHTML = enlazar(t('Entra en tu cuenta y enlázala con la de tu pareja: aquí verás a la vez un look para ti y otro para tu pareja que combinan.', 'Sign in and link your account with your partner’s: here you’ll see a look for you and one for your partner that go together.')); return; }
+    if (!cap.querySelector('.at-par-pares')) cap.innerHTML = `${cab}<p class="at-vj-sub">${t('Un momento…', 'One moment…')}</p>`;
+    let d; try { d = await parejaDatos(); } catch (e) { cap.innerHTML = `${cab}<p class="at-vj-sub">${t('Sin conexión. Prueba otra vez en un momento.', 'No connection. Try again in a moment.')}</p><button class="boton linea at-par-enl" data-parotra>${t('Probar otra vez', 'Try again')}</button>`; return; }
+    if (!cap.isConnected) return;
+    if (!d) { cap.innerHTML = enlazar(t('Enlaza tu clóset con el de tu pareja y aquí verás a la vez un look para ti y otro para tu pareja que combinan. Cada una sigue con su cuenta y su ropa.', 'Link your closet with your partner’s and here you’ll see a look for you and one for your partner that go together. Each keeps their own account and clothes.')); return; }
+    const R = hacerPares(d, S.oc), quien = d.nombre || t('Tu pareja', 'Your partner'), Q = escH(quien);
+    await fotosPareja([...new Set(R.pares.flatMap(p => p.b.ps))]);
+    if (!cap.isConnected) return;
+    const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
+    const chip = k => `<button class="${S.oc === k ? 'on' : ''}" data-paroc="${k}" aria-pressed="${S.oc === k}">${ocNombre(k)}${DOS}</button>`;
+    E.parLooks = R.pares.map(p => p.a.x);
+    const vacio = !R.suyasPrendas ? t(`${Q} aún no tiene ropa en su clóset. Cuando suba la suya, aquí saldrán vuestros looks.`, `${Q} has no clothes in their closet yet. Once they add some, your looks will appear here.`)
+      : !R.mios ? t('Con tu ropa aún no sale un look para esta ocasión. Prueba otra.', 'Your clothes don’t make a look for this occasion yet. Try another.')
+      : !R.suyos ? t(`Con la ropa de ${Q} aún no sale un look para esta ocasión. Prueba otra.`, `${Q}’s clothes don’t make a look for this occasion yet. Try another.`) : '';
+    cap.innerHTML = `${cab}<p class="at-vj-sub">${t(`Un look para ti y otro para ${Q} que combinan.`, `A look for you and one for ${Q} that go together.`)}</p>
+      <nav class="at-fila at-cp-est at-par-ocs" aria-label="${t('Ocasión para los dos', 'Occasion for both')}">${OCASIONES.map(chip).join('')}</nav>
+      ${vacio ? `<p class="at-vj-sub">${vacio}</p>` : `<div class="at-par-pares">${R.pares.map((p, i) => `<section class="at-par-par" aria-label="${t('Pareja de looks', 'Pair of looks')} ${i + 1}">
+        <div class="at-rej2"><figure class="at-t">${baldosa(p.a.ps, TW, TH, ` data-parlook="${i}" aria-label="${t('Tu look', 'Your look')}"`)}<figcaption>${t('Tú', 'You')}</figcaption></figure>
+        <figure class="at-t">${baldosaFija(p.b.ps, TW, TH, t(`Look de ${quien}`, `${quien}’s look`))}<figcaption>${Q}</figcaption></figure></div>
+        ${p.por ? `<p class="at-par-por">${p.por}</p>` : ''}</section>`).join('')}</div>`}`;
+    deslizable(cap.querySelector('.at-par-ocs'));
+    const on = cap.querySelector('.at-par-ocs .on'); if (on) requestAnimationFrame(() => on.scrollIntoView({ block: 'nearest', inline: 'center' }));
   }
 
   /* ---------- ¿ME LO COMPRO?, en Looks → Ideas (08/11, Gabriela: «uno escanea piezas en tiendas y que la app le diga un porcentaje de utilidad, es decir, si

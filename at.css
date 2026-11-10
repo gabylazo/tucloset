@@ -589,3 +589,11 @@ html.at #s-raiz .uno .ops.col, html.at .colores, html.at .at-cm-col { display: f
 html.at #s-raiz .uno .ops.col button, html.at .colores button, html.at .at-cm-col button { width: 44px; height: 44px; min-width: 0; min-height: 0; padding: 0; border: 1px solid var(--linea2, rgba(74, 53, 38, .28)); border-radius: 0; }
 html.at #s-raiz .uno .ops.col button.on, html.at .colores button.sel, html.at .at-cm-col button.on { outline: 2px solid var(--tinta); outline-offset: 3px; }
 html.at .colores button.sel::after { display: none; }
+
+/* 10/11: En pareja (Looks → Ideas) */
+html.at .at-par .at-par-ocs { margin-bottom: 8px; }
+html.at .at-par-par { margin: 20px 0 8px; }
+html.at .at-par-par + .at-par-par { border-top: 1px solid var(--linea, rgba(74, 53, 38, .12)); padding-top: 20px; }
+html.at .at-par-par .at-rej2 { padding: 0; }
+html.at .at-par-por { text-align: center; font-size: 14px; color: var(--sec); margin: 10px 0 0; }
+html.at .at-par-enl { width: auto; margin: 0 auto; padding: 0 24px; }
