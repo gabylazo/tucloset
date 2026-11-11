@@ -982,14 +982,16 @@ async function pedirCatalogo(p, otra, fuente = p.foto, pista) {
   } catch (e) { p.catFallos = (p.catFallos || 0) + 1; return null; } finally { URL.revokeObjectURL(u); }
 }
 // como afinar.py de las fotos de catálogo hechas a mano: al borde de la prenda, 900 px de alto (o 1100 de ancho), con transparencia
-async function afinarCat(b) {
+// alto: 900 para prendas; el avatar a 1800 y lo probado a 1200 (11/11: a 900 la cara del avatar se quedaba en unos 60 px y en el móvil se veía borrosa e inventada);
+// por encima de 900 no se amplía nunca
+async function afinarCat(b, alto = 900) {
   const u = URL.createObjectURL(b);
   try {
     const im = await cargaImg(u), W = im.naturalWidth, H = im.naturalHeight, c = document.createElement('canvas'); c.width = W; c.height = H;
     const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, W, H).data; let x0 = W, y0 = H, x1 = -1, y1 = -1;
     for (let p = 0, k = 3; p < W * H; p++, k += 4) if (d[k] >= 24) { const px = p % W, py = (p / W) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
     if (x1 < 0 || (x1 - x0) * (y1 - y0) < W * H * .03) return null;
-    const cw = x1 - x0 + 1, ch = y1 - y0 + 1; let k = 900 / ch; if (cw * k > 1100) k = 1100 / cw;
+    const cw = x1 - x0 + 1, ch = y1 - y0 + 1; let k = alto / ch; if (cw * k > Math.max(1100, alto * .62)) k = Math.max(1100, alto * .62) / cw; if (alto > 900) k = Math.min(k, 1);
     const o = document.createElement('canvas'); o.width = Math.max(1, Math.round(cw * k)); o.height = Math.max(1, Math.round(ch * k)); const ox = o.getContext('2d'); ox.imageSmoothingQuality = 'high'; ox.drawImage(c, x0, y0, cw, ch, 0, 0, o.width, o.height);
     const blob = await new Promise(r => o.toBlob(r, 'image/webp', .86)); // Safari no hace WebP: da PNG, también con transparencia
     return blob && { blob, ar: Math.round(o.width / o.height * 1e4) / 1e4 };
@@ -3584,9 +3586,10 @@ async function crearAvatar(nota) {
     const fd = new FormData(); fd.append('cara', await jpegBlanco(pf.selfie), 'cara.jpg'); fd.append('cuerpo', await jpegBlanco(pf.cuerpo), 'cuerpo.jpg');
     const sil = siluetaTxt(); if (sil) fd.append('silueta', sil);
     if (nota?.length && pf.avatar instanceof Blob) { fd.append('nota', nota.join(',')); fd.append('previo', await jpegBlanco(pf.avatar, 768), 'previo.jpg'); } // 09/11: «No me parezco»
+    try { const fr = await (await diagMod()).D.caraDeFrente?.([pf.selfie, pf.cuerpo]); if (fr) fd.append('frente', fr, 'frente.jpg'); } catch (e) { } // 11/11: la cara más de frente
     const r = await apiAvatar('/api/avatar?que=avatar', fd);
     if (!r.ok) { const j = await r.json().catch(() => ({})); return toast(errorAvatar(r.status, j.error)); }
-    const fin = await afinarCat(await r.blob()); if (!fin) return toast(errorAvatar(502));
+    const fin = await afinarCat(await r.blob(), 1800); if (!fin) return toast(errorAvatar(502));
     Object.assign(E.perfil, { avatar: fin.blob, avatarAR: fin.ar, avatarDe: firmaAvatar(), avatarF: new Date().toISOString() });
     vaciarProbados(); await guardar(); avatarAbierto = true; toast(t('Tu avatar está listo', 'Your avatar is ready')); setTimeout(preguntarFotosCuenta, 1200);
   } catch (e) { toast(t('Sin conexión: prueba otra vez', 'No connection: try again')); }
@@ -3640,7 +3643,7 @@ async function puestoEnMi(ps, como, otra, soloGuardado) {
     // después), la IA copiaba unas veces una y otras la otra, y salían dos personas. La cara sale solo del avatar; el parecido se arregla en el avatar («No me parezco»)
     const r = await apiAvatar('/api/avatar?que=puesto' + (otra ? '&otra=1' : ''), fd);
     if (!r.ok) { const j = await r.json().catch(() => ({})); return { error: errorAvatar(r.status, j.error, true) }; }
-    const fin = await afinarCat(await r.blob()); if (!fin) return { error: errorAvatar(502) };
+    const fin = await afinarCat(await r.blob(), 1200); if (!fin) return { error: errorAvatar(502) };
     nuevoProbado(k, fin.blob); fijarPuesto(k); await BD.set('puestos', E.puestos).catch(() => { }); return { blob: fin.blob, k };
   } catch (e) { return { error: t('Sin conexión: prueba otra vez', 'No connection: try again') }; }
 }

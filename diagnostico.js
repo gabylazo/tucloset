@@ -233,6 +233,26 @@ async function cuerpoSin(blob) {
 
 // silueta con cinta métrica (06/11, Gabriela: «te debe primero preguntar características físicas… y las fotos son para clasificar tu silueta»): con pecho, cintura y cadera
 // en cm manda la cinta, que es más exacta que la foto; criterio FFIT for Apparel (Lee, Istook, Nam y Park, 2007), en cm, con los umbrales de Moda en diagnostico-reglas.json
+// 11/11 (Gabriela: «la verdad no se parece en la cara»): para el avatar, la cara más de frente de las dos fotos (la selfie suele ir de lado o con gesto; en la de
+// cuerpo, a veces sale de frente), recortada y a 768 px. La IA la recibe como primera foto. Si ninguna sirve (cara pequeña o no se ve), nada
+export async function caraDeFrente(blobs) {
+  const { cara } = await cargar(); let mejor = null;
+  for (const b of blobs) {
+    if (!(b instanceof Blob)) continue; const { c, W, H } = await lienzo(b, 1600), r = cara.detect(c);
+    for (const lm of r.faceLandmarks || []) {
+      const p = lm.map(q => ({ x: q.x * W, y: q.y * H })), alto = Math.hypot(p[10].x - p[152].x, p[10].y - p[152].y), ojo = Math.abs(p[263].x - p[33].x) || 1;
+      if (alto < 90) continue;
+      const giro = Math.abs(p[1].x - (p[33].x + p[263].x) / 2) / ojo, incl = Math.abs(Math.atan2(p[263].y - p[33].y, p[263].x - p[33].x)), nota = giro + incl * .8 - Math.min(alto, 400) / 4000;
+      if (!mejor || nota < mejor.nota) mejor = { nota, c, p };
+    }
+  }
+  if (!mejor) return null;
+  const { c, p } = mejor, xs = p.map(q => q.x), ys = p.map(q => q.y), hy = Math.max(...ys) - Math.min(...ys), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2 - hy * .08, t = hy * 1.9;
+  const o = document.createElement('canvas'); o.width = o.height = 768; const x = o.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 768, 768); x.imageSmoothingQuality = 'high';
+  x.drawImage(c, cx - t / 2, cy - t / 2, t, t, 0, 0, 768, 768);
+  return await new Promise(r => o.toBlob(r, 'image/jpeg', .9));
+}
+
 export function siluetaCinta({ pecho: B, cintura: Wc, cadera: Hc }, R) {
   const u = R.silueta.cinta; let k;
   if (Wc >= u.ovalo * B && Wc >= u.ovalo * Hc) k = 'ovalo';
