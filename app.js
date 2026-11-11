@@ -104,7 +104,7 @@ const T = {
   privado: ['Las fotos se quedan en tu móvil. Solo tu silueta, sin tu cara, se usará para probarte la ropa.', 'Photos stay on your phone. Only your figure, without your face, will be used to try clothes on.'],
   buscar: ['Buscar en mi clóset', 'Search my closet'], nueva: ['Nueva prenda', 'New garment'], editar_prenda: ['Editar prenda', 'Edit garment'], borrar: ['Borrar', 'Delete'],
   hacer_foto: ['Haz una foto o elige una de la galería', 'Take a photo or pick one from the gallery'], foto_et: ['sobre fondo liso, la prenda entera', 'plain background, whole garment'],
-  nombre_prenda: ['Nombre', 'Name'], tipo: ['Tipo', 'Type'], categoria: ['Categoría', 'Category'], estacion: ['Estación', 'Season'], tiro_q: ['¿Dónde te llega la cinturilla?', 'Where does the waistband sit?'], tiro_ay: ['El punto dorado es el ombligo. Si no lo sabes, déjalo sin marcar.', 'The gold dot is your navel. If unsure, leave it blank.'], largo_q: ['¿Hasta dónde te llega?', 'Where does it end?'], largo_ay: ['El punto dorado es el ombligo. Con esto sé si va por dentro o por fuera y qué pantalones le van.', 'The gold dot is your navel. It tells me whether to tuck it in and which trousers suit it.'], precio: ['Precio (si quieres)', 'Price (optional)'], color: ['Color', 'Colour'], notas: ['Notas (talla, tienda, cuidado…)', 'Notes (size, shop, care…)'],
+  nombre_prenda: ['Nombre', 'Name'], tipo: ['Tipo', 'Type'], categoria: ['Categoría', 'Category'], estacion: ['Estación', 'Season'], compra_q: ['La compraste', 'Bought'], tiro_q: ['¿Dónde te llega la cinturilla?', 'Where does the waistband sit?'], tiro_ay: ['El punto dorado es el ombligo. Si no lo sabes, déjalo sin marcar.', 'The gold dot is your navel. If unsure, leave it blank.'], largo_q: ['¿Hasta dónde te llega?', 'Where does it end?'], largo_ay: ['El punto dorado es el ombligo. Con esto sé si va por dentro o por fuera y qué pantalones le van.', 'The gold dot is your navel. It tells me whether to tuck it in and which trousers suit it.'], precio: ['Precio (si quieres)', 'Price (optional)'], color: ['Color', 'Colour'], notas: ['Notas (talla, tienda, cuidado…)', 'Notes (size, shop, care…)'],
   guardar_closet: ['Guardar en mi clóset', 'Save to my closet'], guardar_otra: ['Guardar y añadir otra', 'Save and add another'], guardar_cambios: ['Guardar cambios', 'Save changes'],
   editar: ['Editar', 'Edit'], veces: ['veces puesta', 'times worn'], ultima: ['última vez', 'last worn'], conjuntos_min: ['conjuntos', 'outfits'], hoy_llevo: ['Hoy llevo esto', 'Wearing this today'],
   asi: ['Así te queda', 'How it looks on you'], ver_conjuntos: ['Ver conjuntos', 'See outfits'], conjuntos: ['Conjuntos', 'Outfits'], nuevo_conjunto: ['Nuevo conjunto', 'New outfit'],
@@ -2555,6 +2555,7 @@ function pintarSubida() {
         if (!det.detalles?.length && !det.detaAbierto) return `<div class="gr"><p class="mini-et">${t('Detalles', 'Details')}</p>${bts}</div>`;
         return `<details class="gr s-deta" data-sdetabre${det.detaAbierto ? ' open' : ''}><summary><span class="mini-et">${t('Detalles', 'Details')}</span><span class="s-deta-l">${(det.detalles || []).map(k => t(k, DETALLES[k])).join(', ') || t('Ninguno', 'None')}</span></summary>${bts}</details>`; })()}
       <div class="gr"><p class="mini-et">${t('Estación', 'Season')}</p>${ops(ESTACIONES, det.estacion, 'est', estNombre)}</div>
+      <div class="fila2 s-cat s-compra"><label class="campo"><span>${t('Precio (si quieres)', 'Price (optional)')}</span><input data-sprecio inputmode="decimal" placeholder="29,95 €" value="${escH(det.precioTxt || '')}"></label><label class="campo"><span>${t('La compraste', 'Bought')}</span><select data-scompra>${opsCompra(det.compra || '')}</select></label></div>
       ${det.recortada ? `<button class="txt sub-l" data-sorig>${det.usaOriginal ? t('Usar el fondo blanco', 'Use white background') : t('Usar la foto original', 'Use the original photo')}</button>` : ''}` : ''}
       <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo && !(det.noPrenda && !det.siPrenda) ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(t('Añadir más prendas', 'Add more garments'), 'txt sub-l')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button><button class="txt sub-l" data-squita>${t('Quitar esta prenda', 'Remove this garment')}</button>`}</div></div>`;
   } else {
@@ -2586,6 +2587,9 @@ function pintarSubida() {
     else if (d.sorig !== undefined) { det.usaOriginal = !det.usaOriginal; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(det.usaOriginal ? det.original : det.blob); pintarSubida(); }
   };
   const nom = raiz.querySelector('[data-snom]'); if (nom) nom.oninput = e => { det.nombre = e.target.value; };
+  const spr = raiz.querySelector('[data-sprecio]'), sco = raiz.querySelector('[data-scompra]'); // 11/11: precio y mes de compra (Mis gastos); con precio y sin tocar el mes, este mes
+  if (spr) spr.oninput = e => { det.precioTxt = e.target.value; if (e.target.value.trim() && !det.compraTocada && !det.compra) { det.compra = mesISO(); if (sco) sco.value = det.compra; } };
+  if (sco) sco.onchange = e => { det.compra = e.target.value; det.compraTocada = 1; };
   const dta = raiz.querySelector('[data-sdetabre]'); if (dta && det) dta.ontoggle = () => { det.detaAbierto = dta.open; };
   const sc = raiz.querySelector('[data-scat]'), ss = raiz.querySelector('[data-ssub]');
   // 06/11 (Gabriela: «una camisa rosa que no me deja cambiarle la clasificación y lo pone como tops rosa»): al elegir «Camisas y blusas» el nombre pasaba
@@ -2718,7 +2722,7 @@ async function guardarSubida() {
   const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)); if (!listos.length) return;
   if (enGratis() && E.prendas.length + listos.length > TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas: te quedan ${Math.max(0, TOPE_GRATIS - E.prendas.length)}.`, `The free version holds ${TOPE_GRATIS} garments: ${Math.max(0, TOPE_GRATIS - E.prendas.length)} left.`));
   listos.forEach(it => { if (it.detalles?.length) it.notas = it.detalles.join(', ').toLowerCase().replace(/^./, c => c.toUpperCase()); });
-  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, catAuto: 1, notas: it.notas || '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 5 : it.cv || 1, recMano: it.recMano || undefined, detalles: it.detalles?.length ? it.detalles : undefined, catM: it.catM || undefined, estampado: it.estampado || undefined, color2: it.color2 || undefined, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined, clas: it.clas || undefined, est: it.est && Object.keys(it.est).length ? { ...it.est } : undefined })); // est: tiro o largo marcados en «¿Me lo compro?»
+  listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, catAuto: 1, notas: it.notas || '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 5 : it.cv || 1, recMano: it.recMano || undefined, precio: precioDe(it.precioTxt), compra: (precioDe(it.precioTxt) && it.compra) || undefined, detalles: it.detalles?.length ? it.detalles : undefined, catM: it.catM || undefined, estampado: it.estampado || undefined, color2: it.color2 || undefined, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined, clas: it.clas || undefined, est: it.est && Object.keys(it.est).length ? { ...it.est } : undefined })); // est: tiro o largo marcados en «¿Me lo compro?»
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 600); }).catch(() => { }); setTimeout(estilizarNuevas, 1500);
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet'); setTimeout(enderezarTodas, 2500);
@@ -2859,7 +2863,8 @@ function prepararAnadir(id) {
   $('an-sub').onchange = () => { const k = $('an-sub').value, n = $('an-nombre').value.trim(); if (k && (!n || NOMBRE_AUTO.test(n))) $('an-nombre').value = nombreReconocido(k, $('an-colores').dataset.sel || 'Negro'); };
   $('an-estacion').innerHTML = ESTACIONES.map(x => `<option value="${x}">${estNombre(x)}</option>`).join('');
   pintarDetaEd(p?.detalles || []);
-  $('an-nombre').value = p?.nombre || ''; $('an-estacion').value = p?.estacion || 'Todo el año'; $('an-notas').value = p?.notas || ''; $('an-precio').value = p?.precio ? dinero(p.precio) : '';
+  $('an-nombre').value = p?.nombre || ''; $('an-estacion').value = p?.estacion || 'Todo el año'; $('an-notas').value = p?.notas || ''; $('an-precio').value = p?.precio ? dinero(p.precio) : ''; $('an-compra').innerHTML = opsCompra(p?.compra || '');
+  $('an-precio').oninput = e => { if (!p && e.target.value.trim() && !$('an-compra').dataset.tocado && !$('an-compra').value) $('an-compra').value = mesISO(); }; $('an-compra').onchange = e => { e.target.dataset.tocado = 1; }; delete $('an-compra').dataset.tocado;
   pintarColores(p?.color || '');
   pintarPrevia(p ? urlFoto(p) : '');
   pintarTiro(p?.est?.tiro || '');
@@ -2872,7 +2877,7 @@ function pintarColores(sel) {
 }
 function pintarPrevia(url) {
   const pv = $('previa');
-  pv.innerHTML = url ? `<img src="${url}" alt=""><span class="cambiar">${t('Cambiar foto', 'Change photo')}<input type="file" accept="image/*" id="f-prenda"></span>`
+  pv.innerHTML = url ? `<img src="${url}" alt=""><span class="cambiar">${t('Cambiar foto', 'Change photo')}<input type="file" accept="image/*" id="f-prenda" aria-label="${t('Cambiar foto', 'Change photo')}"></span>`
     : `<label><svg><use href="#ic-camara"/></svg><span>${t('Haz una foto o elige una de la galería', 'Take a photo or pick one from the gallery')}</span><span class="et">${t('sobre fondo liso, la prenda entera', 'plain background, whole garment')}</span><input type="file" accept="image/*" id="f-prenda"></label>`;
   $('f-prenda').onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
@@ -2887,8 +2892,8 @@ async function guardarPrenda(otra) {
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
   if (!p && enGratis() && E.prendas.length >= TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas.`, `The free version holds ${TOPE_GRATIS} garments.`));
-  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), detalles: detaEd() }); if (fotoNueva) { quitarCat(p); p.foto = fotoNueva; delete p.src; delete p.fotoRota; delete p.caja; urls.delete(p.id), alfa.delete(p.id); for (const k of ['catProp', 'catPropAR', 'catNo', 'catOtra', 'catFallos']) delete p[k]; p.catAuto = 1; } }
-  else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, catAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), detalles: detaEd(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
+  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), compra: (precioDe($('an-precio').value) && $('an-compra').value) || undefined, detalles: detaEd() }); if (fotoNueva) { quitarCat(p); p.foto = fotoNueva; delete p.src; delete p.fotoRota; delete p.caja; urls.delete(p.id), alfa.delete(p.id); for (const k of ['catProp', 'catPropAR', 'catNo', 'catOtra', 'catFallos']) delete p[k]; p.catAuto = 1; } }
+  else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, catAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), compra: (precioDe($('an-precio').value) && $('an-compra').value) || undefined, detalles: detaEd(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   const tiro = tipo === 'Abajo' && $('an-tiro').dataset.sel, pr = p || E.prendas[0]; if (tiro) pr.est = { ...(pr.est || {}), tiro };
   if (E.recManoEdit && fotoNueva) pr.recMano = 1; E.recManoEdit = 0; // recortada a mano: el repaso automático del recorte no la toca
   const largo = tipo === 'Arriba' && $('an-largo')?.dataset.sel; if (largo) pr.est = { ...(pr.est || {}), largo };
@@ -3841,6 +3846,51 @@ function bloqueFotosYo() {
 }
 // 11/11 (Gabriela: «no veo aún lo de subir 5 looks para que conozcan tu estilo»): estaba al final de Mi estilo, debajo de los 13 estilos, la cintura y Tu gusto;
 // ahora tiene su fila en Yo, que lleva directo a ese bloque. Cada look subido se ve con sus colores (la foto no se guarda)
+// 11/11 (Sheila: «si agregas ropa nueva que has comprado, ¿cómo se le puede poner precio? Deberías poner una función de mis gastos por mes, así las personas saben
+// cuánto gastan en ropa»): cada prenda puede llevar precio y mes de compra (compra = 'AAAA-MM'), al subirla o en Editar. En Yo, «Mis gastos en ropa»: el total de
+// cada mes. Solo cuenta lo que tiene precio y mes: la ropa de antes que se sube ahora no es gasto de este mes. Con precio y sin tocar el mes, se propone este mes.
+const mesISO = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+const MESES_N = [['enero', 'January'], ['febrero', 'February'], ['marzo', 'March'], ['abril', 'April'], ['mayo', 'May'], ['junio', 'June'], ['julio', 'July'], ['agosto', 'August'], ['septiembre', 'September'], ['octubre', 'October'], ['noviembre', 'November'], ['diciembre', 'December']];
+const may1 = x => x.charAt(0).toUpperCase() + x.slice(1);
+function nomMes(m, conAno) { const [a, n] = m.split('-').map(Number), x = MESES_N[n - 1][idioma() === 'en' ? 1 : 0]; return conAno || a !== new Date().getFullYear() ? `${x} ${a}` : x; }
+const mesesAtras = k => { const d = new Date(), l = []; for (let i = 0; i < k; i++) l.push(mesISO(new Date(d.getFullYear(), d.getMonth() - i, 1))); return l; };
+function opsCompra(sel) {
+  const l = mesesAtras(12); if (sel && !l.includes(sel)) l.push(sel);
+  return `<option value="">${t('Antes o no sé', 'Earlier or not sure')}</option>` + l.map((m, i) => `<option value="${m}"${m === sel ? ' selected' : ''}>${i ? may1(nomMes(m)) : t('Este mes', 'This month')}</option>`).join('');
+}
+function gastosMes() { const g = {}; for (const p of E.prendas) if (!p.ejemplo && p.precio > 0 && /^\d{4}-\d{2}$/.test(p.compra || '')) (g[p.compra] = g[p.compra] || []).push(p); return g; }
+const sumaPrecios = l => Math.round((l || []).reduce((s, p) => s + p.precio, 0) * 100) / 100;
+function bloqueGastosYo() {
+  const g = gastosMes(), m = mesISO(), hay = Object.keys(g).length, n = (g[m] || []).length, ult = mesesAtras(6).reverse(), max = Math.max(1, ...ult.map(x => sumaPrecios(g[x])));
+  const cols = `<span class="yg-cs" aria-hidden="true">${ult.map(x => `<i style="height:${g[x] ? Math.max(12, sumaPrecios(g[x]) / max * 100) : 6}%"${g[x] ? '' : ' class="v"'}></i>`).join('')}</span>`;
+  const l1 = hay ? t(`${may1(nomMes(m))}: ${dinero(sumaPrecios(g[m]))}`, `${may1(nomMes(m))}: ${dinero(sumaPrecios(g[m]))}`) : t('Cuánto gastas en ropa', 'How much you spend on clothes');
+  const l2 = hay ? (n ? t(n === 1 ? '1 prenda este mes' : `${n} prendas este mes`, n === 1 ? '1 garment this month' : `${n} garments this month`) : t('Este mes, ninguna compra', 'No purchases this month'))
+    : t('Pon el precio y el mes al subir una prenda', 'Add the price and month when you upload a garment');
+  return `<section class="yo-fm-sec"><h2 class="es-tit">${t('Mis gastos en ropa', 'My clothing spend')}</h2>
+    <button class="yo-fm" data-yo-gastos>${cols}<span class="yo-fm-txt"><span>${l1}</span><small>${l2}</small></span><svg class="yo-fm-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></section>`;
+}
+function htmlGastos(sel) {
+  const g = gastosMes(), ult = mesesAtras(6).reverse(), max = Math.max(1, ...ult.map(m => sumaPrecios(g[m]))), ano = sel.slice(0, 4);
+  const delAno = Object.keys(g).filter(m => m.startsWith(ano)).flatMap(m => g[m]), totAno = sumaPrecios(delAno);
+  const sinMes = E.prendas.filter(p => !p.ejemplo && p.precio > 0 && !/^\d{4}-\d{2}$/.test(p.compra || '')).length, lista = (g[sel] || []).slice().sort((a, b) => b.precio - a.precio);
+  const cols = ult.map(m => { const v = sumaPrecios(g[m]); return `<button type="button" class="gs-col${m === sel ? ' on' : ''}" data-gmes="${m}" aria-pressed="${m === sel}" aria-label="${may1(nomMes(m, true))}: ${dinero(v)}">
+    <span class="gs-v" aria-hidden="true">${v ? dinero(Math.round(v)) : ''}</span><span class="gs-b" aria-hidden="true"><i style="height:${v ? Math.max(3, v / max * 100) : 0}%"></i></span><span class="gs-m" aria-hidden="true">${may1(nomMes(m)).slice(0, 3)}</span></button>`; }).join('');
+  return `<div class="gs">
+    <p class="gs-mes">${may1(nomMes(sel, true))}</p><p class="gs-tot">${dinero(sumaPrecios(g[sel]))}</p>
+    <p class="gs-sub">${lista.length ? t(lista.length === 1 ? '1 prenda' : `${lista.length} prendas`, lista.length === 1 ? '1 garment' : `${lista.length} garments`) : t('Ninguna compra apuntada', 'No purchases recorded')}</p>
+    <div class="gs-cols" role="group" aria-label="${t('Últimos 6 meses', 'Last 6 months')}">${cols}</div>
+    ${lista.length ? `<ul class="gs-lista">${lista.map(p => `<li><button type="button" data-gficha="${p.id}"><span class="gs-f">${urlFoto(p) ? `<img src="${urlFoto(p)}" alt="">` : ''}</span><span class="gs-n">${escH(p.nombre)}</span><b>${dinero(p.precio)}</b></button></li>`).join('')}</ul>` : ''}
+    <dl class="gs-res"><div><dt>${t(`En ${ano}`, `In ${ano}`)}</dt><dd>${dinero(totAno)}</dd></div><div><dt>${t('Prendas', 'Garments')}</dt><dd>${delAno.length}</dd></div><div><dt>${t('De media', 'Average')}</dt><dd>${delAno.length ? dinero(Math.round(totAno / delAno.length * 100) / 100) : '—'}</dd></div></dl>
+    ${sinMes ? `<p class="gs-nota">${t(sinMes === 1 ? '1 prenda tiene precio pero no mes de compra y no cuenta aquí: pónselo en Editar.' : `${sinMes} prendas tienen precio pero no mes de compra y no cuentan aquí: pónselo en Editar.`, `${sinMes} with a price but no purchase month are not counted here: add it in Edit.`)}</p>` : ''}
+    <p class="gs-nota">${t('El precio y el mes se ponen al subir una prenda o después, en Editar.', 'Add the price and month when you upload a garment, or later in Edit.')}</p></div>`;
+}
+function abrirGastos(sel = mesISO()) {
+  abrirPanel(t('Mis gastos en ropa', 'My clothing spend'), htmlGastos(sel), cap => {
+    cap.addEventListener('click', e => { const b = e.target.closest('[data-gmes],[data-gficha]'); if (!b) return;
+      if (b.dataset.gmes) { cap.querySelector('.pn-cuerpo').innerHTML = htmlGastos(b.dataset.gmes); cap.querySelector(`[data-gmes="${b.dataset.gmes}"]`)?.focus(); }
+      else { cap.remove(); ir('ficha', b.dataset.gficha); abrirFicha(b.dataset.gficha); } }); });
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-yo-gastos]')) abrirGastos(); });
 function bloqueInspoYo() {
   const l = E.perfil?.inspo || [], n = l.length;
   const hueco = i => l[i] ? `<span class="yi-c hecha">${(l[i].colores || []).slice(0, 4).map(c => `<i style="background:${hexCol(c)}"></i>`).join('') || '<i></i>'}</span>` : '<span class="yi-c"></span>';
@@ -3874,7 +3924,7 @@ function pintarYo() {
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? (ests.length > 2 ? ests.slice(0, 2).map(min).join(', ') + ` +${ests.length - 2}` : ests.map(min).join(t(' y ', ' and '))) : t('elígelo', 'choose it'))
     + ent(dg?.color || pf.selfie ? 'data-diag="ver-color"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
   $('yo-lista').setAttribute('aria-label', t('Tu perfil', 'Your profile')); $('yo-ajustes-t').textContent = t('Ajustes', 'Settings');
-  let fm = $('yo-fm'); if (!fm) { fm = document.createElement('div'); fm.id = 'yo-fm'; $('yo-lista').after(fm); } fm.innerHTML = bloqueFotosYo() + bloqueInspoYo();
+  let fm = $('yo-fm'); if (!fm) { fm = document.createElement('div'); fm.id = 'yo-fm'; $('yo-lista').after(fm); } fm.innerHTML = bloqueFotosYo() + bloqueInspoYo() + bloqueGastosYo();
   let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; fm.after(td); } td.innerHTML = tarjetaDiag() + tarjetaAvatar();
   pintarPanelYo();
   if (pend && !diagCorriendo) diagHastaAlDia().then(() => { if (E.pantalla === 'yo') pintarYo(); });

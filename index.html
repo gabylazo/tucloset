@@ -14,8 +14,8 @@
 <link rel="icon" href="iconos/icono-129-180.png">
 <link rel="apple-touch-icon" href="iconos/icono-129-180.png">
 <link rel="stylesheet" href="fuentes.css?v=0.123"><!-- 0.123: letras en la propia web, sin Google Fonts (sin enviar la IP de nadie a Google) -->
-<link rel="stylesheet" href="app.css?v=0.225">
-<script>/* 06/11 noche: propuesta de modo oscuro (Gabriela). ?modo=oscuro lo enciende en ese navegador, ?modo=claro lo apaga; oscuro.css solo se carga encendido */ try { var mq = new URLSearchParams(location.search).get('modo'); if (mq === 'oscuro' || mq === 'claro') localStorage.setItem('tc_modo', mq); document.documentElement.dataset.fondo = '4'; localStorage.removeItem('tc_fondo'); /* 07/11: fondo «Sin tarjeta», elegido por Gabriela */ if (localStorage.getItem('tc_modo') === 'oscuro') { document.documentElement.classList.add('oscuro'); document.querySelector('meta[name="theme-color"]').content = '#1A1410'; document.querySelector('meta[name="color-scheme"]').content = 'dark'; document.write('<link rel="stylesheet" href="oscuro.css?v=0.225">'); } } catch (e) { }</script>
+<link rel="stylesheet" href="app.css?v=0.226">
+<script>/* 06/11 noche: propuesta de modo oscuro (Gabriela). ?modo=oscuro lo enciende en ese navegador, ?modo=claro lo apaga; oscuro.css solo se carga encendido */ try { var mq = new URLSearchParams(location.search).get('modo'); if (mq === 'oscuro' || mq === 'claro') localStorage.setItem('tc_modo', mq); document.documentElement.dataset.fondo = '4'; localStorage.removeItem('tc_fondo'); /* 07/11: fondo «Sin tarjeta», elegido por Gabriela */ if (localStorage.getItem('tc_modo') === 'oscuro') { document.documentElement.classList.add('oscuro'); document.querySelector('meta[name="theme-color"]').content = '#1A1410'; document.querySelector('meta[name="color-scheme"]').content = 'dark'; document.write('<link rel="stylesheet" href="oscuro.css?v=0.226">'); } } catch (e) { }</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -164,7 +164,7 @@
 <main class="pantalla con-margen sin-tabs" id="p-anadir">
   <div class="cab"><button data-ir="closet" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et" id="an-titulo" data-t="nueva">Nueva prenda</span><button class="accion oculto" id="an-borrar" data-t="borrar">Borrar</button></div>
   <div class="previa" id="previa">
-    <label><svg><use href="#ic-camara"/></svg><span data-t="hacer_foto">Haz una foto o elige una de la galería</span><span class="et" data-t="foto_et">sobre fondo liso, la prenda entera</span><input type="file" accept="image/*" id="f-prenda"></label>
+    <label><svg><use href="#ic-camara"/></svg><span data-t="hacer_foto">Haz una foto o elige una de la galería</span><span class="et" data-t="foto_et">sobre fondo liso, la prenda entera</span><input type="file" accept="image/*" id="f-prenda" aria-label="Foto de la prenda"></label>
   </div>
   <div class="an-herr" id="an-herr"></div>
   <label class="campo"><span data-t="nombre_prenda">Nombre</span><input id="an-nombre" placeholder="Chaleco de rayas"></label>
@@ -172,9 +172,10 @@
     <label class="campo"><span data-t="categoria">Categoría</span><select id="an-tipo"></select></label>
     <label class="campo"><span data-t="tipo">Tipo</span><select id="an-sub"></select></label>
   </div>
+  <label class="campo"><span data-t="estacion">Estación</span><select id="an-estacion"></select></label>
   <div class="fila2">
-    <label class="campo"><span data-t="estacion">Estación</span><select id="an-estacion"></select></label>
     <label class="campo"><span data-t="precio">Precio (si quieres)</span><input id="an-precio" inputmode="decimal" placeholder="29,95 €"></label>
+    <label class="campo"><span data-t="compra_q">La compraste</span><select id="an-compra"></select></label>
   </div>
   <div class="campo oculto" id="an-tiro-c"><span data-t="tiro_q">¿Dónde te llega la cinturilla?</span><div class="an-tiro" id="an-tiro"></div><span class="an-tiro-ay" data-t="tiro_ay">El punto dorado es el ombligo. Si no lo sabes, déjalo sin marcar.</span></div>
   <div class="campo oculto" id="an-largo-c"><span data-t="largo_q">¿Hasta dónde te llega?</span><div class="an-tiro an-largo" id="an-largo"></div><span class="an-tiro-ay" data-t="largo_ay">El punto dorado es el ombligo. Con esto sé si va por dentro o por fuera y qué pantalones le van.</span></div>
@@ -232,7 +233,7 @@
   <nav class="y3-nav" id="yo-lista" aria-label="Tu perfil"></nav>
   <!-- 0.114 (Gabriela, 28/10: «sigo sin ver la opción de ajustes, básico en cualquier app… ubícate en un panel de opciones: letra un poco más oscura, iconos, intuitivo, sin redundancias»): panel por grupos;
        desde el 08/11 vive en su propia pantalla (abrirAjustes) -->
-  <p class="nota" id="yo-version">TuCloset web 0.225 · 11 de noviembre de 2026</p>
+  <p class="nota" id="yo-version">TuCloset web 0.226 · 11 de noviembre de 2026</p>
 </main>
 
 <!-- MIS COLORES (0.111) -->
@@ -259,8 +260,8 @@
 <dialog id="dlg"><h2 id="dlg-t"></h2><p id="dlg-p"></p><div class="botones"><button class="boton" id="dlg-si"></button><button class="boton linea" id="dlg-no"></button></div></dialog>
 </div>
 <script>window.TC_PUBLICA=true</script>
-<script src="app.js?v=0.225"></script>
-<script>if (AT) document.write('<script src="motor-datos.js?v=0.225"><\/script><script src="motor.js?v=0.225"><\/script>');</script>
-<script src="at.js?v=0.225"></script>
+<script src="app.js?v=0.226"></script>
+<script>if (AT) document.write('<script src="motor-datos.js?v=0.226"><\/script><script src="motor.js?v=0.226"><\/script>');</script>
+<script src="at.js?v=0.226"></script>
 </body>
 </html>

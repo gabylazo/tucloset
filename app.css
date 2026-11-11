@@ -1781,3 +1781,35 @@ html.oscuro .pn-error{color:#E8776B}
 .yi-c.hecha{border:1px solid var(--linea)}
 .yi-c i{flex:1}
 .av-viejas{font-size:.86em;color:var(--sec)}
+
+/* 11/11: Mis gastos en ropa (Yo y su panel) */
+.yg-cs{display:flex;align-items:flex-end;gap:3px;width:42px;height:40px;flex:none}
+.yg-cs i{flex:1;background:var(--tinta);border-radius:2px 2px 0 0;min-height:2px}
+.yg-cs i.v{background:var(--linea2)}
+.gs{padding:4px 0 24px}
+.gs-mes{font-size:14px;color:var(--sec);text-align:center;margin:4px 0 0}
+.gs-tot{font-family:var(--f-marca);font-size:44px;line-height:1.1;text-align:center;margin:2px 0}
+.gs-sub{font-size:14px;color:var(--sec);text-align:center;margin:0 0 18px}
+.gs-cols{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;align-items:end;border-bottom:1px solid var(--linea2);margin:0 0 18px}
+.gs-col{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:44px;padding:0 0 6px;background:none;border:0;color:var(--tinta);cursor:pointer;text-align:center}
+.gs-v{font-size:11px;line-height:1.2;color:var(--sec);min-height:14px;white-space:nowrap}
+.gs-b{display:flex;align-items:flex-end;justify-content:center;width:100%;height:120px}
+.gs-b i{width:min(28px,70%);background:var(--tinta);opacity:.35;border-radius:4px 4px 0 0;min-height:0}
+.gs-col.on .gs-b i{opacity:1}
+.gs-m{font-size:12px;color:var(--sec);border-bottom:2px solid transparent;padding:0 2px}
+.gs-col.on .gs-m{color:var(--tinta);font-weight:600;border-bottom-color:var(--oro)}
+.gs-col:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.gs-lista{list-style:none;margin:0 0 16px;padding:0}
+.gs-lista button{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:6px 0;border-bottom:1px solid var(--linea);background:none;color:var(--tinta);text-align:left;cursor:pointer}
+.gs-f{width:40px;height:50px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--baldosa,#F7F6F4)}
+.gs-f img{max-width:100%;max-height:100%;object-fit:contain}
+.gs-n{flex:1;min-width:0;font-size:15px}
+.gs-lista b{font-weight:600;font-size:15px}
+.gs-res{display:grid;grid-template-columns:repeat(3,1fr);margin:0 0 14px;border-top:1px solid var(--linea);border-bottom:1px solid var(--linea)}
+.gs-res div{padding:10px 4px;text-align:center}
+.gs-res dt{font-size:12px;color:var(--sec)}
+.gs-res dd{margin:2px 0 0;font-size:17px}
+.gs-nota{font-size:13px;color:var(--sec);margin:0 0 8px;text-align:center}
+/* el campo del precio en Subir: la regla de #s-raiz label input es para el selector de fotos */
+#s-raiz .s-compra input{position:static;inset:auto;opacity:1;cursor:text;height:44px;font-size:16px}
+.campo select{padding-right:32px}

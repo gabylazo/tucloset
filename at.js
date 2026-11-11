@@ -479,7 +479,7 @@ if (AT) (() => {
     const forma = p.tipo === 'Abajo' ? TIRO[fz.tiro] : p.tipo === 'Arriba' ? LARGO[fz.largo] : '';
     // 06/11 (Gabriela: «con iconos, no tantas letras»): debajo del nombre, solo qué es; color, estación y puestas, cada uno con su icono
     const datos = [sub, forma, (p.detalles || []).join(', ').toLowerCase()].filter(Boolean).map(esc).join(' · ');
-    const precio = p.precio ? `${dinero(p.precio)}${usos.length ? ` · ${dinero(p.precio / usos.length)}/${t('puesta', 'wear')}` : ''}` : '';
+    const precio = p.precio ? `${dinero(p.precio)}${/^\d{4}-\d{2}$/.test(p.compra || '') ? ` · ${t('comprada en', 'bought in')} ${nomMes(p.compra)}` : ''}${usos.length ? ` · ${dinero(p.precio / usos.length)}/${t('puesta', 'wear')}` : ''}` : '';
     const hex = (COLORES.find(([c]) => c === p.color) || [])[1];
     const chips = [p.color && `<li><i class="at-mancha"${hex ? ` style="background:${hex}"` : ''}></i>${esc(nomColor(p.color))}</li>`, `<li>${I.cal}${esc(estNombre(p.estacion))}</li>`,
       `<li>${I.percha}${usos.length ? veces(usos.length) : t('Sin estrenar', 'Not worn yet')}</li>`, precio && `<li>${esc(precio)}</li>`].filter(Boolean).join('');

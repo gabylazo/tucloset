@@ -853,6 +853,22 @@ html.oscuro .toast-acc{background:none;border:0;color:inherit;text-decoration:un
 html.oscuro .yi-c{border:1px dashed var(--ter);background:var(--baldosa,var(--o-fondo))}
 html.oscuro .yi-c.hecha{border:1px solid var(--linea)}
 html.oscuro .av-viejas{color:var(--sec)}
+html.oscuro .yg-cs i{background:var(--tinta);border-radius:2px 2px 0 0}
+html.oscuro .yg-cs i.v{background:var(--linea2)}
+html.oscuro .gs-mes{color:var(--sec)}
+html.oscuro .gs-sub{color:var(--sec)}
+html.oscuro .gs-cols{border-bottom:1px solid var(--linea2)}
+html.oscuro .gs-col{background:none;border:0;color:var(--tinta)}
+html.oscuro .gs-v{color:var(--sec)}
+html.oscuro .gs-b i{background:var(--tinta);border-radius:4px 4px 0 0}
+html.oscuro .gs-m{color:var(--sec);border-bottom:2px solid transparent}
+html.oscuro .gs-col.on .gs-m{color:var(--tinta);border-bottom-color:var(--oro)}
+html.oscuro .gs-col:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+html.oscuro .gs-lista button{border-bottom:1px solid var(--linea);background:none;color:var(--tinta)}
+html.oscuro .gs-f{background:var(--baldosa,var(--o-fondo))}
+html.oscuro .gs-res{border-top:1px solid var(--linea);border-bottom:1px solid var(--linea)}
+html.oscuro .gs-res dt{color:var(--sec)}
+html.oscuro .gs-nota{color:var(--sec)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}
@@ -1132,4 +1148,6 @@ html.oscuro .pn-f.rojo, html.oscuro .pn-f.rojo .pn-t, html.oscuro #p-cuenta .ite
 html.oscuro .pn-f.rojo .pn-ic { stroke: #E8776B; }
 html.oscuro .dg-campo input[aria-invalid=true] { border-bottom-color: #E8776B; }
 html.at.oscuro .at-vj-campo input::-webkit-calendar-picker-indicator { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F1E9DE' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5'/%3E%3Cpath d='M3.5 9.5h17M8 3v4M16 3v4'/%3E%3C/svg%3E"); }
+/* 11/11: los selectores en oscuro perdían el tamaño y la posición de su flecha (el fondo de la regla de arriba los reinicia) y la flecha se repetía como un mosaico */
+html.oscuro .campo select { background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
 
