@@ -850,6 +850,9 @@ html.oscuro .dx-perm{border-bottom:1px solid var(--linea)}
 html.oscuro .dx-bloq{border:0}
 html.oscuro .col-nom{color:var(--sec)}
 html.oscuro .toast-acc{background:none;border:0;color:inherit;text-decoration:underline}
+html.oscuro .yi-c{border:1px dashed var(--ter);background:var(--baldosa,var(--o-fondo))}
+html.oscuro .yi-c.hecha{border:1px solid var(--linea)}
+html.oscuro .av-viejas{color:var(--sec)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}

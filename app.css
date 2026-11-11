@@ -1774,3 +1774,10 @@ html.oscuro .pn-error{color:#E8776B}
 /* 11/11 (análisis, punto 31): aviso con acción («Deshacer»); el aviso normal no se toca, este sí */
 .toast.con-acc{pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:4px;padding-top:2px;padding-bottom:2px}
 .toast-acc{min-height:44px;padding:0 10px;margin-left:6px;background:none;border:0;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+
+/* 11/11: «Looks que te encantan» en Yo: cinco huecos con los colores de cada look subido */
+.yi-cs{display:flex;gap:4px;flex:none}
+.yi-c{width:20px;height:30px;border:1px dashed #CFC5BA;display:flex;flex-direction:column;overflow:hidden;background:var(--baldosa,#F7F6F4)}
+.yi-c.hecha{border:1px solid var(--linea)}
+.yi-c i{flex:1}
+.av-viejas{font-size:.86em;color:var(--sec)}

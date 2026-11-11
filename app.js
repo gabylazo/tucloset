@@ -486,8 +486,17 @@ function vaciarProbados() { // avatar nuevo o borrado: lo probado ya no vale, aq
 // cada look probado lleva en su clave la fecha del avatar con que se hizo (…|avatarF). Solo vale con ESE avatar: lo de otro avatar se quita aquí y de la cuenta.
 // El iPhone guardaba looks hechos con el avatar del 07/11 y los subió a la cuenta (que tiene el del 09/11): salían caras distintas en el mismo sitio.
 const deAvatar = k => String(k || '').split('|').pop();
+// 11/11: «Quitar» un look probado que no ha salido bien (Yo → Tu avatar). probadosNo guarda sus fotos para siempre (las 60 últimas): probadosFuera se vacía en cuanto
+// el servidor las borra y, sin esta marca, otro móvil que aún lo tuviera lo devolvería a la lista
+function quitarProbado(k) {
+  const pf = E.perfil = E.perfil || {}, x = (pf.probados || []).find(q => q.k === k); if (!x) return;
+  pf.probados = pf.probados.filter(q => q !== x); pf.probadosFuera = [...new Set([...(pf.probadosFuera || []), x.f])]; pf.probadosNo = [...new Set([...(pf.probadosNo || []), x.f])].slice(-60);
+  delete E.puestos[k]; const fl = fLocales(); delete fl[k]; ponerFLocales(fl); BD.set('puestos', E.puestos).catch(() => { });
+  fijarPuesto(ordenPuestos().find(q => E.puestos?.[q] instanceof Blob) || '');
+}
 function juntarProbados(dp, pl, av) { // los dos lados: misma clave con otra foto → la más nueva; lo echado en cualquiera de los dos, fuera
-  const fuera = new Set([...(dp.probadosFuera || []), ...(pl.probadosFuera || [])]), m = new Map(), desde = [dp.probadosDesde || '', pl.probadosDesde || ''].sort().pop();
+  const no = [...new Set([...(dp.probadosNo || []), ...(pl.probadosNo || [])])].slice(-60);
+  const fuera = new Set([...(dp.probadosFuera || []), ...(pl.probadosFuera || []), ...no]), m = new Map(), desde = [dp.probadosDesde || '', pl.probadosDesde || ''].sort().pop();
   for (const x of [...(dp.probados || []), ...(pl.probados || [])]) {
     if (fuera.has(x.f)) continue; if ((x.t || '') < desde || (av && deAvatar(x.k) !== av)) { fuera.add(x.f); continue; } const y = m.get(x.k); // lo de antes de desde o de otro avatar, fuera
     if (!y) { m.set(x.k, { ...x }); continue; }
@@ -495,7 +504,7 @@ function juntarProbados(dp, pl, av) { // los dos lados: misma clave con otra fot
     const [gana, pierde] = (x.t || '') > (y.t || '') ? [{ ...x }, y] : [y, x]; fuera.add(pierde.f); if ((pierde.u || '') > (gana.u || '')) gana.u = pierde.u; m.set(x.k, gana);
   }
   const l = [...m.values()].sort((a, b) => (b.u || '').localeCompare(a.u || '')); l.slice(MAX_PUESTOS).forEach(x => fuera.add(x.f));
-  const r = { probados: l.slice(0, MAX_PUESTOS), probadosFuera: [...fuera] }; if (desde) r.probadosDesde = desde;
+  const r = { probados: l.slice(0, MAX_PUESTOS), probadosFuera: [...fuera].filter(f => !no.includes(f) || [...(dp.probadosFuera || []), ...(pl.probadosFuera || [])].includes(f)) }; if (desde) r.probadosDesde = desde; if (no.length) r.probadosNo = no;
   const fijo = (pl.avatarFijoT || '') > (dp.avatarFijoT || '') ? pl : dp; if (fijo.avatarFijoT) { r.avatarFijo = fijo.avatarFijo || ''; r.avatarFijoT = fijo.avatarFijoT; }
   return r;
 }
@@ -3614,7 +3623,8 @@ async function puestoEnMi(ps, como, otra, soloGuardado) {
     const fd = new FormData(); fd.append('avatar', await jpegBlanco(pf.avatar), 'avatar.jpg');
     for (const [i, p] of sel.entries()) fd.append('p' + i, await jpegBlanco(p.cat instanceof Blob ? p.cat : p.foto, 768), `p${i}.jpg`);
     fd.append('nombres', JSON.stringify(sel.map(p => p.nombre || ''))); if (como) fd.append('como', como);
-    if (pf.selfie instanceof Blob) fd.append('cara', await jpegBlanco(pf.selfie, 768), 'cara.jpg'); // 09/11 (Gabriela: «mejorar un poco más el parecido»): la cara de verdad, para que no se pierda
+    // 11/11 (Gabriela: «sigo teniendo dos avatares en mi cuenta»): ya no va la selfie. Con dos caras de referencia (el avatar y la selfie, que había cambiado
+    // después), la IA copiaba unas veces una y otras la otra, y salían dos personas. La cara sale solo del avatar; el parecido se arregla en el avatar («No me parezco»)
     const r = await apiAvatar('/api/avatar?que=puesto' + (otra ? '&otra=1' : ''), fd);
     if (!r.ok) { const j = await r.json().catch(() => ({})); return { error: errorAvatar(r.status, j.error, true) }; }
     const fin = await afinarCat(await r.blob()); if (!fin) return { error: errorAvatar(502) };
@@ -3632,11 +3642,12 @@ function tarjetaAvatar() {
     return `<section class="av-tarjeta av-con"><h2 class="es-tit">${t('Tu avatar', 'Your avatar')}</h2>
       <details class="av-des" ${avatarAbierto ? 'open' : ''}><summary><span class="av-mini"><img src="${uF}" alt=""></span><span class="av-sum"><span class="av-ver">${t('Ver mi avatar', 'See my avatar')}</span><span class="av-plegar">${t('Plegar', 'Fold')}</span></span><svg class="av-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
         <button class="av-grande" data-avatar="ver" aria-label="${t('Ver tu avatar a pantalla completa', 'See your avatar full screen')}"><img src="${uF}" alt="${kf ? t('Tú con lo último que te has probado', 'You wearing the last look you tried on') : t('Tu avatar', 'Your avatar')}"></button>
-        <p class="av-p">${viejas ? t('Tus fotos han cambiado.', 'Your photos have changed.') : kf ? t('Lo último que te has probado.', 'The last look you tried on.') : t(`En Hoy, toca ${IC_PUESTO} para verte el look puesto.`, `In Today, tap ${IC_PUESTO} to see the look on you.`)}</p>${tira}
+        <p class="av-p">${kf ? t('Lo último que te has probado.', 'The last look you tried on.') + ` <button class="at-enlace" data-avatar="quitar">${t('Quitar este', 'Remove it')}</button>` : t(`En Hoy, toca ${IC_PUESTO} para verte el look puesto.`, `In Today, tap ${IC_PUESTO} to see the look on you.`)}</p>${tira}
+        ${viejas ? `<p class="av-p av-viejas">${t('Tus fotos son más nuevas que tu avatar. Si quieres que se parezca a las de ahora, pulsa Rehacer.', 'Your photos are newer than your avatar. Tap Redo if you want it to look like them.')}</p>` : ''}
         <div class="av-acc"><button class="at-enlace" data-avatar="parecido">${t('No me parezco', 'Not like me')}</button><button class="at-enlace" data-avatar="crear">${t('Rehacer', 'Redo')}</button><button class="at-enlace" data-avatar="borrar">${t('Borrar', 'Delete')}</button></div></details></section>`; }
   const img = av ? `<button class="av-img" data-avatar="ver" aria-label="${t('Ver tu avatar', 'See your avatar')}"><img src="${URL.createObjectURL(pf.avatar)}" alt=""></button>` : `<span class="av-img av-vacio">${IC_PUESTO}</span>`;
   const txt = avatarEnCurso ? t('Creando tu avatar… tarda unos 30 segundos.', 'Creating your avatar… it takes about 30 seconds.')
-    : av ? (viejas ? t('Tus fotos han cambiado.', 'Your photos have changed.') : t(`En Hoy, toca ${IC_PUESTO} para verte el look puesto.`, `In Today, tap ${IC_PUESTO} to see the look on you.`))
+    : av ? (viejas ? t('Tus fotos son más nuevas que tu avatar. Si quieres que se parezca a las de ahora, pulsa Rehacer.', 'Your photos are newer than your avatar. Tap Redo if you want it to look like them.') : t(`En Hoy, toca ${IC_PUESTO} para verte el look puesto.`, `In Today, tap ${IC_PUESTO} to see the look on you.`))
     : fotos ? t('Con tus dos fotos, para verte los looks puestos.', 'From your two photos, to see the looks on you.') : t('Con una foto de tu cara y otra de cuerpo entero.', 'From a photo of your face and a full-body one.');
   const perm = permiso('avatar'), cas = !perm && !avatarEnCurso && fotos ? casillaPermiso('avatar') : '';
   const bot = avatarEnCurso ? '' : av ? `<div class="av-acc"><button class="at-enlace" data-avatar="crear">${t('Rehacer', 'Redo')}</button><button class="at-enlace" data-avatar="borrar">${t('Borrar', 'Delete')}</button></div>`
@@ -3651,7 +3662,8 @@ document.addEventListener('change', async e => { const ck = e.target.closest?.('
   if (ck.checked) { await ponerPermiso('avatar', true); avatarAbierto = true; } if (E.pantalla === 'yo') pintarYo(); });
 document.addEventListener('click', e => { const b = e.target.closest('[data-avatar]'); if (!b) return; const k = b.dataset.avatar;
   if (k === 'crear') crearAvatar(); else if (k === 'parecido') panelParecido(); else if (k === 'borrar') borrarAvatar(); else if (k === 'ver' && tieneAvatar()) { const kf = puestoFijo(); verFoto([{ src: URL.createObjectURL(kf ? E.puestos[kf] : E.perfil.avatar), alt: t('Tu avatar', 'Your avatar') }]); }
-  else if (k === 'fijar') { fijarPuesto(b.dataset.k); avatarAbierto = true; const c = b.closest('.av-tarjeta'); if (c) c.outerHTML = tarjetaAvatar(); } });
+  else if (k === 'fijar') { fijarPuesto(b.dataset.k); avatarAbierto = true; const c = b.closest('.av-tarjeta'); if (c) c.outerHTML = tarjetaAvatar(); }
+  else if (k === 'quitar') { const kf = puestoFijo(); if (!kf) return; quitarProbado(kf); avatarAbierto = true; const c = b.closest('.av-tarjeta'); if (c) c.outerHTML = tarjetaAvatar(); toast(t('Quitado', 'Removed')); } });
 // 06/11 noche (Gabriela: «lo de cómo lo he medido sobra, o al menos ponlo más pequeña la explicación; y quita cambiar las medidas y las fotos si ya hay una opción para eso
 // en otra parte»): «Cómo lo he medido», en pequeño; fuera «Cambiar mis medidas y fotos» y «Apuntar mis medidas»: pasan a Yo → Ajustes → Medidas y fotos.
 // 06/11 (Gabriela: «sigo esperando que rediseñes todo lo del perfil de tus medidas y fotos, tu diagnóstico, está horrible, lleno de texto, ya te expliqué cómo debe ser»;
@@ -3807,6 +3819,18 @@ function bloqueFotosYo() {
     <button class="yo-fm" data-diag="fotos"><span class="yo-fm-fotos">${mini('selfie', 'ic-camara')}${mini('cuerpo', 'ic-cuerpo')}</span>
       <span class="yo-fm-txt"><span>${l1}</span><small>${l2}</small></span><svg class="yo-fm-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></section>`;
 }
+// 11/11 (Gabriela: «no veo aún lo de subir 5 looks para que conozcan tu estilo»): estaba al final de Mi estilo, debajo de los 13 estilos, la cintura y Tu gusto;
+// ahora tiene su fila en Yo, que lleva directo a ese bloque. Cada look subido se ve con sus colores (la foto no se guarda)
+function bloqueInspoYo() {
+  const l = E.perfil?.inspo || [], n = l.length;
+  const hueco = i => l[i] ? `<span class="yi-c hecha">${(l[i].colores || []).slice(0, 4).map(c => `<i style="background:${hexCol(c)}"></i>`).join('') || '<i></i>'}</span>` : '<span class="yi-c"></span>';
+  const l1 = n ? t(`${n} de ${MAX_INSPO} looks`, `${n} of ${MAX_INSPO} looks`) : t('Sube fotos de looks que te gusten', 'Upload photos of looks you like');
+  return `<section class="yo-fm-sec"><h2 class="es-tit">${t('Looks que te encantan', 'Looks you love')}</h2>
+    <button class="yo-fm" data-yo-inspo><span class="yi-cs" aria-hidden="true">${[0, 1, 2, 3, 4].map(hueco).join('')}</span>
+      <span class="yo-fm-txt"><span>${l1}</span><small>${t(`Hasta ${MAX_INSPO}: así conocemos tu estilo`, `Up to ${MAX_INSPO}: so we get to know your style`)}</small></span><svg class="yo-fm-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></section>`;
+}
+document.addEventListener('click', e => { if (!e.target.closest('[data-yo-inspo]')) return; ir('estilo');
+  setTimeout(() => document.getElementById('es-inspo-t')?.scrollIntoView({ block: 'start' }), 80); });
 function pintarYo() {
   const pf = E.perfil || {}, es = idioma() === 'en' ? 1 : 0;
   const fila = (attr, tit, val, oro, flecha = true) => `<button class="item" ${attr}>${tit}<span class="valor${oro ? ' oro' : ''}">${val}${flecha ? '<svg><use href="#ic-flecha"/></svg>' : ''}</span></button>`;
@@ -3830,7 +3854,7 @@ function pintarYo() {
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? (ests.length > 2 ? ests.slice(0, 2).map(min).join(', ') + ` +${ests.length - 2}` : ests.map(min).join(t(' y ', ' and '))) : t('elígelo', 'choose it'))
     + ent(dg?.color || pf.selfie ? 'data-diag="ver-color"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
   $('yo-lista').setAttribute('aria-label', t('Tu perfil', 'Your profile')); $('yo-ajustes-t').textContent = t('Ajustes', 'Settings');
-  let fm = $('yo-fm'); if (!fm) { fm = document.createElement('div'); fm.id = 'yo-fm'; $('yo-lista').after(fm); } fm.innerHTML = bloqueFotosYo();
+  let fm = $('yo-fm'); if (!fm) { fm = document.createElement('div'); fm.id = 'yo-fm'; $('yo-lista').after(fm); } fm.innerHTML = bloqueFotosYo() + bloqueInspoYo();
   let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; fm.after(td); } td.innerHTML = tarjetaDiag() + tarjetaAvatar();
   pintarPanelYo();
   if (pend && !diagCorriendo) diagHastaAlDia().then(() => { if (E.pantalla === 'yo') pintarYo(); });
