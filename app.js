@@ -591,7 +591,9 @@ async function bajarNube() {
   if (!rein) for (const [id, l] of locales) if (!borr.has(id)) nuevas.push(l);
   E.prendas = nuevas;
   const cj = new Map((doc.conjuntos || []).map(c => [c.id, c])); if (!rein) E.conjuntos.forEach(c => { if (!cj.has(c.id)) cj.set(c.id, c); }); E.conjuntos = [...cj.values()].filter(c => !fI.size || !(c.ids || []).some(id => fI.has(id)));
-  E.agenda = rein ? { ...(doc.agenda || {}) } : fI.size ? { ...E.agenda } : { ...E.agenda, ...(doc.agenda || {}) };
+  // 11/11: el día de la nube manda, pero lo puesto de este móvil se queda si la nube no lo tiene o es más viejo (antes se perdía: el día entero de la nube lo pisaba)
+  const juntarDias = (lo, nu) => { const r = { ...lo, ...nu }; for (const d in lo) { const a = lo[d], b = nu[d]; if (b && a?.puesto?.length && (!b.puesto?.length || (a.puestoT || '') > (b.puestoT || ''))) r[d] = { ...b, puesto: a.puesto, puestoT: a.puestoT }; } return r; };
+  E.agenda = rein ? { ...(doc.agenda || {}) } : fI.size ? { ...E.agenda } : juntarDias(E.agenda, doc.agenda || {});
   if (doc.reinicio) LS.set('tc_reinicio', doc.reinicio);
   // 10/11 (Gabriela: «no hay sincronización entre mi cuenta del móvil y la del Mac, mi avatar cambia»; «igual que la colorimetría, porque hay diferentes fotos de la cara»;
   // «¿no se supone que la cuenta es única?»): LA CUENTA MANDA. Antes cada móvil se quedaba con sus fotos y su análisis: el que tenía una foto vieja la volvía a subir
@@ -1891,13 +1893,24 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
     pintarHoy(); toast(t('Anotado. Te propondré otras combinaciones', 'Noted. I’ll suggest other combinations'));
   };
 }
+// lo puesto hoy, el último primero: el de la agenda y los looks guardados que llevan hoy en sus usos (si la agenda lo perdió, o se eligió con una versión
+// de antes de guardarlo allí). Con hora manda la hora; sin hora, la agenda y después el orden de la lista (los nuevos van delante)
+function puestosDeHoy() {
+  const dl = diaISO(new Date()), du = hoyISO(), a = E.agenda[dl] || E.agenda[du], l = [], vistos = new Set();
+  const poner = (ids, tm) => { if (!(ids?.length >= 2) || !ids.every(P)) return; const k = claveLook(ids); if (vistos.has(k)) return; vistos.add(k); l.push({ ids, t: tm || '' }); };
+  if (a?.puesto) poner(a.puesto, a.puestoT);
+  E.conjuntos.forEach(c => { if ((c.usos || []).some(x => x === dl || x === du)) poner(c.ids, (c.usoT || '').slice(0, 10) >= du ? c.usoT : ''); });
+  return l.map((x, i) => ({ ...x, i })).sort((x, y) => (y.t || '').localeCompare(x.t || '') || x.i - y.i).map(x => x.ids);
+}
 async function ponerse(ids, conj) {
   const d = hoyISO(); let n = 0; anotarGusto(ids, 'si');
   ids.forEach(id => { const p = P(id); if (!p) return; p.usos = p.usos || []; if (!p.usos.includes(d)) { p.usos.push(d); n++; } });
-  if (conj) { conj.usos = conj.usos || []; if (!conj.usos.includes(d)) conj.usos.push(d); }
-  // 11/11 (Gabriela): lo que te pones hoy, desde donde sea, sale el primero en Hoy
-  const ag = E.agenda[d] = E.agenda[d] || { planes: [] }; ag.puesto = [...ids]; if (E.pantalla !== 'hoy') { E.propuestas = []; E.hoyIdx = 0; }
-  else if (ids.length >= 2 && !E.conjuntos.some(c => c.ids.join() === ids.join())) { E.conjuntos.unshift({ id: uid(), nombre: t('Hoy', 'Today') + ' ' + fecha(d, true), ocasion: ocasionDe(ids.map(P).filter(Boolean)), ids, creada: d, usos: [d] }); }
+  // 11/11 (Gabriela: «sigo sin ver de primera opción el look que se elija para el día»): con la hora, para saber cuál es el último aunque te pongas dos
+  const ya = new Date().toISOString(), k = claveLook(ids); conj = conj || E.conjuntos.find(c => claveLook(c.ids) === k);
+  if (conj) { conj.usos = conj.usos || []; if (!conj.usos.includes(d)) conj.usos.push(d); conj.usoT = ya; }
+  // 11/11 (Gabriela): lo que te pones hoy, desde donde sea, sale el primero en Hoy. La agenda va por día local (la de los usos, por día UTC)
+  const ag = E.agenda[diaISO(new Date())] = E.agenda[diaISO(new Date())] || { planes: [] }; if (ids.length >= 2) { ag.puesto = [...ids]; ag.puestoT = ya; } if (E.pantalla !== 'hoy') { E.propuestas = []; E.hoyIdx = 0; }
+  else if (ids.length >= 2 && !conj) { E.conjuntos.unshift({ id: uid(), nombre: t('Hoy', 'Today') + ' ' + fecha(d, true), ocasion: ocasionDe(ids.map(P).filter(Boolean)), ids, creada: d, usos: [d], usoT: ya }); }
   await guardar(); toast(n ? t(`Apuntado: ${n} prendas puestas hoy`, `Noted: ${n} garments worn today`) : t('Ya lo tenías apuntado hoy', 'Already noted today'));
 }
 
