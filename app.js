@@ -972,7 +972,11 @@ async function pedirCatalogo(p, otra, fuente = p.foto, pista) {
     const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(im, 0, 0, w, h);
     const b = await new Promise(r => c.toBlob(r, 'image/jpeg', .9)); if (!b) return null;
     const q = new URLSearchParams({ tipo: tipoCat(p), nombre: p.nombre || '' }); if (otra) q.set('otra', '1'); if (pista) q.set('pista', pista);
-    const r = await api('/api/catalogo?' + q, { method: 'POST', body: b, headers: { 'Content-Type': 'image/jpeg' }, tiempo: 90000 });
+    // 11/11 (Sheila: «la IA debería ser capaz de detectar que falta un tirante, pues la foto tiene los 2»): con la foto sin recortar al lado, la IA recupera lo
+    // que el recorte pierde (tirantes finos, lazos, cinturones, puntas); el recorte sigue mandando en forma y color
+    let cuerpo = b, cab = { 'Content-Type': 'image/jpeg' };
+    if (p.original instanceof Blob && fuente !== p.cat) { const o = await jpegBlanco(p.original, 1024).catch(() => null); if (o) { cuerpo = new FormData(); cuerpo.append('foto', b, 'foto.jpg'); cuerpo.append('orig', o, 'orig.jpg'); cab = {}; } }
+    const r = await api('/api/catalogo?' + q, { method: 'POST', body: cuerpo, headers: cab, tiempo: 90000 });
     if (r.status === 429 || r.status === 503) { catParado = true; return 'parar'; } // tope del día o del mes, o sin clave: se vuelve a probar al abrir la app otro día
     if (r.status === 401) return 'parar';
     if (!r.ok) { p.catFallos = (p.catFallos || 0) + 1; return null; }
