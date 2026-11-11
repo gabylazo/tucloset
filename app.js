@@ -942,24 +942,41 @@ const tipoCat = p => p.tipo === 'Calzado' ? 'calzado' : ['Bolsos', 'Accesorios']
 const catPend = () => E.prendas.filter(p => p.catProp instanceof Blob && (!p.cat || p.catColor)); // catColor: la de catálogo en otro color (recolorCat)
 const cargaImg = u => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
 let estilizando = null, catParado = false;
+// 11/11 (Sheila: «quizás le puede salir un cartel de estilizando, así las usuarias se enteran… al menos en el primer uso»): mientras se planchan, el Clóset dice
+// «Estilizando tus fotos · 1 de 3» y, hasta que termine la primera tanda (tc_est_visto), qué es y cuánto tarda; la ficha de la prenda que se plancha, también.
+const porEstilizar = p => !p.cat && !p.conCat && !p.catNo && !p.ejemplo && !(p.catPregunta && p.catProp instanceof Blob)
+  && (p.catProp instanceof Blob || (p.foto instanceof Blob && !p.fotoRota && (p.catFallos || 0) < 2));
+function avisoEst() {
+  const pa = $('pared'); let av = $('est-av'); const e = E.estil;
+  if (e && !av && pa) { av = document.createElement('p'); av.id = 'est-av'; av.className = 'est-av'; av.setAttribute('role', 'status'); pa.before(av); }
+  if (av) { av.hidden = !e; if (e) { let visto = 0; try { visto = localStorage.getItem('tc_est_visto'); } catch (x) { }
+    av.innerHTML = `<span class="est-gira" aria-hidden="true"></span><span>${e.n > 1 ? t(`Estilizando tus fotos · ${e.i} de ${e.n}`, `Styling your photos · ${e.i} of ${e.n}`) : t('Estilizando tu foto', 'Styling your photo')}${visto ? '' : `<small>${t('La convierto en foto de catálogo: unos 15 segundos por prenda. Puedes seguir usando la app.', 'I turn it into a catalogue photo: about 15 seconds per garment. You can keep using the app.')}</small>`}</span>`; } }
+  const fi = $('at-ficha'), fe = $('est-ficha');
+  if (fi && fe) fe.hidden = !(e && e.id === fi.dataset.id);
+}
 function estilizarNuevas() {
   if (estilizando) return estilizando;
   if (catParado || !cuenta()?.token || window.top !== window) return Promise.resolve(0);
   estilizando = (async () => {
-    await 0; let hechas = 0;
+    await 0; let hechas = 0, propuestas = 0, k = 0; const vistos = new Set();
     try {
       for (;;) {
         // 07/11 (Gabriela: «a medida que uno vaya subiendo una pieza, pues se estiliza directamente y se elimina la foto original»; «lo de Sheila es exactamente
         // todo igual a lo que hicimos con lo mío… es un usuario más»): ya no se pregunta «Usar esta / Dejar la mía»; la foto de catálogo se pone sola, y no solo
         // en las prendas nuevas: también en las que se subieron antes de esto (las de Sheila). En esas, la recortada y la original se quedan en la nube hasta
         // que su dueña diga que le gustan (decisión del 06/11); en las nuevas se borran, como pidió Gabriela.
-        const p = E.prendas.find(p => !p.cat && !p.conCat && !p.catNo && !p.ejemplo && (p.catProp instanceof Blob || (p.foto instanceof Blob && !p.fotoRota && (p.catFallos || 0) < 2)));
+        const cola = E.prendas.filter(q => porEstilizar(q) && !vistos.has(q.id)), p = cola[0];
         if (!p) break;
+        vistos.add(p.id); E.estil = { i: ++k, n: k + cola.length - 1, id: p.id }; avisoEst();
         const r = p.catProp instanceof Blob ? true : await pedirCatalogo(p); if (r === 'parar') break;
-        if (r && await usarCat(p, !p.catAuto)) hechas++;
+        // 11/11 (Sheila: «estoy intentando cambiar la foto y no me deja»): una foto cambiada a mano en Editar no se sustituye sola: se propone («Usar esta» / «Dejar la mía»)
+        if (r && p.catPregunta) propuestas++;
+        else if (r && await usarCat(p, !p.catAuto)) hechas++;
         await BD.set('prendas', E.prendas).catch(() => { });
+        if ($('at-ficha')?.dataset.id === p.id && E.pantalla === 'ficha') abrirFicha(p.id);
       }
-    } finally { estilizando = null; }
+    } finally { estilizando = null; if (E.estil) { try { localStorage.setItem('tc_est_visto', '1'); } catch (x) { } } E.estil = null; avisoEst(); }
+    if (propuestas) { await guardar(); if (E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); if (!$('rep-capa') && !$('cat-capa')) toast(t('Tu foto nueva tiene versión de catálogo: elige cuál te quedas', 'Your new photo has a catalogue version: choose which to keep'), [t('Ver', 'View'), () => abrirCatalogo()]); }
     if (hechas) { await guardar(); if (E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); if (!$('rep-capa') && !$('cat-capa')) toast(hechas === 1 ? t('Tu prenda ya tiene foto de catálogo: míralo en el Clóset', 'Your garment has a catalogue photo: see it in the Closet') : t(`${hechas} prendas tienen ya foto de catálogo: míralas en el Clóset`, `${hechas} garments have a catalogue photo: see them in the Closet`)); }
     return hechas;
   })();
@@ -1007,7 +1024,7 @@ async function usarCat(p, conservarNube) {
   // la foto de antes se queda 7 días solo en este móvil, por si la de catálogo no se parece («No se parece» en la ficha); después se borra sola
   if (p.foto instanceof Blob && !p.fCat && !p.fotoPrev) { p.fotoPrev = p.foto; p.fotoPrevT = Date.now(); }
   Object.assign(p, { cat: b, foto: b, conCat: 1, nubeC: Date.now().toString(36), catAR: p.catPropAR, fCat: 1, caja: null });
-  for (const k of ['catProp', 'catPropAR', 'catColor', 'original', 'fotoSub', 'fotoSubO', 'cajaV', 'dudoso', 'recMano']) delete p[k];
+  for (const k of ['catProp', 'catPropAR', 'catColor', 'original', 'fotoSub', 'fotoSubO', 'cajaV', 'dudoso', 'recMano', 'catPregunta']) delete p[k];
   urls.delete(p.id); alfa.delete(p.id); urlsCat.delete(p.id);
   // 11/11 (Sheila: «si una prenda no coincide con la original después de plancharla, ¿qué hago?»): la foto de antes se queda 7 días también en la cuenta (prevNube), no solo
   // en el móvil que la estilizó; así «No se parece» sale se abra donde se abra. Pasados los 7 días, limpiarFotoPrev la borra del servidor. La original sin recortar, fuera ya
@@ -1067,7 +1084,7 @@ function abrirCatalogo(id) {
     if (k === '') { fin(); if (E.pantalla === 'closet') pintarCloset(); return; }
     cap.dataset.ocupado = 1; cap.querySelectorAll('button').forEach(x => x.disabled = true);
     if (k === 'si') { if (!(await usarCat(p, rc && !!p.nubeConserva))) { delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; } toast(t('Foto de catálogo puesta', 'Catalogue photo set')); }
-    else if (k === 'no') { delete p.catProp; delete p.catPropAR; if (p.catColor) delete p.catColor; else p.catNo = 1; await guardar(); }
+    else if (k === 'no') { delete p.catProp; delete p.catPropAR; delete p.catPregunta; if (p.catColor) delete p.catColor; else p.catNo = 1; await guardar(); }
     else if (k === 'otra') { b.textContent = t('Haciendo otra… unos 20 segundos', 'Making another… about 20 seconds'); const r = await pedirCatalogo(p, true); await BD.set('prendas', E.prendas).catch(() => { });
       if (r !== true) toast(r === 'parar' ? t('Ahora no puedo hacer fotos de catálogo. Prueba más tarde', 'I can’t make catalogue photos right now. Try again later') : t('No ha salido: puedes usar esta o dejar la tuya', 'It did not work: use this one or keep yours'));
       fin(); return abrirCatalogo(p.id); }
@@ -2892,7 +2909,7 @@ async function guardarPrenda(otra) {
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
   if (!p && enGratis() && E.prendas.length >= TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas.`, `The free version holds ${TOPE_GRATIS} garments.`));
-  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), compra: (precioDe($('an-precio').value) && $('an-compra').value) || undefined, detalles: detaEd() }); if (fotoNueva) { quitarCat(p); p.foto = fotoNueva; delete p.src; delete p.fotoRota; delete p.caja; urls.delete(p.id), alfa.delete(p.id); for (const k of ['catProp', 'catPropAR', 'catNo', 'catOtra', 'catFallos']) delete p[k]; p.catAuto = 1; } }
+  if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), compra: (precioDe($('an-precio').value) && $('an-compra').value) || undefined, detalles: detaEd() }); if (fotoNueva) { quitarCat(p); p.foto = fotoNueva; delete p.src; delete p.fotoRota; delete p.caja; urls.delete(p.id), alfa.delete(p.id); for (const k of ['catProp', 'catPropAR', 'catNo', 'catOtra', 'catFallos']) delete p[k]; p.catAuto = 1; p.catPregunta = 1; } }
   else E.prendas.unshift({ id: uid(), rec: 3, estAuto: 1, catAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), compra: (precioDe($('an-precio').value) && $('an-compra').value) || undefined, detalles: detaEd(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   const tiro = tipo === 'Abajo' && $('an-tiro').dataset.sel, pr = p || E.prendas[0]; if (tiro) pr.est = { ...(pr.est || {}), tiro };
   if (E.recManoEdit && fotoNueva) pr.recMano = 1; E.recManoEdit = 0; // recortada a mano: el repaso automático del recorte no la toca

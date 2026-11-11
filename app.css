@@ -1813,3 +1813,14 @@ html.oscuro .pn-error{color:#E8776B}
 /* el campo del precio en Subir: la regla de #s-raiz label input es para el selector de fotos */
 #s-raiz .s-compra input{position:static;inset:auto;opacity:1;cursor:text;height:44px;font-size:16px}
 .campo select{padding-right:32px}
+
+/* 11/11: aviso «Estilizando tus fotos» en el Clóset y en la ficha */
+.est-av{display:flex;align-items:flex-start;justify-content:center;gap:10px;max-width:340px;margin:4px auto 14px;padding:0 16px;font-size:15px;line-height:1.35;color:var(--tinta);text-align:left}
+.est-av[hidden]{display:none}
+.est-av small{display:block;margin-top:3px;font-size:13px;color:var(--sec)}
+.est-gira{flex:none;width:16px;height:16px;margin-top:2px;border:1.5px solid var(--linea2);border-top-color:var(--oro-t);border-radius:50%;animation:est-gira 1s linear infinite}
+@keyframes est-gira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.est-gira{animation:none;border-color:var(--oro-t)}}
+.est-ficha{margin:10px auto 0}
+/* la foto de Editar entera, también la de un vestido largo (con height:100% en la rejilla se salía por abajo y se cortaba) */
+.previa img{position:absolute;inset:0}
