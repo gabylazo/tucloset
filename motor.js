@@ -306,10 +306,13 @@ const Motor = (() => {
       return cs0.map(p => [nota(p), p]).filter(x => x[0] > -.1).sort((a, b) => b[0] - a[0])[0]?.[1] || null;
     }
     const A = l.arriba?._f, B = l.abajo?._f, V = l.vestido?._f;
-    if (V && !A && !B) { if (NO_CINTURON.has(V.subtipo) || l.capa?._f.largo === 'largo' || huella(clave + 'cin') > .5) return null; } // 11/11: también a la cintura de un vestido, en la mitad
+    // 11/11: el cinturón tiene que verse (nada de abrigo de frío encima ni jersey o sudadera por fuera) y sale en la mitad de los looks como mucho; también a la cintura de un vestido
+    if (huella(clave + 'cin') > .45 || l.capa?._f.largo === 'largo' || (l.capa && grupo('@abrigo_frio').includes(l.capa._f.subtipo))) return null;
+    if (V && !A && !B) { if (NO_CINTURON.has(V.subtipo)) return null; }
     else {
-      if (!A || !B || B.uso === 'deporte' || NO_CINTURON.has(B.subtipo) || B.tiro === 'bajo' || l.capa?._f.largo === 'largo') return null;
+      if (!A || !B || B.uso === 'deporte' || NO_CINTURON.has(B.subtipo) || B.tiro === 'bajo') return null;
       if (!(l.como === 'por_dentro' || A.largo === 'crop' || (B.tiro === 'alto' && A.largo === 'cintura'))) return null;
+      if (/jersey|sudadera|cardigan|chaleco|forro|polo/.test(A.subtipo) && A.largo !== 'crop') return null;
     }
     const cs = ents.filter(p => p._f.subtipo === 'cinturon').map(p => [casa(p._f, z, l.bolso?._f) + huella(clave + p.id) * .2, p]).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]);
     return cs[0]?.[1] || null;
