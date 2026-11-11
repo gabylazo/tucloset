@@ -284,38 +284,64 @@ const Motor = (() => {
   const NO_CINTURON = new Set(['jogger', 'malla', 'falda_deportiva', 'shorts']);
   let MAXPAR = 12; // 08/11: parejas que se convierten en looks por fórmula; «¿Me lo compro?» mira más (o.parejas) para saber con cuántas prendas combina
   let COMPL = false; // con o.complementos: las ideas de la ficha de un bolso o un cinturón y, desde el 11/11 (Gabriela lo pidió), Hoy, Ideas, el calendario y la semana
+  /* 11/11 (Gabriela: «no quiero que lo que te dije que no pone se agregue ahora a la fuerza, sino que tengan sentido los outfits… teniendo en cuenta todos
+     los elementos que tienes a tu alcance»). Un complemento entra solo si le aporta algo al look; si ninguno casa, el look va sin él. Se mira todo: la ocasión,
+     lo arreglado que es el look, el estilo de su fórmula, los colores de todas las prendas y del zapato, los estampados y lo que ya protagoniza.
+     · Color: igual que el zapato (lo clásico) o que otra prenda; neutro si el look tiene neutros; un color que no está en el look solo como único toque de color
+       en un look neutro. Nunca dos estampados ni dos toques de color sueltos.
+     · Bolso: el de la ocasión (de noche, cartera o de mano), de su mismo nivel de arreglo, y solo si casa.
+     · Cinturón: donde se ve y marca la cintura (por dentro, corto, tiro alto o un vestido sin cintura propia) y del color del zapato o del bolso.
+     · Bandana o pañuelo: si el estilo del look lo pide (bandana: boho, casual, retro, rock, urbano; pañuelo de seda también francés, clásico, old money).
+     · Joyas: de noche, en un evento y en la oficina; de día, con estilos que las llevan; el collar, nunca si el look ya tiene protagonista.
+     · Como mucho dos además del bolso. */
   function complemento(tipo, l, ents, ctx) {
     if (ctx.ocasion === 'Deporte' || !l.calzado) return null;
-    const z = l.calzado._f, ropa = PIEZAS.map(k => l[k]).filter(p => p && !['calzado', 'bolso', 'accesorio'].includes(p._f.cat)).map(p => p._f);
+    const z = l.calzado._f, ropa = ['arriba', 'base_interior', 'abajo', 'vestido', 'capa'].map(k => l[k]).filter(Boolean).map(p => p._f);
     const media = ropa.reduce((s, f) => s + (f.form ?? 3), 0) / (ropa.length || 1), clave = claveRopa(l) + (l.calzado.id || '');
-    const casa = (f, ...con) => con.some(c => c && f.familia === c.familia) ? .35 : String(f.color_clase).startsWith('neutro') ? .15 : -.2;
+    const est = (l.estilos || []).slice(0, 2), neutro = f => String(f.color_clase).startsWith('neutro'), todoNeutro = ropa.every(neutro);
+    const ya = ['bolso', 'accesorio', 'accesorio2', 'joya'].map(k => l[k]).filter(Boolean).map(p => p._f);
+    const nAcc = ['accesorio', 'accesorio2', 'joya'].filter(k => l[k]).length;
+    if (tipo !== 'bolso' && nAcc >= 2) return null;
+    const armonia = f => {
+      if (f.estampado && f.estampado !== 'liso' && [...ropa, ...ya].some(x => x.estampado && x.estampado !== 'liso')) return -1; // dos estampados
+      if (f.familia && f.familia === z.familia) return .4;
+      if (f.familia && [...ropa, ...ya].some(x => x.familia === f.familia)) return .3;
+      if (neutro(f) || /dorad|platead/i.test(f.color || '')) return ropa.some(neutro) || neutro(z) ? .15 : .05;
+      return todoNeutro && !ya.some(x => !neutro(x)) ? .1 : -1; // un único toque de color en un look neutro
+    };
+    const nivel = f => Math.abs((f.form ?? 3) - media);
+    const elegir = (cs, extra = () => 0, min = .1) => cs.map(p => [armonia(p._f) - nivel(p._f) * .15 + extra(p) + huella(clave + p.id) * .12, p])
+      .filter(x => x[0] >= min && nivel(x[1]._f) <= 1.2).sort((a, b) => b[0] - a[0])[0]?.[1] || null;
     if (tipo === 'bolso') {
       const ok = grupo(['Noche', 'Evento'].includes(ctx.ocasion) ? '@bolso_noche' : '@bolso_dia');
-      const cs = ents.filter(p => p._f.cat === 'bolso' && ok.includes(p._f.subtipo) && !(p._f.subtipo === 'mochila' && media >= 3));
-      const nota = b => casa(b._f, z) - Math.abs((b._f.form ?? 3) - media) * .2 + huella(clave + b.id) * .3;
-      return cs.sort((a, b) => nota(b) - nota(a))[0] || null;
+      return elegir(ents.filter(p => p._f.cat === 'bolso' && ok.includes(p._f.subtipo) && !(p._f.subtipo === 'mochila' && (media >= 3 || ctx.ocasion === 'Oficina'))));
     }
-    // 11/11 (Gabriela: «no me recomienda bolsos… voy a subir bandanas para la cabeza y me gustaría que las recomendara… accesorios como pendientes… tampoco me
-    // recomienda cinturones»): en Hoy e Ideas también, el pañuelo o la bandana (de día y sin un plan muy arreglado, en uno de cada dos looks) y las joyas (siempre de
-    // noche, en un evento y en la oficina; de día, en algo más de la mitad), del color que case con el look
-    if (tipo === 'panuelo' || tipo === 'joyas') {
-      const cs0 = ents.filter(p => p._f.subtipo === tipo && l.accesorio !== p); if (!cs0.length) return null;
-      const suerte = huella(clave + tipo), arreglado = ['Noche', 'Evento', 'Oficina'].includes(ctx.ocasion);
-      if (tipo === 'panuelo' ? media >= 4 || (ctx.ocasion === 'Oficina' && media >= 3.5) || suerte > .5 : !arreglado && suerte > .6) return null;
-      const lf = [l.arriba, l.abajo, l.vestido].filter(Boolean).map(p => p._f), nota = p => casa(p._f, ...lf, z, l.bolso?._f) + huella(clave + p.id) * .3;
-      return cs0.map(p => [nota(p), p]).filter(x => x[0] > -.1).sort((a, b) => b[0] - a[0])[0]?.[1] || null;
+    if (tipo === 'panuelo') {
+      if (ctx.ocasion === 'Evento' || media >= 4 || ropa.some(f => f.foco)) return null;
+      return elegir(ents.filter(p => {
+        if (p._f.subtipo !== 'panuelo') return false;
+        const bandana = /bandana/i.test(p.nombre || ''), van = bandana ? ['boho', 'casual', 'retro', 'rock', 'urbano'] : ['boho', 'casual', 'retro', 'frances', 'clasico', 'oldmoney', 'romantico'];
+        return est.some(e => van.includes(e)) && !(bandana && ['Oficina', 'Noche'].includes(ctx.ocasion));
+      }), () => 0, .15);
     }
+    if (tipo === 'joyas') {
+      const arreglado = ['Noche', 'Evento', 'Oficina'].includes(ctx.ocasion), van = ['glam', 'romantico', 'frances', 'oldmoney', 'clasico', 'boho', 'minimalista'];
+      if (!arreglado && !est.some(e => van.includes(e))) return null;
+      const foco = ropa.some(f => f.foco), cuello = /cuello alto|cisne|halter|volante|lazo|cuello barco/i;
+      return elegir(ents.filter(p => p._f.subtipo === 'joyas' && !(/collar|gargantilla/i.test(p.nombre || '') && (foco || [l.arriba, l.vestido].some(q => q && cuello.test(q.nombre || ''))))),
+        p => /pendiente|arete/i.test(p.nombre || '') ? .05 : 0);
+    }
+    // cinturón
     const A = l.arriba?._f, B = l.abajo?._f, V = l.vestido?._f;
-    // 11/11: el cinturón tiene que verse (nada de abrigo de frío encima ni jersey o sudadera por fuera) y sale en la mitad de los looks como mucho; también a la cintura de un vestido
-    if (huella(clave + 'cin') > .45 || l.capa?._f.largo === 'largo' || (l.capa && grupo('@abrigo_frio').includes(l.capa._f.subtipo))) return null;
-    if (V && !A && !B) { if (NO_CINTURON.has(V.subtipo)) return null; }
+    if (l.capa?._f.largo === 'largo' || (l.capa && grupo('@abrigo_frio').includes(l.capa._f.subtipo)) || est.includes('deportivo')) return null;
+    if (V && !A && !B) { if (NO_CINTURON.has(V.subtipo) || /cruzad|envolvente|lazo|fajin|cintur|fruncid|drapead|tubo|ajustad|ceñid|lencer|tirante|camiseta/i.test(l.vestido.nombre || '')) return null; }
     else {
       if (!A || !B || B.uso === 'deporte' || NO_CINTURON.has(B.subtipo) || B.tiro === 'bajo') return null;
       if (!(l.como === 'por_dentro' || A.largo === 'crop' || (B.tiro === 'alto' && A.largo === 'cintura'))) return null;
       if (/jersey|sudadera|cardigan|chaleco|forro|polo/.test(A.subtipo) && A.largo !== 'crop') return null;
     }
-    const cs = ents.filter(p => p._f.subtipo === 'cinturon').map(p => [casa(p._f, z, l.bolso?._f) + huella(clave + p.id) * .2, p]).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]);
-    return cs[0]?.[1] || null;
+    const conZapatoOBolso = p => p._f.familia && (p._f.familia === z.familia || p._f.familia === l.bolso?._f.familia); // la piel, a juego con el zapato o el bolso
+    return elegir(ents.filter(p => p._f.subtipo === 'cinturon' && conZapatoOBolso(p)), () => 0, .25);
   }
   // la capa que pide el tramo de temperatura aunque la fórmula no la escriba
   function capaPorClima(l, ents, ctx) {
@@ -413,9 +439,10 @@ const Motor = (() => {
         for (const c of cs.length ? cs : [null]) {
           const l2 = { ...l }; if (c) l2.calzado = c; if (faltaHueco) l2.hueco_faltante = faltaHueco;
           const [hb] = H('bolso'); if (hb && c) { const b = cands(hb, ents)[0]; if (b) l2.bolso = b; }
-          if (COMPL && c && !l2.bolso) { const b = complemento('bolso', l2, ents, ctx); if (b) l2.bolso = b; }
-          if (COMPL && c && !l2.accesorio) { const a = complemento('cinturon', { ...l2, como: comoDe(formula, l2) }, ents, ctx); if (a) l2.accesorio = a; }
-          if (COMPL && c) { const pa = complemento('panuelo', l2, ents, ctx); if (pa) l2[l2.accesorio ? 'accesorio2' : 'accesorio'] = pa; const j = complemento('joyas', l2, ents, ctx); if (j) l2.joya = j; }
+          const le = () => ({ ...l2, estilos: formula.estilos || [] });
+          if (COMPL && c && !l2.bolso) { const b = complemento('bolso', le(), ents, ctx); if (b) l2.bolso = b; }
+          if (COMPL && c && !l2.accesorio) { const a = complemento('cinturon', { ...le(), como: comoDe(formula, l2) }, ents, ctx); if (a) l2.accesorio = a; }
+          if (COMPL && c) { const pa = complemento('panuelo', le(), ents, ctx); if (pa) l2[l2.accesorio ? 'accesorio2' : 'accesorio'] = pa; const j = complemento('joyas', le(), ents, ctx); if (j) l2.joya = j; }
           salida.push(l2);
         }
       }
