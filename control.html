@@ -166,6 +166,20 @@ button { font: inherit; color: inherit; }
 section { display: grid; gap: 14px; align-content: start; }
 section[hidden] { display: none; }
 .vacio { margin: 0; color: var(--ink-2); font-size: .9rem; }
+/* 11/11: Buzón de app@tucloset.app. Los códigos de la última media hora, en grande; los correos de 7 días, en filas que se abren */
+.cods { display: grid; gap: 10px; }
+.cod { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; border: 1.5px solid var(--acento); border-radius: 14px; padding: 12px 14px; }
+.cod b { font-size: 2.1rem; font-weight: 700; letter-spacing: .14em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.cod span { grid-column: 1; font-size: .85rem; color: var(--ink-2); }
+.cod button { grid-row: 1 / span 2; grid-column: 2; min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font: inherit; font-weight: 600; color: var(--ink); cursor: pointer; }
+.bz { border-top: 1px solid var(--line); }
+.bz:first-of-type { border-top: 0; }
+.bz summary { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 0; cursor: pointer; min-height: 44px; }
+.bz summary::-webkit-details-marker { display: none; }
+.bz .q { font-weight: 600; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bz .h { font-size: .8rem; color: var(--ink-3); white-space: nowrap; }
+.bz .a { grid-column: 1 / -1; font-size: .88rem; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bz p { margin: 0 0 12px; font-size: .88rem; color: var(--ink-2); overflow-wrap: anywhere; }
 
 /* tarjetas de cifra: el número en tinta y, si la hay, la comparación debajo */
 .kpis:has(> .kpi:nth-child(4):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); } /* cuatro cifras: 2 × 2 en el móvil, en fila desde 600 px */
@@ -469,10 +483,21 @@ a.trow { min-height: 48px; }
   const secciones = [['inicio', 'Inicio', 'home'], ['cifras', 'Cifras', 'cifras'], ['dinero', 'Dinero', 'dinero'], ['redes', 'Redes', 'redes'], ['mas', 'Más', 'mas']];
   const sig = proximas[0], dSig = sig ? aFecha(sig.f) : null;
 
+  // 11/11: Buzón de app@tucloset.app (Gabriela: «que cada proyecto ponga el Buzón en su centro de control»). Lo llena el servidor con cada correo que entra
+  // por Email Routing; aquí, los códigos de verificación de los últimos 30 minutos en grande (con su hora y de quién) y los correos de 7 días, sin adjuntos
+  const quienDe = x => (String(x.de || '').match(/^\s*"?([^"<]*?)"?\s*</)?.[1] || String(x.de || '').replace(/[<>]/g, '')).trim() || 'Sin remitente';
+  const horaDe = f => new Date(f).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const cuando = f => { const m = Math.floor((Date.now() - new Date(f)) / 6e4); return m < 1 ? 'ahora' : m < 60 ? `hace ${m} min` : new Date(f).toDateString() === new Date().toDateString() ? horaDe(f) : new Date(f).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }).replace('.', '') + ', ' + horaDe(f); };
+  const buzonHTML = B => { if (B == null) return '<p class="vacio">Se enciende cuando el correo de app@tucloset.app pase por el servidor.</p>';
+    const cods = B.filter(x => x.codigo && Date.now() - new Date(x.fecha) < 30 * 6e4);
+    return (cods.length ? `<div class="cods">${cods.map(x => `<div class="cod"><b aria-label="Código ${esc(x.codigo.split('').join(' '))}">${esc(x.codigo)}</b><span>${esc(quienDe(x))} · ${horaDe(x.fecha)} · ${cuando(x.fecha)}</span><button type="button" data-copiar="${esc(x.codigo)}">Copiar</button></div>`).join('')}</div>` : '')
+      + (B.length ? `<div>${B.map(x => `<details class="bz"><summary><span class="q">${esc(quienDe(x))}</span><span class="h">${cuando(x.fecha)}</span><span class="a">${esc(x.asunto || '(sin asunto)')}</span></summary><p>${esc(x.texto || '')}${x.adjuntos ? ` <span class="label">${x.adjuntos} adjunto${x.adjuntos > 1 ? 's' : ''}: míralo en Gmail</span>` : ''}</p></details>`).join('')}</div>` : '<p class="vacio">Ningún correo en los últimos 7 días.</p>'); };
+
   raiz.innerHTML = `<main>
 
   <section id="inicio" aria-labelledby="t-inicio">
     <header class="head"><div class="label">${esc(hoyLargo)}</div><h1 id="t-inicio">${esc(saludo)}</h1></header>
+    <div class="card" id="buzon" aria-live="polite"><div class="card-h"><h2>Buzón${d.buzon?.length ? `<span class="count">${d.buzon.length}</span>` : ''}</h2><span class="label">app@tucloset.app · 7 días</span></div><div id="buzon-c">${buzonHTML(d.buzon)}</div></div>
     ${sig ? `<div class="card next"><div class="dtile" aria-hidden="true"><small>${esc(dSig.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', ''))}</small><b>${dSig.getDate()}</b><span>${esc(dSig.toLocaleDateString('es-ES', { month: 'short' }).replace('.', ''))}</span></div>
       <div><div class="label">Lo siguiente <span class="rel">${rel(sig.f)}</span></div><div class="next-title"><span class="sr">${esc(sig.f)}: </span>${esc(sig.q.replace(/ \(propuesta\)$/, ''))}</div></div></div>` : ''}
     <div class="kpis">
@@ -596,6 +621,11 @@ a.trow { min-height: 48px; }
   raiz.addEventListener('pointermove', e => { const el = e.target.closest('[data-val]'); if (el) ver(el, e); });
   raiz.addEventListener('pointerout', e => { if (e.target.closest('[data-val]')) quitar(); });
   addEventListener('scroll', quitar, { passive: true });
+  raiz.addEventListener('click', async e => { const b = e.target.closest('[data-copiar]'); if (!b) return; try { await navigator.clipboard.writeText(b.dataset.copiar); b.textContent = 'Copiado'; setTimeout(() => { b.textContent = 'Copiar'; }, 2000); } catch (er) { b.textContent = 'Mantén pulsado el número'; } });
+  // el Buzón se refresca solo cada 20 s mientras la página está a la vista y en Inicio (para los códigos), sin abrir las filas que estén abiertas
+  if (d.buzon !== undefined) setInterval(async () => { if (document.hidden || document.getElementById('inicio')?.hidden) return;
+    try { const r = await fetch(API + '/api/buzon', { headers: { Authorization: 'Bearer ' + c.token } }); if (!r.ok) return; const j = await r.json(), el = document.getElementById('buzon-c');
+      if (!el || el.querySelector('details[open]')) return; const nuevo = buzonHTML(j.buzon); if (el.innerHTML !== nuevo) el.innerHTML = nuevo; } catch (er) { } }, 20000);
 })();
 
 </script>
