@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.218'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.219'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -304,6 +304,7 @@ if (AT) (() => {
   /* ---------- HOY: el nombre, la fecha con el tiempo, el look grande y quieto; debajo, la ocasión y «Me lo pongo» ---------- */
   pintarHoy = function () {
     if (!E.perfil?.ropa && E.perfil?.alta) setTimeout(preguntarRopa, 400);
+    setTimeout(preguntarGusto, 1500); // 11/11: «¿Me enseñas tu gusto?», una vez
     const pant = $('p-hoy'), w = E.tiempo, planHoy = eventoAhora()?.oc;
     let pc = E.hoyCon ? P(E.hoyCon) : null; if (E.hoyCon && (!pc || !activas().includes(pc))) { E.hoyCon = null; pc = null; }
     if (pc && !E.propuestas.length) { E.propuestas = looksConPrenda(pc, planHoy || (E.plan && E.plan !== 'Todos' ? E.plan : 'Diario'));
@@ -569,11 +570,11 @@ if (AT) (() => {
     const fav = E.lkTab === 'fav', lista = E.conjuntos.filter(c => !fav || c.fav || esFav(c.ids));
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     // 09/11 (decisión 36, pedida por Gabriela): «Crear un look» y «Mi cápsula» en una fila corta, como las acciones de Ideas, y los looks guardados justo debajo
-    const acc = fav ? '' : `<div class="at-iconos at-ideas-acc at-mios-acc" role="group" aria-label="${t('Crear looks', 'Create looks')}"><button class="at-ib" data-ir="nuevo-look"><span class="at-ib-c">${I.mas}</span><span class="at-ib-t">${t('Crear un look', 'Create a look')}</span></button><button class="at-ib" data-capsula><span class="at-ib-c">${I.percha}</span><span class="at-ib-t">${t('Mi cápsula', 'My capsule')}</span></button></div>`;
+    const acc = fav ? '' : `<div class="at-iconos at-ideas-acc at-mios-acc" role="group" aria-label="${t('Crear looks', 'Create looks')}"><button class="at-ib" data-ir="nuevo-look"><span class="at-ib-c">${I.mas}</span><span class="at-ib-t">${t('Crear un look', 'Create a look')}</span></button><button class="at-ib" data-capsula><span class="at-ib-c">${I.percha}</span><span class="at-ib-t">${t('Mi cápsula', 'My capsule')}</span></button><button class="at-ib" data-semana><span class="at-ib-c">${I.cal}</span><span class="at-ib-t">${t('Mi semana', 'My week')}</span></button></div>`;
     const t1 = c => `<figure class="at-t">${baldosa(psDe(c), TW, TH, ` data-look="${c.id}" aria-label="${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}"`)}<figcaption>${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</figcaption></figure>`;
     raiz.innerHTML = filaLooks(E.lkTab) + acc + (lista.length ? `<div class="at-rej2">${lista.map(t1).join('')}</div>` : !fav ? `<div class="at-vacio"><p>${t('Aún no has guardado ningún look. Crea uno o guárdalo desde Hoy.', 'You have not saved any looks yet. Create one or save it from Today.')}</p></div>`
       : `<div class="at-vacio"><p>${t('Aún no tienes favoritos. Abre un look y toca el corazón.', 'No favourites yet. Open a look and tap the heart.')}</p></div>`);
-    raiz.onclick = e => { if (e.target.closest('[data-capsula]')) return abrirCapsula(); const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
+    raiz.onclick = e => { if (e.target.closest('[data-capsula]')) return abrirCapsula(); if (e.target.closest('[data-semana]')) { E.semana = null; abrirSemana(); return $('at-sem-t')?.focus({ preventScroll: true }); } const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
   };
   // el calendario de siempre, con la cabecera de Looks
   const pintarAgendaVieja = pintarAgenda;
@@ -587,10 +588,10 @@ if (AT) (() => {
      luego las ideas del motor y después los looks guardados que valgan para el tiempo de hoy ---------- */
   let ultima = {};
   const pedirMotor = (plan, n) => {
-    const g = E.perfil?.gustos, hoy = hoyISO(), excluir = [...(g?.fuera || []), ...(g?.hoy?.d === hoy ? g.hoy.k : [])], pr = activas();
-    const firma = JSON.stringify([plan, n, hoy, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), pr.map(p => [p.nombre, p.tipo, p.color, p.estacion, p.catM, p.detalles, p.est?.sub].join('·')).join('|'), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
+    const g = E.perfil?.gustos, hoy = hoyISO(), excluir = [...(g?.fuera || []), ...(g?.hoy?.d === hoy ? g.hoy.k : [])], ins = insHoy(plan), pr = quitarPor(ins, activas());
+    const firma = JSON.stringify([plan, n, hoy, ins?.firma, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), pr.map(p => [p.nombre, p.tipo, p.color, p.estacion, p.catM, p.detalles, p.est?.sub].join('·')).join('|'), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
     if (ultima[plan + n]?.firma === firma) return ultima[plan + n].r;
-    const r = Motor.looks({ prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
+    const r = Motor.looks({ prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true });
     ultima[plan + n] = { firma, r }; return r;
   };
   // 06/11 (Gabriela: «mañana tengo un plan y el domingo otro, me gustaría ponerlo con el link de los lugares y una pequeña descripción para que planifique los outfits»):
@@ -604,6 +605,52 @@ if (AT) (() => {
     [/campo|montana|granja|bodega|vinedo|cesped|jardin|picnic|parque|leisure:park/, [['sub:tacones|sandalias_tacon', -.6], ['sub:zapatillas|botines|alpargatas|sandalias_planas|botas', .3]], ['campo', 'outdoors']],
     [/terraza|aire libre|fuera|exterior|al sol/, [], ['al aire libre', 'outdoors']],
   ];
+  /* 11/11 (Gabriela: «cuando le diga algún evento y le dé instrucciones en lo de editar, que las cumpla: por ejemplo, si le digo que tengo que caminar y nada de
+     tacones, que no me los ponga»). Lo que dice el plan ya no solo pesa en la nota: se cumple siempre. Caminar, estar de pie, una ruta o «cómodo» quitan los tacones;
+     «nada de», «sin», «no», «ni», «evita» delante de una prenda o un color quitan esas prendas; «con», «en», «quiero», «ponme» delante de una prenda dejan solo los
+     looks que la llevan (si con tu ropa no sale ninguno, se queda lo demás y se dice). Vale para el calendario y para Hoy cuando el plan de ahora es de esa ocasión. */
+  const sinAc = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const fz = p => Motor.ficha(p), nomP = p => sinAc([p.nombre, ...(p.detalles || [])].join(' '));
+  const TACON_Z = z => ['tacones', 'sandalias_tacon'].includes(z.tipo) || ['medio', 'alto'].includes(z.tacon);
+  const PIDE = [ // [palabras, [es, en], grupo (r ropa, z calzado), la prenda que lo es, el zapato de muestra que lo es]
+    [/tacon/, ['tacones', 'heels'], 'z', p => { const f = fz(p); return f.cat === 'calzado' && (['tacones', 'sandalias_tacon'].includes(f.subtipo) || ['medio', 'alto'].includes(f.tacon)); }, TACON_Z],
+    [/zapatilla|deportivas|tenis\b|sneaker/, ['zapatillas', 'trainers'], 'z', p => fz(p).subtipo === 'zapatillas', z => z.tipo === 'zapatillas'],
+    [/sandalia/, ['sandalias', 'sandals'], 'z', p => /sandalia/.test(fz(p).subtipo), z => /sandalia/.test(z.tipo)],
+    [/\bbota|botin/, ['botas', 'boots'], 'z', p => /^bot/.test(fz(p).subtipo), z => /^bot/.test(z.tipo)],
+    [/falda|minifalda/, ['falda', 'skirt'], 'r', p => /falda/.test(fz(p).subtipo) || catDe(p) === 'Faldas'],
+    [/vestido|\bmono\b/, ['vestido', 'dress'], 'r', p => fz(p).cat === 'vestido'],
+    [/short|pantalon(es)? cortos?/, ['shorts', 'shorts'], 'r', p => fz(p).subtipo === 'shorts'],
+    [/vaquer|jeans?\b|denim|mezclilla/, ['vaqueros', 'denim'], 'r', p => /vaquer|jean|denim|mezclilla/.test(nomP(p))],
+    [/pantalon(?!(es)? corto)/, ['pantalón', 'trousers'], 'r', p => fz(p).cat === 'abajo' && !/falda|shorts/.test(fz(p).subtipo)],
+    [/tirante|sin mangas|escote/, ['tirantes ni escotes', 'straps or low necklines'], 'r', p => /tirante|sin mangas|palabra de honor|escote|halter/.test(nomP(p))],
+    [/abrigo|chaqueta|americana|blazer|cazadora/, ['chaqueta', 'jacket'], 'r', p => fz(p).cat === 'capa' || esCapa(p)],
+  ];
+  const ANDAR = /camin|andar|andando|a pie|de pie|ruta|sender|excursi|pasear|paseo|turismo|visita guiada|comod|\bplanos?\b|mucho movimiento/;
+  function instrucciones(txt) {
+    const x = ' ' + sinAc(txt) + ' ', quita = new Set(), pide = new Set(), cols = new Set(), ventana = i => x.slice(i).split(/[.,;:!?\n]|\by\b|\bo\b|\bpero\b/)[0].slice(0, 32);
+    if (ANDAR.test(x)) quita.add(0);
+    const NEG = /(?:nada de|\bsin\b|\bno\b(?: (?:quiero|me pongas|pongas|llevo|llevar|uses|usar|puedo llevar|me apetece|me gustan?))?|\bni\b|\bevit\w*|\bfuera\b)\s+(?:(?:el|la|los|las|un|una|unos|unas|de|color|nada de)\s+)*/g;
+    let m; while ((m = NEG.exec(x))) { const w = ventana(m.index + m[0].length); if (/^mangas/.test(w)) continue;
+      PIDE.forEach(([re], i) => { if (re.test(w) && !(i === 8 && PIDE[6][0].test(w))) quita.add(i); });
+      const c = COLORES.map(([c]) => sinAc(c)).filter(c => w.startsWith(c)).sort((a, b) => b.length - a.length)[0]; if (c) cols.add(c); } // «sin verde menta» no quita el verde
+    const POS = /(?:\bcon\b|\ben\b|\bquiero\b|\bponme\b|\bllevo\b|\bllevar\b|\bir de\b)\s+(?:(?:el|la|los|las|un|una|unos|unas|mi|mis)\s+)*/g;
+    while ((m = POS.exec(x))) { if (/\b(no|sin)\s*$/.test(x.slice(Math.max(0, m.index - 5), m.index))) continue; const w = ventana(m.index + m[0].length);
+      PIDE.forEach(([re], i) => { if (re.test(w) && !quita.has(i) && i !== 9 && i !== 10 && !(i === 8 && PIDE[6][0].test(w))) pide.add(i); }); }
+    if (!quita.size && !pide.size && !cols.size) return null;
+    const dice = [...[...quita].map(i => t('sin ', 'no ') + PIDE[i][1][en() ? 1 : 0]), ...[...cols].map(c => t('sin ', 'no ') + c), ...[...pide].map(i => t('con ', 'with ') + PIDE[i][1][en() ? 1 : 0])];
+    return { quita: [...quita].map(i => PIDE[i]), pide: [...pide].map(i => PIDE[i]), cols, dice, firma: dice.join(',') };
+  }
+  const quitarPor = (ins, pr) => !ins ? pr : pr.filter(p => !ins.quita.some(e => e[3](p)) && !ins.cols.has(sinAc(p.color)));
+  // los looks que lo cumplen: nada de lo quitado (tampoco en el zapato de muestra) y, de cada grupo pedido (ropa, calzado), al menos una de sus prendas
+  function cumplen(ins, l) {
+    if (!ins) return l;
+    const sinQuita = l.filter(x => !(x.zspec && ins.quita.some(e => e[4] && e[4](x.zspec))));
+    const ok = sinQuita.filter(x => ['r', 'z'].every(g => { const es = ins.pide.filter(e => e[2] === g); return !es.length || x.ids.some(id => P(id) && es.some(e => e[3](P(id)))) || (g === 'z' && x.zspec && es.some(e => e[4]?.(x.zspec))); }));
+    return ok.length ? ok : sinQuita;
+  }
+  // el plan de ahora, si es de la ocasión que se pide (o de todas): sus instrucciones valen también en Hoy
+  const insHoy = plan => { const ev = eventoAhora(); return ev && (plan === 'Todos' || plan === ev.oc) ? instrucciones([ev.nombre, ev.desc].join(' ')) : null; };
+  window.atPrueba.instrucciones = instrucciones; window.atPrueba.cumplen = cumplen; window.atPrueba.quitarPor = quitarPor;
   const TEV = {};
   const tiempoPlan = async (d, hh, ll) => {
     const r = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${ll.lat}&longitude=${ll.lon}&hourly=temperature_2m,apparent_temperature,precipitation_probability,wind_speed_10m,relative_humidity_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,uv_index_max&timezone=auto&start_date=${d}&end_date=${d}`)).json();
@@ -618,16 +665,16 @@ if (AT) (() => {
     if (te.cargando) return null;
     const txt = [ev.nombre, ev.desc, lu?.nombre, lu?.tipo].join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), leidas = LEER_PLAN.filter(([re]) => re.test(txt)), reglas = leidas.flatMap(x => x[1]);
     const evento = /boda/.test(txt) ? 'boda' : null, lugar = /iglesia|misa|bautiz|comunion|catedral|ermita|templo|mezquita|sinagoga|place_of_worship/.test(txt) ? 'religioso' : undefined;
-    const tiempo = te.w || E.tiempo, plan = ev.oc || 'Diario', g = E.perfil?.gustos, pr = activas();
+    const ins = instrucciones([ev.nombre, ev.desc].join(' ')), tiempo = te.w || E.tiempo, plan = ev.oc || 'Diario', g = E.perfil?.gustos, pr = quitarPor(ins, activas());
     const firma = JSON.stringify([k, plan, txt, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), E.perfil?.estilos, g?.fuera, planDemo()]);
     if (te.firma !== firma) {
-      const r = Motor.looks({ prendas: pr, tiempo, plan, perfil: E.perfil, n: 6, hoy: d, hora: hh, excluir: g?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], evento, lugar,
+      const r = Motor.looks({ prendas: pr, tiempo, plan, perfil: E.perfil, n: 6, hoy: d, hora: hh, excluir: g?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true, evento, lugar,
         afin: reglas.length ? (f, tx) => Math.max(-1, Math.min(1, reglas.reduce((s, [tok, n]) => s + (Motor.rasgo(f, tx, tok) ? n : 0), 0))) : undefined });
-      const ideas = deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta));
+      const ideas = cumplen(ins, deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)));
       const donde = lu?.nombre ? '' : tiempo?.nombre || '', tt = tiempo ? `${tiempo.t}° ${t('a las', 'at')} ${hora}${tiempo.lluvia >= 30 ? ` · ${t('lluvia', 'rain')} ${tiempo.lluvia} %` : ''}` : '';
       const lee = [...leidas.map(x => x[2][en() ? 1 : 0]), evento && t('boda', 'wedding'), lugar && t('hombros y rodillas cubiertos', 'shoulders and knees covered')].filter(Boolean);
       te.firma = firma; te.ideas = ideas;
-      te.info = [donde && tt ? `${donde}: ${tt}` : tt, te.w ? '' : (ll ? t('aún no hay previsión para ese día: uso el tiempo de hoy', 'no forecast yet for that day: using today’s weather') : ''), lee.length ? t('Plan: ', 'Plan: ') + lee.join(', ') : ''].filter(Boolean).join(' · ');
+      te.info = [donde && tt ? `${donde}: ${tt}` : tt, te.w ? '' : (ll ? t('aún no hay previsión para ese día: uso el tiempo de hoy', 'no forecast yet for that day: using today’s weather') : ''), lee.length ? t('Plan: ', 'Plan: ') + lee.join(', ') : '', ins ? t('Lo que pides: ', 'What you asked: ') + ins.dice.join(', ') : ''].filter(Boolean).join(' · ');
     }
     return { ideas: te.ideas, info: te.info };
   };
@@ -635,7 +682,7 @@ if (AT) (() => {
   const DEPORTIVO = new Set(['malla', 'jogger', 'camiseta_tecnica', 'top_deportivo', 'chaqueta_deportiva', 'forro_polar', 'botas_montana', 'falda_deportiva']);
   const esDeporte = p => { const f = Motor.ficha(p); return DEPORTIVO.has(f.subtipo) || f.uso === 'deporte'; };
   const deVerdad = (plan, l) => plan !== 'Deporte' ? l : l.filter(x => x.ids.some(id => P(id) && esDeporte(P(id))));
-  const propuestasDe = (plan, n) => { const r = pedirMotor(plan, n); return deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)); };
+  const propuestasDe = (plan, n) => { const r = pedirMotor(plan, n); return cumplen(insHoy(plan), deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta))); };
   // una ocasión sale en los filtros solo si con tu ropa hay al menos un look para ella
   const hayOcasion = o => o === 'Todos' || propuestasDe(o, 4).length > 0;
   generarLooks = (n, plan) => propuestasDe(plan || 'Todos', n).map(x => ({ ...x, prin: x.ids[0] }));
@@ -654,7 +701,10 @@ if (AT) (() => {
     const hoyD = diaISO(new Date()), n = new Date(), ya = `${String(Math.max(0, n.getHours() - 1)).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
     const evA0 = eventoAhora(), evA = evA0 && lookDe(hoyD, evA0) ? evA0 : eventosDe(hoyD).find(e => (!e.hora || e.hora >= ya) && lookDe(hoyD, e)) || evA0;
     const props = [], dia = E.agenda[hoyD], lkA = evA ? lookDe(hoyD, evA) : null, clave = claveLook, g = E.perfil?.gustos;
-    if (lkA) props.push({ tipo: 'agenda', ids: lkA, ocasion: evA.oc, ev: evA }); else if (dia?.look?.length && dia.look.every(P)) props.push({ tipo: 'agenda', ids: dia.look, ocasion: dia.planes?.[0]?.oc });
+    // 11/11 (Gabriela: «los looks que se seleccionan desde cualquier sitio, como "me lo pongo hoy", deben salir los primeros en Hoy y después los otros»)
+    const pu = dia?.puesto?.length && dia.puesto.every(P) ? dia.puesto : null;
+    if (pu) props.push({ tipo: 'agenda', ids: pu, ocasion: E.conjuntos.find(c => clave(c.ids) === clave(pu))?.ocasion || ocasionDe(pu.map(P)), puesto: 1 });
+    if (lkA && pu && clave(lkA) === clave(pu)) { /* ya está */ } else if (lkA) props.push({ tipo: 'agenda', ids: lkA, ocasion: evA.oc, ev: evA }); else if (dia?.look?.length && dia.look.every(P) && !(pu && clave(dia.look) === clave(pu))) props.push({ tipo: 'agenda', ids: dia.look, ocasion: dia.planes?.[0]?.oc });
     for (const x of propuestasDe(E.plan, 8)) if (!props.some(y => clave(y.ids) === clave(x.ids))) props.push({ tipo: 'propuesta', ...x });
     const guardados = E.conjuntos.filter(c => c.ids.every(id => P(id) && !['guardada', 'donar'].includes(P(id).estado)) && (E.plan === 'Todos' || (c.ocasion || 'Diario') === E.plan) && !props.some(y => clave(y.ids) === clave(c.ids)) && valeHoy(c)).sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));
     for (const c of guardados.slice(0, 4)) props.push({ tipo: 'conjunto', c, ids: c.ids, zspec: c.zspec, como: c.como });
@@ -708,7 +758,7 @@ if (AT) (() => {
   }
   // el look de un día: entre los buenos del motor, el que menos prendas nuevas mete en la maleta, sin repetir la parte de arriba si se puede
   function lookDeViaje(w, plan, hora, dia, usos, hechos) {
-    const r = Motor.looks({ prendas: activas(), tiempo: w, plan, perfil: E.perfil, n: 14, hoy: dia, hora, pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
+    const r = Motor.looks({ prendas: activas(), tiempo: w, plan, perfil: E.perfil, n: 14, hoy: dia, hora, pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true });
     const cs = deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)).filter(x => !hechos.has(x.ids.slice().sort().join()));
     let mejor = null, min = 1e9;
     cs.forEach((x, i) => { const c = i * .15 + x.ids.reduce((s, id) => { const p = P(id), n = usos.get(id) || 0; return !p ? s : !n ? s + 1 : p.tipo === 'Arriba' && !esCapa(p) ? s + 2.2 * n : s; }, 0); if (c < min) { min = c; mejor = x; } });
@@ -968,7 +1018,7 @@ if (AT) (() => {
   }
   function calcularCompra(C) {
     C.p = prendaCompra(C.it);
-    C.u = Motor.utilidad({ prenda: C.p, prendas: activas(), perfil: E.perfil, hoy: hoyISO(), excluir: E.perfil?.gustos?.fuera || [], colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
+    C.u = Motor.utilidad({ prenda: C.p, prendas: activas(), perfil: E.perfil, hoy: hoyISO(), excluir: E.perfil?.gustos?.fuera || [], colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true });
   }
   function abrirCompra() {
     const cap = capaDe('at-compra', 'at-cm', t('Antes de comprar', 'Before you buy')), C = E.compra = E.compra || { fase: 'foto' };
@@ -1052,6 +1102,182 @@ if (AT) (() => {
     document.body.append(cap); $('at-ropa-t').focus({ preventScroll: true });
     try { localStorage.setItem('tc_ropa_vista', '1'); } catch (x) { }
     cap.onclick = async e => { const b = e.target.closest('[data-ropa]'); if (!b) return; cap.remove(); E.perfil = Object.assign(E.perfil || {}, { ropaVista: 1 }); if (b.dataset.ropa) { await ponerRopa(b.dataset.ropa); if (E.pantalla === 'hoy') pintarHoy(); } else await guardar(); };
+  }
+
+  /* ---------- TU GUSTO (Sheila, 11/11: «Deberías diseñar un mecanismo con al menos unos 10 primeros outfits sugeridos por ti de me lo pondría o no me lo
+     pondría con la ropa de la usuaria para que detecte si le gusta lo que le propones»). Diez looks de su ropa, variados (fórmulas, estilos y ocasiones
+     distintos, sin repetir prendas si se puede), uno a uno. Cada respuesta: las parejas de prendas suman o restan (como el corazón y «Me lo pongo»), el «no»
+     saca ese look de las propuestas, y el estilo y la fórmula del look van a perfil.calib, que el motor usa al proponer (reglas U14–U17). Se ofrece una vez
+     en Hoy con 10 prendas o más y está siempre en Yo → Mi estilo → Tu gusto. Para todos los planes: no gasta IA. ---------- */
+  const GU_OC = ['Diario', 'Oficina', 'Noche', 'Evento', 'Viaje'];
+  function lookCalib(n = 10) {
+    const hoy = hoyISO(), vistos = new Set([...(E.perfil?.calib?.r || []).map(x => x.k), ...(E.perfil?.gustos?.fuera || [])]), cand = [];
+    // no es sobre el tiempo de hoy, es sobre su gusto: el de hoy y un día templado (20°, sin lluvia), y también los looks que solo piden abrigo encima
+    const W = [E.tiempo, { ...(E.tiempo || {}), t: 20, sens: 20, max: 23, min: 15, lluvia: 0, lluviaH: null, viento: 8, hum: 50, uv: 4 }].filter(Boolean);
+    for (const oc of GU_OC) for (const w of W) {
+      const r = Motor.looks({ prendas: activas(), tiempo: w, plan: oc, perfil: E.perfil, n: 14, hoy, hora: oc === 'Noche' ? 20 : 13, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true });
+      deVerdad(oc, [...r.looks, ...(r.casi || []).filter(l => l.faltaCapa)].map(Motor.aPropuesta)).forEach((x, i) => { const k = x.ids.slice().sort().join(); if (!vistos.has(k) && !cand.some(y => y.k === k)) cand.push({ ...x, oc, i, k }); });
+    }
+    const out = [], fs = new Set(), es = new Map(), usadas = new Map(), porOc = new Map(), ks = new Set();
+    while (out.length < n && cand.length) { // cada vez, el que más cosas nuevas enseña: otra fórmula, otro estilo, otra ocasión y otras prendas
+      let j0 = -1, mv = -1e9;
+      cand.forEach((x, j) => { if (ks.has(x.k)) return; let v = -x.i * .15 + (x.formula && !fs.has(x.formula) ? 1 : 0) - 1.2 * (porOc.get(x.oc) || 0);
+        (x.estilos || []).slice(0, 2).forEach((e, q) => { v += (es.get(e) ? -.4 : .8) * (q ? .5 : 1); });
+        for (const id of x.ids) { const p = P(id); if (p && ['Arriba', 'Abajo', 'Vestidos'].includes(p.tipo)) v -= .9 * (usadas.get(id) || 0); }
+        if (v > mv) { mv = v; j0 = j; } });
+      if (j0 < 0) break; const x = cand.splice(j0, 1)[0]; out.push(x); ks.add(x.k); if (x.formula) fs.add(x.formula); porOc.set(x.oc, (porOc.get(x.oc) || 0) + 1);
+      (x.estilos || []).slice(0, 2).forEach(e => es.set(e, (es.get(e) || 0) + 1)); x.ids.forEach(id => usadas.set(id, (usadas.get(id) || 0) + 1));
+    }
+    return out;
+  }
+  function anotarCalib(x, si) {
+    const pf = E.perfil = E.perfil || {}, c = pf.calib = pf.calib || { r: [] }, ahora = new Date().toISOString();
+    anotarGusto(x.ids, si ? 'si' : 'no');
+    if (!si) { const g = pf.gustos; g.fuera = [...(g.fuera || []).filter(k => k !== x.k), x.k].slice(-300); }
+    c.r = [...c.r.filter(y => y.k !== x.k), { k: x.k, ids: [...x.ids], oc: x.oc, f: x.formula || '', e: (x.estilos || []).slice(0, 2), si: si ? 1 : 0, t: ahora }].slice(-60); c.t = ahora;
+    registrar('gusto', { si: si ? 1 : 0, oc: x.oc, formula: x.formula || '' });
+  }
+  function resumenGusto() { // los estilos con más «sí» que «no» y al revés, con su nombre
+    const est = {}; for (const x of E.perfil?.calib?.r || []) (x.e || []).forEach((e, i) => { est[e] = (est[e] || 0) + (x.si ? 1 : -1) * (i ? .5 : 1); });
+    const nom = k => ESTILOS.find(x => x.k === k)?.n[en() ? 1 : 0], l = Object.entries(est).filter(([k]) => nom(k));
+    return { si: l.filter(([, v]) => v >= 1).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => nom(k)), no: l.filter(([, v]) => v <= -1).sort((a, b) => a[1] - b[1]).slice(0, 2).map(([k]) => nom(k)) };
+  }
+  function abrirGusto() {
+    let cap = $('at-gusto'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-gusto'; cap.className = 'ay-capa at-vj at-gu'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'at-gu-t'); document.body.append(cap); }
+    const G = E.gu = E.gu || { L: lookCalib(), i: 0, si: 0, no: 0 };
+    const cerrar = async () => { cap.remove(); const hubo = G.si + G.no; E.gu = null; if (hubo) { E.propuestas = []; await guardar(); }
+      if (E.pantalla === 'estilo') pintarEstilo(); else if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'looks') pintarLooks(); };
+    const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>`;
+    if (!G.L.length) cap.innerHTML = `${X}<h1 id="at-gu-t" tabindex="-1">${t('Tu gusto', 'Your taste')}</h1><p class="at-vj-sub">${G.si + G.no ? t('Ya te he enseñado todos los looks nuevos que salen con tu ropa. Sube más prendas y te enseño otros.', 'You’ve seen every new look your clothes make. Add more and I’ll show you others.') : t('Aún no tengo looks que enseñarte. Sube ropa de arriba, de abajo y calzado, y vuelve.', 'I don’t have looks to show you yet. Add tops, bottoms and shoes, then come back.')}</p>`;
+    else if (G.i >= G.L.length) {
+      const r = resumenGusto(), y = l => l.join(t(' y ', ' and ')).replace(/ y (?=.* y )/, ', ');
+      cap.innerHTML = `${X}<h1 id="at-gu-t" tabindex="-1">${t('Ya te conozco mejor', 'I know you better now')}</h1>
+        <p class="at-vj-sub">${t(`${G.si} sí y ${G.no} no. Desde ahora, tus looks de Hoy e Ideas lo tienen en cuenta.`, `${G.si} yes and ${G.no} no. From now on, your looks in Today and Ideas take it into account.`)}</p>
+        ${r.si.length ? `<p class="at-gu-res">${t('Te pones más', 'You wear more')}<b>${esc(y(r.si))}</b></p>` : ''}${r.no.length ? `<p class="at-gu-res">${t('Te pones menos', 'You wear less')}<b>${esc(y(r.no))}</b></p>` : ''}
+        <div class="at-gu-pie"><button class="at-btn" data-guhoy>${t('Ver mi look de hoy', 'See today’s look')}</button><button class="at-enlace" data-gumas>${t('Otros 10 looks', 'Another 10 looks')}</button></div>`;
+    } else {
+      const x = G.L[G.i], [ancho, alto] = caja(), W = Math.min(ancho - 40, 340), H = Math.max(240, Math.min(Math.round(W * 1.25), Math.round(alto * .52))), m = Math.round(W * .1), mh = Math.round(H * .07);
+      cap.innerHTML = `${X}<h1 id="at-gu-t" tabindex="-1">${t('¿Te lo pondrías?', 'Would you wear it?')}</h1>
+        <p class="at-gu-paso" aria-live="polite">${t(`${G.i + 1} de ${G.L.length}`, `${G.i + 1} of ${G.L.length}`)} · ${esc(ocNombre(x.oc))}</p>
+        <div class="at-gu-barra" aria-hidden="true"><i style="width:${G.i / G.L.length * 100}%"></i></div>
+        <div class="at-bal at-gu-look" style="width:${W}px;height:${H}px" role="img" aria-label="${esc(x.ids.map(id => P(id)?.nombre).filter(Boolean).join(', '))}">${figura(psDe(x), W - 2 * m, H - 2 * mh)}</div>
+        ${x.faltaCapa ? `<p class="at-gu-capa">${t('Con una chaqueta encima', 'With a jacket on top')}</p>` : ''}<div class="at-gu-bot"><button class="at-gu-no" data-gu="0">${t('No me lo pondría', 'I wouldn’t wear it')}</button><button class="at-gu-si" data-gu="1">${t('Me lo pondría', 'I’d wear it')}</button></div>
+        <button class="at-enlace" data-gufin>${G.si + G.no ? t('Terminar aquí', 'Stop here') : t('Ahora no', 'Not now')}</button>`;
+    }
+    cap.scrollTop = 0;
+    cap.onclick = async e => {
+      const b = e.target.closest('.x,[data-gu],[data-gufin],[data-guhoy],[data-gumas]'); if (!b) return;
+      if (b.classList.contains('x')) return cerrar();
+      if (b.dataset.gu != null) { const si = b.dataset.gu === '1'; anotarCalib(G.L[G.i], si); G[si ? 'si' : 'no']++; G.i++; await guardar(); abrirGusto(); return cap.querySelector(`[data-gu="${b.dataset.gu}"]`)?.focus({ preventScroll: true }) || $('at-gu-t')?.focus({ preventScroll: true }); }
+      if (b.dataset.gufin != null) { if (G.si + G.no) { G.i = G.L.length; return abrirGusto(); } return cerrar(); }
+      if (b.dataset.gumas != null) { E.gu = { L: lookCalib(), i: 0, si: G.si, no: G.no }; abrirGusto(); return $('at-gu-t')?.focus({ preventScroll: true }); }
+      if (b.dataset.guhoy != null) { await cerrar(); ir('hoy'); }
+    };
+  }
+  window.abrirGusto = () => { E.gu = null; abrirGusto(); $('at-gu-t')?.focus({ preventScroll: true }); };
+  // se ofrece una vez, en Hoy, cuando ya hay ropa para variar (y después de «¿Qué ropa llevas?»); «Ahora no» también cuenta
+  function preguntarGusto() {
+    try { if (window.top !== window) return; } catch (x) { return; }
+    if (E.pantalla !== 'hoy' || $('at-ropa') || $('at-gusto') || $('at-gu-preg') || document.querySelector('dialog[open]') || E.perfil?.calib || E.perfil?.calibVista || !(E.perfil?.ropa || E.perfil?.ropaVista) || (cuenta() && !E.nubeBajada) || activas().length < 10) return;
+    if (E.guHay == null) E.guHay = lookCalib(6).length >= 6; if (!E.guHay) return;
+    const cap = document.createElement('div'); cap.id = 'at-gu-preg'; cap.className = 'ay-capa at-vj at-ropa'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'at-gup-t');
+    cap.innerHTML = `<h1 id="at-gup-t" tabindex="-1">${t('¿Me enseñas tu gusto?', 'Will you show me your taste?')}</h1><p class="at-vj-sub">${t('Te enseño 10 looks con tu ropa y me dices si te los pondrías. Así acierto más. Es un minuto.', 'I’ll show you 10 looks with your clothes and you tell me if you’d wear them. That way I get it right. It takes a minute.')}</p>
+      <div class="at-ropa-ops"><button class="at-btn" data-gup="1">${t('Empezar', 'Start')}</button></div><button class="at-enlace" data-gup="">${t('Ahora no', 'Not now')}</button><p class="at-gu-nota">${t('Lo tienes siempre en Yo → Mi estilo.', 'It’s always in Me → My style.')}</p>`;
+    document.body.append(cap); $('at-gup-t').focus({ preventScroll: true });
+    E.perfil.calibVista = 1; guardar();
+    cap.onclick = e => { const b = e.target.closest('[data-gup]'); if (!b) return; cap.remove(); if (b.dataset.gup) window.abrirGusto(); };
+  }
+  document.addEventListener('click', e => { if (e.target.closest('[data-gusto]')) window.abrirGusto(); });
+
+  /* ---------- MI SEMANA (Sheila, 11/11: «tengo una amiga que suele planificar su ropa semanalmente… debería haber una opción de visualizar los 5 outfits
+     de la semana si por ejemplo tiene oficina»). Eliges para qué (trabajo o día a día), la semana (esta o la que viene) y los días, y sale un look por día
+     con la previsión de cada día: sin repetir la parte de arriba y sin el mismo pantalón más de dos días. «Otro» cambia solo ese día y «Guardar en mi
+     calendario» los apunta en el plan de ese día (el de esa ocasión si ya lo hay; si no, uno nuevo): Hoy enseña cada mañana el que toca. No gasta IA. ---------- */
+  const lunesDe = d => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return diaISO(x); };
+  const DOW = [[1, 'L', 'M'], [2, 'M', 'T'], [3, 'X', 'W'], [4, 'J', 'T'], [5, 'V', 'F'], [6, 'S', 'S'], [0, 'D', 'S']];
+  function diasSemana(F) { const l = F.cual === 'otra' ? masDias(lunesDe(diaISO(new Date())), 7) : lunesDe(diaISO(new Date())), hoy = diaISO(new Date());
+    return { l, dias: DOW.map(([dw], k) => [masDias(l, k), dw]).filter(([d, dw]) => F.dias.includes(dw) && d >= hoy).map(([d]) => d) }; }
+  function lookDeSemana(w, oc, dia, usos, hechos, prev) {
+    const r = Motor.looks({ prendas: activas(), tiempo: w, plan: oc, perfil: E.perfil, n: 16, hoy: dia, hora: oc === 'Oficina' ? 9 : 12, excluir: E.perfil?.gustos?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true });
+    const todos = deVerdad(oc, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)), nuevos = todos.filter(x => !hechos.has(x.ids.slice().sort().join()));
+    const cs = nuevos.length ? nuevos : todos; // con poca ropa, mejor repetir un look que dejar el día vacío
+    let mejor = null, min = 1e9;
+    cs.forEach((x, i) => { let c = i * .12 + (prev && x.formula && x.formula === prev ? .5 : 0);
+      for (const id of x.ids) { const p = P(id), n = usos.get(id) || 0; if (!p || !n) continue; c += (p.tipo === 'Arriba' && !esCapa(p)) || p.tipo === 'Vestidos' ? 3 * n : p.tipo === 'Abajo' ? (n >= 2 ? 3 : .6) : p.tipo === 'Calzado' ? .25 * n : .1 * n; }
+      if (c < min) { min = c; mejor = x; } });
+    return mejor;
+  }
+  function contarUsos(plan, sin) { const u = new Map(), h = new Set(); plan.forEach((d, i) => { if (i === sin || !d.ids) return; d.ids.forEach(id => u.set(id, (u.get(id) || 0) + 1)); h.add(d.ids.slice().sort().join()); }); return [u, h]; }
+  async function hacerSemana(F) {
+    if (!E.tiempo?.lat) await cargarTiempo(); const w0 = E.tiempo; if (!w0?.lat) throw new Error('tiempo');
+    const { l, dias } = diasSemana(F); if (!dias.length) throw new Error('dias');
+    const tv = await tiempoViaje(w0.lat, w0.lon, l, 7), plan = [];
+    for (const d of dias) { const w = tv.dias[Math.round((new Date(d + 'T12:00') - new Date(l + 'T12:00')) / 864e5)] || tv.dias[0], [u, h] = contarUsos(plan);
+      const x = lookDeSemana(w, F.oc, d, u, h, plan.at(-1)?.formula);
+      plan.push({ fecha: d, w, ...(x ? { ids: x.ids, zspec: x.zspec, como: x.como, formula: x.formula, faltaCapa: x.faltaCapa, capaFalta: x.capaFalta } : {}) }); }
+    return { oc: F.oc, l, previsto: tv.previsto, plan, lugar: w0.nombre || '' };
+  }
+  function guardarSemana(s) {
+    let puestos = 0, conLook = 0;
+    for (const d of s.plan) { if (!d.ids) continue; const a = E.agenda[d.fecha] = E.agenda[d.fecha] || { planes: [] }; a.sem = a.sem || {};
+      let ev = eventosDe(d.fecha).find(x => x.oc === s.oc);
+      if (ev && lookDe(d.fecha, ev) && !a.sem[ev.id]) { conLook++; continue; } // un look que ella eligió para ese plan no se pisa
+      if (!ev) { const p = { id: uid(), nombre: s.oc === 'Oficina' ? t('Trabajo', 'Work') : '', oc: s.oc, hora: s.oc === 'Oficina' ? '09:00' : '', fr: 'Mañana' }; a.planes.push(p); ev = p; }
+      a.looks = { ...(a.looks || {}), [ev.id]: [...d.ids] }; a.sem[ev.id] = 1; puestos++; }
+    registrar('semana', { oc: s.oc, dias: puestos });
+    return { puestos, conLook };
+  }
+  function abrirSemana() {
+    let cap = $('at-semana'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-semana'; cap.className = 'ay-capa at-vj at-sem'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'at-sem-t'); document.body.append(cap); }
+    const cerrar = () => { cap.remove(); if (E.pantalla === 'looks') pintarLooks(); };
+    const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>`;
+    const F = E.semF = E.semF || (() => { const f = { oc: 'Oficina', cual: 'esta', dias: [1, 2, 3, 4, 5] }; if (!diasSemana(f).dias.length) f.cual = 'otra'; return f; })();
+    const s = E.semana;
+    if (!s) {
+      const opc = (k, v, txt, on) => `<button class="${on ? 'on' : ''}" data-sem${k}="${v}" aria-pressed="${on}">${txt}${DOS}</button>`;
+      cap.innerHTML = `${X}<h1 id="at-sem-t" tabindex="-1">${t('Tu semana', 'Your week')}</h1><p class="at-vj-sub">${t('Un look para cada día, con el tiempo que va a hacer.', 'A look for each day, with the weather forecast.')}</p>
+        <form class="at-vj-form" novalidate>
+          <p class="at-vj-et">${t('Para', 'For')}</p><div class="at-fila at-vj-ops">${opc('oc', 'Oficina', t('Trabajo', 'Work'), F.oc === 'Oficina')}${opc('oc', 'Diario', t('Día a día', 'Everyday'), F.oc === 'Diario')}</div>
+          <p class="at-vj-et">${t('Semana', 'Week')}</p><div class="at-fila at-vj-ops">${opc('cual', 'esta', t('Esta', 'This one'), F.cual === 'esta')}${opc('cual', 'otra', t('La que viene', 'Next one'), F.cual === 'otra')}</div>
+          <p class="at-vj-et">${t('Días', 'Days')}</p><div class="at-sem-dias" role="group" aria-label="${t('Días', 'Days')}">${DOW.map(([dw, es, ing]) => { const on = F.dias.includes(dw), nom = new Date(2026, 10, 15 + (dw || 7)).toLocaleDateString(loc(), { weekday: 'long' });
+            return `<button type="button" class="${on ? 'on' : ''}" data-semdia="${dw}" aria-pressed="${on}" aria-label="${nom}">${en() ? ing : es}</button>`; }).join('')}</div>
+          <p class="at-vj-error" role="alert"></p>
+          <button class="at-btn" type="submit">${t('Preparar la semana', 'Plan my week')}</button>
+        </form>`;
+      cap.onclick = e => { const b = e.target.closest('.x,[data-semoc],[data-semcual],[data-semdia]'); if (!b) return; e.preventDefault();
+        if (b.classList.contains('x')) return cerrar();
+        if (b.dataset.semoc) F.oc = b.dataset.semoc; else if (b.dataset.semcual) F.cual = b.dataset.semcual; else { const x = +b.dataset.semdia; F.dias = F.dias.includes(x) ? F.dias.filter(y => y !== x) : [...F.dias, x]; }
+        abrirSemana(); cap.querySelector(b.dataset.semdia != null ? `[data-semdia="${b.dataset.semdia}"]` : b.dataset.semoc ? `[data-semoc="${b.dataset.semoc}"]` : `[data-semcual="${b.dataset.semcual}"]`)?.focus({ preventScroll: true }); };
+      cap.querySelector('form').onsubmit = async e => {
+        e.preventDefault(); const err = cap.querySelector('.at-vj-error'), bt = cap.querySelector('[type=submit]');
+        if (!diasSemana(F).dias.length) { err.textContent = F.dias.length ? t('Esos días de esta semana ya han pasado: elige «La que viene».', 'Those days have passed: choose «Next one».') : t('Marca al menos un día.', 'Pick at least one day.'); return; }
+        bt.disabled = true; bt.textContent = t('Preparando…', 'Planning…'); err.textContent = '';
+        try { E.semana = await hacerSemana(F); abrirSemana(); $('at-sem-t')?.focus({ preventScroll: true }); }
+        catch (x) { bt.disabled = false; bt.textContent = t('Preparar la semana', 'Plan my week'); err.textContent = x.message === 'tiempo' ? t('No consigo el tiempo de tu ciudad. Ponla en Ajustes y prueba otra vez.', 'I can’t get your city’s weather. Set it in Settings and try again.') : t('No he podido preparar la semana. Prueba otra vez en un momento.', 'I couldn’t plan the week. Try again in a moment.'); }
+      };
+      return;
+    }
+    const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25), m = Math.round(TW * .17), mh = Math.round(TH * .12);
+    const dl = d => fDia(d, { weekday: 'long', day: 'numeric' }), r0 = s.plan[0]?.fecha, r1 = s.plan.at(-1)?.fecha, mm = { day: 'numeric', month: 'short' };
+    const rangoTxt = r0 === r1 ? fDia(r0, mm) : `${fDia(r0, { day: 'numeric' })}–${fDia(r1, mm)}`, hay = s.plan.filter(d => d.ids).length;
+    cap.innerHTML = `${X}<h1 id="at-sem-t" tabindex="-1">${t('Tu semana', 'Your week')}</h1><p class="at-vj-datos">${s.oc === 'Oficina' ? t('Para trabajar', 'For work') : t('Día a día', 'Everyday')} · ${rangoTxt}${s.lugar ? ' · ' + esc(s.lugar) : ''}</p>${s.previsto ? '' : `<p class="at-vj-nota">${t('Aún no hay previsión para todos los días: es el tiempo de esos días el año pasado.', 'No forecast yet for every day: this is last year’s weather.')}</p>`}
+      <div class="at-rej2 at-vj-dias at-sem-l">${s.plan.map((d, i) => `<figure class="at-t">${d.ids ? `<div class="at-bal" style="width:${TW}px;height:${TH}px" role="img" aria-label="${esc(d.ids.map(id => P(id)?.nombre).filter(Boolean).join(', '))}">${figura(psDe(d), TW - 2 * m, TH - 2 * mh)}</div>` : `<div class="at-bal at-sem-vacio" style="width:${TW}px;height:${TH}px"><p>${t('Con tu ropa no sale un look para ese tiempo', 'Your clothes don’t make a look for that weather')}</p></div>`}
+        <figcaption>${dl(d.fecha)}${ICO_T[d.w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(d.w.clave) ? 'nube' : d.w.clave] || ''}${d.w.max}°${d.w.lluvia >= 50 ? ` · ${t('lluvia', 'rain')}` : ''}</figcaption>
+        ${d.faltaCapa ? `<p class="at-sem-capa">${t('Con tu chaqueta encima', 'With your jacket on top')}</p>` : ''}${d.ids ? `<button class="at-enlace at-sem-otro" data-semotro="${i}" aria-label="${t('Otro look para el', 'Another look for')} ${dl(d.fecha)}">${t('Otro', 'Another')}</button>` : ''}</figure>`).join('')}</div>
+      <div class="at-gu-pie">${hay ? `<button class="at-btn" data-semguarda>${t('Guardar en mi calendario', 'Save to my calendar')}</button>` : ''}<button class="at-enlace" data-semcambia>${t('Cambiar los días', 'Change the days')}</button></div>`;
+    cap.scrollTop = 0;
+    cap.onclick = async e => {
+      const b = e.target.closest('.x,[data-semotro],[data-semguarda],[data-semcambia]'); if (!b) return;
+      if (b.classList.contains('x')) return cerrar();
+      if (b.dataset.semcambia != null) { E.semana = null; abrirSemana(); return $('at-sem-t')?.focus({ preventScroll: true }); }
+      if (b.dataset.semotro != null) { const i = +b.dataset.semotro, d = s.plan[i], [u, h] = contarUsos(s.plan, i); h.add(d.ids.slice().sort().join()); (d.otros = d.otros || []).push(d.ids.slice().sort().join()); d.otros.forEach(k => h.add(k));
+        const x = lookDeSemana(d.w, s.oc, d.fecha, u, h, s.plan[i - 1]?.formula);
+        if (!x || x.ids.slice().sort().join() === d.ids.slice().sort().join()) { d.otros = []; return toast(t('No hay otro look distinto para ese día', 'No other look for that day')); }
+        Object.assign(d, { ids: x.ids, zspec: x.zspec, como: x.como, formula: x.formula, faltaCapa: x.faltaCapa, capaFalta: x.capaFalta }); abrirSemana(); return cap.querySelector(`[data-semotro="${i}"]`)?.focus({ preventScroll: true }); }
+      if (b.dataset.semguarda != null) { const r = guardarSemana(s); await guardar(); E.propuestas = []; E.semana = null; cap.remove();
+        toast(r.puestos ? t(`Guardado: ${r.puestos} ${r.puestos === 1 ? 'día' : 'días'} en tu calendario${r.conLook ? `; ${r.conLook} ya tenía${r.conLook === 1 ? '' : 'n'} su look y no los he cambiado` : ''}`, `Saved: ${r.puestos} ${r.puestos === 1 ? 'day' : 'days'} in your calendar`) : t('Esos días ya tenían su look: no he cambiado nada', 'Those days already had a look: nothing changed'));
+        E.lkTab = 'cal'; E.lkTocado = true; if (E.pantalla === 'looks') pintarLooks(); else ir('looks'); }
+    };
   }
 
   // 03/11 (Gabriela: «pensé que de Inspírate en… salían famosos»; eligió «Nombre como título»): el nombre arriba y el arquetipo debajo;

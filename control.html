@@ -210,6 +210,7 @@ section[hidden] { display: none; }
 .chart .hit:hover + .guia, .chart .guia.on { stroke: var(--line); }
 details.data summary, details.md summary { display: inline-flex; align-items: center; min-height: 44px; }
 .desliza { overflow-x: auto; }
+tbody th { text-transform: none; letter-spacing: 0; font-size: .86rem; font-weight: 500; color: var(--ink); text-align: left; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* filas plegables: nombre, avance y cuántas; la lista dentro */
@@ -300,7 +301,7 @@ a.trow { min-height: 48px; }
   const hora = iso => new Date(iso).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   const n0 = n => (+n || 0).toLocaleString('es-ES', { useGrouping: 'always' });
   const dec = n => (Math.round(n * 100) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const usd = n => dec(n) + ' $', eur = n => n0(n) + ' €', eur2 = n => dec(n) + ' €';
+  const eur = n => n0(n) + ' €', eur2 = n => dec(n) + ' €';
   const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
   const hoy = new Date(), dia = n => new Date(hoy - n * 864e5).toISOString().slice(0, 10);
   const suma = (lista, f) => (lista || []).filter(f).reduce((s, x) => s + (+x.v || 0), 0);
@@ -331,7 +332,7 @@ a.trow { min-height: 48px; }
       for (const i of [0, Math.floor((n - 1) / 2), n - 1]) s += `<text class="ax" x="${X(i)}" y="${H - 6}" text-anchor="${i ? i === n - 1 ? 'end' : 'middle' : 'start'}">${esc(etqs[i])}</text>`;
       const paso = n > 1 ? w / (n - 1) : w; vals.forEach((v, i) => { s += `<rect class="hit" x="${X(i) - paso / 2}" y="${T}" width="${paso}" height="${h}" data-val="${esc(fmt(v) + (unidad ? ' ' + unidad : ''))}" data-tip="${esc(etqs[i])}"/>`; });
     } else {
-      const paso = w / n, bw = Math.min(28, Math.max(6, paso * .6)), X = i => L + paso * i + paso / 2;
+      const paso = w / n, bw = Math.min(12, Math.max(4, paso * .32)), X = i => L + paso * i + paso / 2;
       vals.forEach((v, i) => { const y = Y(v), hh = Y(0) - y, x = X(i) - bw / 2, r = Math.min(4, hh, bw / 2);
         if (v > 0) s += `<path class="barra" d="M${x},${Y(0)} V${y + r} Q${x},${y} ${x + r},${y} H${x + bw - r} Q${x + bw},${y} ${x + bw},${y + r} V${Y(0)} Z"/>`;
         if (v > 0 && (i === n - 1 || i === iMax)) s += et(X(i), y - 6, v);
@@ -375,6 +376,7 @@ a.trow { min-height: 48px; }
   const pagosEur = PAG.reduce((s, g) => s + g.e, 0);
   const iaTotUsd = suma(G, () => true) + Object.values(DIR).reduce((s, v) => s + v, 0), cambio = P.usdEur?.v || null;
   const gastado = pagosEur + (cambio ? iaTotUsd * cambio : 0), tope = P.tope?.eur || 0;
+  const aE = v => v * (cambio || .86), usd = v => eur2(aE(v)); // 11/11 (Coordinación): una sola moneda en todo el panel, el euro
   const CM = d.catalogoMes || null;
   const nomCada = { unico: 'una vez', 'único': 'una vez', mensual: 'al mes', anual: 'al año' };
   const SERV = { catalogo: 'Fotos de catálogo', avatar: 'Avatares', puesto: 'Verlo puesto', clasificar: 'Nombre y detalles' };
@@ -411,7 +413,7 @@ a.trow { min-height: 48px; }
   const proximas = (P.calendario || []).filter(x => aFecha(x.f) >= hoy0);
   const rel = f => { const n = Math.round((aFecha(f) - hoy0 - 12 * 36e5) / 864e5); return n === 0 ? 'hoy' : n === 1 ? 'mañana' : 'en ' + n + ' días'; };
   const PEN = P.pendientes || [], ya = PEN.filter(p => /^ya$/i.test(p.f || '')).length, conF = PEN.filter(p => p.f && !/^(ya|sin fecha)$/i.test(p.f)).length, sinF = PEN.length - ya - conF;
-  const nombre = (c.nombre || '').trim().split(/\s+/)[0], h = hoy.getHours(), saludo = (h < 7 || h >= 21 ? 'Buenas noches' : h < 14 ? 'Buenos días' : 'Buenas tardes') + (nombre ? ', ' + nombre : '');
+  const n1 = (c.nombre || '').trim().split(/\s+/)[0] || '', nombre = n1 ? n1[0].toLocaleUpperCase('es') + n1.slice(1).toLocaleLowerCase('es') : '', h = hoy.getHours(), saludo = (h < 7 || h >= 21 ? 'Buenas noches' : h < 14 ? 'Buenos días' : 'Buenas tardes') + (nombre ? ', ' + nombre : '');
   const hoyLargo = hoy.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 
   // ── infraestructura por fase (la de ahora, abierta) ──
@@ -455,13 +457,13 @@ a.trow { min-height: 48px; }
     <div class="kpis">
       ${kpi('user', n0(d.usuarias.length), socias.size ? `cuentas, ${socias.size} vuestras` : 'cuentas')}
       ${kpi('check', n0(act(7)), 'activas esta semana', comp(act(7), actR(7, 13), 'la semana anterior'))}
-      ${kpi('spark', `${dec(iaServ)} $`, topeServ ? `IA del mes, de ${n0(topeServ)} $` : 'IA del mes', topeServ ? meter(iaServ, topeServ) : '')}
+      ${kpi('spark', usd(iaServ), topeServ ? `IA del mes, de ${eur(Math.round(aE(topeServ)))}` : 'IA del mes', topeServ ? meter(iaServ, topeServ) : '')}
       ${kpi('warn', n0(fallos7), 'fallos en 7 días')}
     </div>
     <div class="dash">
       ${card('Os toca', `${PEN.length ? `<div class="pila" role="img" aria-label="${ya} para ya, ${conF} con fecha, ${sinF} sin fecha">${[[ya, 'var(--crit)'], [conF, 'var(--acento)'], [sinF, '#c9ceca']].filter(([n]) => n).map(([n, col]) => `<i style="flex:${n};background:${col}"></i>`).join('')}</div>
         <div class="legend"><span><i style="--c:var(--crit)"></i>Ya ${ya}</span><span><i style="--c:var(--acento)"></i>Con fecha ${conF}</span><span><i style="--c:#c9ceca"></i>Sin fecha ${sinF}</span></div>` : ''}
-        <div class="toca">${PEN.map(p => `<details><summary><span class="txt"><span class="que">${esc(p.t)}</span><span class="meta"><span>${esc(p.q)}</span>${/^ya$/i.test(p.f || '') ? status('falta', 'Ya') : p.f && p.f !== 'Sin fecha' ? `<span>${esc(p.f)}</span>` : ''}</span></span>${p.r ? ic('down') : ''}</summary>${p.r ? `<p>${esc(p.r)}</p>` : ''}</details>`).join('') || '<p class="vacio">Nada pendiente.</p>'}</div>`, { count: PEN.length })}
+        <div class="toca">${PEN.map((p, i) => `<details${i >= 4 ? ' hidden data-resto' : ''}><summary><span class="txt"><span class="que">${esc(p.t)}</span><span class="meta"><span>${esc(p.q)}</span>${/^ya$/i.test(p.f || '') ? status('falta', 'Ya') : p.f && p.f !== 'Sin fecha' ? `<span>${esc(p.f)}</span>` : ''}</span></span>${p.r ? ic('down') : ''}</summary>${p.r ? `<p>${esc(p.r)}</p>` : ''}</details>`).join('') || '<p class="vacio">Nada pendiente.</p>'}</div>${PEN.length > 4 ? `<button class="btn-s" type="button" data-todas aria-expanded="false">Ver las ${PEN.length}</button>` : ''}`, { count: PEN.length })}
       ${card('Próximas fechas', `<div class="rows">${proximas.map(x => `<div class="trow"><b>${esc(x.q.replace(/ \(propuesta\)$/, ''))}</b><small>${esc(x.f)} · ${rel(x.f)}</small></div>`).join('') || '<p class="vacio">Sin fechas a la vista.</p>'}</div>`)}
       ${infraAhora ? card('Infraestructura', `<div class="medida"><span>${esc(infraAhora.n)}: ${infraListas} de ${infraAhora.items.length} listas</span><span>${pct(infraListas, infraAhora.items.length)} %</span></div><div class="meter" role="img" aria-label="${infraListas} de ${infraAhora.items.length} listas"><i style="width:${pct(infraListas, infraAhora.items.length)}%;background:var(--good)"></i></div>
         <div class="rows">${infraAhora.items.filter(x => x.e !== 'hecho').slice(0, 4).map(x => `<div class="trow"><b>${esc(x.t)}</b><small>${esc(x.q)}</small></div>`).join('')}</div><a class="more" href="#mas">Todas las fases</a>`, { extra: esc(infraAhora.f ? infraAhora.i + '–' + infraAhora.f : '') }) : ''}
@@ -494,8 +496,8 @@ a.trow { min-height: 48px; }
 
   <section id="dinero" aria-labelledby="t-dinero" hidden>
     <header class="head"><div class="label">IA, pagos y fijos</div><h1 id="t-dinero">Dinero</h1></header>
-    <div class="card grande"><span class="label">IA en ${nomMes(mesAhora).toLowerCase()}</span><b>${dec(iaMes(mesAhora))}<small>$</small></b>
-      ${topeServ ? `${meter(iaServ, topeServ)}<div class="medida"><span>App: ${usd(iaServ)} de ${n0(topeServ)} $</span><span>${pct(iaServ, topeServ)} %</span></div>` : ''}</div>
+    <div class="card grande"><span class="label">IA en ${nomMes(mesAhora).toLowerCase()}</span><b>${dec(aE(iaMes(mesAhora)))}<small>€</small></b>
+      ${topeServ ? `${meter(iaServ, topeServ)}<div class="medida"><span>App: ${usd(iaServ)} de ${eur(Math.round(aE(topeServ)))}</span><span>${pct(iaServ, topeServ)} %</span></div>` : ''}</div>
     <div class="kpis">
       ${kpi('dinero', eur2(gastado), 'gastado en total')}
       ${kpi('dinero', '0 €', 'ingresado')}
@@ -503,13 +505,13 @@ a.trow { min-height: 48px; }
       ${kpi('user', act(30, true) ? usd(iaMes(mesAhora, true) / act(30, true)) : '—', 'IA por usuaria, sin vosotras')}
     </div>
     <div class="dash">
-      ${card('IA por mes', mesesG.some(m => iaMes(m) > 0) ? grafico('columnas', mesesG.map(m => Math.round(iaMes(m) * 100) / 100), mesesG.map(m => nomMes(m, true)), 'Gasto de IA por mes, en dólares', dec, '$') : '<p class="vacio">Sin gasto de IA todavía.</p>', { extra: 'en dólares' })}
+      ${card('IA por mes', mesesG.some(m => iaMes(m) > 0) ? grafico('columnas', mesesG.map(m => Math.round(aE(iaMes(m)) * 100) / 100), mesesG.map(m => nomMes(m, true)), 'Gasto de IA por mes, en euros', dec, '€') : '<p class="vacio">Sin gasto de IA todavía.</p>', { extra: 'en euros' })}
       ${card(`${nomMes(mesAhora)}, por servicio`, (L => L.length ? hbarras(L) : '<p class="vacio">Nada este mes.</p>')([...Object.keys(SERV).map(s => ({ n: SERV[s], v: suma(G, g => g.mes === mesAhora && g.s === s), t: `${n0(suma(GN, g => g.mes === mesAhora && g.s === s))} · ${usd(suma(G, g => g.mes === mesAhora && g.s === s))}` })),
         ...(DIR[mesAhora] ? [{ n: 'Tandas de la Dirección', v: DIR[mesAhora], t: usd(DIR[mesAhora]) }] : [])].filter(x => x.v > 0).sort((a, b) => b.v - a.v)))}
       ${tope ? card('Antes de cobrar', `${meter(gastado, tope)}<div class="medida"><span>${eur2(gastado)} de ${eur(tope)} previstos</span><span>${pct(gastado, tope)} %</span></div>`) : ''}
       ${card('Fijos previstos al mes', (P.fijos || []).length ? hbarras((P.fijos || []).map(([n, v]) => ({ n, v, t: eur(v) })).sort((a, b) => b.v - a.v)) : '<p class="vacio">Ninguno todavía.</p>', { extra: eur(fijosTot) })}
       ${card('Pagos', PAG.length ? `<div class="rows">${PAG.slice().reverse().map(g => `<div class="trow"><b>${esc(g.concepto)}</b><small>${fecha(g.fecha)} · ${g.moneda === 'EUR' ? eur2(+g.importe) : esc(g.importe + ' ' + g.moneda)}</small></div>`).join('')}</div>` : '<p class="vacio">Ningún pago todavía.</p>', { count: PAG.length })}
-      ${card('', `<p class="vacio">La IA se paga en dólares a Google${cambio ? `; 1 $ = ${String(cambio).replace('.', ',')} € (BCE, ${fecha(P.usdEur.fecha)})` : ''}. Recortes y lecturas de looks, gratis.</p><div class="acc"><button class="btn-s" type="button" data-csv="dinero">Descargar contabilidad</button></div>`)}
+      ${card('', `<p class="vacio">La IA se paga en dólares a Google; aquí va en euros${cambio ? `, a 1 $ = ${String(cambio).replace('.', ',')} € (BCE, ${fecha(P.usdEur.fecha)})` : ''}. Recortes y lecturas de looks, gratis.</p><div class="acc"><button class="btn-s" type="button" data-csv="dinero">Descargar contabilidad</button></div>`)}
     </div>
   </section>
 
@@ -559,7 +561,9 @@ a.trow { min-height: 48px; }
   addEventListener('hashchange', mostrar); mostrar();
   raiz.addEventListener('toggle', () => dibujarTodo(), true);
   let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(dibujarTodo, 150); });
-  raiz.addEventListener('click', e => { const b = e.target.closest('[data-csv]'); if (b) CSV[b.dataset.csv](); });
+  raiz.addEventListener('click', e => { const b = e.target.closest('[data-csv]'); if (b) CSV[b.dataset.csv]();
+    const v = e.target.closest('[data-todas]'); if (v) { const abre = v.getAttribute('aria-expanded') !== 'true'; v.closest('.card').querySelectorAll('[data-resto]').forEach(x => x.hidden = !abre);
+      v.setAttribute('aria-expanded', abre); v.textContent = abre ? 'Ver solo 4' : `Ver las ${PEN.length}`; } });
 
   // el dato de cada punto o barra al pasar el ratón o tocar (también está en «Ver los datos»)
   const tip = document.getElementById('tip');

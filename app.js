@@ -1886,6 +1886,8 @@ async function ponerse(ids, conj) {
   const d = hoyISO(); let n = 0; anotarGusto(ids, 'si');
   ids.forEach(id => { const p = P(id); if (!p) return; p.usos = p.usos || []; if (!p.usos.includes(d)) { p.usos.push(d); n++; } });
   if (conj) { conj.usos = conj.usos || []; if (!conj.usos.includes(d)) conj.usos.push(d); }
+  // 11/11 (Gabriela): lo que te pones hoy, desde donde sea, sale el primero en Hoy
+  const ag = E.agenda[d] = E.agenda[d] || { planes: [] }; ag.puesto = [...ids]; if (E.pantalla !== 'hoy') { E.propuestas = []; E.hoyIdx = 0; }
   else if (ids.length >= 2 && !E.conjuntos.some(c => c.ids.join() === ids.join())) { E.conjuntos.unshift({ id: uid(), nombre: t('Hoy', 'Today') + ' ' + fecha(d, true), ocasion: ocasionDe(ids.map(P).filter(Boolean)), ids, creada: d, usos: [d] }); }
   await guardar(); toast(n ? t(`Apuntado: ${n} prendas puestas hoy`, `Noted: ${n} garments worn today`) : t('Ya lo tenías apuntado hoy', 'Already noted today'));
 }
@@ -4163,7 +4165,7 @@ function pintarEstilo() {
     + `<p class="es-cuenta" aria-live="polite">${el.length ? `<b>${el.length} ${t('de', 'of')} ${MAX_ESTILOS}</b>${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(', ')}` : '&nbsp;'}</p>`
     // 0.108 · «Enseñar la cintura» (Gabriela, 28/10: «12. sí»): preferencia de estilo, saltable, guardada solo en este móvil
     + `<div class="es-cint"><h3 class="es-tit">${t('Un detalle más', 'One more thing')}</h3><p>${t('¿Te gusta enseñar la cintura?', 'Do you like showing your waist?')}</p><div>${[['1', t('Sí', 'Yes')], ['0', t('No', 'No')]].map(([v, n]) => `<button data-cintura="${v}" class="${cinturaPref() === v ? 'on' : ''}">${n}</button>`).join('')}</div><span class="es-d">${t('Así sabemos si proponerte tops cortos con pantalones de tiro bajo.', 'So we know whether to suggest crop tops with low-rise trousers.')}</span></div>`
-    + bloqueInspo();
+    + bloqueGusto() + bloqueInspo();
 }
 // 06/11 · Looks que te encantan (Gabriela: «puedes pedirle fotos a la usuaria de 5 outfits… tú vas valorando, eres el que sabe»; Sheila lo propuso el 14/10).
 // Hasta cinco fotos de looks (suyos, de Pinterest o de Instagram): el servidor lee la ropa (/api/inspo, IA de visión de Cloudflare) y la foto no se guarda en ningún
@@ -4175,6 +4177,14 @@ function inspoResumen() { // los estilos que más se repiten en sus looks y que 
   const l = E.perfil?.inspo || [], n = {}; l.forEach(x => (x.estilos || []).forEach((e, i) => { n[e] = (n[e] || 0) + (i ? .5 : 1); }));
   const min = l.length >= 3 ? 1.5 : 1, top = Object.entries(n).filter(([, v]) => v >= min).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0]);
   return { top, nuevos: top.filter(k => !(E.esBorr || []).includes(k)) };
+}
+// 11/11 · Tu gusto (Sheila: «diez outfits sugeridos… me lo pondría o no me lo pondría… para que detecte si le gusta lo que le propones»): la pantalla está en at.js
+function bloqueGusto() {
+  if (!window.abrirGusto) return '';
+  const r = E.perfil?.calib?.r || [], si = r.filter(x => x.si).length;
+  return `<section class="es-inspo es-gusto" aria-labelledby="es-gusto-t"><h3 class="es-tit" id="es-gusto-t">${t('Tu gusto', 'Your taste')}</h3>`
+    + `<p class="es-insp-sub">${r.length ? t(`Me has dicho ${si} sí y ${r.length - si} no. Cuantos más looks me contestes, más acierto.`, `You’ve told me ${si} yes and ${r.length - si} no. The more you answer, the better I get.`) : t('Te enseño 10 looks con tu ropa y me dices si te los pondrías. Así acierto más.', 'I’ll show you 10 looks with your clothes and you tell me if you’d wear them. That way I get it right.')}</p>`
+    + `<p class="es-insp-sub"><button class="es-insp-entrar" data-gusto>${r.length ? t('Enséñame otros 10', 'Show me another 10') : t('Empezar', 'Start')}</button></p></section>`;
 }
 function bloqueInspo() {
   const es = idioma() === 'en' ? 1 : 0, l = E.perfil?.inspo || [], nomE = k => ESTILOS.find(x => x.k === k)?.n[es] || k;

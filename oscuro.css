@@ -1066,6 +1066,21 @@ html.at.oscuro #s-raiz .uno .ops.col button.on,html.at.oscuro .colores button.se
 html.at.oscuro .at-par-par + .at-par-par{border-top:1px solid var(--linea, rgba(241,233,222, .12))}
 html.at.oscuro .at-par-por{color:var(--sec)}
 html.at.oscuro .col-nom{color:var(--sec)}
+html.at.oscuro .at-gu h1:focus,html.at.oscuro .at-sem h1:focus{outline:none}
+html.at.oscuro .at-gu-paso{color:var(--sec)}
+html.at.oscuro .at-gu-barra{background:var(--raya)}
+html.at.oscuro .at-gu-barra i{background:var(--tinta)}
+html.at.oscuro .at-gu-capa{color:var(--sec)}
+html.at.oscuro .at-gu-bot button{border:0}
+html.at.oscuro .at-gu-no{background:transparent;color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+html.at.oscuro .at-gu-si{background:var(--tinta);color:var(--accion-t)}
+html.at.oscuro .at-gu-res{color:var(--sec)}
+html.at.oscuro .at-gu-res b{color:var(--tinta)}
+html.at.oscuro .at-gu-nota{color:var(--sec)}
+html.at.oscuro .at-sem-dias button{border:0;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 1px rgba(241,233,222, .45);color:var(--tinta)}
+html.at.oscuro .at-sem-dias button.on{background:var(--tinta);box-shadow:none;color:var(--accion-t)}
+html.at.oscuro .at-sem-vacio p{color:var(--sec)}
+html.at.oscuro .at-sem-capa{color:var(--sec)}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz

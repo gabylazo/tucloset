@@ -618,3 +618,28 @@ html.at .tabs button.activo .at-dentro { opacity: 1; }
 html.at .col-nom { margin: 8px 0 0; font-size: 13px; letter-spacing: .02em; color: var(--sec); }
 html.at .colores .col-nom { flex-basis: 100%; margin: 2px 0 0; }
 html.at .colores .col-nom, html.at #s-raiz .ops.col + .col-nom { text-align: center; }
+
+/* 11/11 · Tu gusto (Sheila: diez looks, «me lo pondría / no me lo pondría») y Mi semana (Sheila: «los 5 outfits de la semana») */
+html.at .at-gu h1:focus, html.at .at-sem h1:focus { outline: none; }
+html.at .at-gu-paso { margin: 0 0 8px; font-size: 13px; color: var(--sec); }
+html.at .at-gu-barra { width: 160px; height: 2px; margin: 0 auto 16px; background: var(--raya); }
+html.at .at-gu-barra i { display: block; height: 100%; background: var(--tinta); transition: width .3s; }
+html.at .at-gu-look { display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; cursor: default; }
+html.at .at-gu-capa { margin: -10px 0 12px; font-size: 12.5px; color: var(--sec); }
+html.at .at-gu-bot { display: flex; justify-content: center; gap: 10px; margin: 0 20px 12px; }
+html.at .at-gu-bot button { flex: 1 1 0; max-width: 170px; min-height: 48px; padding: 0 10px; font: inherit; font-size: 15px; border: 0; cursor: pointer; }
+html.at .at-gu-no { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+html.at .at-gu-si { background: var(--tinta); color: #fff; }
+html.at .at-gu-res { margin: 14px auto 0; font-size: 14px; color: var(--sec); }
+html.at .at-gu-res b { display: block; margin-top: 2px; font-family: 'Bellefair', serif; font-weight: 400; font-size: 22px; color: var(--tinta); }
+html.at .at-gu-pie { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 22px 0 8px; }
+html.at .at-gu-nota { margin: 10px 0 0; font-size: 12.5px; color: var(--sec); }
+html.at .at-sem-dias { display: flex; justify-content: center; gap: 4px; margin: 0 -4px; }
+html.at .at-sem-dias button { width: 42px; height: 42px; padding: 0; border: 0; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1px rgba(74, 53, 38, .45); color: var(--tinta); font: inherit; font-size: 14px; cursor: pointer; }
+html.at .at-sem-dias button.on { background: var(--tinta); box-shadow: none; color: #fff; }
+html.at .at-sem-l { margin-top: 8px; }
+html.at .at-sem-vacio { display: flex; align-items: center; justify-content: center; }
+html.at .at-sem-vacio p { margin: 0; padding: 0 16px; font-size: 12.5px; line-height: 1.45; color: var(--sec); }
+html.at .at-sem-capa { margin: 0; font-size: 12px; color: var(--sec); }
+html.at .at-sem-otro { min-height: 40px; margin: 0 auto; }
+#p-estilo .es-gusto { margin-top: 28px; }
