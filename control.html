@@ -40,7 +40,8 @@
 :root {
   color-scheme: light;
   /* Marca: lo único que cambia cada proyecto */
-  --acento: #4A3526;        /* TuCloset: nogal (11,5:1 sobre blanco) */
+  --acento: #8C6A1F;        /* TuCloset: dorado oscuro (5,0:1 sobre blanco). 11/11, Gabriela eligió la opción 2 «Dorado de acento» (antes nogal: «el color marrón no me gusta») */
+  --graf: #8F6A14;          /* gráficos, medidores y barras: el mismo dorado con algo más de croma (pasa el validador; 4,9:1) */
   --acento-tinta: #ffffff;
   --f-marca: 'Bellefair', Georgia, serif; /* solo en el logo */
   --oro: #C9A24B;           /* TuCloset: el dorado, solo en el logo (2,4:1: nunca en texto) */
@@ -95,7 +96,7 @@ main > * { min-width: 0; }
 .kpi .up, .kpi .down { font-size: .74rem; color: var(--ink-2); } /* el número en tinta; el color, solo en la flecha */
 .kpi .up::before { content: "▲ "; color: var(--good); } .kpi .down::before { content: "▼ "; color: var(--crit); }
 .meter { height: 8px; border-radius: 99px; background: var(--grid); overflow: hidden; }
-.meter i { display: block; height: 100%; background: var(--acento); border-radius: 99px; }
+.meter i { display: block; height: 100%; background: var(--graf); border-radius: 99px; }
 .meter.warn i { background: var(--warn); } .meter.crit i { background: var(--crit); }
 
 /* Listas de una línea: qué · quién · fecha; el detalle, al tocar */
@@ -123,7 +124,7 @@ details.md summary { cursor: pointer; font-weight: 600; font-size: .88rem; color
 /* Gráficos (SVG): marcas finas, rejilla tenue, texto en tinta, leyenda con 2 series o más */
 .chart svg { display: block; overflow: visible; }
 .chart .ax { font-size: 10.5px; fill: var(--ink-3); }
-.chart .gl { stroke: var(--grid); }
+.chart .gl { stroke: #f2f3f2; }
 .chart .base { stroke: var(--line); }
 .chart .val { font-size: 11px; font-weight: 600; fill: var(--ink); }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--ink-2); }
@@ -158,7 +159,7 @@ th:first-child, td:first-child { text-align: left; padding-left: 0; }
 button { font: inherit; color: inherit; }
 .cc-top .logo { display: flex; align-items: center; gap: 8px; min-height: 44px; text-decoration: none; }
 .cc-top .logo img { height: 28px; width: 28px; }
-.cc-top b { font-weight: 400; font-size: 1.4rem; letter-spacing: .01em; line-height: 1; color: var(--acento); } /* Bellefair solo tiene un grueso */
+.cc-top b { font-weight: 400; font-size: 1.4rem; letter-spacing: .01em; line-height: 1; color: #111; } /* Bellefair solo tiene un grueso */
 .cc-top b em { font-style: normal; color: var(--oro); }
 .cc-top small { font-size: .84rem; color: var(--ink-2); }
 .head { display: grid; gap: 4px; margin-top: 6px; }
@@ -198,14 +199,14 @@ section[hidden] { display: none; }
 .hb .n { overflow-wrap: anywhere; }
 .hb .v { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hb .p { grid-column: 1 / -1; height: 8px; }
-.hb .p i { display: block; height: 100%; min-width: 3px; background: var(--acento); border-radius: 0 99px 99px 0; }
+.hb .p i { display: block; height: 100%; min-width: 3px; background: var(--graf); border-radius: 0 99px 99px 0; }
 
 /* gráficos */
 .chart { min-height: 170px; }
-.chart .linea { fill: none; stroke: var(--acento); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-.chart .area { fill: var(--acento); fill-opacity: .07; }
-.chart .barra { fill: var(--acento); }
-.chart .pt { fill: var(--acento); stroke: #fff; stroke-width: 2; }
+.chart .linea { fill: none; stroke: var(--graf); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .area { display: none; } /* 11/11: sin relleno, como el centro general */
+.chart .barra { fill: var(--graf); }
+.chart .pt { fill: var(--graf); stroke: #fff; stroke-width: 2; }
 .chart .hit { fill: transparent; cursor: default; }
 .chart .hit:hover + .guia, .chart .guia.on { stroke: var(--line); }
 details.data summary, details.md summary { display: inline-flex; align-items: center; min-height: 44px; }
@@ -327,14 +328,14 @@ a.trow { min-height: 48px; }
     if (g.tipo === 'linea') {
       const X = i => L + (n === 1 ? w / 2 : i / (n - 1) * w), pts = vals.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
       s += `<polygon class="area" points="${X(0)},${Y(0)} ${pts} ${X(n - 1)},${Y(0)}"/><polyline class="linea" points="${pts}"/><circle class="pt" cx="${X(n - 1)}" cy="${Y(vals[n - 1])}" r="4"/>`;
-      s += et(X(n - 1), Y(vals[n - 1]) - 9, vals[n - 1], 'end');
+      const baja = n > 1 && vals[n - 2] > vals[n - 1]; s += et(X(n - 1) - 8, Y(vals[n - 1]) + (baja ? 16 : -9), vals[n - 1], 'end'); // si la línea llega bajando, el dato va debajo para no pisarla
       if (iMax < n - 3 && vals[iMax] > 0) s += `<circle class="pt" cx="${X(iMax)}" cy="${Y(vals[iMax])}" r="4"/>` + et(X(iMax), Y(vals[iMax]) - 9, vals[iMax]);
       for (const i of [0, Math.floor((n - 1) / 2), n - 1]) s += `<text class="ax" x="${X(i)}" y="${H - 6}" text-anchor="${i ? i === n - 1 ? 'end' : 'middle' : 'start'}">${esc(etqs[i])}</text>`;
       const paso = n > 1 ? w / (n - 1) : w; vals.forEach((v, i) => { s += `<rect class="hit" x="${X(i) - paso / 2}" y="${T}" width="${paso}" height="${h}" data-val="${esc(fmt(v) + (unidad ? ' ' + unidad : ''))}" data-tip="${esc(etqs[i])}"/>`; });
     } else {
-      const paso = w / n, bw = Math.min(12, Math.max(4, paso * .32)), X = i => L + paso * i + paso / 2;
-      vals.forEach((v, i) => { const y = Y(v), hh = Y(0) - y, x = X(i) - bw / 2, r = Math.min(4, hh, bw / 2);
-        if (v > 0) s += `<path class="barra" d="M${x},${Y(0)} V${y + r} Q${x},${y} ${x + r},${y} H${x + bw - r} Q${x + bw},${y} ${x + bw},${y + r} V${Y(0)} Z"/>`;
+      const paso = w / n, bw = Math.min(6, Math.max(4, paso * .2)), X = i => L + paso * i + paso / 2;
+      vals.forEach((v, i) => { const y = Y(v), hh = Y(0) - y, x = X(i) - bw / 2, r = Math.min(hh, bw / 2);
+        if (v > 0) s += `<path class="barra" d="M${x},${Y(0)} V${y + r} A${r},${r} 0 0 1 ${x + bw},${y + r} V${Y(0)} Z"/>`;
         if (v > 0 && (i === n - 1 || i === iMax)) s += et(X(i), y - 6, v);
         if (paso >= 26 || i === 0 || i === n - 1) s += `<text class="ax" x="${X(i)}" y="${H - 6}" text-anchor="middle">${esc(etqs[i])}</text>`;
         s += `<rect class="hit" x="${L + paso * i}" y="${T}" width="${paso}" height="${h}" data-val="${esc(fmt(v) + (unidad ? ' ' + unidad : ''))}" data-tip="${esc(etqs[i])}"/>`; });
