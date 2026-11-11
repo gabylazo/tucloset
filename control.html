@@ -9,12 +9,14 @@
 <title>Centro de control · TuCloset</title>
 <link rel="icon" href="iconos/icono-129-180.png">
 <link rel="stylesheet" href="fuentes.css?v=0.123">
-<!-- 04/11/2026 (Gabriela: «un sistema de control de la empresa… donde sepamos el estado de todo, de la empresa, de las cuentas, de los suscriptores, de las estadísticas de uso, de fallos»).
-     Solo para las socias: los datos llegan de /api/control con su sesión de la app; esta página no lleva ningún dato dentro.
-     04/11, 23:5x (Gabriela: «hazlo más visible y con menos texto, así es horrible leerlo»): tarjetas, números grandes y barras; el detalle, plegado en «Más».
-     05/11, 00:0x (Gabriela: «separa las secciones… si doy arriba en Funciones que vea solo las funciones… si no es mucha información y me aturde»): una sección cada vez. -->
+<!-- 04/11/2026 (Gabriela: «un sistema de control de la empresa… donde sepamos el estado de todo»). Solo para las socias: los datos llegan de /api/control
+     con su sesión de la app; esta página no lleva ningún dato dentro.
+     11/11 (Gabriela, por Coordinación de marketing: «que lo optimice mucho más, que ponga más gráficos; tiene muchísimo texto y me da pereza leerlo»):
+     cinco pestañas (Hoy, Cifras, Dinero, Redes, Empresa); en cada una, primero un gráfico o una cifra y, como mucho, una línea; lo demás, plegado.
+     Copia anterior: prototipo/control.html.antes-graficos. -->
 <style>
-:root { --tinta: #4A3526; --gris: #74655A; --oro: #C9A24B; --raya: #E6DFD8; --suave: #F7F4F1; --blanco: #FFFFFF; }
+:root { --tinta: #4A3526; --gris: #74655A; --oro: #C9A24B; --raya: #E6DFD8; --suave: #F7F4F1; --blanco: #FFFFFF;
+  --hecho: #2E6B4A; --marcha: #B08A2E; --sube: #2E6B4A; --baja: #8E3B2E; }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--blanco); color: var(--tinta); font: 400 16px/1.45 'Jost', system-ui, sans-serif; }
@@ -22,182 +24,198 @@ a { color: inherit; }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 
-.cab { text-align: center; padding: 28px 16px 6px; }
-.cab img { width: 36px; height: 36px; display: block; margin: 0 auto 8px; }
-.marca { font: 400 28px/1 'Bellefair', serif; margin: 0; }
+.cab { position: relative; text-align: center; padding: 22px 16px 4px; }
+.cab img { width: 32px; height: 32px; display: block; margin: 0 auto 6px; }
+.marca { font: 400 26px/1 'Bellefair', serif; margin: 0; }
 .marca span { color: var(--oro); }
-.cab p { margin: 4px 0 0; color: var(--gris); font-size: 14px; }
+.cab p { margin: 2px 0 0; color: var(--gris); font-size: 14px; }
+.volver { position: absolute; left: 8px; top: 10px; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 8px; font-size: 14px; text-decoration: none; color: var(--gris); }
+.volver svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.volver:hover { color: var(--tinta); }
+@media (max-width: 420px) { .volver span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
 
-nav { position: sticky; top: 0; z-index: 2; background: var(--blanco); border-bottom: 1px solid var(--raya); overflow-x: auto; scrollbar-width: none; }
+nav { position: sticky; top: 0; z-index: 3; background: var(--blanco); border-bottom: 1px solid var(--raya); overflow-x: auto; scrollbar-width: none; }
 nav::-webkit-scrollbar { display: none; }
-nav ul { display: flex; gap: 2px; justify-content: safe center; margin: 0; padding: 0 12px; list-style: none; min-width: max-content; }
-nav a { display: block; padding: 12px 12px; min-height: 44px; font-size: 15px; text-decoration: none; color: var(--gris); }
-nav a:hover, nav a:focus-visible { color: var(--tinta); }
+nav ul { display: flex; justify-content: safe center; margin: 0; padding: 0 8px; list-style: none; min-width: max-content; }
+nav a { display: block; padding: 12px 11px; min-height: 44px; font-size: 15px; text-decoration: none; color: var(--gris); }
+nav a:hover { color: var(--tinta); }
 nav a[aria-current] { color: var(--tinta); box-shadow: inset 0 -2px 0 var(--tinta); }
 
-main { max-width: 1120px; margin: 0 auto; padding: 0 16px 64px; }
-section { padding-top: 44px; scroll-margin-top: 52px; }
-h2 { font: 400 30px/1.15 'Bellefair', serif; text-align: center; margin: 0 0 20px; }
-h3 { font: 400 21px/1.2 'Bellefair', serif; margin: 0; }
-.rejilla { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-.tarjeta { background: var(--suave); padding: 18px; }
+main { max-width: 1040px; margin: 0 auto; padding: 0 16px 56px; }
+section { padding-top: 22px; }
+.bloque { margin-top: 28px; }
+.tit { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+h3 { font: 400 22px/1.2 'Bellefair', serif; margin: 0; }
+.tit small, .peq { font-size: 13px; color: var(--gris); }
+.dos { display: grid; gap: 28px; }
+@media (min-width: 820px) { .dos { grid-template-columns: 1fr 1fr; } .dos .bloque { margin-top: 0; } .dos { margin-top: 28px; } }
 
-/* estado: un cuadrado, como los botones de la app */
+/* cifras sueltas: la cifra primero, una etiqueta corta debajo */
+.tiles { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 760px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.tile { background: var(--suave); padding: 16px 14px 14px; min-height: 96px; display: flex; flex-direction: column; justify-content: center; }
+.tile b { font: 500 32px/1.05 'Jost', sans-serif; letter-spacing: -.01em; }
+.tile b small { font-size: 18px; font-weight: 400; margin-left: 2px; }
+.tile span { margin-top: 4px; font-size: 13px; line-height: 1.3; color: var(--gris); }
+.flecha { font-size: 14px; margin-left: 6px; vertical-align: middle; }
+.flecha.sube { color: var(--sube); } .flecha.baja { color: var(--baja); }
+.heroe { text-align: center; padding: 6px 0 2px; }
+.heroe b { display: block; font: 500 56px/1 'Jost', sans-serif; letter-spacing: -.02em; }
+.heroe b small { font-size: 26px; font-weight: 400; margin-left: 4px; }
+.heroe > span { display: block; margin-top: 6px; font-size: 14px; color: var(--gris); }
+
+/* medidor: de cuánto se ha gastado de un tope */
+.medidor { margin-top: 10px; }
+.medidor .pista { height: 8px; background: var(--raya); border-radius: 4px; overflow: hidden; }
+.medidor .pista i { display: block; height: 100%; background: var(--tinta); border-radius: 0 4px 4px 0; }
+.medidor .pista i.alto { background: var(--baja); }
+.medidor p { display: flex; justify-content: space-between; margin: 6px 0 0; font-size: 13px; color: var(--gris); }
+.tile .medidor { margin-top: 8px; } .tile .medidor .pista { height: 6px; }
+
+/* os toca: una línea por cosa; la explicación al tocar */
+.toca { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--raya); }
+.toca li { border-bottom: 1px solid var(--raya); }
+.toca summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto 18px; gap: 2px 12px; align-items: center; padding: 11px 0; min-height: 52px; }
+.toca summary::-webkit-details-marker { display: none; }
+.toca summary::after { content: '+'; grid-column: 3; grid-row: 1 / 3; font-size: 20px; line-height: 1; color: var(--gris); text-align: center; }
+.toca details[open] summary::after { content: '–'; }
+.toca .que { grid-column: 1; font-size: 16px; line-height: 1.3; }
+.toca .quien { grid-column: 1; font-size: 13px; color: var(--gris); }
+.toca .cuando { grid-column: 2; grid-row: 1 / 3; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.toca .cuando.ya { color: var(--baja); font-weight: 500; }
+.toca p { margin: 0 0 14px; max-width: 62ch; font-size: 15px; color: var(--gris); }
+
+/* fechas: una línea con puntos */
+.linea { list-style: none; margin: 0; padding: 0 0 0 4px; }
+.linea li { position: relative; display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 0 0 14px 20px; border-left: 1px solid var(--raya); }
+.linea li:last-child { border-left-color: transparent; padding-bottom: 0; }
+.linea li::before { content: ''; position: absolute; left: -5px; top: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--tinta); box-shadow: 0 0 0 2px var(--blanco); }
+.linea li.lejos::before { background: var(--blanco); border: 1.5px solid var(--tinta); width: 9px; height: 9px; }
+.linea b { font-weight: 500; font-variant-numeric: tabular-nums; font-size: 15px; }
+.linea span { font-size: 15px; line-height: 1.35; }
+
+.enlaces { display: flex; flex-wrap: wrap; gap: 8px; }
+.enlaces a, .enlaces span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--tinta); text-decoration: none; font-size: 15px; }
+.enlaces span { border-style: dashed; color: var(--gris); border-color: var(--raya); }
+.enlaces a:hover { background: var(--suave); }
+
+/* gráficos */
+figure { margin: 0; }
+.graf { background: var(--blanco); }
+.plot { position: relative; height: 150px; margin: 30px 8px 0 28px; }
+.plot .rej { position: absolute; left: 0; right: 0; border-top: 1px solid var(--raya); }
+.plot .rej span { position: absolute; right: calc(100% + 6px); top: -8px; font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums; }
+.plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.plot .area { fill: var(--tinta); fill-opacity: .08; stroke: none; }
+.plot .trazo { fill: none; stroke: var(--tinta); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.plot .pt { position: absolute; width: 24px; height: 100%; top: 0; transform: translateX(-50%); }
+.plot .pt i { position: absolute; left: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--tinta); box-shadow: 0 0 0 2px var(--blanco); opacity: 0; }
+.plot .pt i.fin, .plot .pt:hover i, .plot .pt:focus-visible i { opacity: 1; }
+.plot .pt:hover::before, .plot .pt:focus-visible::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1px solid var(--raya); }
+.plot .pt em { position: absolute; left: 50%; transform: translate(-50%, -26px); background: var(--blanco); padding: 0 2px; font-style: normal; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.plot .pt em.der { transform: translate(-100%, -26px); }
+.ejex { display: flex; justify-content: space-between; margin: 6px 8px 0 28px; font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums; }
+.cols { position: relative; display: flex; align-items: flex-end; gap: 2px; height: 150px; margin-top: 4px; border-bottom: 1px solid var(--raya); }
+.cols > div { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 0; }
+.cols > div:hover i, .cols > div:focus-visible i { opacity: .75; }
+.cols i { display: block; width: 100%; max-width: 24px; background: var(--tinta); border-radius: 4px 4px 0 0; min-height: 2px; }
+.cols i.cero { background: var(--raya); }
+.cols em { font-style: normal; font-size: 13px; font-weight: 500; margin-bottom: 4px; min-height: 1em; }
+.colx { display: flex; gap: 2px; margin-top: 6px; }
+.colx span { flex: 1; text-align: center; font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums; min-width: 0; }
+.hbar { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.hbar li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: baseline; font-size: 14px; }
+.hbar li .nom { overflow-wrap: anywhere; }
+.hbar li .val { font-variant-numeric: tabular-nums; color: var(--gris); white-space: nowrap; }
+.hbar li .pista { grid-column: 1 / -1; height: 10px; }
+.hbar li .pista i { display: block; height: 100%; min-width: 2px; background: var(--tinta); border-radius: 0 4px 4px 0; }
+.hbar li .pista i.suave { background: #A99A8E; }
+.ver-tabla { margin-top: 8px; }
+.ver-tabla summary { cursor: pointer; display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; color: var(--gris); text-decoration: underline; text-underline-offset: 3px; }
+.vacio { color: var(--gris); font-size: 15px; margin: 4px 0; }
+
+/* estados: cuadrado relleno, medio o vacío (la forma dice el estado; el color ayuda) */
 .e { display: inline-block; width: 12px; height: 12px; flex: none; border: 1.5px solid var(--tinta); vertical-align: -1px; }
-.e.hecho, .e.ok { background: var(--tinta); }
-.e.marcha, .e.medio { background: linear-gradient(90deg, var(--tinta) 50%, transparent 50%); }
-.e.espera { border-style: dashed; }
-.leyenda { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 20px; font-size: 14px; color: var(--gris); margin: -8px 0 22px; }
+.e.hecho, .e.ok { background: var(--hecho); border-color: var(--hecho); }
+.e.marcha, .e.medio { border-color: var(--marcha); background: linear-gradient(90deg, var(--marcha) 50%, transparent 50%); }
+.e.espera { border-style: dashed; border-color: var(--gris); }
+.apilada { display: flex; gap: 2px; height: 14px; margin-top: 14px; }
+.apilada i { display: block; height: 100%; }
+.apilada i:first-child { border-radius: 4px 0 0 4px; } .apilada i:last-child { border-radius: 0 4px 4px 0; }
+.apilada .hecho { background: var(--hecho); } .apilada .marcha { background: var(--marcha); } .apilada .falta { background: var(--raya); } .apilada .espera { background: #EFEAE5; }
+.leyenda { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; margin-top: 10px; font-size: 14px; color: var(--gris); }
 .leyenda span { display: inline-flex; align-items: center; gap: 7px; }
+.leyenda b { color: var(--tinta); font-weight: 500; }
 
-/* os toca */
-.toca .tarjeta { display: flex; flex-direction: column; gap: 6px; }
-@media (min-width: 640px) { .toca .tarjeta { min-height: 120px; } }
-.quien { font-size: 13px; letter-spacing: .06em; color: var(--gris); }
-.toca b { font: 400 22px/1.2 'Bellefair', serif; }
-.toca .rec { margin-top: auto; font-size: 14px; color: var(--gris); }
-
-/* cifras */
-.cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.cifras div { background: var(--suave); text-align: center; padding: 20px 8px; }
-.cifras b { display: block; font: 400 48px/1 'Bellefair', serif; }
-.cifras span { display: block; margin-top: 6px; font-size: 14px; color: var(--gris); }
-@media (min-width: 760px) { .cifras { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-.uso { margin-top: 12px; padding: 18px 18px 12px; }
-.uso p { margin: 0 0 6px; text-align: center; font-size: 14px; color: var(--gris); }
-.redes { margin-top: 12px; }
-.redes p { margin: 0 0 8px; text-align: center; font-size: 14px; color: var(--gris); }
-.redes table { width: 100%; border-collapse: collapse; font-size: 15px; }
-.redes th, .redes td { padding: 8px 4px; border-top: 1px solid var(--raya); text-align: right; font-weight: 400; }
-.redes thead th { border-top: 0; font-size: 13px; color: var(--gris); }
-.redes th:first-child { text-align: left; }
-.redes td { font-variant-numeric: tabular-nums; }
-.redes .vacio { display: block; text-align: center; font-size: 14px; color: var(--gris); }
-.barras { display: flex; align-items: flex-end; gap: 6px; height: 120px; }
-.barras div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
-.barras i { display: block; width: 100%; max-width: 32px; background: var(--tinta); min-height: 1px; }
-.barras small { font-size: 12px; color: var(--gris); }
-.barras em { font-style: normal; font-size: 13px; }
-
-/* para mirar */
-.mirar a, .mirar div { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 4px; min-height: 96px; text-decoration: none; }
-.mirar a { border: 1px solid var(--tinta); background: var(--blanco); }
-.mirar a:hover { background: var(--suave); }
-.mirar b { font: 400 21px/1.2 'Bellefair', serif; }
-.mirar span { font-size: 14px; color: var(--gris); }
-
-/* avance de funciones */
-.grande { text-align: center; margin: 0 auto 26px; max-width: 420px; }
-.grande b { font: 400 56px/1 'Bellefair', serif; }
-.grande span { font-size: 16px; color: var(--gris); }
-.barra { height: 8px; background: var(--raya); margin-top: 12px; }
-.barra i { display: block; height: 100%; background: var(--tinta); }
-.tarjeta .barra { height: 6px; margin: 10px 0 14px; background: var(--blanco); }
-.lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+/* filas plegables (grupos de funciones, equipo, legal, documentos) */
+.plegables { border-top: 1px solid var(--raya); }
+.plegables details { border-bottom: 1px solid var(--raya); }
+.plegables summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) 72px 44px 18px; gap: 12px; align-items: center; min-height: 52px; padding: 6px 0; }
+.plegables summary::-webkit-details-marker { display: none; }
+.plegables summary::after { content: '+'; font-size: 20px; color: var(--gris); text-align: center; }
+.plegables details[open] > summary::after { content: '–'; }
+.plegables summary .nom { font-size: 16px; line-height: 1.3; }
+.plegables summary .mini { height: 6px; background: var(--raya); border-radius: 3px; overflow: hidden; }
+.plegables summary .mini i { display: block; height: 100%; background: var(--hecho); }
+.plegables summary .cu { font-size: 14px; color: var(--gris); text-align: right; font-variant-numeric: tabular-nums; }
+.plegables.sin-barra summary { grid-template-columns: minmax(0, 1fr) auto 18px; }
+.lista { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 8px; }
 .lista li { display: grid; grid-template-columns: 12px 1fr; gap: 10px; align-items: start; font-size: 15px; line-height: 1.3; }
 .lista li .e { margin-top: 3px; }
-.cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.cabeza small { font-size: 14px; color: var(--gris); white-space: nowrap; }
-
-/* fases */
-.fases { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 640px) { .fases { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-@media (min-width: 1000px) { .fases { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
-.fases .tarjeta { text-align: center; padding: 16px 12px; }
-.fases .eur { display: block; font: 400 30px/1.1 'Bellefair', serif; margin: 8px 0 2px; }
-.fases small { display: block; font-size: 13px; color: var(--gris); }
-.fases .barra { margin: 12px 0 0; }
-.total { text-align: center; margin: 26px 0 0; }
-.total b { display: block; font: 400 48px/1 'Bellefair', serif; }
-.total span { font-size: 15px; color: var(--gris); }
-.fechas { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-top: 28px; }
-.fechas div { border-top: 2px solid var(--tinta); padding-top: 10px; text-align: center; }
-.fechas b { display: block; font: 400 26px/1.1 'Bellefair', serif; }
-.fechas span { font-size: 14px; color: var(--gris); }
-
-/* cuentas */
-.cuentas .tarjeta { display: grid; grid-template-columns: 12px 1fr; gap: 4px 10px; align-items: start; padding: 14px 16px; }
-.cuentas .tarjeta .e { margin-top: 5px; }
-.cuentas b { font-weight: 500; font-size: 15px; }
-.cuentas span.p { grid-column: 2; font-size: 14px; color: var(--gris); }
-.cuentas a.abrir { grid-column: 2; justify-self: start; display: inline-flex; align-items: center; min-height: 44px; font-size: 15px; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; }
-.nota { text-align: center; font-size: 14px; color: var(--gris); margin: 14px 0 0; }
-
-/* más: todo plegado */
-.mas details { border-top: 1px solid var(--raya); }
-.mas details:last-of-type { border-bottom: 1px solid var(--raya); }
-.mas summary { list-style: none; cursor: pointer; padding: 16px 32px 16px 0; position: relative; min-height: 44px; font: 400 21px/1.2 'Bellefair', serif; }
-.mas summary::-webkit-details-marker { display: none; }
-.mas summary::after { content: '+'; position: absolute; right: 6px; top: 14px; font: 400 24px/1 'Jost', sans-serif; }
-.mas details[open] summary::after { content: '–'; }
-.mas summary h3 { font: inherit; display: inline; }
-.mas summary small { font: 400 14px 'Jost', sans-serif; color: var(--gris); margin-left: 8px; }
-.cuerpo { padding: 0 0 24px; font-size: 15px; }
-.cuerpo h4 { font: 400 19px/1.3 'Bellefair', serif; margin: 22px 0 6px; }
+.lista small { display: block; color: var(--gris); font-size: 13px; }
+.cuerpo { padding: 0 0 20px; font-size: 15px; }
+.cuerpo h1, .cuerpo h2 { font: 400 22px/1.25 'Bellefair', serif; margin: 18px 0 6px; }
+.cuerpo h3, .cuerpo h4 { font: 400 19px/1.3 'Bellefair', serif; margin: 18px 0 6px; }
 .cuerpo p, .cuerpo li { max-width: 70ch; }
 .cuerpo ul, .cuerpo ol { padding-left: 20px; margin: 6px 0 12px; }
 .cuerpo table, .tabla { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0 14px; }
 .cuerpo td, .cuerpo th, .tabla td, .tabla th { border-bottom: 1px solid var(--raya); padding: 8px 6px; text-align: left; vertical-align: top; font-weight: 400; }
 .cuerpo th, .tabla th { color: var(--gris); font-size: 12px; }
-.tabla .num { text-align: right; font-variant-numeric: tabular-nums; }
+.tabla .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tabla th[scope=row] { color: var(--tinta); font-size: 14px; overflow-wrap: anywhere; }
+.tabla.red th[scope=row] { white-space: nowrap; overflow-wrap: normal; }
+.tabla.red th[scope=row] .e { margin-right: 6px; }
 .desliza { overflow-x: auto; }
 .filas { list-style: none; margin: 0; padding: 0; }
 .filas li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--raya); font-size: 15px; }
+.filas li span:last-child { white-space: nowrap; color: var(--gris); font-size: 14px; font-variant-numeric: tabular-nums; }
 .filas code { font: 12px/1.4 ui-monospace, Menlo, monospace; word-break: break-word; }
-.filas li span:last-child { white-space: nowrap; color: var(--gris); font-size: 14px; }
-.grupo { font: 400 18px/1.3 'Bellefair', serif; margin: 18px 0 4px; }
 
-.vacio, .aviso { text-align: center; color: var(--gris); font-size: 15px; margin: 8px 0; }
+/* fases: una barra por fase */
+.fases { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.fases li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; }
+.fases .nom { font-size: 16px; }
+.fases .nom small { margin-left: 8px; font-size: 13px; color: var(--gris); font-variant-numeric: tabular-nums; }
+.fases .eur { font-size: 15px; font-variant-numeric: tabular-nums; }
+.fases .pista { grid-column: 1 / -1; height: 8px; background: var(--raya); border-radius: 4px; overflow: hidden; }
+.fases .pista i { display: block; height: 100%; background: var(--hecho); }
+
+.cuentas { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--raya); }
+.cuentas li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 48px; border-bottom: 1px solid var(--raya); font-size: 15px; }
+.cuentas a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; text-underline-offset: 3px; }
+
+.acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.boton { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border: 1px solid var(--tinta); background: var(--blanco); color: var(--tinta); text-decoration: none; font: inherit; font-size: 14px; cursor: pointer; }
+.boton:hover { background: var(--suave); }
 .mensaje { max-width: 34ch; margin: 80px auto; text-align: center; padding: 0 16px; }
+.mensaje h2 { font: 400 28px/1.2 'Bellefair', serif; margin: 0 0 8px; }
 .mensaje p { color: var(--gris); }
-.boton { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px; margin-top: 18px; border: 1px solid var(--tinta); text-decoration: none; letter-spacing: .08em; font-size: 14px; }
 .pie { text-align: center; color: var(--gris); font-size: 13px; margin-top: 40px; }
 
-/* 09/11: volver a la app (se entra desde Ajustes → Centro de control) */
-.cab { position: relative; }
-.volver { position: absolute; left: 8px; top: 12px; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 8px; font-size: 14px; text-decoration: none; color: var(--gris); }
-.volver svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
-.volver:hover { color: var(--tinta); }
-
-/* 09/11: usuarias y dinero (Gabriela: «cuántos usuarios tienen, el uso de cada usuario y todos los datos que nos sirvan para llevar una contabilidad») */
-.cifras.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 760px) { .cifras.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.flecha { font-size: 16px; margin-left: 4px; vertical-align: middle; }
-.flecha.sube { color: #2F5D47; } .flecha.baja { color: #8E3B2E; }
-small.gris { color: var(--gris); font-size: 13px; }
-.hbarras { list-style: none; margin: 0; padding: 0; }
-.hbarras li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 6px 0; font-size: 14px; }
-.hbarras li span { grid-column: 1 / -1; overflow-wrap: anywhere; }
-.red-t { margin: 0 0 6px; }
-.red-n { display: flex; gap: 8px; align-items: baseline; margin: 0 0 6px; font-size: 14px; color: var(--gris); }
-.hbarras i { display: block; height: 10px; background: var(--raya); }
-.hbarras i.top { background: var(--tinta); }
-.hbarras em { font-style: normal; color: var(--gris); }
-.cifras.c3, .redes .cifras.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
-.redes .cifras div { background: var(--blanco); padding: 14px 4px; }
-.redes .cifras b { font-size: 36px; }
-.ficha .correo { word-break: break-all; }
-.ficha .cuando { margin: 4px 0 12px; font-size: 14px; color: var(--gris); }
-.nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
-.nums div { display: flex; flex-direction: column-reverse; align-items: center; text-align: center; background: var(--blanco); padding: 10px 4px; }
-.nums dt { font-size: 12px; line-height: 1.25; color: var(--gris); }
-.nums dd { margin: 0 0 4px; font: 400 26px/1 'Bellefair', serif; font-variant-numeric: tabular-nums; }
-.mes .filas li span:first-child { color: var(--tinta); }
-.mes .filas li.tot { border-bottom: 0; font-weight: 500; }
-.mes .filas li.tot span:last-child { color: var(--tinta); font-size: 15px; }
-.acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 12px; }
-button.boton { background: var(--blanco); color: var(--tinta); font: inherit; font-size: 14px; letter-spacing: .08em; cursor: pointer; }
-button.boton:hover { background: var(--suave); }
+#tip { position: fixed; z-index: 9; pointer-events: none; background: var(--tinta); color: var(--blanco); padding: 6px 10px; font-size: 13px; line-height: 1.3; max-width: 240px; opacity: 0; transition: opacity .12s; }
+#tip b { display: block; font-size: 15px; font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { #tip { transition: none; } }
 </style>
 </head>
 <body>
 <header class="cab">
-  <a class="volver" href="./"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Volver a la app</a>
+  <a class="volver" href="./"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg><span>Volver a la app</span></a>
   <img src="iconos/icono-129-180.png" alt="">
   <h1 class="marca">Tu<span>Closet</span></h1>
   <p>Centro de control</p>
 </header>
-<div id="raiz"><p class="aviso" style="margin-top:40px">Cargando…</p></div>
+<div id="raiz"><p class="vacio" style="text-align:center;margin-top:40px">Cargando…</p></div>
+<div id="tip" aria-hidden="true"></div>
 <script>
 (async () => {
   const raiz = document.getElementById('raiz');
@@ -211,41 +229,51 @@ button.boton:hover { background: var(--suave); }
   if (r.status === 403) return mensaje('Página privada', 'Este centro de control es solo para las socias de TuCloset.', 'Ir a la app');
   if (!r.ok) return mensaje('Algo ha fallado', `El servidor ha respondido ${r.status}. Prueba otra vez en un momento.`);
   const d = await r.json(), P = d.panel || {};
+
+  // ── utilidades ──
   const EST = { hecho: 'Hecho', marcha: 'En marcha', falta: 'Falta', espera: 'Espera', ok: 'Funciona', medio: 'A medias' };
   const est = e => `<span class="e ${esc(e)}" title="${EST[e] || esc(e)}"><span class="vh">${EST[e] || esc(e)}: </span></span>`;
   const fecha = iso => iso ? new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '—';
   const hora = iso => new Date(iso).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const eur = n => (+n).toLocaleString('es-ES', { useGrouping: 'always' }) + ' €';
+  const n0 = n => (+n || 0).toLocaleString('es-ES', { useGrouping: 'always' });
+  const dec = n => (Math.round(n * 100) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const usd = n => dec(n) + ' $', eur = n => n0(n) + ' €', eur2 = n => dec(n) + ' €';
   const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
-  const barra = p => `<div class="barra" aria-hidden="true"><i style="width:${p}%"></i></div>`;
   const hoy = new Date(), dia = n => new Date(hoy - n * 864e5).toISOString().slice(0, 10);
-  const activas7 = new Set(d.uso.filter(u => u.dia >= dia(6)).map(u => u.usuaria)).size;
-  const fallos7 = d.avisos.filter(a => a.fecha >= new Date(hoy - 7 * 864e5).toISOString()).length;
-  const prendas = d.usuarias.reduce((s, u) => s + u.prendas, 0);
-  const secciones = [['toca', 'Os toca'], ['cifras', 'Cifras'], ['usuarias', 'Usuarias'], ['dinero', 'Dinero'], ['redes', 'Redes'], ['funciones', 'Funciones'], ['fases', 'Fases'], ['equipo', 'Equipo'], ['cuentas', 'Cuentas'], ['mas', 'Más']];
-
-  // personas que abrieron la app cada día, últimos 14 días
-  const dias = [...Array(14)].map((_, i) => dia(13 - i)), porDia = dias.map(k => new Set(d.uso.filter(u => u.dia === k).map(u => u.usuaria)).size), max = Math.max(1, ...porDia);
-  // 09/11: visitas que llegan desde cada red (?o=) y cuentas creadas en esa visita, últimos 30 días
-  const RED = { ig: 'Instagram', tt: 'TikTok', pin: 'Pinterest', g: 'Google', cartel: 'Cartel' }, nomRed = o => RED[o] || (/^mail/.test(o) ? 'Correo ' + o.slice(4) : /-ad\d+$/.test(o) ? 'Anuncio ' + o : o);
-  const vis = {}; (d.visitas || []).filter(v => v.dia >= dia(29)).forEach(v => { const x = vis[v.origen] = vis[v.origen] || { n: 0, a: 0 }; x.n += v.n; x.a += v.altas; });
-  const filasRed = Object.entries(vis).sort((a, b) => b[1].n - a[1].n);
-  const redes = `<div class="tarjeta redes"><p>Visitas desde las redes, 30 días</p>${filasRed.length ? `<table><thead><tr><th scope="col">Red</th><th scope="col">Visitas</th><th scope="col">Cuentas nuevas</th></tr></thead><tbody>${filasRed.map(([o, x]) => `<tr><th scope="row">${esc(nomRed(o))}</th><td>${x.n}</td><td>${x.a}</td></tr>`).join('')}</tbody></table>` : '<span class="vacio">Todavía ninguna. Cuentan los enlaces con ?o=ig, ?o=tt o ?o=pin.</span>'}</div>`;
-  // 10/11: lista de espera (apuntadas = pidieron entrar; confirmadas = abrieron el correo de confirmación, según Brevo)
-  const E = d.espera || { abierta: false, confirmadas: null, filas: [] }, EF = E.filas || [];
-  const esOr = {}; EF.forEach(x => { const k = x.origen || ''; esOr[k] = (esOr[k] || 0) + 1; });
-  const filasEs = Object.entries(esOr).sort((a, b) => b[1] - a[1]);
-  const espera = `<div class="tarjeta redes"><p>Lista de espera</p>${!E.abierta && !EF.length ? '<span class="vacio">Cerrada hasta tener Brevo y la privacidad publicada.</span>'
-    : `<div class="cifras c3"><div><b>${EF.length}</b><span>apuntadas</span></div><div><b>${E.confirmadas ?? '—'}</b><span>confirmadas</span></div><div><b>${EF.filter(x => x.dia >= dia(6)).length}</b><span>esta semana</span></div></div>${filasEs.length ? `<table><thead><tr><th scope="col">Desde</th><th scope="col">Apuntadas</th></tr></thead><tbody>${filasEs.map(([o, n]) => `<tr><th scope="row">${esc(o ? nomRed(o) : 'Directo')}</th><td>${n}</td></tr>`).join('')}</tbody></table>` : ''}<span class="vacio">Novedades: ${EF.filter(x => x.nov).length} de ${EF.length}.</span>`}</div>`;
-  const barras = `<div class="barras" role="img" aria-label="Personas que abrieron la app cada día, últimos 14 días: ${porDia.join(', ')}">${dias.map((k, i) => `<div><em>${porDia[i] || ''}</em><i style="height:${Math.round(porDia[i] / max * 80)}%"></i><small>${+k.slice(8)}</small></div>`).join('')}</div>`;
-
-  // 09/11: usuarias (ficha de cada una) y dinero (contabilidad por mes), con descarga en CSV para Excel
-  const usd = n => (Math.round(n * 100) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' $';
   const suma = (lista, f) => (lista || []).filter(f).reduce((s, x) => s + (+x.v || 0), 0);
+  const tile = (valor, etiqueta, extra = '') => `<div class="tile"><b>${valor}</b><span>${etiqueta}</span>${extra}</div>`;
+  const medidor = (v, tope, izq, der) => { const p = Math.min(100, pct(v, tope)); return `<div class="medidor" role="img" aria-label="${esc(izq)}: ${p} % del tope"><div class="pista"><i${p >= 80 ? ' class="alto"' : ''} style="width:${p}%"></i></div>${izq || der ? `<p><span>${esc(izq)}</span><span>${esc(der)}</span></p>` : ''}</div>`; };
+  const bloque = (titulo, html, extra = '') => `<div class="bloque"><div class="tit"><h3>${titulo}</h3>${extra ? `<small>${extra}</small>` : ''}</div>${html}</div>`;
+
+  // gráfico de línea: una serie, punto final marcado, el valor de cada día al pasar o con el teclado y, sin ratón, en la tabla
+  const linea = (vals, etqs, nombre, unidad) => {
+    const m = Math.max(1, ...vals), top = Math.ceil(m / (m > 4 ? 2 : 1)) * (m > 4 ? 2 : 1), n = vals.length;
+    const X = i => n === 1 ? 50 : i / (n - 1) * 100, Y = v => 100 - v / top * 100;
+    const pts = vals.map((v, i) => `${X(i).toFixed(2)},${Y(v).toFixed(2)}`).join(' ');
+    const iMax = vals.indexOf(Math.max(...vals)); // el máximo solo se etiqueta si no está pegado al final
+    return `<figure class="graf"><div class="plot" role="img" aria-label="${esc(nombre)}: ${vals.join(', ')}">
+      ${[top, top / 2, 0].map(v => `<div class="rej" style="top:${Y(v)}%"><span>${n0(v)}</span></div>`).join('')}
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon class="area" points="0,100 ${pts} 100,100"/><polyline class="trazo" vector-effect="non-scaling-stroke" points="${pts}"/></svg>
+      ${vals.map((v, i) => `<span class="pt" tabindex="0" style="left:${X(i)}%" data-tip="${esc(etqs[i])}" data-val="${n0(v)} ${esc(unidad)}"><i class="${i === n - 1 ? 'fin' : ''}" style="top:${Y(v)}%"></i>${i === n - 1 || (i === iMax && v > 0 && i < n - 3) ? `<em${i === n - 1 ? ' class="der"' : ''} style="top:${Y(v)}%">${n0(v)}</em>` : ''}</span>`).join('')}
+    </div><div class="ejex" aria-hidden="true"><span>${esc(etqs[0])}</span><span>${esc(etqs[Math.floor((n - 1) / 2)])}</span><span>${esc(etqs[n - 1])}</span></div>
+    <details class="ver-tabla"><summary>Ver en tabla</summary><table class="tabla"><tbody>${vals.map((v, i) => `<tr><th scope="row">${esc(etqs[i])}</th><td class="num">${n0(v)}</td></tr>`).join('')}</tbody></table></details></figure>`;
+  };
+  // columnas: una serie; el número solo en la última y en la mayor
+  const columnas = (vals, etqs, nombre, fmt = n0, unidad = '') => {
+    const m = Math.max(...vals, 0) || 1, iMax = vals.lastIndexOf(Math.max(...vals));
+    return `<figure class="graf"><div class="cols" role="img" aria-label="${esc(nombre)}: ${vals.map((v, i) => etqs[i] + ' ' + fmt(v)).join(', ')}">
+      ${vals.map((v, i) => `<div tabindex="0" data-tip="${esc(etqs[i])}" data-val="${esc(fmt(v) + (unidad ? ' ' + unidad : ''))}"><em>${(i === vals.length - 1 || i === iMax) && v ? fmt(v) : ''}</em><i class="${v ? '' : 'cero'}" style="height:${Math.max(1.5, v / m * 82)}%"></i></div>`).join('')}
+    </div><div class="colx" aria-hidden="true">${etqs.map(x => `<span>${esc(x)}</span>`).join('')}</div></figure>`;
+  };
+  // barras horizontales: nombre, valor y la barra debajo (de mayor a menor)
+  const hbarras = (filas, suave) => { const m = Math.max(...filas.map(f => f.v), 0) || 1;
+    return `<ul class="hbar">${filas.map(f => `<li><span class="nom">${esc(f.n)}</span><span class="val">${esc(f.t ?? n0(f.v))}</span><span class="pista" aria-hidden="true"><i${suave ? ' class="suave"' : ''} style="width:${Math.max(.5, f.v / m * 100)}%"></i></span></li>`).join('')}</ul>`; };
+
+  // ── datos de uso ──
+  const VE = { gratis: 'Gratis', basico: 'Básico', pro: 'Pro' };
   const G = (d.gasto || []).map(g => ({ ...g, v: g.c })), GN = (d.gasto || []).map(g => ({ ...g, v: g.ok }));
   const R = (d.recortes || []).map(x => ({ ...x, v: x.n })), I = (d.inspos || []).map(x => ({ ...x, v: x.n }));
   const UT = Object.fromEntries((d.usoTotal || []).map(x => [x.usuaria, x]));
-  const VE = { gratis: 'Gratis', basico: 'Básico', pro: 'Pro' };
   const fichas = d.usuarias.map(u => { const x = UT[u.id] || {}, ult = [x.ultimo, (u.actualizado || '').slice(0, 10)].filter(Boolean).sort().pop() || null;
     return { ...u, ultimo: ult, dias30: x.dias30 || 0, dias: x.dias || 0, usd: suma(G, g => g.usuaria === u.id),
       cat: suma(GN, g => g.usuaria === u.id && g.s === 'catalogo'), av: suma(GN, g => g.usuaria === u.id && g.s === 'avatar'), pu: suma(GN, g => g.usuaria === u.id && g.s === 'puesto'),
@@ -253,37 +281,32 @@ button.boton:hover { background: var(--suave); }
     .sort((a, b) => (b.ultimo || '').localeCompare(a.ultimo || '') || (b.creada || '').localeCompare(a.creada || ''));
   const socias = new Set(fichas.filter(u => u.socia).map(u => u.id));
   const act = (n, sinSocias) => new Set(d.uso.filter(u => u.dia >= dia(n - 1) && !(sinSocias && socias.has(u.usuaria))).map(u => u.usuaria)).size;
+  const fallos7 = d.avisos.filter(a => a.fecha >= new Date(hoy - 7 * 864e5).toISOString()).length;
+  const prendas = d.usuarias.reduce((s, u) => s + u.prendas, 0);
   const nuevas7 = d.usuarias.filter(u => u.creada >= new Date(hoy - 7 * 864e5).toISOString()).length;
+  const diaCorto = k => new Date(k + 'T12:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'numeric' });
+  const dias14 = [...Array(14)].map((_, i) => dia(13 - i)), porDia = dias14.map(k => new Set(d.uso.filter(u => u.dia === k).map(u => u.usuaria)).size);
   const lunes = x => { x = new Date(x); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; };
   const semanas = [...Array(8)].map((_, i) => { const l = lunes(hoy); l.setDate(l.getDate() - 7 * (7 - i)); return l; });
   const altasSem = semanas.map((l, i) => d.usuarias.filter(u => { const c = new Date(u.creada); return c >= l && (i === 7 || c < semanas[i + 1]); }).length);
-  const barrasDe = (vals, etq, aria) => { const m = Math.max(1, ...vals); return `<div class="barras" role="img" aria-label="${aria}: ${vals.join(', ')}">${vals.map((v, i) => `<div><em>${v || ''}</em><i style="height:${Math.round(v / m * 80)}%"></i><small>${etq[i]}</small></div>`).join('')}</div>`; };
-  const ficha = u => `<div class="tarjeta ficha"><div class="cabeza"><h3 class="correo">${esc(u.correo)}</h3><small>${[u.socia ? 'Socia' : '', VE[u.ve] || ''].filter(Boolean).join(' · ')}</small></div>
-    <p class="cuando">Alta ${fecha(u.creada)} · último día ${fecha(u.ultimo)}</p>
-    <dl class="nums"><div><dt>días de uso, 30 días</dt><dd>${u.dias30}</dd></div><div><dt>prendas</dt><dd>${u.prendas}</dd></div><div><dt>looks</dt><dd>${u.looks}</dd></div><div><dt>gasto de IA</dt><dd>${u.usd ? usd(u.usd).replace(' $', '') : '0'}<small style="font-size:14px"> $</small></dd></div></dl></div>`;
-  // dinero: cada mes con lo que se ha pedido a la IA (servidor) y las tandas de la Dirección desde el Mac (panel)
+
+  // ── dinero ──
   const DIR = Object.fromEntries((P.iaDireccion || []).map(x => [x.mes, x.usd]));
-  const meses = [...new Set([...(d.gasto || []), ...(d.recortes || []), ...(d.inspos || [])].map(x => x.mes).concat(Object.keys(DIR)))].sort().reverse().slice(0, 12);
-  const mesAhora = new Date().toISOString().slice(0, 7);
-  const nomMes = m => { const s = new Date(m + '-15').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }); return s[0].toUpperCase() + s.slice(1); };
+  const meses = [...new Set([...(d.gasto || []), ...(d.recortes || []), ...(d.inspos || [])].map(x => x.mes).concat(Object.keys(DIR)))].sort();
+  const mesAhora = hoy.toISOString().slice(0, 7);
+  const nomMes = (m, corto) => { const s = new Date(m + '-15').toLocaleDateString('es-ES', corto ? { month: 'short' } : { month: 'long', year: 'numeric' }); return s[0].toUpperCase() + s.slice(1).replace('.', ''); };
   const iaMes = (m, sinSocias) => suma(G, g => g.mes === m && !(sinSocias && socias.has(g.usuaria))) + (sinSocias ? 0 : DIR[m] || 0);
-  const porActiva = act(30, true) ? usd(iaMes(mesAhora, true) / act(30, true)) : '—';
   const fijosTot = (P.fijos || []).reduce((s, [, v]) => s + v, 0);
-  // 10/11 (plan común de Coordinación de marketing): cada pago aprobado por Gabriela (control/gastos.csv), la IA pasada a euros con el cambio del BCE, saldo y tope
   const PAG = (P.gastos || []).map(g => ({ ...g, e: +(g.euros_aprox || (g.moneda === 'EUR' ? g.importe : 0)) || 0 }));
-  const pagosEur = PAG.reduce((s, g) => s + g.e, 0), cuotasMes = PAG.reduce((s, g) => s + (g.cada === 'mensual' ? g.e : g.cada === 'anual' ? g.e / 12 : 0), 0);
+  const pagosEur = PAG.reduce((s, g) => s + g.e, 0);
   const iaTotUsd = suma(G, () => true) + Object.values(DIR).reduce((s, v) => s + v, 0), cambio = P.usdEur?.v || null;
   const gastado = pagosEur + (cambio ? iaTotUsd * cambio : 0), tope = P.tope?.eur || 0;
-  const eur2 = n => (Math.round(n * 100) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  const CM = d.catalogoMes || null; // gasto de IA del servidor este mes y su tope (CAT_MES_USD)
   const nomCada = { unico: 'una vez', 'único': 'una vez', mensual: 'al mes', anual: 'al año' };
-  const mesCard = m => { const n = s => suma(GN, g => g.mes === m && g.s === s), c = s => suma(G, g => g.mes === m && g.s === s);
-    const fila = (t, v) => `<li><span>${t}</span><span>${v}</span></li>`;
-    return `<div class="tarjeta mes"><h3>${nomMes(m)}</h3><ul class="filas">
-      ${fila('Fotos de catálogo', `${n('catalogo')} · ${usd(c('catalogo'))}`)}${fila('Avatares', `${n('avatar')} · ${usd(c('avatar'))}`)}${fila('Puesto en mí', `${n('puesto')} · ${usd(c('puesto'))}`)}
-      ${DIR[m] ? fila('Tandas de la Dirección', usd(DIR[m])) : ''}${fila('Recortes de fondo', `${suma(R, x => x.mes === m)} · gratis`)}${fila('Lecturas de looks', `${suma(I, x => x.mes === m)} · gratis`)}
-      <li class="tot"><span>Total de IA</span><span>${usd(iaMes(m))}</span></li></ul></div>`; };
-  // 10/11: redes (estudio A7 de Coordinación): 4 cifras con su ▲/▼ frente a la semana anterior, cada red y las piezas que mejor funcionaron
-  const semISO = dt => { const x = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate())), n = x.getUTCDay() || 7; x.setUTCDate(x.getUTCDate() + 4 - n); const a = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); return x.getUTCFullYear() + '-W' + String(Math.ceil(((x - a) / 864e5 + 1) / 7)).padStart(2, '0'); };
+  const SERV = { catalogo: 'Fotos de catálogo', avatar: 'Avatares', puesto: 'Verlo puesto', clasificar: 'Nombre y detalles' };
+
+  // ── redes ──
+  const RED = { ig: 'Instagram', tt: 'TikTok', pin: 'Pinterest', g: 'Google', cartel: 'Cartel' }, nomRed = o => RED[o] || (/^mail/.test(o) ? 'Correo ' + o.slice(4) : /-ad\d+$/.test(o) ? 'Anuncio ' + o : o || 'Directo');
   const MED = (P.medidas || []).filter(x => x.semana), semanasMed = [...new Set(MED.map(x => x.semana))].sort(), semU = semanasMed.at(-1), semA = semanasMed.at(-2);
   const num = v => v === '' || v == null ? null : +String(v).replace(',', '.');
   const sumaMed = (sem, k, red) => { const v = MED.filter(x => x.semana === sem && (!red || x.red === red)).map(x => num(x[k])).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : null; };
@@ -291,114 +314,160 @@ button.boton:hover { background: var(--suave); }
   const mediana = a => { const v = a.filter(x => x != null).sort((x, y) => x - y); return v.length ? (v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : null; };
   const intSem = sem => sem ? mediana(MED.filter(x => x.semana === sem && x.pieza !== 'cuenta').map(interes)) : null;
   const ROJ = /^(ig|tt|pin)(-|$)/, visDe = (a, b, f) => (d.visitas || []).filter(v => v.dia >= dia(b) && v.dia <= dia(a) && f(v.origen)).reduce((s, v) => s + v.n, 0);
-  const visRed7 = visDe(0, 6, o => ROJ.test(o)), visRedA = visDe(7, 13, o => ROJ.test(o));
   const EFs = (d.espera?.filas || []), altas7 = EFs.filter(x => x.dia >= dia(6)).length, altasA = EFs.filter(x => x.dia >= dia(13) && x.dia < dia(6)).length;
   const flecha = (a, b) => a == null || b == null || a === b ? '' : `<small class="flecha ${a > b ? 'sube' : 'baja'}">${a > b ? '▲' : '▼'}<span class="vh">${a > b ? 'sube' : 'baja'} frente a la semana anterior</span></small>`;
-  const cifraR = (v, et, ant) => `<div><b>${v == null ? '—' : (Math.round(v * 10) / 10).toLocaleString('es-ES')}${flecha(v, ant)}</b><span>${et}</span></div>`;
+  const cifraR = (v, et, ant) => tile(`${v == null ? '—' : (Math.round(v * 10) / 10).toLocaleString('es-ES', { useGrouping: 'always' })}${flecha(v, ant)}`, et);
   const REDES = [['ig', 'Instagram'], ['tt', 'TikTok'], ['pin', 'Pinterest']];
   const cuentaDe = n => (P.cuentas || []).find(c => c.s.startsWith(n)) || {};
   const segDe = r => (P.seguidores || []).filter(x => x.red === r).sort((a, b) => a.fecha.localeCompare(b.fecha)).at(-1);
-  const tarjRed = ([r, n]) => { const c = cuentaDe(n), sg = segDe(r), v30 = visDe(0, 29, o => o === r || o.startsWith(r + '-'));
-    const fila = (t, v) => `<li><span>${t}</span><span>${v == null ? '—' : v.toLocaleString('es-ES')}</span></li>`;
-    return `<div class="tarjeta"><h3 class="red-t">${n}</h3><p class="red-n">${est(c.e || 'falta')}<span>${esc(c.n || '')}</span></p><ul class="filas">
-      ${fila('Seguidores' + (sg ? ` (${fecha(sg.fecha)})` : ''), sg ? num(sg.seguidores) : null)}${fila('Visualizaciones, última semana', semU ? sumaMed(semU, 'visualizaciones', r) : null)}
-      ${fila('Guardados', semU ? sumaMed(semU, 'guardados', r) : null)}${fila('Clics al enlace', semU ? sumaMed(semU, 'clics_enlace', r) : null)}${fila('Visitas a la web, 30 días', v30)}</ul></div>`; };
+  const celda = v => `<td class="num">${v == null ? '—' : n0(v)}</td>`;
   const piezas = semU ? MED.filter(x => x.semana === semU && x.pieza !== 'cuenta').map(x => ({ ...x, i: interes(x) })).filter(x => x.i != null).sort((a, b) => b.i - a.i).slice(0, 8) : [];
-  const maxI = Math.max(1, ...piezas.map(x => x.i));
-  const redesSec = `<section id="redes"><h2>Redes</h2>
-    <div class="cifras c4">${cifraR(semU ? sumaMed(semU, 'visualizaciones') : null, 'visualizaciones, última semana', semA ? sumaMed(semA, 'visualizaciones') : null)}${cifraR(intSem(semU), 'interés: compartidos y guardados por cada 1.000', intSem(semA))}${cifraR(visRed7, 'visitas a la web desde las redes, 7 días', visRedA)}${cifraR(altas7, 'apuntadas a la lista de espera, 7 días', altasA)}</div>
-    ${semU ? '' : '<p class="vacio">Sin cifras de las redes hasta la primera medición: viernes 13/11.</p>'}
-    <div class="rejilla" style="margin-top:12px">${REDES.map(tarjRed).join('')}</div>
-    ${piezas.length ? `<div class="tarjeta" style="margin-top:12px"><div class="cabeza"><h3>Lo que mejor funcionó</h3><small>semana ${esc(semU.slice(6))}</small></div><ul class="hbarras">${piezas.map((x, k) => `<li><span>${esc((REDES.find(r => r[0] === x.red) || [, x.red])[1] + ' · ' + x.pieza)}</span><i style="width:${Math.round(x.i / maxI * 100)}%"${k ? '' : ' class="top"'}></i><em>${(Math.round(x.i * 10) / 10).toLocaleString('es-ES')}</em></li>`).join('')}</ul></div>` : ''}
-    ${redes}
-    <p class="nota">De dónde sale: las redes no tienen una forma automática de darnos sus cifras, así que se apuntan cada viernes en una sola pasada${semU ? ` (última: semana ${esc(semU.slice(6))})` : ''}. Las visitas y las apuntadas salen del servidor, en directo. Semana actual: ${semISO(hoy).slice(6)}.</p></section>`;
-  const csv = (nombre, filas) => { const txt = '\ufeff' + filas.map(f => f.map(v => { const x = typeof v === 'number' ? String(Math.round(v * 1000) / 1000).replace('.', ',') : String(v ?? '');
+  const otras = {}; (d.visitas || []).filter(v => v.dia >= dia(29) && !ROJ.test(v.origen)).forEach(v => otras[v.origen] = (otras[v.origen] || 0) + v.n);
+
+  // ── empresa ──
+  const F = P.funciones || [], grupos = [...new Set(F.map(f => f.g))], cuenta = e => F.filter(f => f.e === e).length;
+  const ESTADOS = ['hecho', 'marcha', 'falta', 'espera'];
+  const plegable = (nombre, h, total, cuerpo) => `<details><summary><span class="nom">${esc(nombre)}</span><span class="mini" aria-hidden="true"><i style="width:${pct(h, total)}%"></i></span><span class="cu">${h}/${total}</span></summary>${cuerpo}</details>`;
+  const listaEst = items => `<ul class="lista">${items.map(x => `<li>${est(x.e)}<span>${esc(x.t)}${x.n ? `<small>${esc(x.n)}</small>` : ''}</span></li>`).join('')}</ul>`;
+
+  // ── os toca y fechas ──
+  const aFecha = f => { const [dd, mm, aa] = String(f).split('/'); return new Date(+(aa || hoy.getFullYear()), +mm - 1, +dd, 12); };
+  const proximas = (P.calendario || []).filter(x => aFecha(x.f) >= new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()));
+
+  // ── CSV para Excel ──
+  const csv = (nombre, filas) => { const txt = '﻿' + filas.map(f => f.map(v => { const x = typeof v === 'number' ? String(Math.round(v * 1000) / 1000).replace('.', ',') : String(v ?? '');
       return /[;"\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; }).join(';')).join('\r\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' })); a.download = nombre; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); };
   const CSV = {
-    usuarias: () => csv('tucloset-usuarias.csv', [['Cuenta', 'Socia', 'Alta', 'Último día', 'Días de uso (30 días)', 'Días de uso (total)', 'Prendas', 'Con foto de catálogo', 'Looks', 'Puestas', 'Versión que ve', 'Ropa', 'Diagnóstico', 'Fotos de catálogo IA', 'Avatares', 'Puesto en mí', 'Recortes', 'Lecturas de looks', 'Gasto de IA ($)'],
+    usuarias: () => csv('tucloset-usuarias.csv', [['Cuenta', 'Socia', 'Alta', 'Último día', 'Días de uso (30 días)', 'Días de uso (total)', 'Prendas', 'Con foto de catálogo', 'Looks', 'Puestas', 'Versión que ve', 'Ropa', 'Diagnóstico', 'Fotos de catálogo IA', 'Avatares', 'Verlo puesto', 'Recortes', 'Lecturas de looks', 'Gasto de IA ($)'],
       ...fichas.map(u => [u.correo, u.socia ? 'sí' : 'no', (u.creada || '').slice(0, 10), u.ultimo || '', u.dias30, u.dias, u.prendas, u.catalogo, u.looks, u.usos, VE[u.ve] || '', u.ropa || '', u.diag ? 'sí' : 'no', u.cat, u.av, u.pu, u.rec, u.ins, u.usd])]),
     dinero: () => csv('tucloset-contabilidad.csv', [['Mes', 'Concepto', 'Cantidad', 'Dólares', 'Euros'],
-      ...meses.slice().reverse().flatMap(m => [[m, 'Ingresos', 0, '', 0],
-        ...['catalogo', 'avatar', 'puesto'].map(s => [m, { catalogo: 'Fotos de catálogo', avatar: 'Avatares', puesto: 'Puesto en mí' }[s], suma(GN, g => g.mes === m && g.s === s), suma(G, g => g.mes === m && g.s === s), '']),
+      ...meses.flatMap(m => [[m, 'Ingresos', 0, '', 0],
+        ...Object.keys(SERV).map(s => [m, SERV[s], suma(GN, g => g.mes === m && g.s === s), suma(G, g => g.mes === m && g.s === s), '']),
         [m, 'Tandas de la Dirección (IA)', '', DIR[m] || 0, ''], [m, 'Recortes de fondo (gratis)', suma(R, x => x.mes === m), 0, ''], [m, 'Lecturas de looks (gratis)', suma(I, x => x.mes === m), 0, '']]),
       ...(P.fijos || []).map(([n, v]) => ['al mes', 'Fijo previsto: ' + n, '', '', v]),
       ...PAG.map(g => [g.fecha, 'Pago (' + (nomCada[g.cada] || g.cada) + '): ' + g.concepto, '', g.moneda === 'USD' ? +g.importe : '', g.e])]),
     uso: () => { const k = [...new Set(d.uso.map(u => u.dia))].sort(); csv('tucloset-uso-por-dia.csv', [['Día', 'Personas', 'Personas sin vosotras', 'Aperturas'], ...k.map(x => { const u = d.uso.filter(y => y.dia === x); return [x, u.length, u.filter(y => !socias.has(y.usuaria)).length, u.reduce((s, y) => s + y.n, 0)]; })]); } };
 
+  // encuesta de las pruebas: una barra por respuesta
   let enc = '<p class="vacio">Aún no hay respuestas.</p>';
-  if (d.encuestas.length) { const cuenta = {}; d.encuestas.forEach(x => Object.entries(x.r).forEach(([q, v]) => { (cuenta[q] = cuenta[q] || {}); [].concat(v).forEach(o => cuenta[q][o] = (cuenta[q][o] || 0) + 1); }));
-    enc = Object.entries(cuenta).map(([q, ops]) => `<h4 class="grupo">${esc(q)}</h4><ul class="filas">${Object.entries(ops).sort((a, b) => b[1] - a[1]).map(([o, n]) => `<li><span>${esc(o)}</span><span>${n}</span></li>`).join('')}</ul>`).join(''); }
+  if (d.encuestas.length) { const cu = {}; d.encuestas.forEach(x => Object.entries(x.r).forEach(([q, v]) => { (cu[q] = cu[q] || {}); [].concat(v).forEach(o => cu[q][o] = (cu[q][o] || 0) + 1); }));
+    enc = Object.entries(cu).map(([q, ops]) => `<p style="margin:14px 0 6px">${esc(q)}</p>${hbarras(Object.entries(ops).sort((a, b) => b[1] - a[1]).map(([o, n]) => ({ n: o, v: n })))}`).join(''); }
 
-  const F = P.funciones || [], grupos = [...new Set(F.map(f => f.g))], hechas = F.filter(f => f.e === 'hecho').length;
-  const leyenda = `<div class="leyenda"><span>${est('hecho')}Hecho</span><span>${est('marcha')}En marcha</span><span>${est('falta')}Falta</span><span>${est('espera')}Espera</span></div>`;
-  const mas = [
-    ['Encuesta de las pruebas', d.encuestas.length ? `${d.encuestas.length}` : '', enc],
-    ...(P.docs || []).map(x => [x.t, '', x.html]),
-    ['Fallos', `${d.avisos.length}`, d.avisos.length ? `<ul class="filas">${d.avisos.slice(0, 20).map(a => `<li><code>${esc(a.d)}</code><span>${hora(a.fecha)}</span></li>`).join('')}</ul>` : '<p class="vacio">Ningún fallo.</p>'],
-  ];
+  const secciones = [['hoy', 'Hoy'], ['cifras', 'Cifras'], ['dinero', 'Dinero'], ['redes', 'Redes'], ['empresa', 'Empresa']];
+  const iaServ = CM ? +CM.usd : iaMes(mesAhora) - (DIR[mesAhora] || 0), topeServ = CM ? +CM.tope : 0;
+  const mesesG = meses.slice(-6);
 
   raiz.innerHTML = `<nav aria-label="Secciones"><ul>${secciones.map(([k, n]) => `<li><a href="#${k}">${n}</a></li>`).join('')}</ul></nav><main>
-  <section id="toca"><h2>Os toca</h2>
-    <div class="rejilla toca">${(P.pendientes || []).map(p => `<div class="tarjeta"><span class="quien">${esc(p.q)}</span><b>${esc(p.t)}</b>${p.r ? `<span class="rec">${esc(p.r)}</span>` : ''}</div>`).join('')}</div></section>
 
-  <section id="cifras"><h2>Cifras</h2>
-    <div class="cifras"><div><b>${d.usuarias.length}</b><span>cuentas</span></div><div><b>${activas7}</b><span>activas, 7 días</span></div><div><b>${prendas}</b><span>prendas</span></div>
-    <div><b>0</b><span>suscriptoras</span></div><div><b>${d.entradas7}</b><span>entradas, 7 días</span></div><div><b>${fallos7}</b><span>fallos, 7 días</span></div>${d.catalogoMes ? `<div><b>${d.catalogoMes.hechas}</b><span>fotos de catálogo este mes · ${String(d.catalogoMes.usd).replace(".", ",")} $ de ${d.catalogoMes.tope}</span></div>` : ""}</div>
-    <div class="tarjeta uso"><p>Personas que abren la app cada día</p>${barras}</div>
-    ${redes}
-    ${espera}
-    <div class="rejilla mirar" style="margin-top:12px">${(P.mirar || []).map(x => x.url ? `<a href="${esc(x.url)}"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></a>` : `<div class="tarjeta"><b>${esc(x.t)}</b><span>${esc(x.n || '')}</span></div>`).join('')}</div></section>
+  <section id="hoy"><h2 class="vh">Hoy</h2>
+    <div class="tiles">
+      ${tile(n0(d.usuarias.length), socias.size ? `cuentas, ${socias.size} vuestras` : 'cuentas')}
+      ${tile(n0(act(7)), 'activas esta semana')}
+      ${tile(`${dec(iaServ)}<small>$</small>`, topeServ ? `IA este mes, de ${n0(topeServ)} $` : 'IA este mes', topeServ ? medidor(iaServ, topeServ) : '')}
+      ${tile(n0(fallos7), 'fallos esta semana')}
+    </div>
+    ${bloque('Os toca', `<ul class="toca">${(P.pendientes || []).map(p => `<li><details><summary><span class="que">${esc(p.t)}</span><span class="quien">${esc(p.q)}</span><span class="cuando${/^ya$/i.test(p.f || '') ? ' ya' : ''}">${esc(p.f && p.f !== 'Sin fecha' ? p.f : '')}</span></summary>${p.r ? `<p>${esc(p.r)}</p>` : ''}</details></li>`).join('')}</ul>`, `${(P.pendientes || []).length}`)}
+    <div class="dos">
+      ${bloque('Próximas fechas', `<ol class="linea">${proximas.map((x, i) => `<li${i ? ' class="lejos"' : ''}><b>${esc(x.f)}</b><span>${esc(x.q.replace(/ \(propuesta\)$/, ''))}</span></li>`).join('')}</ol>`)}
+      ${bloque('Para mirar', `<div class="enlaces">${(P.mirar || []).map(x => x.url ? `<a href="${esc(x.url)}">${esc(x.t)}</a>` : `<span>${esc(x.t)}</span>`).join('')}</div>`)}
+    </div>
+  </section>
 
-  <section id="usuarias"><h2>Usuarias</h2>
-    <div class="cifras c4"><div><b>${d.usuarias.length}</b><span>cuentas${socias.size ? `, ${socias.size} vuestras` : ''}</span></div><div><b>${act(7)}</b><span>activas, 7 días</span></div><div><b>${act(30)}</b><span>activas, 30 días</span></div><div><b>${nuevas7}</b><span>nuevas, 7 días</span></div></div>
-    <div class="tarjeta uso"><p>Cuentas nuevas cada semana</p>${barrasDe(altasSem, semanas.map(l => `${l.getDate()}/${l.getMonth() + 1}`), 'Cuentas nuevas cada semana, últimas 8 semanas')}</div>
-    <div class="rejilla" style="margin-top:12px">${fichas.map(ficha).join('')}</div>
-    <p class="nota">Cada cuenta, con su correo abreviado. Vuestras pruebas y las de la Dirección cuentan como uso vuestro.</p>
-    <div class="acciones"><button class="boton" type="button" data-csv="usuarias">Descargar usuarias (CSV)</button><button class="boton" type="button" data-csv="uso">Descargar uso por día (CSV)</button></div></section>
+  <section id="cifras"><h2 class="vh">Cifras</h2>
+    <div class="tiles">
+      ${tile(n0(act(30)), 'activas en 30 días')}
+      ${tile(n0(nuevas7), 'cuentas nuevas esta semana')}
+      ${tile(n0(prendas), 'prendas subidas')}
+      ${tile(n0(d.entradas7), 'entradas esta semana')}
+    </div>
+    <div class="dos">
+      ${bloque('Personas que abren la app', linea(porDia, dias14.map(diaCorto), 'Personas que abren la app cada día, últimos 14 días', 'personas'), '14 días')}
+      ${bloque('Cuentas nuevas', columnas(altasSem, semanas.map(l => `${l.getDate()}/${l.getMonth() + 1}`), 'Cuentas nuevas cada semana, últimas 8 semanas'), 'por semana')}
+    </div>
+    ${bloque('Usuarias', `<div class="desliza"><table class="tabla"><thead><tr><th scope="col">Cuenta</th><th scope="col" class="num">Prendas</th><th scope="col" class="num">Looks</th><th scope="col" class="num">Días</th><th scope="col" class="num">IA</th></tr></thead>
+      <tbody>${fichas.map(u => `<tr><th scope="row">${esc(u.correo)}${u.socia ? ' <small class="peq">· socia</small>' : ''}</th><td class="num">${n0(u.prendas)}</td><td class="num">${n0(u.looks)}</td><td class="num">${n0(u.dias30)}</td><td class="num">${u.usd ? usd(u.usd) : '—'}</td></tr>`).join('')}</tbody></table></div>`, 'días de uso en 30 días')}
+    ${bloque('Lista de espera', !d.espera?.abierta && !EFs.length ? '<p class="vacio">Cerrada hasta tener Brevo y la privacidad publicada.</p>'
+      : `<div class="tiles">${tile(n0(EFs.length), 'apuntadas')}${tile(d.espera?.confirmadas == null ? '—' : n0(d.espera.confirmadas), 'confirmadas')}${tile(n0(altas7), 'esta semana')}${tile(n0(EFs.filter(x => x.nov).length), 'quieren novedades')}</div>`)}
+    <div class="bloque plegables sin-barra">
+      <details><summary><span class="nom">Encuesta de las pruebas</span><span class="cu">${d.encuestas.length}</span></summary><div class="cuerpo">${enc}</div></details>
+      <details><summary><span class="nom">Fallos</span><span class="cu">${d.avisos.length}</span></summary><div class="cuerpo">${d.avisos.length ? `<ul class="filas">${d.avisos.slice(0, 20).map(a => `<li><code>${esc(a.d)}</code><span>${hora(a.fecha)}</span></li>`).join('')}</ul>` : '<p class="vacio">Ningún fallo.</p>'}</div></details>
+    </div>
+    <div class="acciones"><button class="boton" type="button" data-csv="usuarias">Descargar usuarias</button><button class="boton" type="button" data-csv="uso">Descargar uso por día</button></div>
+  </section>
 
-  <section id="dinero"><h2>Dinero</h2>
-    <div class="cifras c4"><div><b>0 €</b><span>ingresos este mes</span></div><div><b>${usd(iaMes(mesAhora)).replace(' $', '')}<small style="font-size:24px"> $</small></b><span>IA este mes</span></div><div><b>${fijosTot} €</b><span>fijos previstos al mes</span></div><div><b>${porActiva.replace(' $', '')}${porActiva === '—' ? '' : '<small style="font-size:24px"> $</small>'}</b><span>IA por usuaria activa, sin vosotras</span></div></div>
-    <div class="cifras c4" style="margin-top:12px"><div><b>${eur2(gastado).replace(' €', '')}<small style="font-size:24px"> €</small></b><span>gastado en total</span></div><div><b>0 €</b><span>ingresado</span></div><div><b>${(gastado > 0 ? '−' : '') + eur2(gastado).replace(' €', '')}<small style="font-size:24px"> €</small></b><span>saldo</span></div><div><b>—</b><span>coste por clienta (aún sin clientas)</span></div></div>
-    ${tope ? `<div class="tarjeta" style="margin-top:12px"><div class="cabeza"><h3>Frente al tope</h3><small>${eur2(gastado)} de ${eur(tope)}</small></div>${barra(Math.min(100, pct(gastado, tope)))}<p class="nota" style="margin:0">${esc(P.tope.nota)}</p></div>` : ''}
-    <div class="tarjeta" style="margin-top:12px"><div class="cabeza"><h3>Pagos</h3><small>${PAG.length} · cuotas ${eur2(cuotasMes)} al mes</small></div>${PAG.length ? `<ul class="filas">${PAG.slice().reverse().map(g => `<li><span>${esc(g.concepto)}<br><small class="gris">${fecha(g.fecha)} · ${esc(nomCada[g.cada] || g.cada)} · paga ${esc(g.paga)}${g.justificante ? ' · ' + esc(g.justificante) : ''}</small></span><span>${g.moneda === 'EUR' ? eur2(+g.importe) : esc(g.importe + ' ' + g.moneda)}</span></li>`).join('')}</ul>` : '<p class="vacio">Ningún pago todavía.</p>'}</div>
-    <p class="nota">De dónde sale: los pagos, de la lista que se apunta en cuanto Gabriela aprueba uno; la IA, del servidor en directo y de las tandas de la Dirección${cambio ? `, pasada a euros con el cambio del BCE del ${fecha(P.usdEur.fecha)} (1 $ = ${String(cambio).replace('.', ',')} €)` : ' (sin cambio del dólar hoy: el total no la incluye)'}. Panel de la Dirección: ${esc(P.actualizado || '')}.</p>
-    <div class="rejilla" style="margin-top:12px">${meses.length ? meses.map(mesCard).join('') : '<p class="vacio">Todavía no hay gastos.</p>'}
-      <div class="tarjeta mes"><h3>Fijos previstos al mes</h3><ul class="filas">${(P.fijos || []).map(([n, v]) => `<li><span>${esc(n)}</span><span>${v} €</span></li>`).join('')}<li class="tot"><span>Total</span><span>${fijosTot} €</span></li></ul></div></div>
-    <p class="nota">La IA se paga en dólares a Google. Los recortes y las lecturas de looks son gratis dentro del cupo de Cloudflare. Sin cobros todavía.</p>
-    <div class="acciones"><button class="boton" type="button" data-csv="dinero">Descargar contabilidad (CSV)</button></div></section>
+  <section id="dinero"><h2 class="vh">Dinero</h2>
+    <div class="heroe"><b>${dec(iaMes(mesAhora))}<small>$</small></b><span>IA en ${nomMes(mesAhora).toLowerCase()}</span></div>
+    ${topeServ ? medidor(iaServ, topeServ, `App: ${usd(iaServ)} de ${n0(topeServ)} $`, `${pct(iaServ, topeServ)} %`) : ''}
+    <div class="tiles" style="margin-top:22px">
+      ${tile(`${dec(gastado)}<small>€</small>`, 'gastado en total')}
+      ${tile('0<small>€</small>', 'ingresado')}
+      ${tile(`${n0(fijosTot)}<small>€</small>`, 'fijos previstos al mes')}
+      ${tile(act(30, true) ? `${dec(iaMes(mesAhora, true) / act(30, true))}<small>$</small>` : '—', 'IA por usuaria, sin vosotras')}
+    </div>
+    <div class="dos">
+      ${bloque('IA por mes', columnas(mesesG.map(m => Math.round(iaMes(m) * 100) / 100), mesesG.map(m => nomMes(m, true)), 'Gasto de IA por mes, en dólares', dec, '$'), 'en dólares')}
+      ${bloque(`${nomMes(mesAhora)}, por servicio`, (L => L.length ? hbarras(L) : '<p class="vacio">Nada este mes.</p>')([...Object.keys(SERV).map(s => ({ n: SERV[s], v: suma(G, g => g.mes === mesAhora && g.s === s), t: `${n0(suma(GN, g => g.mes === mesAhora && g.s === s))} · ${usd(suma(G, g => g.mes === mesAhora && g.s === s))}` })),
+        ...(DIR[mesAhora] ? [{ n: 'Tandas de la Dirección', v: DIR[mesAhora], t: usd(DIR[mesAhora]) }] : [])].filter(x => x.v > 0).sort((a, b) => b.v - a.v)))}
+    </div>
+    ${tope ? bloque('Antes de cobrar', medidor(gastado, tope, `${eur2(gastado)} de ${eur(tope)} previstos`, `${pct(gastado, tope)} %`)) : ''}
+    <div class="dos">
+      ${bloque('Pagos', PAG.length ? `<ul class="filas">${PAG.slice().reverse().map(g => `<li><span>${esc(g.concepto)} <small class="peq">${fecha(g.fecha)}</small></span><span>${g.moneda === 'EUR' ? eur2(+g.importe) : esc(g.importe + ' ' + g.moneda)}</span></li>`).join('')}</ul>` : '<p class="vacio">Ningún pago todavía.</p>', `${PAG.length}`)}
+      ${bloque('Fijos previstos al mes', hbarras((P.fijos || []).map(([n, v]) => ({ n, v, t: eur(v) })).sort((a, b) => b.v - a.v), true), eur(fijosTot))}
+    </div>
+    <p class="peq" style="margin-top:18px">La IA se paga en dólares a Google${cambio ? ` · 1 $ = ${String(cambio).replace('.', ',')} € (BCE, ${fecha(P.usdEur.fecha)})` : ''}. Recortes y lecturas de looks, gratis.</p>
+    <div class="acciones"><button class="boton" type="button" data-csv="dinero">Descargar contabilidad</button></div>
+  </section>
 
-  ${redesSec}
+  <section id="redes"><h2 class="vh">Redes</h2>
+    <div class="tiles">
+      ${cifraR(semU ? sumaMed(semU, 'visualizaciones') : null, 'visualizaciones, última semana', semA ? sumaMed(semA, 'visualizaciones') : null)}
+      ${cifraR(intSem(semU), 'guardados y compartidos por cada 1.000', intSem(semA))}
+      ${cifraR(visDe(0, 6, o => ROJ.test(o)), 'visitas a la web desde las redes, 7 días', visDe(7, 13, o => ROJ.test(o)))}
+      ${cifraR(altas7, 'apuntadas a la lista, 7 días', altasA)}
+    </div>
+    ${bloque('Por red', `<div class="desliza"><table class="tabla red"><thead><tr><th scope="col">Red</th><th scope="col" class="num">Seguidores</th><th scope="col" class="num">Vistas</th><th scope="col" class="num">Guardados</th><th scope="col" class="num">Clics</th><th scope="col" class="num">Web</th></tr></thead>
+      <tbody>${REDES.map(([r, n]) => { const sg = segDe(r); return `<tr><th scope="row">${est(cuentaDe(n).e || 'falta')}${n}</th>${celda(sg ? num(sg.seguidores) : null)}${celda(semU ? sumaMed(semU, 'visualizaciones', r) : null)}${celda(semU ? sumaMed(semU, 'guardados', r) : null)}${celda(semU ? sumaMed(semU, 'clics_enlace', r) : null)}${celda(visDe(0, 29, o => o === r || o.startsWith(r + '-')))}</tr>`; }).join('')}</tbody></table></div>`,
+      semU ? `semana ${esc(semU.slice(6))} · web: visitas en 30 días` : 'primera medición: viernes 13/11')}
+    ${piezas.length ? bloque('Lo que mejor funcionó', hbarras(piezas.map(x => ({ n: (REDES.find(r => r[0] === x.red) || [, x.red])[1] + ' · ' + x.pieza, v: x.i, t: (Math.round(x.i * 10) / 10).toLocaleString('es-ES') }))), 'por 1.000 vistas') : ''}
+    ${Object.keys(otras).length ? bloque('Otras visitas', hbarras(Object.entries(otras).sort((a, b) => b[1] - a[1]).map(([o, n]) => ({ n: nomRed(o), v: n }))), '30 días') : ''}
+  </section>
 
-  <section id="funciones"><h2>Funciones de la app</h2>
-    <div class="grande"><b>${hechas}</b><span> de ${F.length} hechas</span>${barra(pct(hechas, F.length))}</div>${leyenda}
-    <div class="rejilla">${grupos.map(g => { const fs = F.filter(f => f.g === g), h = fs.filter(f => f.e === 'hecho').length; return `<div class="tarjeta"><div class="cabeza"><h3>${esc(g)}</h3><small>${h} de ${fs.length}</small></div>${barra(pct(h, fs.length))}<ul class="lista">${fs.map(f => `<li>${est(f.e)}<span>${esc(f.f)}</span></li>`).join('')}</ul></div>`; }).join('')}</div></section>
-
-  <section id="fases"><h2>Fases y presupuesto</h2>
-    <div class="fases">${(P.fases || []).map(f => `<div class="tarjeta"><h3>${esc(f.n)}</h3><span class="eur">${eur(f.m)}</span><small>${esc(f.i.slice(0, 5))} – ${esc(f.f.slice(0, 5))}</small>${barra(Math.round(f.a * 100))}<small style="margin-top:6px">${Math.round(f.a * 100)} %</small></div>`).join('')}</div>
-    ${P.presupuesto ? `<div class="total"><b>${eur(P.presupuesto.total)}</b><span>hasta octubre de 2027 · ${P.presupuesto.antes} € antes de cobrar</span></div>` : ''}
-    <div class="fechas">${(P.calendario || []).map(x => `<div><b>${esc(x.f.slice(0, 5))}</b><span>${esc(x.q.replace(/ \(propuesta\)$/, ''))}</span></div>`).join('')}</div>
-    ${(P.legal || []).length ? `<div class="tarjeta" style="margin-top:12px"><div class="cabeza"><h3>Legal y riesgos</h3><small>${P.legal.filter(x => x.e !== 'hecho').length} abiertos</small></div><ul class="lista">${P.legal.map(x => `<li>${est(x.e)}<span>${esc(x.t)}<br><small class="gris">${esc(x.n)}</small></span></li>`).join('')}</ul></div>` : ''}</section>
-
-  <section id="equipo"><h2>Equipo</h2>${leyenda}
-    <div class="rejilla">${(P.departamentos || []).map(x => { const h = x.tareas.filter(t => t.e === 'hecho').length; return `<div class="tarjeta"><div class="cabeza"><h3>${esc(x.n)}</h3><small>${h} de ${x.tareas.length}</small></div>${barra(pct(h, x.tareas.length))}<ul class="lista">${x.tareas.map(tk => `<li>${est(tk.e)}<span>${esc(tk.t)}</span></li>`).join('')}</ul></div>`; }).join('')}</div></section>
-
-  <section id="cuentas"><h2>Cuentas de la empresa</h2>
-    <div class="rejilla cuentas">${(P.cuentas || []).map(x => `<div class="tarjeta">${est(x.e)}<b>${esc(x.s)}</b><span class="p">${esc(x.p)}</span>${/^https:\/\//.test(x.u || '') ? `<a class="abrir" href="${esc(x.u)}" target="_blank" rel="noopener">Abrir ${esc(x.s.split(' ')[0])}</a>` : ''}</div>`).join('')}</div>
-    <p class="nota">${esc(P.nota_claves || '')}</p></section>
-
-  <section id="mas" class="mas"><h2>Más</h2>
-    ${mas.map(([t, n, html]) => `<details><summary><h3>${esc(t)}${n ? `<small>${esc(n)}</small>` : ''}</h3></summary><div class="cuerpo">${html}</div></details>`).join('')}</section>
-  <p class="pie">Actualizado: ${hora(d.generado)}</p>
+  <section id="empresa"><h2 class="vh">Empresa</h2>
+    <div class="heroe"><b>${cuenta('hecho')}<small>de ${F.length}</small></b><span>funciones de la app hechas</span></div>
+    <div class="apilada" role="img" aria-label="Funciones: ${ESTADOS.map(e => cuenta(e) + ' ' + EST[e].toLowerCase()).join(', ')}">${ESTADOS.filter(cuenta).map(e => `<i class="${e}" style="flex:${cuenta(e)}" tabindex="0" data-tip="${EST[e]}" data-val="${cuenta(e)} funciones"></i>`).join('')}</div>
+    <div class="leyenda">${ESTADOS.map(e => `<span>${est(e)}${EST[e]} <b>${cuenta(e)}</b></span>`).join('')}</div>
+    ${bloque('Funciones', `<div class="plegables">${grupos.map(g => { const fs = F.filter(f => f.g === g); return plegable(g, fs.filter(f => f.e === 'hecho').length, fs.length, listaEst(fs.map(f => ({ e: f.e, t: f.f })))); }).join('')}</div>`, 'por pantalla')}
+    ${bloque('Fases', `<ul class="fases">${(P.fases || []).map(f => `<li><span class="nom">${esc(f.n)}<small>${esc(f.i.slice(0, 5))}–${esc(f.f.slice(0, 5))}</small></span><span class="eur">${eur(f.m)}</span><span class="pista" role="img" aria-label="${esc(f.n)}: ${Math.round(f.a * 100)} %"><i style="width:${Math.round(f.a * 100)}%"></i></span></li>`).join('')}</ul>`,
+      P.presupuesto ? `${eur(P.presupuesto.total)} hasta oct. 2027` : '')}
+    ${bloque('Equipo', `<div class="plegables">${(P.departamentos || []).map(x => plegable(x.n, x.tareas.filter(t => t.e === 'hecho').length, x.tareas.length, listaEst(x.tareas))).join('')}
+      ${(P.legal || []).length ? plegable('Legal y riesgos', P.legal.filter(x => x.e === 'hecho').length, P.legal.length, listaEst(P.legal)) : ''}</div>`)}
+    ${bloque('Cuentas', `<ul class="cuentas">${(P.cuentas || []).map(x => `<li>${est(x.e)}<span>${esc(x.s)}</span>${/^https:\/\//.test(x.u || '') ? `<a href="${esc(x.u)}" target="_blank" rel="noopener">Abrir</a>` : '<span></span>'}</li>`).join('')}</ul>`, esc(P.nota_claves || ''))}
+    ${bloque('Documentos', `<div class="plegables sin-barra">${(P.docs || []).map(x => `<details><summary><span class="nom">${esc(x.t)}</span><span class="cu">${esc((x.n || '').replace(/^.*?, /, '').slice(0, 5))}</span></summary><div class="cuerpo">${x.html}</div></details>`).join('')}</div>`)}
+  </section>
+  <p class="pie">Actualizado ${hora(d.generado)}</p>
   </main>`;
 
-  // una sección cada vez, como pestañas; el enlace (#funciones…) abre la suya
-  const mostrar = () => { const k = location.hash.slice(1), ok = secciones.some(([s]) => s === k) ? k : 'toca';
+  // una sección cada vez, como pestañas; los enlaces viejos (#toca, #funciones…) llevan a la suya
+  const VIEJAS = { toca: 'hoy', usuarias: 'cifras', funciones: 'empresa', fases: 'empresa', equipo: 'empresa', cuentas: 'empresa', mas: 'empresa' };
+  const mostrar = () => { let k = location.hash.slice(1); k = VIEJAS[k] || k; const ok = secciones.some(([s]) => s === k) ? k : 'hoy';
     raiz.querySelectorAll('main > section').forEach(s => s.hidden = s.id !== ok);
     raiz.querySelectorAll('nav a').forEach(a => a.getAttribute('href') === '#' + ok ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
     window.scrollTo(0, 0); };
   addEventListener('hashchange', mostrar); mostrar();
   raiz.addEventListener('click', e => { const b = e.target.closest('[data-csv]'); if (b) CSV[b.dataset.csv](); });
+
+  // el valor de cada punto o barra al pasar el ratón o con el teclado (también está en la tabla o en la etiqueta)
+  const tip = document.getElementById('tip');
+  const ver = el => { tip.replaceChildren(); const b = document.createElement('b'); b.textContent = el.dataset.val || ''; tip.append(b, document.createTextNode(el.dataset.tip || ''));
+    const r = el.getBoundingClientRect(); tip.style.opacity = 1; const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px'; tip.style.top = Math.max(8, r.top - h - 8) + 'px'; };
+  const quitar = () => { tip.style.opacity = 0; };
+  raiz.addEventListener('pointerover', e => { const el = e.target.closest('[data-val]'); if (el) ver(el); });
+  raiz.addEventListener('pointerout', e => { if (e.target.closest('[data-val]')) quitar(); });
+  raiz.addEventListener('focusin', e => { const el = e.target.closest('[data-val]'); el ? ver(el) : quitar(); });
+  raiz.addEventListener('focusout', quitar);
+  addEventListener('scroll', quitar, { passive: true });
 })();
 </script>
 </body>
