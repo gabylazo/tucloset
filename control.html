@@ -11,217 +11,267 @@
 <link rel="stylesheet" href="fuentes.css?v=0.123">
 <!-- 04/11/2026 (Gabriela: «un sistema de control de la empresa… donde sepamos el estado de todo»). Solo para las socias: los datos llegan de /api/control
      con su sesión de la app; esta página no lleva ningún dato dentro.
-     11/11 (Gabriela, por Coordinación de marketing: «que lo optimice mucho más, que ponga más gráficos; tiene muchísimo texto y me da pereza leerlo»):
-     cinco pestañas (Hoy, Cifras, Dinero, Redes, Empresa); en cada una, primero un gráfico o una cifra y, como mucho, una línea; lo demás, plegado.
-     Copia anterior: prototipo/control.html.antes-graficos. -->
+     11/11: diseño común de los centros de control (Coordinación de marketing, versión 1: control/kit/centro-comun.css): solo cambia el bloque «Marca»
+     (nogal, Bellefair y dorado solo en el logo). Cinco pestañas: Inicio, Cifras, Dinero, Redes y Más. Infraestructura por fase en Más (Gabriela, 11/11).
+     Copias anteriores: prototipo/control.html.antes-comun, .antes-graficos. -->
 <style>
-:root { --tinta: #4A3526; --gris: #74655A; --oro: #C9A24B; --raya: #E6DFD8; --suave: #F7F4F1; --blanco: #FFFFFF;
-  --hecho: #2E6B4A; --marcha: #B08A2E; --sube: #2E6B4A; --baja: #8E3B2E; }
+/* latin-ext */
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(fuentes/figtree-normal-latin-ext-00c37195.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(fuentes/figtree-normal-latin-eddba2ef.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* Centro de control: estilo común de todos los proyectos (coordinación de marketing, 11/11/2026).
+   Sale del Centro de control general de Gabriela (control/centro-de-control.plantilla.html), que es la referencia viva.
+   Cada proyecto lo copia en su web (no se enlaza entre dominios), con Figtree alojada en su web en woff2 (nada de Google Fonts) y SOLO cambia el bloque «Marca» de :root y el logo.
+   Siempre en modo claro. */
+:root {
+  color-scheme: light;
+  /* Marca: lo único que cambia cada proyecto */
+  --acento: #4A3526;        /* TuCloset: nogal (11,5:1 sobre blanco) */
+  --acento-tinta: #ffffff;
+  --f-marca: 'Bellefair', Georgia, serif; /* solo en el logo */
+  --oro: #C9A24B;           /* TuCloset: el dorado, solo en el logo (2,4:1: nunca en texto) */
+  /* Común: no se toca */
+  --bg: #ffffff; --ink: #0f1412; --ink-2: #4d5551; --ink-3: #6b7370; --line: #e6e9e7; --grid: #eff1f0; --soft: #f6f7f6;
+  --good: #0ca30c; --warn: #fab219; --crit: #d03b3b; /* solo en puntos, barras y flechas, nunca en texto */
+  --good-t: #0b7a0b;  /* verde para texto (5,5:1); el ámbar no va nunca en texto */
+  --f-body: "Figtree", "Helvetica Neue", system-ui, sans-serif;
+  --nav-h: 60px;
+}
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--blanco); color: var(--tinta); font: 400 16px/1.45 'Jost', system-ui, sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
 a { color: inherit; }
-.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 6px; }
+.ic { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
-.cab { position: relative; text-align: center; padding: 22px 16px 4px; }
-.cab img { width: 32px; height: 32px; display: block; margin: 0 auto 6px; }
-.marca { font: 400 26px/1 'Bellefair', serif; margin: 0; }
-.marca span { color: var(--oro); }
-.cab p { margin: 2px 0 0; color: var(--gris); font-size: 14px; }
-.volver { position: absolute; left: 8px; top: 10px; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 8px; font-size: 14px; text-decoration: none; color: var(--gris); }
-.volver svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
-.volver:hover { color: var(--tinta); }
-@media (max-width: 420px) { .volver span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
+/* Página */
+main { max-width: 1040px; margin: 0 auto; display: grid; gap: 14px; align-content: start; padding: 22px max(16px, env(safe-area-inset-right, 0px)) calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 28px) max(16px, env(safe-area-inset-left, 0px)); }
+main > * { min-width: 0; }
+.cc-top { display: flex; align-items: center; gap: 10px; }
+.cc-top img { height: 28px; width: auto; }
+.cc-top b { font-family: var(--f-marca); font-size: 1rem; font-weight: 700; }
+.cc-top span { margin-left: auto; font-size: .72rem; color: var(--ink-3); }
+.head h1 { font-size: 1.6rem; font-weight: 700; line-height: 1.1; margin: 0; letter-spacing: -0.02em; }
+.label { font-size: .7rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.dash { display: grid; gap: 14px; }
+@media (min-width: 900px) { .dash { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dash .wide { grid-column: 1 / -1; } }
 
-nav { position: sticky; top: 0; z-index: 3; background: var(--blanco); border-bottom: 1px solid var(--raya); overflow-x: auto; scrollbar-width: none; }
-nav::-webkit-scrollbar { display: none; }
-nav ul { display: flex; justify-content: safe center; margin: 0; padding: 0 8px; list-style: none; min-width: max-content; }
-nav a { display: block; padding: 12px 11px; min-height: 44px; font-size: 15px; text-decoration: none; color: var(--gris); }
-nav a:hover { color: var(--tinta); }
-nav a[aria-current] { color: var(--tinta); box-shadow: inset 0 -2px 0 var(--tinta); }
+/* Tarjeta */
+.card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.card > * { min-width: 0; }
+.card-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.card-h h2 { margin: 0; font-size: .98rem; font-weight: 700; }
+.card-h .count { font-size: .8rem; font-weight: 600; color: var(--ink-3); margin-left: 6px; }
+.more { color: var(--ink-2); font-weight: 600; font-size: .84rem; text-decoration: none; }
 
-main { max-width: 1040px; margin: 0 auto; padding: 0 16px 56px; }
-section { padding-top: 22px; }
-.bloque { margin-top: 28px; }
-.tit { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
-h3 { font: 400 22px/1.2 'Bellefair', serif; margin: 0; }
-.tit small, .peq { font-size: 13px; color: var(--gris); }
-.dos { display: grid; gap: 28px; }
-@media (min-width: 820px) { .dos { grid-template-columns: 1fr 1fr; } .dos .bloque { margin-top: 0; } .dos { margin-top: 28px; } }
+/* Lo siguiente: casilla de fecha + una línea */
+.next { grid-template-columns: 68px minmax(0, 1fr); align-items: center; gap: 14px; border-color: var(--acento); }
+.dtile { border: 1.5px solid var(--acento); border-radius: 14px; display: grid; justify-items: center; padding: 7px 0 8px; line-height: 1.05; }
+.dtile small { font-size: .62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.dtile b { font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dtile span { font-size: .72rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 3px; }
+.next-title { font-size: 1.06rem; font-weight: 600; line-height: 1.28; }
+.rel { font-size: .7rem; font-weight: 700; color: var(--acento-tinta); background: var(--acento); padding: 1px 8px; border-radius: 99px; }
 
-/* cifras sueltas: la cifra primero, una etiqueta corta debajo */
-.tiles { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 760px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.tile { background: var(--suave); padding: 16px 14px 14px; min-height: 96px; display: flex; flex-direction: column; justify-content: center; }
-.tile b { font: 500 32px/1.05 'Jost', sans-serif; letter-spacing: -.01em; }
-.tile b small { font-size: 18px; font-weight: 400; margin-left: 2px; }
-.tile span { margin-top: 4px; font-size: 13px; line-height: 1.3; color: var(--gris); }
-.flecha { font-size: 14px; margin-left: 6px; vertical-align: middle; }
-.flecha.sube { color: var(--sube); } .flecha.baja { color: var(--baja); }
-.heroe { text-align: center; padding: 6px 0 2px; }
-.heroe b { display: block; font: 500 56px/1 'Jost', sans-serif; letter-spacing: -.02em; }
-.heroe b small { font-size: 26px; font-weight: 400; margin-left: 4px; }
-.heroe > span { display: block; margin-top: 6px; font-size: 14px; color: var(--gris); }
+/* Cifras: 3 o 4, cifra grande y etiqueta corta */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+.kpi { border: 1px solid var(--line); border-radius: 16px; padding: 12px 13px; display: grid; gap: 4px; text-decoration: none; align-content: start; }
+.kpi .ic { width: 18px; height: 18px; color: var(--ink-3); }
+.kpi b { font-size: 1.6rem; font-weight: 600; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.kpi span { font-size: .74rem; color: var(--ink-2); line-height: 1.2; }
+.kpi .up, .kpi .down { font-size: .74rem; color: var(--ink-2); } /* el número en tinta; el color, solo en la flecha */
+.kpi .up::before { content: "▲ "; color: var(--good); } .kpi .down::before { content: "▼ "; color: var(--crit); }
+.meter { height: 8px; border-radius: 99px; background: var(--grid); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--acento); border-radius: 99px; }
+.meter.warn i { background: var(--warn); } .meter.crit i { background: var(--crit); }
 
-/* medidor: de cuánto se ha gastado de un tope */
-.medidor { margin-top: 10px; }
-.medidor .pista { height: 8px; background: var(--raya); border-radius: 4px; overflow: hidden; }
-.medidor .pista i { display: block; height: 100%; background: var(--tinta); border-radius: 0 4px 4px 0; }
-.medidor .pista i.alto { background: var(--baja); }
-.medidor p { display: flex; justify-content: space-between; margin: 6px 0 0; font-size: 13px; color: var(--gris); }
-.tile .medidor { margin-top: 8px; } .tile .medidor .pista { height: 6px; }
+/* Listas de una línea: qué · quién · fecha; el detalle, al tocar */
+.rows { display: grid; }
+.trow { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); text-decoration: none; min-width: 0; }
+.rows > .trow:first-child { border-top: 0; padding-top: 2px; }
+.trow b { flex: 1; min-width: 0; font-weight: 500; line-height: 1.3; }
+.trow small { font-size: .74rem; color: var(--ink-3); white-space: nowrap; }
+details.md summary { cursor: pointer; font-weight: 600; font-size: .88rem; color: var(--ink-2); }
 
-/* os toca: una línea por cosa; la explicación al tocar */
-.toca { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--raya); }
-.toca li { border-bottom: 1px solid var(--raya); }
-.toca summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto 18px; gap: 2px 12px; align-items: center; padding: 11px 0; min-height: 52px; }
+/* Estado: siempre punto de color + texto */
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: .76rem; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.status.ok::before { background: var(--good); } .status.mid::before { background: var(--warn); } .status.no::before { background: var(--crit); }
+
+/* Filtros */
+.chips { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.chip-btn { flex: none; font-size: .84rem; font-weight: 600; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line); background: #fff; color: var(--ink-2); cursor: pointer; }
+.chip-btn[aria-pressed="true"] { background: var(--acento); border-color: var(--acento); color: var(--acento-tinta); }
+.seg-c { display: inline-grid; grid-auto-flow: column; background: var(--soft); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg-c button { font: inherit; font-weight: 600; font-size: .84rem; border: 0; background: transparent; color: var(--ink-2); padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+.seg-c button[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; font-weight: 600; padding: 11px 14px; border-radius: 12px; background: var(--acento); color: var(--acento-tinta); text-decoration: none; border: 0; cursor: pointer; }
+
+/* Gráficos (SVG): marcas finas, rejilla tenue, texto en tinta, leyenda con 2 series o más */
+.chart svg { display: block; overflow: visible; }
+.chart .ax { font-size: 10.5px; fill: var(--ink-3); }
+.chart .gl { stroke: var(--grid); }
+.chart .base { stroke: var(--line); }
+.chart .val { font-size: 11px; font-weight: 600; fill: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--ink-2); }
+.legend i { width: 9px; height: 9px; border-radius: 3px; background: var(--c); display: inline-block; margin-right: 6px; }
+details.data summary { cursor: pointer; font-size: .78rem; font-weight: 600; color: var(--ink-2); }
+details.data table { margin-top: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: .84rem; }
+th, td { padding: 10px 6px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+th { font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+th:first-child, td:first-child { text-align: left; padding-left: 0; }
+.cell { display: inline-block; width: 14px; height: 14px; border-radius: 50%; }
+.cell.ok { background: var(--good); } .cell.mid { background: var(--warn); } .cell.no { box-shadow: inset 0 0 0 2px var(--crit); }
+
+/* Pestañas: abajo en el móvil, riel a la izquierda desde 900 px. Como mucho 5; la primera, Inicio */
+.nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(255, 255, 255, .96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line); display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0 max(6px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(6px, env(safe-area-inset-left, 0px)); }
+.nav a { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: var(--nav-h); color: var(--ink-3); text-decoration: none; font-size: .66rem; font-weight: 600; position: relative; }
+.nav a[aria-current="page"] { color: var(--acento); }
+.nav a[aria-current="page"] .ic { stroke-width: 2.2; }
+.nav .badge { position: absolute; top: 7px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: var(--crit); color: #fff; font-size: .6rem; font-weight: 700; display: grid; place-items: center; }
+@media (min-width: 900px) {
+  body { padding-left: 92px; }
+  .nav { top: 0; right: auto; width: 92px; grid-auto-flow: row; grid-auto-rows: min-content; align-content: start; padding: 22px 0 0; border-top: 0; border-right: 1px solid var(--line); }
+  .nav a { min-height: 64px; font-size: .7rem; }
+  main { padding-bottom: 48px; }
+}
+
+.cc-cab { max-width: 1040px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
+#raiz main { padding-top: 12px; }
+
+/* ── TuCloset: piezas propias con las mismas reglas del estilo común ── */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+button { font: inherit; color: inherit; }
+.cc-top .logo { display: flex; align-items: center; gap: 8px; min-height: 44px; text-decoration: none; }
+.cc-top .logo img { height: 28px; width: 28px; }
+.cc-top b { font-weight: 400; font-size: 1.4rem; letter-spacing: .01em; line-height: 1; color: var(--acento); } /* Bellefair solo tiene un grueso */
+.cc-top b em { font-style: normal; color: var(--oro); }
+.cc-top small { font-size: .84rem; color: var(--ink-2); }
+.head { display: grid; gap: 4px; margin-top: 6px; }
+section { display: grid; gap: 14px; align-content: start; }
+section[hidden] { display: none; }
+.vacio { margin: 0; color: var(--ink-2); font-size: .9rem; }
+
+/* tarjetas de cifra: el número en tinta y, si la hay, la comparación debajo */
+.kpis:has(> .kpi:nth-child(4):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); } /* cuatro cifras: 2 × 2 en el móvil, en fila desde 600 px */
+@media (min-width: 600px) { .kpis:has(> .kpi:nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.kpi small { font-size: .74rem; color: var(--ink-2); line-height: 1.25; }
+.kpi .meter { margin-top: 6px; }
+.grande b { font-size: 2.6rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.grande b small { font-size: 1.2rem; font-weight: 500; margin-left: 3px; }
+.grande > span { font-size: .84rem; color: var(--ink-2); }
+.medida { display: flex; justify-content: space-between; gap: 10px; font-size: .78rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+/* Os toca: una línea por cosa; quién y cuándo debajo; la explicación al tocar */
+.toca { display: grid; }
+.toca details { border-top: 1px solid var(--line); }
+.toca details:first-child { border-top: 0; }
+.toca summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 0; }
 .toca summary::-webkit-details-marker { display: none; }
-.toca summary::after { content: '+'; grid-column: 3; grid-row: 1 / 3; font-size: 20px; line-height: 1; color: var(--gris); text-align: center; }
-.toca details[open] summary::after { content: '–'; }
-.toca .que { grid-column: 1; font-size: 16px; line-height: 1.3; }
-.toca .quien { grid-column: 1; font-size: 13px; color: var(--gris); }
-.toca .cuando { grid-column: 2; grid-row: 1 / 3; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.toca .cuando.ya { color: var(--baja); font-weight: 500; }
-.toca p { margin: 0 0 14px; max-width: 62ch; font-size: 15px; color: var(--gris); }
+.toca .txt { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.toca .que { font-weight: 500; line-height: 1.3; }
+.toca .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: .74rem; color: var(--ink-3); }
+.toca summary > .ic { width: 16px; height: 16px; color: var(--ink-3); }
+.toca details[open] summary > .ic { transform: rotate(180deg); }
+.toca p { margin: 0 0 12px; color: var(--ink-2); font-size: .9rem; max-width: 62ch; }
+.pila { display: flex; gap: 2px; height: 10px; }
+.pila i { display: block; height: 100%; }
+.pila i:first-child { border-radius: 99px 0 0 99px; } .pila i:last-child { border-radius: 0 99px 99px 0; } .pila i:only-child { border-radius: 99px; }
 
-/* fechas: una línea con puntos */
-.linea { list-style: none; margin: 0; padding: 0 0 0 4px; }
-.linea li { position: relative; display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 0 0 14px 20px; border-left: 1px solid var(--raya); }
-.linea li:last-child { border-left-color: transparent; padding-bottom: 0; }
-.linea li::before { content: ''; position: absolute; left: -5px; top: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--tinta); box-shadow: 0 0 0 2px var(--blanco); }
-.linea li.lejos::before { background: var(--blanco); border: 1.5px solid var(--tinta); width: 9px; height: 9px; }
-.linea b { font-weight: 500; font-variant-numeric: tabular-nums; font-size: 15px; }
-.linea span { font-size: 15px; line-height: 1.35; }
-
-.enlaces { display: flex; flex-wrap: wrap; gap: 8px; }
-.enlaces a, .enlaces span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--tinta); text-decoration: none; font-size: 15px; }
-.enlaces span { border-style: dashed; color: var(--gris); border-color: var(--raya); }
-.enlaces a:hover { background: var(--suave); }
+/* barras horizontales: nombre y valor, la barra debajo */
+.hb { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.hb li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 10px; align-items: baseline; font-size: .88rem; }
+.hb .n { overflow-wrap: anywhere; }
+.hb .v { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hb .p { grid-column: 1 / -1; height: 8px; }
+.hb .p i { display: block; height: 100%; min-width: 3px; background: var(--acento); border-radius: 0 99px 99px 0; }
 
 /* gráficos */
-figure { margin: 0; }
-.graf { background: var(--blanco); }
-.plot { position: relative; height: 150px; margin: 30px 8px 0 28px; }
-.plot .rej { position: absolute; left: 0; right: 0; border-top: 1px solid var(--raya); }
-.plot .rej span { position: absolute; right: calc(100% + 6px); top: -8px; font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums; }
-.plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.plot .area { fill: var(--tinta); fill-opacity: .08; stroke: none; }
-.plot .trazo { fill: none; stroke: var(--tinta); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-.plot .pt { position: absolute; width: 24px; height: 100%; top: 0; transform: translateX(-50%); }
-.plot .pt i { position: absolute; left: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--tinta); box-shadow: 0 0 0 2px var(--blanco); opacity: 0; }
-.plot .pt i.fin, .plot .pt:hover i, .plot .pt:focus-visible i { opacity: 1; }
-.plot .pt:hover::before, .plot .pt:focus-visible::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1px solid var(--raya); }
-.plot .pt em { position: absolute; left: 50%; transform: translate(-50%, -26px); background: var(--blanco); padding: 0 2px; font-style: normal; font-size: 13px; font-weight: 500; white-space: nowrap; }
-.plot .pt em.der { transform: translate(-100%, -26px); }
-.ejex { display: flex; justify-content: space-between; margin: 6px 8px 0 28px; font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums; }
-.cols { position: relative; display: flex; align-items: flex-end; gap: 2px; height: 150px; margin-top: 4px; border-bottom: 1px solid var(--raya); }
-.cols > div { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 0; }
-.cols > div:hover i, .cols > div:focus-visible i { opacity: .75; }
-.cols i { display: block; width: 100%; max-width: 24px; background: var(--tinta); border-radius: 4px 4px 0 0; min-height: 2px; }
-.cols i.cero { background: var(--raya); }
-.cols em { font-style: normal; font-size: 13px; font-weight: 500; margin-bottom: 4px; min-height: 1em; }
-.colx { display: flex; gap: 2px; margin-top: 6px; }
-.colx span { flex: 1; text-align: center; font-size: 12px; color: var(--gris); font-variant-numeric: tabular-nums; min-width: 0; }
-.hbar { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.hbar li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: baseline; font-size: 14px; }
-.hbar li .nom { overflow-wrap: anywhere; }
-.hbar li .val { font-variant-numeric: tabular-nums; color: var(--gris); white-space: nowrap; }
-.hbar li .pista { grid-column: 1 / -1; height: 10px; }
-.hbar li .pista i { display: block; height: 100%; min-width: 2px; background: var(--tinta); border-radius: 0 4px 4px 0; }
-.hbar li .pista i.suave { background: #A99A8E; }
-.ver-tabla { margin-top: 8px; }
-.ver-tabla summary { cursor: pointer; display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; color: var(--gris); text-decoration: underline; text-underline-offset: 3px; }
-.vacio { color: var(--gris); font-size: 15px; margin: 4px 0; }
-
-/* estados: cuadrado relleno, medio o vacío (la forma dice el estado; el color ayuda) */
-.e { display: inline-block; width: 12px; height: 12px; flex: none; border: 1.5px solid var(--tinta); vertical-align: -1px; }
-.e.hecho, .e.ok { background: var(--hecho); border-color: var(--hecho); }
-.e.marcha, .e.medio { border-color: var(--marcha); background: linear-gradient(90deg, var(--marcha) 50%, transparent 50%); }
-.e.espera { border-style: dashed; border-color: var(--gris); }
-.apilada { display: flex; gap: 2px; height: 14px; margin-top: 14px; }
-.apilada i { display: block; height: 100%; }
-.apilada i:first-child { border-radius: 4px 0 0 4px; } .apilada i:last-child { border-radius: 0 4px 4px 0; }
-.apilada .hecho { background: var(--hecho); } .apilada .marcha { background: var(--marcha); } .apilada .falta { background: var(--raya); } .apilada .espera { background: #EFEAE5; }
-.leyenda { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; margin-top: 10px; font-size: 14px; color: var(--gris); }
-.leyenda span { display: inline-flex; align-items: center; gap: 7px; }
-.leyenda b { color: var(--tinta); font-weight: 500; }
-
-/* filas plegables (grupos de funciones, equipo, legal, documentos) */
-.plegables { border-top: 1px solid var(--raya); }
-.plegables details { border-bottom: 1px solid var(--raya); }
-.plegables summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) 72px 44px 18px; gap: 12px; align-items: center; min-height: 52px; padding: 6px 0; }
-.plegables summary::-webkit-details-marker { display: none; }
-.plegables summary::after { content: '+'; font-size: 20px; color: var(--gris); text-align: center; }
-.plegables details[open] > summary::after { content: '–'; }
-.plegables summary .nom { font-size: 16px; line-height: 1.3; }
-.plegables summary .mini { height: 6px; background: var(--raya); border-radius: 3px; overflow: hidden; }
-.plegables summary .mini i { display: block; height: 100%; background: var(--hecho); }
-.plegables summary .cu { font-size: 14px; color: var(--gris); text-align: right; font-variant-numeric: tabular-nums; }
-.plegables.sin-barra summary { grid-template-columns: minmax(0, 1fr) auto 18px; }
-.lista { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 8px; }
-.lista li { display: grid; grid-template-columns: 12px 1fr; gap: 10px; align-items: start; font-size: 15px; line-height: 1.3; }
-.lista li .e { margin-top: 3px; }
-.lista small { display: block; color: var(--gris); font-size: 13px; }
-.cuerpo { padding: 0 0 20px; font-size: 15px; }
-.cuerpo h1, .cuerpo h2 { font: 400 22px/1.25 'Bellefair', serif; margin: 18px 0 6px; }
-.cuerpo h3, .cuerpo h4 { font: 400 19px/1.3 'Bellefair', serif; margin: 18px 0 6px; }
-.cuerpo p, .cuerpo li { max-width: 70ch; }
-.cuerpo ul, .cuerpo ol { padding-left: 20px; margin: 6px 0 12px; }
-.cuerpo table, .tabla { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0 14px; }
-.cuerpo td, .cuerpo th, .tabla td, .tabla th { border-bottom: 1px solid var(--raya); padding: 8px 6px; text-align: left; vertical-align: top; font-weight: 400; }
-.cuerpo th, .tabla th { color: var(--gris); font-size: 12px; }
-.tabla .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tabla th[scope=row] { color: var(--tinta); font-size: 14px; overflow-wrap: anywhere; }
-.tabla.red th[scope=row] { white-space: nowrap; overflow-wrap: normal; }
-.tabla.red th[scope=row] .e { margin-right: 6px; }
+.chart { min-height: 170px; }
+.chart .linea { fill: none; stroke: var(--acento); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .area { fill: var(--acento); fill-opacity: .07; }
+.chart .barra { fill: var(--acento); }
+.chart .pt { fill: var(--acento); stroke: #fff; stroke-width: 2; }
+.chart .hit { fill: transparent; cursor: default; }
+.chart .hit:hover + .guia, .chart .guia.on { stroke: var(--line); }
+details.data summary, details.md summary { display: inline-flex; align-items: center; min-height: 44px; }
 .desliza { overflow-x: auto; }
-.filas { list-style: none; margin: 0; padding: 0; }
-.filas li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--raya); font-size: 15px; }
-.filas li span:last-child { white-space: nowrap; color: var(--gris); font-size: 14px; font-variant-numeric: tabular-nums; }
-.filas code { font: 12px/1.4 ui-monospace, Menlo, monospace; word-break: break-word; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
-/* fases: una barra por fase */
-.fases { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-.fases li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; }
-.fases .nom { font-size: 16px; }
-.fases .nom small { margin-left: 8px; font-size: 13px; color: var(--gris); font-variant-numeric: tabular-nums; }
-.fases .eur { font-size: 15px; font-variant-numeric: tabular-nums; }
-.fases .pista { grid-column: 1 / -1; height: 8px; background: var(--raya); border-radius: 4px; overflow: hidden; }
-.fases .pista i { display: block; height: 100%; background: var(--hecho); }
+/* filas plegables: nombre, avance y cuántas; la lista dentro */
+.pleg { display: grid; }
+.pleg > details { border-top: 1px solid var(--line); }
+.pleg > details:first-child { border-top: 0; }
+.pleg summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) 64px auto 16px; gap: 10px; align-items: center; min-height: 52px; }
+.pleg summary::-webkit-details-marker { display: none; }
+.pleg summary .n { font-weight: 500; line-height: 1.3; }
+.pleg summary .meter { height: 6px; }
+.pleg summary .meter i { background: var(--good); }
+.pleg summary small { font-size: .78rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.pleg summary .ic { width: 16px; height: 16px; color: var(--ink-3); }
+.pleg details[open] > summary .ic { transform: rotate(180deg); }
+.pleg.sin summary { grid-template-columns: minmax(0, 1fr) auto 16px; }
+.lst { list-style: none; margin: 0 0 12px; padding: 0; display: grid; }
+.lst li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--grid); font-size: .9rem; line-height: 1.3; }
+.lst li small { grid-column: 1; font-size: .76rem; color: var(--ink-3); }
+.lst li .status { grid-column: 2; grid-row: 1 / span 2; }
+.cuerpo { padding: 0 0 16px; font-size: .9rem; overflow-x: auto; }
+.cuerpo h1, .cuerpo h2 { font-size: 1.05rem; margin: 16px 0 6px; } .cuerpo h3, .cuerpo h4 { font-size: .95rem; margin: 14px 0 4px; }
+.cuerpo p, .cuerpo li { max-width: 70ch; } .cuerpo ul, .cuerpo ol { padding-left: 20px; }
+.cuerpo th, .cuerpo td { white-space: normal; text-align: left; vertical-align: top; }
 
-.cuentas { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--raya); }
-.cuentas li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 48px; border-bottom: 1px solid var(--raya); font-size: 15px; }
-.cuentas a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; text-underline-offset: 3px; }
+/* infraestructura por fase */
+.fase { display: grid; gap: 10px; padding: 14px 0; border-top: 1px solid var(--line); }
+.fase:first-of-type { border-top: 0; padding-top: 2px; }
+.fase-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.fase-h b { font-weight: 600; }
+.fase-h small { font-size: .78rem; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fase .datos { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--ink-2); }
+.fase .meter i { background: var(--good); }
+.ahora { font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--acento-tinta); background: var(--acento); padding: 2px 8px; border-radius: 99px; margin-left: 6px; vertical-align: 2px; }
 
-.acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
-.boton { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border: 1px solid var(--tinta); background: var(--blanco); color: var(--tinta); text-decoration: none; font: inherit; font-size: 14px; cursor: pointer; }
-.boton:hover { background: var(--suave); }
-.mensaje { max-width: 34ch; margin: 80px auto; text-align: center; padding: 0 16px; }
-.mensaje h2 { font: 400 28px/1.2 'Bellefair', serif; margin: 0 0 8px; }
-.mensaje p { color: var(--gris); }
-.pie { text-align: center; color: var(--gris); font-size: 13px; margin-top: 40px; }
-
-#tip { position: fixed; z-index: 9; pointer-events: none; background: var(--tinta); color: var(--blanco); padding: 6px 10px; font-size: 13px; line-height: 1.3; max-width: 240px; opacity: 0; transition: opacity .12s; }
-#tip b { display: block; font-size: 15px; font-weight: 500; }
+.acc { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-s { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-weight: 600; font-size: .86rem; text-decoration: none; cursor: pointer; }
+.btn-s:hover { background: var(--soft); }
+.trow .ic { width: 16px; height: 16px; color: var(--ink-3); }
+a.trow { min-height: 48px; }
+.mensaje { max-width: 34ch; margin: 64px auto; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.mensaje h2 { margin: 0; font-size: 1.3rem; }
+.mensaje p { margin: 0; color: var(--ink-2); }
+#tip { position: fixed; z-index: 30; pointer-events: none; background: var(--ink); color: #fff; padding: 6px 10px; border-radius: 8px; font-size: .78rem; line-height: 1.3; max-width: 240px; opacity: 0; transition: opacity .12s; }
+#tip b { display: block; font-size: .9rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { #tip { transition: none; } }
+
 </style>
 </head>
 <body>
-<header class="cab">
-  <a class="volver" href="./"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg><span>Volver a la app</span></a>
-  <img src="iconos/icono-129-180.png" alt="">
-  <h1 class="marca">Tu<span>Closet</span></h1>
-  <p>Centro de control</p>
+<header class="cc-top cc-cab">
+  <a class="logo" href="./" aria-label="TuCloset: volver a la app"><img src="iconos/icono-129-180.png" alt=""><b>Tu<em>Closet</em></b></a>
+  <small>Centro de control</small>
+  <span id="cc-hora"></span>
 </header>
-<div id="raiz"><p class="vacio" style="text-align:center;margin-top:40px">Cargando…</p></div>
+<div id="raiz"><main><p class="vacio">Cargando…</p></main></div>
 <div id="tip" aria-hidden="true"></div>
 <script>
 (async () => {
-  const raiz = document.getElementById('raiz');
+  const raiz = document.getElementById('raiz'), hora0 = document.getElementById('cc-hora');
   const API = (() => { try { const q = localStorage.getItem('tc_api'); if (q) return q; } catch (e) { } return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://localhost:8787' : 'https://tucloset-api.apptucloset.workers.dev'; })();
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  const mensaje = (tit, txt, boton) => { raiz.innerHTML = `<div class="mensaje"><h2>${tit}</h2><p>${txt}</p>${boton ? `<a class="boton" href="./">${boton}</a>` : ''}</div>`; };
+  const mensaje = (tit, txt, boton) => { raiz.innerHTML = `<main><div class="mensaje"><h2>${tit}</h2><p>${txt}</p>${boton ? `<a class="btn-s" href="./">${boton}</a>` : ''}</div></main>`; };
   let c = null; try { c = JSON.parse(localStorage.getItem('tc_cuenta') || 'null'); } catch (e) { }
   if (!c?.token) return mensaje('Entra primero', 'Abre tu cuenta en la app y vuelve a esta página.', 'Ir a la app');
   let r; try { r = await fetch(API + '/api/control', { headers: { Authorization: 'Bearer ' + c.token } }); } catch (e) { return mensaje('Sin conexión', 'No he podido hablar con el servidor. Prueba otra vez en un momento.'); }
@@ -231,8 +281,21 @@ figure { margin: 0; }
   const d = await r.json(), P = d.panel || {};
 
   // ── utilidades ──
-  const EST = { hecho: 'Hecho', marcha: 'En marcha', falta: 'Falta', espera: 'Espera', ok: 'Funciona', medio: 'A medias' };
-  const est = e => `<span class="e ${esc(e)}" title="${EST[e] || esc(e)}"><span class="vh">${EST[e] || esc(e)}: </span></span>`;
+  const IC = {
+    home: '<path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1h-5v-6h-5v6h-5a1 1 0 0 1-1-1z"/>',
+    cifras: '<path d="M4 20V11M10 20V5M16 20v-6M21 20H3"/>',
+    dinero: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.6A4 4 0 1 0 15.5 15.4M7.5 10.6h6M7.5 13.4h6"/>',
+    redes: '<path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/>',
+    mas: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
+    user: '<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5c1.3-3.6 4.2-5.5 7.5-5.5s6.2 1.9 7.5 5.5"/>',
+    check: '<circle cx="12" cy="12" r="9"/><path d="m8.5 12.2 2.4 2.4 4.8-5"/>',
+    spark: '<path d="M12 3.5 13.8 10 20.5 12l-6.7 2L12 20.5 10.2 14 3.5 12l6.7-2z"/>',
+    warn: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/>',
+    percha: '<path d="M12 7.5a2 2 0 1 1 2-2c0 1.2-2 1.6-2 3.2v.6M12 9.3 3.5 16a1.2 1.2 0 0 0 .7 2.2h15.6a1.2 1.2 0 0 0 .7-2.2z"/>',
+    down: '<path d="m6 9 6 6 6-6"/>', chev: '<path d="m9 6 6 6-6 6"/>', back: '<path d="m15 6-6 6 6 6"/>' };
+  const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
+  const ST = { hecho: ['ok', 'Hecho'], ok: ['ok', 'Abierta'], marcha: ['mid', 'En marcha'], medio: ['mid', 'A medias'], espera: ['', 'En espera'], falta: ['no', 'Falta'] };
+  const status = (e, txt) => `<span class="status ${(ST[e] || [''])[0]}">${esc(txt || (ST[e] || [, e])[1])}</span>`;
   const fecha = iso => iso ? new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '—';
   const hora = iso => new Date(iso).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   const n0 = n => (+n || 0).toLocaleString('es-ES', { useGrouping: 'always' });
@@ -241,33 +304,43 @@ figure { margin: 0; }
   const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
   const hoy = new Date(), dia = n => new Date(hoy - n * 864e5).toISOString().slice(0, 10);
   const suma = (lista, f) => (lista || []).filter(f).reduce((s, x) => s + (+x.v || 0), 0);
-  const tile = (valor, etiqueta, extra = '') => `<div class="tile"><b>${valor}</b><span>${etiqueta}</span>${extra}</div>`;
-  const medidor = (v, tope, izq, der) => { const p = Math.min(100, pct(v, tope)); return `<div class="medidor" role="img" aria-label="${esc(izq)}: ${p} % del tope"><div class="pista"><i${p >= 80 ? ' class="alto"' : ''} style="width:${p}%"></i></div>${izq || der ? `<p><span>${esc(izq)}</span><span>${esc(der)}</span></p>` : ''}</div>`; };
-  const bloque = (titulo, html, extra = '') => `<div class="bloque"><div class="tit"><h3>${titulo}</h3>${extra ? `<small>${extra}</small>` : ''}</div>${html}</div>`;
+  const card = (titulo, html, o = {}) => `<div class="card${o.wide ? ' wide' : ''}"${o.id ? ` id="${o.id}"` : ''}>${titulo ? `<div class="card-h"><h2>${titulo}${o.count != null ? `<span class="count">${o.count}</span>` : ''}</h2>${o.extra ? `<span class="label">${o.extra}</span>` : ''}</div>` : ''}${html}</div>`;
+  const meter = (v, tope) => { const p = Math.min(100, pct(v, tope)); return `<div class="meter${p >= 100 ? ' crit' : p >= 80 ? ' warn' : ''}" role="img" aria-label="${p} % del tope"><i style="width:${p}%"></i></div>`; };
+  const comp = (a, b, que) => a == null || b == null || a === b ? '' : `<small class="${a > b ? 'up' : 'down'}"><span class="sr">${a > b ? 'Sube' : 'Baja'}: </span>${n0(Math.abs(a - b))} frente a ${que}</small>`;
+  const kpi = (icono, valor, etiqueta, extra = '') => `<div class="kpi">${ic(icono)}<b>${valor}</b><span>${etiqueta}</span>${extra}</div>`;
+  const tabla = (cab, filas) => `<details class="data"><summary>Ver los datos</summary><div class="desliza"><table><thead><tr>${cab.map((x, i) => `<th scope="col"${i ? ' class="num"' : ''}>${esc(x)}</th>`).join('')}</tr></thead><tbody>${filas.map(f => `<tr><th scope="row">${esc(f[0])}</th>${f.slice(1).map(v => `<td class="num">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>`;
+  const hbarras = filas => { const m = Math.max(...filas.map(f => f.v), 0) || 1;
+    return `<ul class="hb">${filas.map(f => `<li><span class="n">${esc(f.n)}</span><span class="v">${esc(f.t ?? n0(f.v))}</span><span class="p" aria-hidden="true"><i style="width:${Math.max(.5, f.v / m * 100)}%"></i></span></li>`).join('')}</ul>`; };
 
-  // gráfico de línea: una serie, punto final marcado, el valor de cada día al pasar o con el teclado y, sin ratón, en la tabla
-  const linea = (vals, etqs, nombre, unidad) => {
-    const m = Math.max(1, ...vals), top = Math.ceil(m / (m > 4 ? 2 : 1)) * (m > 4 ? 2 : 1), n = vals.length;
-    const X = i => n === 1 ? 50 : i / (n - 1) * 100, Y = v => 100 - v / top * 100;
-    const pts = vals.map((v, i) => `${X(i).toFixed(2)},${Y(v).toFixed(2)}`).join(' ');
-    const iMax = vals.indexOf(Math.max(...vals)); // el máximo solo se etiqueta si no está pegado al final
-    return `<figure class="graf"><div class="plot" role="img" aria-label="${esc(nombre)}: ${vals.join(', ')}">
-      ${[top, top / 2, 0].map(v => `<div class="rej" style="top:${Y(v)}%"><span>${n0(v)}</span></div>`).join('')}
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon class="area" points="0,100 ${pts} 100,100"/><polyline class="trazo" vector-effect="non-scaling-stroke" points="${pts}"/></svg>
-      ${vals.map((v, i) => `<span class="pt" tabindex="0" style="left:${X(i)}%" data-tip="${esc(etqs[i])}" data-val="${n0(v)} ${esc(unidad)}"><i class="${i === n - 1 ? 'fin' : ''}" style="top:${Y(v)}%"></i>${i === n - 1 || (i === iMax && v > 0 && i < n - 3) ? `<em${i === n - 1 ? ' class="der"' : ''} style="top:${Y(v)}%">${n0(v)}</em>` : ''}</span>`).join('')}
-    </div><div class="ejex" aria-hidden="true"><span>${esc(etqs[0])}</span><span>${esc(etqs[Math.floor((n - 1) / 2)])}</span><span>${esc(etqs[n - 1])}</span></div>
-    <details class="ver-tabla"><summary>Ver en tabla</summary><table class="tabla"><tbody>${vals.map((v, i) => `<tr><th scope="row">${esc(etqs[i])}</th><td class="num">${n0(v)}</td></tr>`).join('')}</tbody></table></details></figure>`;
-  };
-  // columnas: una serie; el número solo en la última y en la mayor
-  const columnas = (vals, etqs, nombre, fmt = n0, unidad = '') => {
-    const m = Math.max(...vals, 0) || 1, iMax = vals.lastIndexOf(Math.max(...vals));
-    return `<figure class="graf"><div class="cols" role="img" aria-label="${esc(nombre)}: ${vals.map((v, i) => etqs[i] + ' ' + fmt(v)).join(', ')}">
-      ${vals.map((v, i) => `<div tabindex="0" data-tip="${esc(etqs[i])}" data-val="${esc(fmt(v) + (unidad ? ' ' + unidad : ''))}"><em>${(i === vals.length - 1 || i === iMax) && v ? fmt(v) : ''}</em><i class="${v ? '' : 'cero'}" style="height:${Math.max(1.5, v / m * 82)}%"></i></div>`).join('')}
-    </div><div class="colx" aria-hidden="true">${etqs.map(x => `<span>${esc(x)}</span>`).join('')}</div></figure>`;
-  };
-  // barras horizontales: nombre, valor y la barra debajo (de mayor a menor)
-  const hbarras = (filas, suave) => { const m = Math.max(...filas.map(f => f.v), 0) || 1;
-    return `<ul class="hbar">${filas.map(f => `<li><span class="nom">${esc(f.n)}</span><span class="val">${esc(f.t ?? n0(f.v))}</span><span class="pista" aria-hidden="true"><i${suave ? ' class="suave"' : ''} style="width:${Math.max(.5, f.v / m * 100)}%"></i></span></li>`).join('')}</ul>`; };
+  // gráficos en SVG, dibujados con el ancho real de su tarjeta (y otra vez al cambiar de pestaña o de tamaño)
+  const GRAF = [];
+  const nice = m => { if (m <= 0) return 1; const p = 10 ** Math.floor(Math.log10(m)); for (const k of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (k * p >= m) return k * p; return m; };
+  const eje = v => Number.isInteger(v) ? n0(v) : v.toLocaleString('es-ES', { maximumFractionDigits: 2 });
+  const grafico = (tipo, vals, etqs, nombre, fmt = n0, unidad = '') => { const id = 'g' + GRAF.length; GRAF.push({ id, tipo, vals, etqs, fmt, unidad });
+    return `<div class="chart" id="${id}" role="img" aria-label="${esc(nombre)}: ${vals.map((v, i) => etqs[i] + ' ' + fmt(v)).join(', ')}"></div>${tabla(['', unidad ? `${nombre.split(',')[0]} (${unidad})` : nombre.split(',')[0]], vals.map((v, i) => [etqs[i], fmt(v)]))}`; };
+  const dibujar = g => { const el = document.getElementById(g.id); if (!el || !el.offsetParent) return; const W = el.clientWidth; if (W < 50) return;
+    const { vals, etqs, fmt, unidad } = g, n = vals.length, H = 170, L = 30, R = 10, T = 22, B = 22, w = W - L - R, h = H - T - B, top = nice(Math.max(...vals, 0));
+    const Y = v => T + h - v / top * h; let s = '';
+    for (const v of [0, top / 2, top]) s += `<line class="${v ? 'gl' : 'base'}" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${L - 6}" y="${Y(v) + 3.5}" text-anchor="end">${eje(v)}</text>`;
+    const iMax = vals.lastIndexOf(Math.max(...vals)), et = (x, y, v, ancla = 'middle') => `<text class="val" x="${x}" y="${y}" text-anchor="${ancla}">${esc(fmt(v))}</text>`;
+    if (g.tipo === 'linea') {
+      const X = i => L + (n === 1 ? w / 2 : i / (n - 1) * w), pts = vals.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+      s += `<polygon class="area" points="${X(0)},${Y(0)} ${pts} ${X(n - 1)},${Y(0)}"/><polyline class="linea" points="${pts}"/><circle class="pt" cx="${X(n - 1)}" cy="${Y(vals[n - 1])}" r="4"/>`;
+      s += et(X(n - 1), Y(vals[n - 1]) - 9, vals[n - 1], 'end');
+      if (iMax < n - 3 && vals[iMax] > 0) s += `<circle class="pt" cx="${X(iMax)}" cy="${Y(vals[iMax])}" r="4"/>` + et(X(iMax), Y(vals[iMax]) - 9, vals[iMax]);
+      for (const i of [0, Math.floor((n - 1) / 2), n - 1]) s += `<text class="ax" x="${X(i)}" y="${H - 6}" text-anchor="${i ? i === n - 1 ? 'end' : 'middle' : 'start'}">${esc(etqs[i])}</text>`;
+      const paso = n > 1 ? w / (n - 1) : w; vals.forEach((v, i) => { s += `<rect class="hit" x="${X(i) - paso / 2}" y="${T}" width="${paso}" height="${h}" data-val="${esc(fmt(v) + (unidad ? ' ' + unidad : ''))}" data-tip="${esc(etqs[i])}"/>`; });
+    } else {
+      const paso = w / n, bw = Math.min(28, Math.max(6, paso * .6)), X = i => L + paso * i + paso / 2;
+      vals.forEach((v, i) => { const y = Y(v), hh = Y(0) - y, x = X(i) - bw / 2, r = Math.min(4, hh, bw / 2);
+        if (v > 0) s += `<path class="barra" d="M${x},${Y(0)} V${y + r} Q${x},${y} ${x + r},${y} H${x + bw - r} Q${x + bw},${y} ${x + bw},${y + r} V${Y(0)} Z"/>`;
+        if (v > 0 && (i === n - 1 || i === iMax)) s += et(X(i), y - 6, v);
+        if (paso >= 26 || i === 0 || i === n - 1) s += `<text class="ax" x="${X(i)}" y="${H - 6}" text-anchor="middle">${esc(etqs[i])}</text>`;
+        s += `<rect class="hit" x="${L + paso * i}" y="${T}" width="${paso}" height="${h}" data-val="${esc(fmt(v) + (unidad ? ' ' + unidad : ''))}" data-tip="${esc(etqs[i])}"/>`; });
+    }
+    el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${s}</svg>`; };
+  const dibujarTodo = () => { GRAF.forEach(dibujar); // las tablas que no caben se desplazan: se llega a ellas con el teclado
+    raiz.querySelectorAll('.desliza').forEach(el => { if (el.offsetParent && el.scrollWidth > el.clientWidth + 1) { el.tabIndex = 0; el.setAttribute('role', 'region'); el.setAttribute('aria-label', (el.closest('.card')?.querySelector('h2')?.textContent || 'Tabla') + ', se desplaza'); } else { el.removeAttribute('tabindex'); el.removeAttribute('role'); el.removeAttribute('aria-label'); } }); };
 
   // ── datos de uso ──
   const VE = { gratis: 'Gratis', basico: 'Básico', pro: 'Pro' };
@@ -280,10 +353,11 @@ figure { margin: 0; }
       rec: suma(R, g => g.usuaria === u.id), ins: suma(I, g => g.usuaria === u.id) }; })
     .sort((a, b) => (b.ultimo || '').localeCompare(a.ultimo || '') || (b.creada || '').localeCompare(a.creada || ''));
   const socias = new Set(fichas.filter(u => u.socia).map(u => u.id));
-  const act = (n, sinSocias) => new Set(d.uso.filter(u => u.dia >= dia(n - 1) && !(sinSocias && socias.has(u.usuaria))).map(u => u.usuaria)).size;
+  const actR = (a, b, sinSocias) => new Set(d.uso.filter(u => u.dia >= dia(b) && u.dia <= dia(a) && !(sinSocias && socias.has(u.usuaria))).map(u => u.usuaria)).size;
+  const act = (n, sinSocias) => actR(0, n - 1, sinSocias);
   const fallos7 = d.avisos.filter(a => a.fecha >= new Date(hoy - 7 * 864e5).toISOString()).length;
   const prendas = d.usuarias.reduce((s, u) => s + u.prendas, 0);
-  const nuevas7 = d.usuarias.filter(u => u.creada >= new Date(hoy - 7 * 864e5).toISOString()).length;
+  const altasEntre = (a, b) => d.usuarias.filter(u => u.creada >= new Date(hoy - b * 864e5).toISOString() && u.creada < new Date(hoy - a * 864e5).toISOString()).length;
   const diaCorto = k => new Date(k + 'T12:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'numeric' });
   const dias14 = [...Array(14)].map((_, i) => dia(13 - i)), porDia = dias14.map(k => new Set(d.uso.filter(u => u.dia === k).map(u => u.usuaria)).size);
   const lunes = x => { x = new Date(x); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; };
@@ -301,9 +375,11 @@ figure { margin: 0; }
   const pagosEur = PAG.reduce((s, g) => s + g.e, 0);
   const iaTotUsd = suma(G, () => true) + Object.values(DIR).reduce((s, v) => s + v, 0), cambio = P.usdEur?.v || null;
   const gastado = pagosEur + (cambio ? iaTotUsd * cambio : 0), tope = P.tope?.eur || 0;
-  const CM = d.catalogoMes || null; // gasto de IA del servidor este mes y su tope (CAT_MES_USD)
+  const CM = d.catalogoMes || null;
   const nomCada = { unico: 'una vez', 'único': 'una vez', mensual: 'al mes', anual: 'al año' };
   const SERV = { catalogo: 'Fotos de catálogo', avatar: 'Avatares', puesto: 'Verlo puesto', clasificar: 'Nombre y detalles' };
+  const iaServ = CM ? +CM.usd : iaMes(mesAhora) - (DIR[mesAhora] || 0), topeServ = CM ? +CM.tope : 0;
+  const mesesG = meses.slice(-6);
 
   // ── redes ──
   const RED = { ig: 'Instagram', tt: 'TikTok', pin: 'Pinterest', g: 'Google', cartel: 'Cartel' }, nomRed = o => RED[o] || (/^mail/.test(o) ? 'Correo ' + o.slice(4) : /-ad\d+$/.test(o) ? 'Anuncio ' + o : o || 'Directo');
@@ -315,29 +391,42 @@ figure { margin: 0; }
   const intSem = sem => sem ? mediana(MED.filter(x => x.semana === sem && x.pieza !== 'cuenta').map(interes)) : null;
   const ROJ = /^(ig|tt|pin)(-|$)/, visDe = (a, b, f) => (d.visitas || []).filter(v => v.dia >= dia(b) && v.dia <= dia(a) && f(v.origen)).reduce((s, v) => s + v.n, 0);
   const EFs = (d.espera?.filas || []), altas7 = EFs.filter(x => x.dia >= dia(6)).length, altasA = EFs.filter(x => x.dia >= dia(13) && x.dia < dia(6)).length;
-  const flecha = (a, b) => a == null || b == null || a === b ? '' : `<small class="flecha ${a > b ? 'sube' : 'baja'}">${a > b ? '▲' : '▼'}<span class="vh">${a > b ? 'sube' : 'baja'} frente a la semana anterior</span></small>`;
-  const cifraR = (v, et, ant) => tile(`${v == null ? '—' : (Math.round(v * 10) / 10).toLocaleString('es-ES', { useGrouping: 'always' })}${flecha(v, ant)}`, et);
+  const r1 = v => v == null ? '—' : (Math.round(v * 10) / 10).toLocaleString('es-ES', { useGrouping: 'always' });
   const REDES = [['ig', 'Instagram'], ['tt', 'TikTok'], ['pin', 'Pinterest']];
-  const cuentaDe = n => (P.cuentas || []).find(c => c.s.startsWith(n)) || {};
+  const cuentaDe = n => (P.cuentas || []).find(x => x.s.startsWith(n)) || {};
   const segDe = r => (P.seguidores || []).filter(x => x.red === r).sort((a, b) => a.fecha.localeCompare(b.fecha)).at(-1);
-  const celda = v => `<td class="num">${v == null ? '—' : n0(v)}</td>`;
   const piezas = semU ? MED.filter(x => x.semana === semU && x.pieza !== 'cuenta').map(x => ({ ...x, i: interes(x) })).filter(x => x.i != null).sort((a, b) => b.i - a.i).slice(0, 8) : [];
-  const otras = {}; (d.visitas || []).filter(v => v.dia >= dia(29) && !ROJ.test(v.origen)).forEach(v => otras[v.origen] = (otras[v.origen] || 0) + v.n);
+  const origen30 = {}; (d.visitas || []).filter(v => v.dia >= dia(29)).forEach(v => origen30[v.origen] = (origen30[v.origen] || 0) + v.n);
+  const ESTR = { ok: ['ok', 'Abierta'], medio: ['mid', 'A medias'], falta: ['no', 'Falta'] };
 
   // ── empresa ──
   const F = P.funciones || [], grupos = [...new Set(F.map(f => f.g))], cuenta = e => F.filter(f => f.e === e).length;
-  const ESTADOS = ['hecho', 'marcha', 'falta', 'espera'];
-  const plegable = (nombre, h, total, cuerpo) => `<details><summary><span class="nom">${esc(nombre)}</span><span class="mini" aria-hidden="true"><i style="width:${pct(h, total)}%"></i></span><span class="cu">${h}/${total}</span></summary>${cuerpo}</details>`;
-  const listaEst = items => `<ul class="lista">${items.map(x => `<li>${est(x.e)}<span>${esc(x.t)}${x.n ? `<small>${esc(x.n)}</small>` : ''}</span></li>`).join('')}</ul>`;
+  const ESTADOS = ['hecho', 'marcha', 'espera', 'falta'], COL = { hecho: 'var(--good)', marcha: 'var(--warn)', espera: '#c9ceca', falta: 'var(--crit)' };
+  const plegable = (nombre, h, total, cuerpo) => `<details><summary><span class="n">${esc(nombre)}</span><span class="meter" aria-hidden="true"><i style="width:${pct(h, total)}%"></i></span><small>${h}/${total}</small>${ic('down')}</summary>${cuerpo}</details>`;
+  const listaEst = items => `<ul class="lst">${items.map(x => `<li><span>${esc(x.t)}</span>${x.n || x.q ? `<small>${esc([x.q, x.n].filter(Boolean).join(' · '))}</small>` : ''}${status(x.e)}</li>`).join('')}</ul>`;
 
   // ── os toca y fechas ──
   const aFecha = f => { const [dd, mm, aa] = String(f).split('/'); return new Date(+(aa || hoy.getFullYear()), +mm - 1, +dd, 12); };
-  const proximas = (P.calendario || []).filter(x => aFecha(x.f) >= new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()));
+  const hoy0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  const proximas = (P.calendario || []).filter(x => aFecha(x.f) >= hoy0);
+  const rel = f => { const n = Math.round((aFecha(f) - hoy0 - 12 * 36e5) / 864e5); return n === 0 ? 'hoy' : n === 1 ? 'mañana' : 'en ' + n + ' días'; };
+  const PEN = P.pendientes || [], ya = PEN.filter(p => /^ya$/i.test(p.f || '')).length, conF = PEN.filter(p => p.f && !/^(ya|sin fecha)$/i.test(p.f)).length, sinF = PEN.length - ya - conF;
+  const nombre = (c.nombre || '').trim().split(/\s+/)[0], h = hoy.getHours(), saludo = (h < 7 || h >= 21 ? 'Buenas noches' : h < 14 ? 'Buenos días' : 'Buenas tardes') + (nombre ? ', ' + nombre : '');
+  const hoyLargo = hoy.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  // ── infraestructura por fase (la de ahora, abierta) ──
+  const INF = P.infra || [], faseAhora = Math.max(0, INF.findIndex(f => !f.f || aFecha(f.f) >= hoy0));
+  const infraHtml = INF.map((f, i) => { const hechas = f.items.filter(x => x.e === 'hecho').length;
+    return `<div class="fase"><div class="fase-h"><b>${esc(f.n)}${i === faseAhora ? '<span class="ahora">Ahora</span>' : ''}</b><small>${esc(f.f ? f.i + '–' + f.f : 'desde el ' + f.i)}</small></div>
+      <div class="datos"><span>${esc(f.p)}</span><span>Fijo ${esc(f.fijo)}</span><span>IA ${esc(f.ia)}</span></div>
+      <div class="medida"><span>${hechas} de ${f.items.length} listas</span><span>${pct(hechas, f.items.length)} %</span></div><div class="meter" role="img" aria-label="${esc(f.n)}: ${hechas} de ${f.items.length} listas"><i style="width:${pct(hechas, f.items.length)}%"></i></div>
+      <details class="md"${i === faseAhora ? ' open' : ''}><summary>Qué hace falta</summary>${listaEst(f.items)}</details></div>`; }).join('');
+  const infraAhora = INF[faseAhora], infraListas = infraAhora ? infraAhora.items.filter(x => x.e === 'hecho').length : 0;
 
   // ── CSV para Excel ──
-  const csv = (nombre, filas) => { const txt = '﻿' + filas.map(f => f.map(v => { const x = typeof v === 'number' ? String(Math.round(v * 1000) / 1000).replace('.', ',') : String(v ?? '');
+  const csv = (nom, filas) => { const txt = '﻿' + filas.map(f => f.map(v => { const x = typeof v === 'number' ? String(Math.round(v * 1000) / 1000).replace('.', ',') : String(v ?? '');
       return /[;"\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; }).join(';')).join('\r\n');
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' })); a.download = nombre; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); };
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' })); a.download = nom; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); };
   const CSV = {
     usuarias: () => csv('tucloset-usuarias.csv', [['Cuenta', 'Socia', 'Alta', 'Último día', 'Días de uso (30 días)', 'Días de uso (total)', 'Prendas', 'Con foto de catálogo', 'Looks', 'Puestas', 'Versión que ve', 'Ropa', 'Diagnóstico', 'Fotos de catálogo IA', 'Avatares', 'Verlo puesto', 'Recortes', 'Lecturas de looks', 'Gasto de IA ($)'],
       ...fichas.map(u => [u.correo, u.socia ? 'sí' : 'no', (u.creada || '').slice(0, 10), u.ultimo || '', u.dias30, u.dias, u.prendas, u.catalogo, u.looks, u.usos, VE[u.ve] || '', u.ropa || '', u.diag ? 'sí' : 'no', u.cat, u.av, u.pu, u.rec, u.ins, u.usd])]),
@@ -349,126 +438,141 @@ figure { margin: 0; }
       ...PAG.map(g => [g.fecha, 'Pago (' + (nomCada[g.cada] || g.cada) + '): ' + g.concepto, '', g.moneda === 'USD' ? +g.importe : '', g.e])]),
     uso: () => { const k = [...new Set(d.uso.map(u => u.dia))].sort(); csv('tucloset-uso-por-dia.csv', [['Día', 'Personas', 'Personas sin vosotras', 'Aperturas'], ...k.map(x => { const u = d.uso.filter(y => y.dia === x); return [x, u.length, u.filter(y => !socias.has(y.usuaria)).length, u.reduce((s, y) => s + y.n, 0)]; })]); } };
 
-  // encuesta de las pruebas: una barra por respuesta
   let enc = '<p class="vacio">Aún no hay respuestas.</p>';
   if (d.encuestas.length) { const cu = {}; d.encuestas.forEach(x => Object.entries(x.r).forEach(([q, v]) => { (cu[q] = cu[q] || {}); [].concat(v).forEach(o => cu[q][o] = (cu[q][o] || 0) + 1); }));
-    enc = Object.entries(cu).map(([q, ops]) => `<p style="margin:14px 0 6px">${esc(q)}</p>${hbarras(Object.entries(ops).sort((a, b) => b[1] - a[1]).map(([o, n]) => ({ n: o, v: n })))}`).join(''); }
+    enc = Object.entries(cu).map(([q, ops]) => `<p style="margin:12px 0 6px;font-weight:500">${esc(q)}</p>${hbarras(Object.entries(ops).sort((a, b) => b[1] - a[1]).map(([o, n]) => ({ n: o, v: n })))}`).join(''); }
 
-  const secciones = [['hoy', 'Hoy'], ['cifras', 'Cifras'], ['dinero', 'Dinero'], ['redes', 'Redes'], ['empresa', 'Empresa']];
-  const iaServ = CM ? +CM.usd : iaMes(mesAhora) - (DIR[mesAhora] || 0), topeServ = CM ? +CM.tope : 0;
-  const mesesG = meses.slice(-6);
+  // ── pestañas: 5, la primera Inicio (diseño común de los centros de control, 11/11) ──
+  const secciones = [['inicio', 'Inicio', 'home'], ['cifras', 'Cifras', 'cifras'], ['dinero', 'Dinero', 'dinero'], ['redes', 'Redes', 'redes'], ['mas', 'Más', 'mas']];
+  const sig = proximas[0], dSig = sig ? aFecha(sig.f) : null;
 
-  raiz.innerHTML = `<nav aria-label="Secciones"><ul>${secciones.map(([k, n]) => `<li><a href="#${k}">${n}</a></li>`).join('')}</ul></nav><main>
+  raiz.innerHTML = `<main>
 
-  <section id="hoy"><h2 class="vh">Hoy</h2>
-    <div class="tiles">
-      ${tile(n0(d.usuarias.length), socias.size ? `cuentas, ${socias.size} vuestras` : 'cuentas')}
-      ${tile(n0(act(7)), 'activas esta semana')}
-      ${tile(`${dec(iaServ)}<small>$</small>`, topeServ ? `IA este mes, de ${n0(topeServ)} $` : 'IA este mes', topeServ ? medidor(iaServ, topeServ) : '')}
-      ${tile(n0(fallos7), 'fallos esta semana')}
+  <section id="inicio" aria-labelledby="t-inicio">
+    <header class="head"><div class="label">${esc(hoyLargo)}</div><h1 id="t-inicio">${esc(saludo)}</h1></header>
+    ${sig ? `<div class="card next"><div class="dtile" aria-hidden="true"><small>${esc(dSig.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', ''))}</small><b>${dSig.getDate()}</b><span>${esc(dSig.toLocaleDateString('es-ES', { month: 'short' }).replace('.', ''))}</span></div>
+      <div><div class="label">Lo siguiente <span class="rel">${rel(sig.f)}</span></div><div class="next-title"><span class="sr">${esc(sig.f)}: </span>${esc(sig.q.replace(/ \(propuesta\)$/, ''))}</div></div></div>` : ''}
+    <div class="kpis">
+      ${kpi('user', n0(d.usuarias.length), socias.size ? `cuentas, ${socias.size} vuestras` : 'cuentas')}
+      ${kpi('check', n0(act(7)), 'activas esta semana', comp(act(7), actR(7, 13), 'la semana anterior'))}
+      ${kpi('spark', `${dec(iaServ)} $`, topeServ ? `IA del mes, de ${n0(topeServ)} $` : 'IA del mes', topeServ ? meter(iaServ, topeServ) : '')}
+      ${kpi('warn', n0(fallos7), 'fallos en 7 días')}
     </div>
-    ${bloque('Os toca', `<ul class="toca">${(P.pendientes || []).map(p => `<li><details><summary><span class="que">${esc(p.t)}</span><span class="quien">${esc(p.q)}</span><span class="cuando${/^ya$/i.test(p.f || '') ? ' ya' : ''}">${esc(p.f && p.f !== 'Sin fecha' ? p.f : '')}</span></summary>${p.r ? `<p>${esc(p.r)}</p>` : ''}</details></li>`).join('')}</ul>`, `${(P.pendientes || []).length}`)}
-    <div class="dos">
-      ${bloque('Próximas fechas', `<ol class="linea">${proximas.map((x, i) => `<li${i ? ' class="lejos"' : ''}><b>${esc(x.f)}</b><span>${esc(x.q.replace(/ \(propuesta\)$/, ''))}</span></li>`).join('')}</ol>`)}
-      ${bloque('Para mirar', `<div class="enlaces">${(P.mirar || []).map(x => x.url ? `<a href="${esc(x.url)}">${esc(x.t)}</a>` : `<span>${esc(x.t)}</span>`).join('')}</div>`)}
+    <div class="dash">
+      ${card('Os toca', `${PEN.length ? `<div class="pila" role="img" aria-label="${ya} para ya, ${conF} con fecha, ${sinF} sin fecha">${[[ya, 'var(--crit)'], [conF, 'var(--acento)'], [sinF, '#c9ceca']].filter(([n]) => n).map(([n, col]) => `<i style="flex:${n};background:${col}"></i>`).join('')}</div>
+        <div class="legend"><span><i style="--c:var(--crit)"></i>Ya ${ya}</span><span><i style="--c:var(--acento)"></i>Con fecha ${conF}</span><span><i style="--c:#c9ceca"></i>Sin fecha ${sinF}</span></div>` : ''}
+        <div class="toca">${PEN.map(p => `<details><summary><span class="txt"><span class="que">${esc(p.t)}</span><span class="meta"><span>${esc(p.q)}</span>${/^ya$/i.test(p.f || '') ? status('falta', 'Ya') : p.f && p.f !== 'Sin fecha' ? `<span>${esc(p.f)}</span>` : ''}</span></span>${p.r ? ic('down') : ''}</summary>${p.r ? `<p>${esc(p.r)}</p>` : ''}</details>`).join('') || '<p class="vacio">Nada pendiente.</p>'}</div>`, { count: PEN.length })}
+      ${card('Próximas fechas', `<div class="rows">${proximas.map(x => `<div class="trow"><b>${esc(x.q.replace(/ \(propuesta\)$/, ''))}</b><small>${esc(x.f)} · ${rel(x.f)}</small></div>`).join('') || '<p class="vacio">Sin fechas a la vista.</p>'}</div>`)}
+      ${infraAhora ? card('Infraestructura', `<div class="medida"><span>${esc(infraAhora.n)}: ${infraListas} de ${infraAhora.items.length} listas</span><span>${pct(infraListas, infraAhora.items.length)} %</span></div><div class="meter" role="img" aria-label="${infraListas} de ${infraAhora.items.length} listas"><i style="width:${pct(infraListas, infraAhora.items.length)}%;background:var(--good)"></i></div>
+        <div class="rows">${infraAhora.items.filter(x => x.e !== 'hecho').slice(0, 4).map(x => `<div class="trow"><b>${esc(x.t)}</b><small>${esc(x.q)}</small></div>`).join('')}</div><a class="more" href="#mas">Todas las fases</a>`, { extra: esc(infraAhora.f ? infraAhora.i + '–' + infraAhora.f : '') }) : ''}
+      ${card('Para mirar', `<div class="rows">${(P.mirar || []).map(x => x.url ? `<a class="trow" href="${esc(x.url)}"><b>${esc(x.t)}</b><small>${esc(x.n || '')}</small>${ic('chev')}</a>` : `<div class="trow"><b>${esc(x.t)}</b><small>${esc(x.n || '')}</small></div>`).join('')}</div>`)}
     </div>
   </section>
 
-  <section id="cifras"><h2 class="vh">Cifras</h2>
-    <div class="tiles">
-      ${tile(n0(act(30)), 'activas en 30 días')}
-      ${tile(n0(nuevas7), 'cuentas nuevas esta semana')}
-      ${tile(n0(prendas), 'prendas subidas')}
-      ${tile(n0(d.entradas7), 'entradas esta semana')}
+  <section id="cifras" aria-labelledby="t-cifras" hidden>
+    <header class="head"><div class="label">Uso de la app</div><h1 id="t-cifras">Cifras</h1></header>
+    <div class="kpis">
+      ${kpi('user', n0(act(30)), 'activas en 30 días')}
+      ${kpi('check', n0(altasEntre(0, 7)), 'cuentas nuevas en 7 días', comp(altasEntre(0, 7), altasEntre(7, 14), 'la semana anterior'))}
+      ${kpi('percha', n0(prendas), 'prendas subidas')}
+      ${kpi('home', n0(d.entradas7), 'entradas en 7 días')}
     </div>
-    <div class="dos">
-      ${bloque('Personas que abren la app', linea(porDia, dias14.map(diaCorto), 'Personas que abren la app cada día, últimos 14 días', 'personas'), '14 días')}
-      ${bloque('Cuentas nuevas', columnas(altasSem, semanas.map(l => `${l.getDate()}/${l.getMonth() + 1}`), 'Cuentas nuevas cada semana, últimas 8 semanas'), 'por semana')}
+    <div class="dash">
+      ${card('Personas que abren la app', porDia.some(Boolean) ? grafico('linea', porDia, dias14.map(diaCorto), 'Personas que abren la app cada día, últimos 14 días', n0, 'personas') : '<p class="vacio">Nadie ha abierto la app en 14 días.</p>', { extra: '14 días' })}
+      ${card('Cuentas nuevas', altasSem.some(Boolean) ? grafico('columnas', altasSem, semanas.map(l => `${l.getDate()}/${l.getMonth() + 1}`), 'Cuentas nuevas cada semana, últimas 8 semanas', n0, 'cuentas') : '<p class="vacio">Sin cuentas nuevas en 8 semanas.</p>', { extra: 'por semana' })}
+      ${card('Visitas por origen', Object.keys(origen30).length ? hbarras(Object.entries(origen30).sort((a, b) => b[1] - a[1]).map(([o, n]) => ({ n: nomRed(o), v: n }))) : '<p class="vacio">Sin visitas con enlace todavía.</p>', { extra: '30 días' })}
+      ${card('Lista de espera', !d.espera?.abierta && !EFs.length ? '<p class="vacio">Cerrada hasta tener Brevo y la privacidad publicada.</p>'
+        : `<div class="kpis">${kpi('user', n0(EFs.length), 'apuntadas')}${kpi('check', d.espera?.confirmadas == null ? '—' : n0(d.espera.confirmadas), 'confirmadas')}${kpi('spark', n0(altas7), 'en 7 días', comp(altas7, altasA, 'la semana anterior'))}</div>`)}
+      ${card('Usuarias', `<div class="desliza"><table><thead><tr><th scope="col">Cuenta</th><th scope="col" class="num">Prendas</th><th scope="col" class="num">Looks</th><th scope="col" class="num">Días</th><th scope="col" class="num">IA</th></tr></thead>
+        <tbody>${fichas.map(u => `<tr><th scope="row">${esc(u.correo)}${u.socia ? ' · socia' : ''}</th><td class="num">${n0(u.prendas)}</td><td class="num">${n0(u.looks)}</td><td class="num">${n0(u.dias30)}</td><td class="num">${u.usd ? usd(u.usd) : '—'}</td></tr>`).join('')}</tbody></table></div>`, { wide: 1, count: fichas.length, extra: 'días de uso en 30 días' })}
+      ${card('', `<div class="pleg sin">
+        <details><summary><span class="n">Encuesta de las pruebas</span><small>${d.encuestas.length}</small>${ic('down')}</summary><div class="cuerpo">${enc}</div></details>
+        <details><summary><span class="n">Fallos</span><small>${d.avisos.length}</small>${ic('down')}</summary><div class="cuerpo">${d.avisos.length ? `<div class="rows">${d.avisos.slice(0, 20).map(a => `<div class="trow"><b style="font-size:.8rem;overflow-wrap:anywhere">${esc(a.d)}</b><small>${hora(a.fecha)}</small></div>`).join('')}</div>` : '<p class="vacio">Ningún fallo.</p>'}</div></details>
+      </div><div class="acc"><button class="btn-s" type="button" data-csv="usuarias">Descargar usuarias</button><button class="btn-s" type="button" data-csv="uso">Descargar uso por día</button></div>`, { wide: 1 })}
     </div>
-    ${bloque('Usuarias', `<div class="desliza"><table class="tabla"><thead><tr><th scope="col">Cuenta</th><th scope="col" class="num">Prendas</th><th scope="col" class="num">Looks</th><th scope="col" class="num">Días</th><th scope="col" class="num">IA</th></tr></thead>
-      <tbody>${fichas.map(u => `<tr><th scope="row">${esc(u.correo)}${u.socia ? ' <small class="peq">· socia</small>' : ''}</th><td class="num">${n0(u.prendas)}</td><td class="num">${n0(u.looks)}</td><td class="num">${n0(u.dias30)}</td><td class="num">${u.usd ? usd(u.usd) : '—'}</td></tr>`).join('')}</tbody></table></div>`, 'días de uso en 30 días')}
-    ${bloque('Lista de espera', !d.espera?.abierta && !EFs.length ? '<p class="vacio">Cerrada hasta tener Brevo y la privacidad publicada.</p>'
-      : `<div class="tiles">${tile(n0(EFs.length), 'apuntadas')}${tile(d.espera?.confirmadas == null ? '—' : n0(d.espera.confirmadas), 'confirmadas')}${tile(n0(altas7), 'esta semana')}${tile(n0(EFs.filter(x => x.nov).length), 'quieren novedades')}</div>`)}
-    <div class="bloque plegables sin-barra">
-      <details><summary><span class="nom">Encuesta de las pruebas</span><span class="cu">${d.encuestas.length}</span></summary><div class="cuerpo">${enc}</div></details>
-      <details><summary><span class="nom">Fallos</span><span class="cu">${d.avisos.length}</span></summary><div class="cuerpo">${d.avisos.length ? `<ul class="filas">${d.avisos.slice(0, 20).map(a => `<li><code>${esc(a.d)}</code><span>${hora(a.fecha)}</span></li>`).join('')}</ul>` : '<p class="vacio">Ningún fallo.</p>'}</div></details>
-    </div>
-    <div class="acciones"><button class="boton" type="button" data-csv="usuarias">Descargar usuarias</button><button class="boton" type="button" data-csv="uso">Descargar uso por día</button></div>
   </section>
 
-  <section id="dinero"><h2 class="vh">Dinero</h2>
-    <div class="heroe"><b>${dec(iaMes(mesAhora))}<small>$</small></b><span>IA en ${nomMes(mesAhora).toLowerCase()}</span></div>
-    ${topeServ ? medidor(iaServ, topeServ, `App: ${usd(iaServ)} de ${n0(topeServ)} $`, `${pct(iaServ, topeServ)} %`) : ''}
-    <div class="tiles" style="margin-top:22px">
-      ${tile(`${dec(gastado)}<small>€</small>`, 'gastado en total')}
-      ${tile('0<small>€</small>', 'ingresado')}
-      ${tile(`${n0(fijosTot)}<small>€</small>`, 'fijos previstos al mes')}
-      ${tile(act(30, true) ? `${dec(iaMes(mesAhora, true) / act(30, true))}<small>$</small>` : '—', 'IA por usuaria, sin vosotras')}
+  <section id="dinero" aria-labelledby="t-dinero" hidden>
+    <header class="head"><div class="label">IA, pagos y fijos</div><h1 id="t-dinero">Dinero</h1></header>
+    <div class="card grande"><span class="label">IA en ${nomMes(mesAhora).toLowerCase()}</span><b>${dec(iaMes(mesAhora))}<small>$</small></b>
+      ${topeServ ? `${meter(iaServ, topeServ)}<div class="medida"><span>App: ${usd(iaServ)} de ${n0(topeServ)} $</span><span>${pct(iaServ, topeServ)} %</span></div>` : ''}</div>
+    <div class="kpis">
+      ${kpi('dinero', eur2(gastado), 'gastado en total')}
+      ${kpi('dinero', '0 €', 'ingresado')}
+      ${kpi('cifras', eur(fijosTot), 'fijos previstos al mes')}
+      ${kpi('user', act(30, true) ? usd(iaMes(mesAhora, true) / act(30, true)) : '—', 'IA por usuaria, sin vosotras')}
     </div>
-    <div class="dos">
-      ${bloque('IA por mes', columnas(mesesG.map(m => Math.round(iaMes(m) * 100) / 100), mesesG.map(m => nomMes(m, true)), 'Gasto de IA por mes, en dólares', dec, '$'), 'en dólares')}
-      ${bloque(`${nomMes(mesAhora)}, por servicio`, (L => L.length ? hbarras(L) : '<p class="vacio">Nada este mes.</p>')([...Object.keys(SERV).map(s => ({ n: SERV[s], v: suma(G, g => g.mes === mesAhora && g.s === s), t: `${n0(suma(GN, g => g.mes === mesAhora && g.s === s))} · ${usd(suma(G, g => g.mes === mesAhora && g.s === s))}` })),
+    <div class="dash">
+      ${card('IA por mes', mesesG.some(m => iaMes(m) > 0) ? grafico('columnas', mesesG.map(m => Math.round(iaMes(m) * 100) / 100), mesesG.map(m => nomMes(m, true)), 'Gasto de IA por mes, en dólares', dec, '$') : '<p class="vacio">Sin gasto de IA todavía.</p>', { extra: 'en dólares' })}
+      ${card(`${nomMes(mesAhora)}, por servicio`, (L => L.length ? hbarras(L) : '<p class="vacio">Nada este mes.</p>')([...Object.keys(SERV).map(s => ({ n: SERV[s], v: suma(G, g => g.mes === mesAhora && g.s === s), t: `${n0(suma(GN, g => g.mes === mesAhora && g.s === s))} · ${usd(suma(G, g => g.mes === mesAhora && g.s === s))}` })),
         ...(DIR[mesAhora] ? [{ n: 'Tandas de la Dirección', v: DIR[mesAhora], t: usd(DIR[mesAhora]) }] : [])].filter(x => x.v > 0).sort((a, b) => b.v - a.v)))}
+      ${tope ? card('Antes de cobrar', `${meter(gastado, tope)}<div class="medida"><span>${eur2(gastado)} de ${eur(tope)} previstos</span><span>${pct(gastado, tope)} %</span></div>`) : ''}
+      ${card('Fijos previstos al mes', (P.fijos || []).length ? hbarras((P.fijos || []).map(([n, v]) => ({ n, v, t: eur(v) })).sort((a, b) => b.v - a.v)) : '<p class="vacio">Ninguno todavía.</p>', { extra: eur(fijosTot) })}
+      ${card('Pagos', PAG.length ? `<div class="rows">${PAG.slice().reverse().map(g => `<div class="trow"><b>${esc(g.concepto)}</b><small>${fecha(g.fecha)} · ${g.moneda === 'EUR' ? eur2(+g.importe) : esc(g.importe + ' ' + g.moneda)}</small></div>`).join('')}</div>` : '<p class="vacio">Ningún pago todavía.</p>', { count: PAG.length })}
+      ${card('', `<p class="vacio">La IA se paga en dólares a Google${cambio ? `; 1 $ = ${String(cambio).replace('.', ',')} € (BCE, ${fecha(P.usdEur.fecha)})` : ''}. Recortes y lecturas de looks, gratis.</p><div class="acc"><button class="btn-s" type="button" data-csv="dinero">Descargar contabilidad</button></div>`)}
     </div>
-    ${tope ? bloque('Antes de cobrar', medidor(gastado, tope, `${eur2(gastado)} de ${eur(tope)} previstos`, `${pct(gastado, tope)} %`)) : ''}
-    <div class="dos">
-      ${bloque('Pagos', PAG.length ? `<ul class="filas">${PAG.slice().reverse().map(g => `<li><span>${esc(g.concepto)} <small class="peq">${fecha(g.fecha)}</small></span><span>${g.moneda === 'EUR' ? eur2(+g.importe) : esc(g.importe + ' ' + g.moneda)}</span></li>`).join('')}</ul>` : '<p class="vacio">Ningún pago todavía.</p>', `${PAG.length}`)}
-      ${bloque('Fijos previstos al mes', hbarras((P.fijos || []).map(([n, v]) => ({ n, v, t: eur(v) })).sort((a, b) => b.v - a.v), true), eur(fijosTot))}
-    </div>
-    <p class="peq" style="margin-top:18px">La IA se paga en dólares a Google${cambio ? ` · 1 $ = ${String(cambio).replace('.', ',')} € (BCE, ${fecha(P.usdEur.fecha)})` : ''}. Recortes y lecturas de looks, gratis.</p>
-    <div class="acciones"><button class="boton" type="button" data-csv="dinero">Descargar contabilidad</button></div>
   </section>
 
-  <section id="redes"><h2 class="vh">Redes</h2>
-    <div class="tiles">
-      ${cifraR(semU ? sumaMed(semU, 'visualizaciones') : null, 'visualizaciones, última semana', semA ? sumaMed(semA, 'visualizaciones') : null)}
-      ${cifraR(intSem(semU), 'guardados y compartidos por cada 1.000', intSem(semA))}
-      ${cifraR(visDe(0, 6, o => ROJ.test(o)), 'visitas a la web desde las redes, 7 días', visDe(7, 13, o => ROJ.test(o)))}
-      ${cifraR(altas7, 'apuntadas a la lista, 7 días', altasA)}
+  <section id="redes" aria-labelledby="t-redes" hidden>
+    <header class="head"><div class="label">Instagram, TikTok y Pinterest</div><h1 id="t-redes">Redes</h1></header>
+    <div class="kpis">
+      ${kpi('spark', r1(semU ? sumaMed(semU, 'visualizaciones') : null), 'vistas, última semana', comp(semU ? sumaMed(semU, 'visualizaciones') : null, semA ? sumaMed(semA, 'visualizaciones') : null, 'la semana anterior'))}
+      ${kpi('check', r1(intSem(semU)), 'guardados por 1.000 vistas', comp(intSem(semU) == null ? null : Math.round(intSem(semU)), intSem(semA) == null ? null : Math.round(intSem(semA)), 'la semana anterior'))}
+      ${kpi('home', n0(visDe(0, 6, o => ROJ.test(o))), 'visitas desde redes, 7 días', comp(visDe(0, 6, o => ROJ.test(o)), visDe(7, 13, o => ROJ.test(o)), 'la semana anterior'))}
+      ${kpi('user', n0(altas7), 'apuntadas, 7 días', comp(altas7, altasA, 'la semana anterior'))}
     </div>
-    ${bloque('Por red', `<div class="desliza"><table class="tabla red"><thead><tr><th scope="col">Red</th><th scope="col" class="num">Seguidores</th><th scope="col" class="num">Vistas</th><th scope="col" class="num">Guardados</th><th scope="col" class="num">Clics</th><th scope="col" class="num">Web</th></tr></thead>
-      <tbody>${REDES.map(([r, n]) => { const sg = segDe(r); return `<tr><th scope="row">${est(cuentaDe(n).e || 'falta')}${n}</th>${celda(sg ? num(sg.seguidores) : null)}${celda(semU ? sumaMed(semU, 'visualizaciones', r) : null)}${celda(semU ? sumaMed(semU, 'guardados', r) : null)}${celda(semU ? sumaMed(semU, 'clics_enlace', r) : null)}${celda(visDe(0, 29, o => o === r || o.startsWith(r + '-')))}</tr>`; }).join('')}</tbody></table></div>`,
-      semU ? `semana ${esc(semU.slice(6))} · web: visitas en 30 días` : 'primera medición: viernes 13/11')}
-    ${piezas.length ? bloque('Lo que mejor funcionó', hbarras(piezas.map(x => ({ n: (REDES.find(r => r[0] === x.red) || [, x.red])[1] + ' · ' + x.pieza, v: x.i, t: (Math.round(x.i * 10) / 10).toLocaleString('es-ES') }))), 'por 1.000 vistas') : ''}
-    ${Object.keys(otras).length ? bloque('Otras visitas', hbarras(Object.entries(otras).sort((a, b) => b[1] - a[1]).map(([o, n]) => ({ n: nomRed(o), v: n }))), '30 días') : ''}
+    <div class="dash">
+      ${card('Por red', `<div class="desliza"><table><thead><tr><th scope="col">Red</th><th scope="col">Cuenta</th><th scope="col" class="num">Seguidores</th><th scope="col" class="num">Vistas</th><th scope="col" class="num">Clics</th><th scope="col" class="num">Web</th></tr></thead>
+        <tbody>${REDES.map(([rr, n]) => { const sg = segDe(rr), e = ESTR[cuentaDe(n).e || 'falta'] || ESTR.falta; const cel = v => `<td class="num">${v == null ? '—' : n0(v)}</td>`;
+          return `<tr><th scope="row">${n}</th><td><span class="status ${e[0]}">${e[1]}</span></td>${cel(sg ? num(sg.seguidores) : null)}${cel(semU ? sumaMed(semU, 'visualizaciones', rr) : null)}${cel(semU ? sumaMed(semU, 'clics_enlace', rr) : null)}${cel(visDe(0, 29, o => o === rr || o.startsWith(rr + '-')))}</tr>`; }).join('')}</tbody></table></div>`,
+        { wide: 1, extra: semU ? 'semana ' + esc(semU.slice(6)) + ' · web: 30 días' : 'primera medición: viernes 13/11' })}
+      ${card('Lo que mejor funcionó', piezas.length ? hbarras(piezas.map(x => ({ n: (REDES.find(rr => rr[0] === x.red) || [, x.red])[1] + ' · ' + x.pieza, v: x.i, t: r1(x.i) }))) : '<p class="vacio">Sin publicaciones medidas todavía.</p>', { wide: 1, extra: 'guardados y compartidos por 1.000 vistas' })}
+    </div>
   </section>
 
-  <section id="empresa"><h2 class="vh">Empresa</h2>
-    <div class="heroe"><b>${cuenta('hecho')}<small>de ${F.length}</small></b><span>funciones de la app hechas</span></div>
-    <div class="apilada" role="img" aria-label="Funciones: ${ESTADOS.map(e => cuenta(e) + ' ' + EST[e].toLowerCase()).join(', ')}">${ESTADOS.filter(cuenta).map(e => `<i class="${e}" style="flex:${cuenta(e)}" tabindex="0" data-tip="${EST[e]}" data-val="${cuenta(e)} funciones"></i>`).join('')}</div>
-    <div class="leyenda">${ESTADOS.map(e => `<span>${est(e)}${EST[e]} <b>${cuenta(e)}</b></span>`).join('')}</div>
-    ${bloque('Funciones', `<div class="plegables">${grupos.map(g => { const fs = F.filter(f => f.g === g); return plegable(g, fs.filter(f => f.e === 'hecho').length, fs.length, listaEst(fs.map(f => ({ e: f.e, t: f.f })))); }).join('')}</div>`, 'por pantalla')}
-    ${bloque('Fases', `<ul class="fases">${(P.fases || []).map(f => `<li><span class="nom">${esc(f.n)}<small>${esc(f.i.slice(0, 5))}–${esc(f.f.slice(0, 5))}</small></span><span class="eur">${eur(f.m)}</span><span class="pista" role="img" aria-label="${esc(f.n)}: ${Math.round(f.a * 100)} %"><i style="width:${Math.round(f.a * 100)}%"></i></span></li>`).join('')}</ul>`,
-      P.presupuesto ? `${eur(P.presupuesto.total)} hasta oct. 2027` : '')}
-    ${bloque('Equipo', `<div class="plegables">${(P.departamentos || []).map(x => plegable(x.n, x.tareas.filter(t => t.e === 'hecho').length, x.tareas.length, listaEst(x.tareas))).join('')}
-      ${(P.legal || []).length ? plegable('Legal y riesgos', P.legal.filter(x => x.e === 'hecho').length, P.legal.length, listaEst(P.legal)) : ''}</div>`)}
-    ${bloque('Cuentas', `<ul class="cuentas">${(P.cuentas || []).map(x => `<li>${est(x.e)}<span>${esc(x.s)}</span>${/^https:\/\//.test(x.u || '') ? `<a href="${esc(x.u)}" target="_blank" rel="noopener">Abrir</a>` : '<span></span>'}</li>`).join('')}</ul>`, esc(P.nota_claves || ''))}
-    ${bloque('Documentos', `<div class="plegables sin-barra">${(P.docs || []).map(x => `<details><summary><span class="nom">${esc(x.t)}</span><span class="cu">${esc((x.n || '').replace(/^.*?, /, '').slice(0, 5))}</span></summary><div class="cuerpo">${x.html}</div></details>`).join('')}</div>`)}
+  <section id="mas" aria-labelledby="t-mas" hidden>
+    <header class="head"><div class="label">Infraestructura, funciones, fases y equipo</div><h1 id="t-mas">Más</h1></header>
+    ${INF.length ? card('Lo que hace falta en cada fase', infraHtml, { wide: 1, extra: 'infraestructura' }) : ''}
+    <div class="card grande"><span class="label">Funciones de la app</span><b>${cuenta('hecho')}<small>de ${F.length} hechas</small></b>
+      <div class="pila" role="img" aria-label="Funciones: ${ESTADOS.map(e => cuenta(e) + ' ' + ST[e][1].toLowerCase()).join(', ')}">${ESTADOS.filter(cuenta).map(e => `<i style="flex:${cuenta(e)};background:${COL[e]}" data-tip="${ST[e][1]}" data-val="${cuenta(e)} funciones"></i>`).join('')}</div>
+      <div class="legend">${ESTADOS.map(e => `<span><i style="--c:${COL[e]}"></i>${ST[e][1]} ${cuenta(e)}</span>`).join('')}</div>
+      <div class="pleg">${grupos.map(g => { const fs = F.filter(f => f.g === g); return plegable(g, fs.filter(f => f.e === 'hecho').length, fs.length, listaEst(fs.map(f => ({ e: f.e, t: f.f })))); }).join('')}</div></div>
+    <div class="dash">
+      ${card('Fases', `<div class="rows">${(P.fases || []).map(f => `<div class="trow" style="display:grid;gap:6px"><div class="medida" style="color:var(--ink)"><span><b style="font-weight:500">${esc(f.n)}</b> · ${esc(f.i.slice(0, 5))}–${esc(f.f.slice(0, 5))}</span><span>${eur(f.m)}</span></div><div class="meter" role="img" aria-label="${esc(f.n)}: ${Math.round(f.a * 100)} %"><i style="width:${Math.round(f.a * 100)}%;background:var(--good)"></i></div></div>`).join('')}</div>`, { extra: P.presupuesto ? `${eur(P.presupuesto.total)} hasta oct. 2027` : '' })}
+      ${card('Equipo y legal', `<div class="pleg">${(P.departamentos || []).map(x => plegable(x.n, x.tareas.filter(t => t.e === 'hecho').length, x.tareas.length, listaEst(x.tareas))).join('')}
+        ${(P.legal || []).length ? plegable('Legal y riesgos', P.legal.filter(x => x.e === 'hecho').length, P.legal.length, listaEst(P.legal)) : ''}</div>`)}
+      ${card('Cuentas', `<div class="rows">${(P.cuentas || []).map(x => { const e = ESTR[x.e] || ESTR.falta; return `<div class="trow"><b>${esc(x.s)}</b><span class="status ${e[0]}">${e[1]}</span>${/^https:\/\//.test(x.u || '') ? `<a class="more" href="${esc(x.u)}" target="_blank" rel="noopener">Abrir</a>` : ''}</div>`; }).join('')}</div>${P.nota_claves ? `<p class="vacio" style="font-size:.78rem">${esc(P.nota_claves)}</p>` : ''}`, { count: (P.cuentas || []).length })}
+      ${card('Documentos', `<div class="pleg sin">${(P.docs || []).map(x => `<details><summary><span class="n">${esc(x.t)}</span><small>${esc((x.n || '').replace(/^.*?, /, '').slice(0, 5))}</small>${ic('down')}</summary><div class="cuerpo">${x.html}</div></details>`).join('')}</div>`)}
+    </div>
+    <a class="btn-s" href="./" style="justify-self:start">${ic('back')}Volver a la app</a>
   </section>
-  <p class="pie">Actualizado ${hora(d.generado)}</p>
-  </main>`;
+  </main>
+  <nav class="nav" aria-label="Secciones">${secciones.map(([k, n, i]) => `<a href="#${k}">${ic(i)}${n}${k === 'inicio' && ya ? `<span class="badge" aria-hidden="true">${ya}</span><span class="sr">, ${ya} para ya</span>` : ''}</a>`).join('')}</nav>`;
+  hora0.textContent = 'Datos de las ' + new Date(d.generado).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-  // una sección cada vez, como pestañas; los enlaces viejos (#toca, #funciones…) llevan a la suya
-  const VIEJAS = { toca: 'hoy', usuarias: 'cifras', funciones: 'empresa', fases: 'empresa', equipo: 'empresa', cuentas: 'empresa', mas: 'empresa' };
-  const mostrar = () => { let k = location.hash.slice(1); k = VIEJAS[k] || k; const ok = secciones.some(([s]) => s === k) ? k : 'hoy';
+  // una sección cada vez; los enlaces de antes (#hoy, #empresa, #toca…) llevan a la suya
+  const VIEJAS = { hoy: 'inicio', toca: 'inicio', usuarias: 'cifras', empresa: 'mas', funciones: 'mas', fases: 'mas', equipo: 'mas', cuentas: 'mas' };
+  const mostrar = () => { let k = location.hash.slice(1); k = VIEJAS[k] || k; const ok = secciones.some(([s]) => s === k) ? k : 'inicio';
     raiz.querySelectorAll('main > section').forEach(s => s.hidden = s.id !== ok);
-    raiz.querySelectorAll('nav a').forEach(a => a.getAttribute('href') === '#' + ok ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
-    window.scrollTo(0, 0); };
+    raiz.querySelectorAll('.nav a').forEach(a => a.getAttribute('href') === '#' + ok ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
+    window.scrollTo(0, 0); dibujarTodo(); };
   addEventListener('hashchange', mostrar); mostrar();
+  raiz.addEventListener('toggle', () => dibujarTodo(), true);
+  let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(dibujarTodo, 150); });
   raiz.addEventListener('click', e => { const b = e.target.closest('[data-csv]'); if (b) CSV[b.dataset.csv](); });
 
-  // el valor de cada punto o barra al pasar el ratón o con el teclado (también está en la tabla o en la etiqueta)
+  // el dato de cada punto o barra al pasar el ratón o tocar (también está en «Ver los datos»)
   const tip = document.getElementById('tip');
-  const ver = el => { tip.replaceChildren(); const b = document.createElement('b'); b.textContent = el.dataset.val || ''; tip.append(b, document.createTextNode(el.dataset.tip || ''));
-    const r = el.getBoundingClientRect(); tip.style.opacity = 1; const w = tip.offsetWidth, h = tip.offsetHeight;
-    tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px'; tip.style.top = Math.max(8, r.top - h - 8) + 'px'; };
+  const ver = (el, ev) => { tip.replaceChildren(); const b = document.createElement('b'); b.textContent = el.dataset.val || ''; tip.append(b, document.createTextNode(el.dataset.tip || ''));
+    const r = el.getBoundingClientRect(); tip.style.opacity = 1; const w = tip.offsetWidth, hh = tip.offsetHeight, x = ev?.clientX ?? r.left + r.width / 2;
+    tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, x - w / 2)) + 'px'; tip.style.top = Math.max(8, (ev?.clientY ?? r.top) - hh - 12) + 'px'; };
   const quitar = () => { tip.style.opacity = 0; };
-  raiz.addEventListener('pointerover', e => { const el = e.target.closest('[data-val]'); if (el) ver(el); });
+  raiz.addEventListener('pointerover', e => { const el = e.target.closest('[data-val]'); if (el) ver(el, e); });
+  raiz.addEventListener('pointermove', e => { const el = e.target.closest('[data-val]'); if (el) ver(el, e); });
   raiz.addEventListener('pointerout', e => { if (e.target.closest('[data-val]')) quitar(); });
-  raiz.addEventListener('focusin', e => { const el = e.target.closest('[data-val]'); el ? ver(el) : quitar(); });
-  raiz.addEventListener('focusout', quitar);
   addEventListener('scroll', quitar, { passive: true });
 })();
+
 </script>
 </body>
 </html>

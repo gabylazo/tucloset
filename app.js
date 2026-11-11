@@ -482,10 +482,14 @@ function vaciarProbados() { // avatar nuevo o borrado: lo probado ya no vale, aq
   // probadosDesde: lo probado antes ya no vale en ningún móvil (la lista de fotos que borrar se vacía en cuanto se borran, así que no basta)
   pf.avatarFijo = ''; pf.avatarFijoT = pf.probadosDesde = new Date().toISOString(); E.puestos = {}; LS.set('tc_pu_f', null); BD.set('puestos', {}).catch(() => { });
 }
-function juntarProbados(dp, pl) { // los dos lados: misma clave con otra foto → la más nueva; lo echado en cualquiera de los dos, fuera
+// 11/11 (Gabriela: «en mi cuenta del móvil el avatar es diferente el primero y ya después los que salen vestidos cambian a como está en el Mac, corrige esas cosas»):
+// cada look probado lleva en su clave la fecha del avatar con que se hizo (…|avatarF). Solo vale con ESE avatar: lo de otro avatar se quita aquí y de la cuenta.
+// El iPhone guardaba looks hechos con el avatar del 07/11 y los subió a la cuenta (que tiene el del 09/11): salían caras distintas en el mismo sitio.
+const deAvatar = k => String(k || '').split('|').pop();
+function juntarProbados(dp, pl, av) { // los dos lados: misma clave con otra foto → la más nueva; lo echado en cualquiera de los dos, fuera
   const fuera = new Set([...(dp.probadosFuera || []), ...(pl.probadosFuera || [])]), m = new Map(), desde = [dp.probadosDesde || '', pl.probadosDesde || ''].sort().pop();
   for (const x of [...(dp.probados || []), ...(pl.probados || [])]) {
-    if (fuera.has(x.f)) continue; if ((x.t || '') < desde) { fuera.add(x.f); continue; } const y = m.get(x.k); // lo de antes de desde es de un avatar de antes
+    if (fuera.has(x.f)) continue; if ((x.t || '') < desde || (av && deAvatar(x.k) !== av)) { fuera.add(x.f); continue; } const y = m.get(x.k); // lo de antes de desde o de otro avatar, fuera
     if (!y) { m.set(x.k, { ...x }); continue; }
     if (y.f === x.f) { if ((x.u || '') > (y.u || '')) y.u = x.u; y.s = y.s || x.s; continue; }
     const [gana, pierde] = (x.t || '') > (y.t || '') ? [{ ...x }, y] : [y, x]; fuera.add(pierde.f); if ((pierde.u || '') > (gana.u || '')) gana.u = pierde.u; m.set(x.k, gana);
@@ -503,7 +507,7 @@ function limpiarPuestosLocales() { // la copia de este móvil: fuera lo que ya n
 }
 function migrarProbados() { // una vez por móvil: lo que ya había aquí (antes del 10/11) pasa a la lista de la cuenta
   if (LS.get('tc_pu_v')) return; const pf = E.perfil; if (!pf) return;
-  const ks = Object.keys(E.puestos || {}).filter(k => E.puestos[k] instanceof Blob);
+  const av = pf.avatarF || '', ks = Object.keys(E.puestos || {}).filter(k => E.puestos[k] instanceof Blob && (!av || deAvatar(k) === av)); // 11/11: lo de otro avatar no se sube
   if (ks.length) {
     let ord = []; try { ord = JSON.parse(LS.get('tc_puestos_orden') || '[]'); } catch (e) { }
     const ya = new Set((pf.probados || []).map(x => x.k)), fl = fLocales(), ahora = Date.now(), t = new Date(ahora).toISOString(); pf.probados = pf.probados || [];
@@ -585,12 +589,13 @@ async function bajarNube() {
   // encima de la nueva y el avatar y los colores cambiaban de un sitio a otro. Ahora: una foto de este móvil que no se ha cambiado aquí desde la última vez que se subió
   // o se bajó (tc_bajada_*) se cambia por la de la cuenta; medidas y análisis, los más nuevos (medidasT, diag.t). La primera vez (sin tc_sinc_v), manda la cuenta.
   const pl = E.perfil || {}, dp = doc.perfil || {}, migr = !LS.get('tc_sinc_v');
-  const vieja = k => FOTOS_DIAG.includes(k) && dp.fotosCuenta && dp[k + 'Sub'] && firma(pl[k]) !== dp[k + 'Sub'] && (migr || LS.get('tc_bajada_' + k) === firma(pl[k]));
+  const vieja = k => FOTOS_DIAG.includes(k) && dp.fotosCuenta && dp[k + 'Sub'] && firma(pl[k]) !== dp[k + 'Sub'] && (migr || LS.get('tc_bajada_' + k) === firma(pl[k])
+    || (k === 'avatar' && dp.avatarF && (pl.avatarF || '') < dp.avatarF)); // 11/11: un avatar más viejo que el de la cuenta se cambia por el de la cuenta (y no se sube encima)
   const medMia = pl.medidas && Object.keys(pl.medidas).length && (!dp.medidas || (pl.medidasT || '') > (dp.medidasT || ''));
   const mio = pl.diag && (pl.diag.t || '') > (dp.diag?.t || '');
   const avAqui = pl.avatar instanceof Blob && !vieja('avatar') && firma(pl.avatar) !== dp.avatarSub; // un avatar hecho aquí y aún sin subir: con su fecha y su firma
   E.perfil = { ...dp, ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => (v instanceof Blob && !vieja(k)) || (medMia && ['medidas', 'medidasT'].includes(k)) || (mio && ['diag', 'tipoCuerpo', 'caras'].includes(k)) || (avAqui && ['avatarAR', 'avatarF', 'avatarDe'].includes(k)))) };
-  Object.assign(E.perfil, juntarProbados(dp, pl)); limpiarPuestosLocales();
+  Object.assign(E.perfil, juntarProbados(dp, pl, E.perfil.avatarF || '')); limpiarPuestosLocales();
   if (mio && pl.colores?.fuente === 'foto') E.perfil.colores = { ...(E.perfil.colores || {}), est: pl.colores.est, sub: pl.colores.sub, fuente: 'foto' };
   LS.set('tc_sinc_v', '1');
   E.perfil.permisos = juntarPermisos(doc.perfil?.permisos, pl.permisos); if (aplicarRetiradas() | diagAEspera()) programarNube(); // 10/11: permisos
