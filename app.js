@@ -923,7 +923,7 @@ function abrirRepetidas() {
 // Con «Usar esta», la de catálogo pasa a ser la única foto de la prenda (fCat, 06/11): se sube como <id>-c y la recortada y la original se borran de la nube.
 // «Otra vez» la repite una vez con el modelo Pro. Sin cuenta, sin red o con el tope del día o del mes, la prenda se queda con su recorte.
 const tipoCat = p => p.tipo === 'Calzado' ? 'calzado' : ['Bolsos', 'Accesorios'].includes(p.tipo) ? 'accesorio' : 'prenda';
-const catPend = () => E.prendas.filter(p => p.catProp instanceof Blob && !p.cat);
+const catPend = () => E.prendas.filter(p => p.catProp instanceof Blob && (!p.cat || p.catColor)); // catColor: la de catálogo en otro color (recolorCat)
 const cargaImg = u => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
 let estilizando = null, catParado = false;
 function estilizarNuevas() {
@@ -949,13 +949,13 @@ function estilizarNuevas() {
   })();
   return estilizando;
 }
-async function pedirCatalogo(p, otra, fuente = p.foto) {
+async function pedirCatalogo(p, otra, fuente = p.foto, pista) {
   const u = URL.createObjectURL(fuente);
   try {
     const im = await cargaImg(u), e = Math.min(1, 1024 / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.round(im.naturalWidth * e), h = Math.round(im.naturalHeight * e);
     const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(im, 0, 0, w, h);
     const b = await new Promise(r => c.toBlob(r, 'image/jpeg', .9)); if (!b) return null;
-    const q = new URLSearchParams({ tipo: tipoCat(p), nombre: p.nombre || '' }); if (otra) q.set('otra', '1');
+    const q = new URLSearchParams({ tipo: tipoCat(p), nombre: p.nombre || '' }); if (otra) q.set('otra', '1'); if (pista) q.set('pista', pista);
     const r = await api('/api/catalogo?' + q, { method: 'POST', body: b, headers: { 'Content-Type': 'image/jpeg' }, tiempo: 90000 });
     if (r.status === 429 || r.status === 503) { catParado = true; return 'parar'; } // tope del día o del mes, o sin clave: se vuelve a probar al abrir la app otro día
     if (r.status === 401) return 'parar';
@@ -985,7 +985,7 @@ async function usarCat(p, conservarNube) {
   // la foto de antes se queda 7 días solo en este móvil, por si la de catálogo no se parece («No se parece» en la ficha); después se borra sola
   if (p.foto instanceof Blob && !p.fCat && !p.fotoPrev) { p.fotoPrev = p.foto; p.fotoPrevT = Date.now(); }
   Object.assign(p, { cat: b, foto: b, conCat: 1, nubeC: Date.now().toString(36), catAR: p.catPropAR, fCat: 1, caja: null });
-  for (const k of ['catProp', 'catPropAR', 'original', 'fotoSub', 'fotoSubO', 'cajaV', 'dudoso', 'recMano']) delete p[k];
+  for (const k of ['catProp', 'catPropAR', 'catColor', 'original', 'fotoSub', 'fotoSubO', 'cajaV', 'dudoso', 'recMano']) delete p[k];
   urls.delete(p.id); alfa.delete(p.id); urlsCat.delete(p.id);
   // 11/11 (Sheila: «si una prenda no coincide con la original después de plancharla, ¿qué hago?»): la foto de antes se queda 7 días también en la cuenta (prevNube), no solo
   // en el móvil que la estilizó; así «No se parece» sale se abra donde se abra. Pasados los 7 días, limpiarFotoPrev la borra del servidor. La original sin recortar, fuera ya
@@ -1019,7 +1019,7 @@ async function noSeParece(p) {
     cap.dataset.ocupado = 1; cap.querySelectorAll('button').forEach(x => x.disabled = true);
     if (k === 'otra') { b.textContent = t('Haciendo otra… unos 20 segundos', 'Making another… about 20 seconds');
       const r = await pedirCatalogo(p, true, p.fotoPrev); const ok = r === true && await usarCat(p, !!p.nubeConserva);
-      toast(ok ? t('Foto de catálogo nueva puesta', 'New catalogue photo set') : r === 'parar' ? t('Por hoy no puedo hacer más fotos de catálogo', 'No more catalogue photos today') : t('No ha salido. Puedes volver a tu foto', 'It did not work. You can go back to your photo'));
+      toast(ok ? t('Foto de catálogo nueva puesta', 'New catalogue photo set') : r === 'parar' ? t('Ahora no puedo hacer fotos de catálogo. Prueba más tarde', 'I can’t make catalogue photos right now. Try again later') : t('No ha salido. Puedes volver a tu foto', 'It did not work. You can go back to your photo'));
       return fin(); }
     if (k === 'mia') { const prev = p.fotoPrev;
       try { await subirFoto('/api/foto/' + p.id, prev); } catch (e2) { toast(t('Hace falta conexión para volver a tu foto', 'You need a connection to go back to your photo')); delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; }
@@ -1033,22 +1033,34 @@ function abrirCatalogo(id) {
   if (!p) { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'ficha' && $('at-ficha')?.dataset.id) abrirFicha($('at-ficha').dataset.id); return; }
   const uC = URL.createObjectURL(p.catProp), nom = String(p.nombre || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const cap = document.createElement('div'); cap.id = 'cat-capa'; cap.className = 'ay-capa at-vj at-rep'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'cat-t');
-  cap.innerHTML = `<h1 id="cat-t" tabindex="-1">${nom}</h1><p class="at-vj-sub">${t('Tu prenda, en foto de catálogo. Si la usas, será su única foto.', 'Your garment as a catalogue photo. If you use it, it becomes its only photo.')}</p>
-    <div class="rep-par">${[[urlFoto(p), t('Tu foto', 'Your photo')], [uC, t('Catálogo', 'Catalogue')]].map(([u, et]) => `<figure><img src="${u}" alt=""><figcaption>${et}</figcaption></figure>`).join('')}</div>
-    <div class="at-ropa-ops"><button class="at-btn" data-catu="si">${t('Usar esta', 'Use this one')}</button><button class="at-btn" data-catu="no">${t('Dejar la mía', 'Keep mine')}</button></div>
-    ${p.catOtra ? '' : `<button class="at-enlace" data-catu="otra">${t('No se parece: probar otra vez', 'Not alike: try again')}</button>`}
+  const rc = !!(p.catColor && p.cat), enCol = rc ? t('En ' + adjColor(p.catColor, /as?$/.test(String(p.nombre || '').split(/\s+/)[0].toLowerCase())), 'In ' + nomColor(p.catColor).toLowerCase()) : '';
+  cap.innerHTML = `<h1 id="cat-t" tabindex="-1">${nom}</h1><p class="at-vj-sub">${rc ? t('La misma foto en el color nuevo. Si la usas, sustituye a la de ahora.', 'The same photo in the new colour. If you use it, it replaces the current one.') : t('Tu prenda, en foto de catálogo. Si la usas, será su única foto.', 'Your garment as a catalogue photo. If you use it, it becomes its only photo.')}</p>
+    <div class="rep-par">${[[urlFoto(p), rc ? t('Ahora', 'Now') : t('Tu foto', 'Your photo')], [uC, rc ? enCol : t('Catálogo', 'Catalogue')]].map(([u, et]) => `<figure><img src="${u}" alt=""><figcaption>${et}</figcaption></figure>`).join('')}</div>
+    <div class="at-ropa-ops"><button class="at-btn" data-catu="si">${t('Usar esta', 'Use this one')}</button><button class="at-btn" data-catu="no">${rc ? t('Dejar la de ahora', 'Keep the current one') : t('Dejar la mía', 'Keep mine')}</button></div>
+    ${p.catOtra || rc ? '' : `<button class="at-enlace" data-catu="otra">${t('No se parece: probar otra vez', 'Not alike: try again')}</button>`}
     <button class="at-enlace" data-catu="">${lista.length > 1 ? t(`Ahora no · quedan ${lista.length - 1} más`, `Not now · ${lista.length - 1} more`) : t('Ahora no', 'Not now')}</button>`;
   document.body.append(cap); $('cat-t').focus({ preventScroll: true });
   const fin = () => { URL.revokeObjectURL(uC); cap.remove(); };
   cap.onclick = async e => { const b = e.target.closest('[data-catu]'); if (!b || cap.dataset.ocupado) return; const k = b.dataset.catu;
     if (k === '') { fin(); if (E.pantalla === 'closet') pintarCloset(); return; }
     cap.dataset.ocupado = 1; cap.querySelectorAll('button').forEach(x => x.disabled = true);
-    if (k === 'si') { if (!(await usarCat(p))) { delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; } toast(t('Foto de catálogo puesta', 'Catalogue photo set')); }
-    else if (k === 'no') { delete p.catProp; delete p.catPropAR; p.catNo = 1; await guardar(); }
+    if (k === 'si') { if (!(await usarCat(p, rc && !!p.nubeConserva))) { delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; } toast(t('Foto de catálogo puesta', 'Catalogue photo set')); }
+    else if (k === 'no') { delete p.catProp; delete p.catPropAR; if (p.catColor) delete p.catColor; else p.catNo = 1; await guardar(); }
     else if (k === 'otra') { b.textContent = t('Haciendo otra… unos 20 segundos', 'Making another… about 20 seconds'); const r = await pedirCatalogo(p, true); await BD.set('prendas', E.prendas).catch(() => { });
-      if (r !== true) toast(r === 'parar' ? t('Por hoy no puedo hacer más fotos de catálogo', 'No more catalogue photos today') : t('No ha salido: puedes usar esta o dejar la tuya', 'It did not work: use this one or keep yours'));
+      if (r !== true) toast(r === 'parar' ? t('Ahora no puedo hacer fotos de catálogo. Prueba más tarde', 'I can’t make catalogue photos right now. Try again later') : t('No ha salido: puedes usar esta o dejar la tuya', 'It did not work: use this one or keep yours'));
       fin(); return abrirCatalogo(p.id); }
     fin(); if (E.pantalla === 'ficha' && $('at-ficha')?.dataset.id === p.id) { abrirFicha(p.id); if (catPend().length) abrirCatalogo(); } else abrirCatalogo(); };
+}
+// 11/11 (Sheila, mensaje 2013: «la idea es que cambie el color del vestido y no lo hace»): al guardar otro color en una prenda con foto de catálogo, la misma foto
+// en el color nuevo (Gemini, con la foto de catálogo de referencia y el color como corrección); se enseña junto a la de ahora antes de usarla, como cualquier foto de catálogo
+async function recolorCat(p) {
+  if (!(p.cat instanceof Blob)) return;
+  if (!cuenta()?.token) return toast(t('Entra en tu cuenta para cambiar la foto', 'Sign in to change the photo'));
+  toast(t('Cambiando el color de la foto… unos 20 segundos', 'Changing the photo colour… about 20 seconds'));
+  const r = await pedirCatalogo(p, false, p.cat, `El color real es ${p.color.toLowerCase()}, la misma prenda, solo cambia el color`);
+  await BD.set('prendas', E.prendas).catch(() => { });
+  if (r === true) { p.catColor = p.color; return abrirCatalogo(p.id); }
+  toast(r === 'parar' ? t('Ahora no puedo cambiar la foto. Prueba más tarde', 'I can’t change the photo right now. Try again later') : t('No ha salido. Prueba otra vez', 'It did not work. Try again'));
 }
 let midiendo = null;
 function medirTodas() {
@@ -2443,6 +2455,19 @@ function nombreReconocido(x, color) {
   return `${N[0]} ${adjColor(color, N[2] === 'f', N[3])}`;
 }
 const FEM = c => adjColor(c, true);
+// 11/11 (Sheila, mensaje 2013): al cambiar el color en Editar el nombre seguía con el de antes («Vestido largo sin mangas beige» en Verde salvia).
+// Cambia la palabra del color viejo por la del nuevo, con su género y número, solo si va al final o antes de «con», «de», «y» o «sin» (así «azul» no toca «azul marino»)
+function nombreConColor(n, de, a) {
+  if (!n || !a || de === a || a === 'Estampado' || idioma() === 'en' || /rayas|cuadros|lunares|flores|estampad|animal|cebra|leopardo/i.test(n)) return n;
+  // género y número, de la primera palabra («Botines» → plural, «Falda» → femenino); el color nuevo va con ellos
+  const w = n.split(/\s+/)[0].toLowerCase(), pl = /s$/.test(w), f = /as?$/.test(w);
+  // primero el color que tenía; si el nombre dice otro (el de Sheila decía «beige» guardado como Verde), el que lleve escrito, del más largo al más corto
+  for (const c of [de, ...COLORES.map(x => x[0]).sort((x, y) => y.length - x.length)]) if (c && c !== 'Estampado' && c !== a) for (const [cf, cp] of [[1, 1], [0, 1], [1, 0], [0, 0]]) {
+    const v = adjColor(c, !!cf, !!cp).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), re = new RegExp(`(^|\\s)${v}(?=$|\\s+(?:con|de|y|sin)\\b)`, 'i');
+    if (re.test(n)) return n.replace(re, (m, sp) => sp + adjColor(a, f, pl));
+  }
+  return n;
+}
 const nombreSubida = (it, cat) => cat === 'Faldas' ? (idioma() === 'en' ? `${it.color} skirt` : `Falda ${FEM(it.color)}`) : nombreAuto(it.tipo, it.color);
 // 0.61 (Sheila, 23/10: «debería dar unas reglas básicas para que los usuarios obtengan buenas fotos»)
 const REGLAS_FOTO = [
@@ -2822,7 +2847,7 @@ function pintarPrevia(url) {
   pintarHerr();
 }
 async function guardarPrenda(otra) {
-  const p = E.editando; const nombre = $('an-nombre').value.trim(); const color = $('an-colores').dataset.sel || 'Gris';
+  const p = E.editando; const nombre = $('an-nombre').value.trim(); const color = $('an-colores').dataset.sel || 'Gris', colorAntes = p?.color, conFotoNueva = !!fotoNueva;
   if (!p && !fotoNueva) return toast(t('Falta la foto de la prenda', 'The garment photo is missing'));
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
@@ -2833,7 +2858,8 @@ async function guardarPrenda(otra) {
   if (E.recManoEdit && fotoNueva) pr.recMano = 1; E.recManoEdit = 0; // recortada a mano: el repaso automático del recorte no la toca
   const largo = tipo === 'Arriba' && $('an-largo')?.dataset.sel; if (largo) pr.est = { ...(pr.est || {}), largo };
   await guardar(); E.propuestas = [];
-  toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'));
+  const recolor = p && !conFotoNueva && colorAntes && colorAntes !== color && color !== 'Estampado' && p.cat instanceof Blob;
+  toast(p ? t('Cambios guardados', 'Changes saved') : t('Guardada en tu clóset', 'Saved to your closet'), recolor ? [t('Cambiar la foto', 'Change the photo'), () => recolorCat(p)] : undefined);
   if (!p) revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 900); }).catch(() => { }); setTimeout(estilizarNuevas, 1500);
   if (otra) prepararAnadir(null); else ir(p ? 'ficha' : 'closet', p?.id), p && abrirFicha(p.id);
 }
@@ -3912,7 +3938,7 @@ document.addEventListener('click', e => {
   else if (b.dataset.filtro) { E.filtro = b.dataset.filtro; pintarCloset(); }
   else if (b.dataset.look) abrirLook(b.dataset.look);
   else if (b.dataset.idioma) { localStorage.setItem('tc_idioma', b.dataset.idioma); if (E.perfil) { E.perfil.idioma = b.dataset.idioma; guardar(); } traducir(); }
-  else if (b.dataset.color) { pintarColores(b.dataset.color); }
+  else if (b.dataset.color) { const de = $('an-colores')?.dataset.sel, enEd = !!b.closest('#an-colores'); pintarColores(b.dataset.color); if (enEd && $('an-nombre')) $('an-nombre').value = nombreConColor($('an-nombre').value, de, b.dataset.color); }
   else if (b.dataset.oc) { $('nl-ocasiones').dataset.sel = b.dataset.oc; $('nl-ocasiones').querySelectorAll('.chip').forEach(c => c.classList.toggle('sel', c.dataset.oc === b.dataset.oc)); }
   else if (b.dataset.gguardar !== undefined) { const g = E.generados[+b.dataset.gguardar]; if (g) { E.conjuntos.unshift({ id: uid(), nombre: g.nombre, ocasion: g.ocasion, ids: g.ids, creada: hoyISO(), usos: [], ...(g.zspec ? { zspec: g.zspec } : {}), ...(g.como ? { como: g.como } : {}) }); E.generados.splice(+b.dataset.gguardar, 1); guardar(); E.propuestas = []; toast(t('Conjunto guardado', 'Outfit saved')); pintarLooks(); } }
   else if (b.dataset.ghoy !== undefined) { const g = E.generados[+b.dataset.ghoy]; if (g) ponerse(g.ids); }
