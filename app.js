@@ -201,7 +201,7 @@ const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.p
 // 09/11 (Gabriela: «acabo de abrir el perfil de Sheila desde mi móvil… se ha unido al mío y ha sumado sus prendas a mi clóset; una cuenta enlazada a un clóset, no
 // mezclar, Instagram no funciona así»): al cerrar sesión el móvil se quedaba con el clóset y, al entrar en otra cuenta, bajarNube lo juntaba con el de esa cuenta y
 // subía la mezcla. Ahora el clóset de este móvil es de una sola cuenta (tc_dueno): al cerrar sesión se quita del móvil y, al entrar en otra cuenta, se vacía antes
-const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_sinc_v', 'tc_pu_f', 'tc_pu_v', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo', 'tc_admin', 'tc_intercambio', 'tc_pareja'];
+const LS_CUENTA = ['tc_cuenta', 'tc_dueno', 'tc_catf', 'tc_reinicio', 'tc_nube_ver', 'tc_nube_ids', 'tc_nube_borradas', 'tc_nube_cuando', 'tc_cuenta_creada', 'tc_encuesta_hecha', 'tc_encuesta_luego', 'tc_uso_dia', 'tc_puestos_orden', 'tc_avatar_fijo', 'tc_ver_avatar', 'tc_bajada_selfie', 'tc_bajada_cuerpo', 'tc_bajada_avatar', 'tc_sinc_v', 'tc_pu_f', 'tc_pu_v', 'tc_diag_caras', 'tc_diag_medidas', 'tc_cintura', 'tc_looks', 'tc_plan', 'tc_ropa_vista', 'tc_tiempo', 'tc_admin', 'tc_intercambio', 'tc_pareja'];
 const dueno = () => (LS.get('tc_dueno') || '').toLowerCase();
 try { const c0 = JSON.parse(LS.get('tc_cuenta') || 'null'); if (c0?.correo && !LS.get('tc_dueno')) LS.set('tc_dueno', c0.correo.toLowerCase()); } catch (e) { } // móviles de antes: el clóset es de la cuenta abierta
 const deCuenta = p => !p.ejemplo && !!(p.nube || p.nubeC || p.fotoSub); // la prenda ya estuvo en alguna cuenta
@@ -2613,6 +2613,17 @@ async function afinarColores() {
   if (n) { await guardar(); programarNube(); E.propuestas = []; E.generados = []; }
   return n;
 }
+// 11/11: la noche del 10 al 11 Google cortó la API por el tope de gasto y cada prenda sin foto de catálogo sumó dos fallos (catFallos), con lo que
+// estilizarNuevas ya no las volvía a intentar nunca. Una vez por móvil se borran esos fallos; desde ahora un corte así responde 503 «pausa» y no cuenta.
+async function soltarFallosCatalogo() {
+  if (cuenta() && !E.nubeBajada) return 0;
+  if (LS.get('tc_catf') === '1111') return 0;
+  let n = 0;
+  for (const p of E.prendas) if (p.catFallos && !p.cat && !p.conCat) { delete p.catFallos; n++; }
+  LS.set('tc_catf', '1111');
+  if (n) { await guardar(); programarNube(); }
+  return n;
+}
 let clasificando = null;
 function clasificarViejas() {
   if (clasificando) return clasificando;
@@ -3500,6 +3511,7 @@ function siluetaTxt() {
 const errorAvatar = (st, e, puesto) => e === 'permiso' ? t('Falta tu permiso: márcalo en Yo → Tu avatar', 'Your permission is needed: tick it in Me → Your avatar') : st === 403 ? t('El avatar aún está en pruebas', 'The avatar is still being tested')
   : e === 'tope' ? (puesto ? t('Por hoy ya no quedan más. Vuelve mañana', 'No more for today. Come back tomorrow') : t('Por hoy ya has creado tres avatares. Vuelve mañana', 'You’ve created three avatars today. Come back tomorrow'))
   : e === 'tope-mes' ? t('Este mes ya no quedan. Vuelve el mes que viene', 'None left this month. Come back next month')
+  : e === 'pausa' ? t('Ahora mismo no se puede. Prueba más tarde', 'Not available right now. Try again later')
   : st === 401 ? t('Entra en tu cuenta', 'Sign in') : t('No ha salido bien. Prueba otra vez', 'It didn’t work. Try again');
 // 10/11: si el servidor aún no tiene apuntado el permiso del avatar (se dio sin conexión), se le manda y se prueba una vez más
 async function apiAvatar(ruta, fd) {
@@ -4028,7 +4040,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
-  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
+  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
