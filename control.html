@@ -124,7 +124,7 @@ details.md summary { cursor: pointer; font-weight: 600; font-size: .88rem; color
 /* Gráficos (SVG): marcas finas, rejilla tenue, texto en tinta, leyenda con 2 series o más */
 .chart svg { display: block; overflow: visible; }
 .chart .ax { font-size: 10.5px; fill: var(--ink-3); }
-.chart .gl { stroke: #f2f3f2; }
+.chart .gl { stroke: var(--grid); stroke-width: 1; }
 .chart .base { stroke: var(--line); }
 .chart .val { font-size: 11px; font-weight: 600; fill: var(--ink); }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--ink-2); }
@@ -198,14 +198,17 @@ section[hidden] { display: none; }
 .hb li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 10px; align-items: baseline; font-size: .88rem; }
 .hb .n { overflow-wrap: anywhere; }
 .hb .v { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.hb .p { grid-column: 1 / -1; height: 8px; }
-.hb .p i { display: block; height: 100%; min-width: 3px; background: var(--graf); border-radius: 0 99px 99px 0; }
+.hb .p { grid-column: 1 / -1; height: 14px; } /* 11/11: como las barras de la plantilla común */
+.hb .p i { display: block; height: 100%; min-width: 3px; background: var(--graf); border-radius: 3px; }
 
 /* gráficos */
 .chart { min-height: 170px; }
 .chart .linea { fill: none; stroke: var(--graf); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .chart .area { display: none; } /* 11/11: sin relleno, como el centro general */
 .chart .barra { fill: var(--graf); }
+.chart .ax.on { fill: var(--ink); font-weight: 700; }
+.chart .rl { font-size: 12.5px; font-weight: 600; fill: var(--ink); }
+.chart.hbar { min-height: 0; }
 .chart .pt { fill: var(--graf); stroke: #fff; stroke-width: 2; }
 .chart .hit { fill: transparent; cursor: default; }
 .chart .hit:hover + .guia, .chart .guia.on { stroke: var(--line); }
@@ -332,16 +335,33 @@ a.trow { min-height: 48px; }
       if (iMax < n - 3 && vals[iMax] > 0) s += `<circle class="pt" cx="${X(iMax)}" cy="${Y(vals[iMax])}" r="4"/>` + et(X(iMax), Y(vals[iMax]) - 9, vals[iMax]);
       for (const i of [0, Math.floor((n - 1) / 2), n - 1]) s += `<text class="ax" x="${X(i)}" y="${H - 6}" text-anchor="${i ? i === n - 1 ? 'end' : 'middle' : 'start'}">${esc(etqs[i])}</text>`;
       const paso = n > 1 ? w / (n - 1) : w; vals.forEach((v, i) => { s += `<rect class="hit" x="${X(i) - paso / 2}" y="${T}" width="${paso}" height="${h}" data-val="${esc(fmt(v) + (unidad ? ' ' + unidad : ''))}" data-tip="${esc(etqs[i])}"/>`; });
-    } else {
-      const paso = w / n, bw = Math.min(6, Math.max(4, paso * .2)), X = i => L + paso * i + paso / 2;
-      vals.forEach((v, i) => { const y = Y(v), hh = Y(0) - y, x = X(i) - bw / 2, r = Math.min(hh, bw / 2);
-        if (v > 0) s += `<path class="barra" d="M${x},${Y(0)} V${y + r} A${r},${r} 0 0 1 ${x + bw},${y + r} V${Y(0)} Z"/>`;
-        if (v > 0 && (i === n - 1 || i === iMax)) s += et(X(i), y - 6, v);
-        if (paso >= 26 || i === 0 || i === n - 1) s += `<text class="ax" x="${X(i)}" y="${H - 6}" text-anchor="middle">${esc(etqs[i])}</text>`;
-        s += `<rect class="hit" x="${L + paso * i}" y="${T}" width="${paso}" height="${h}" data-val="${esc(fmt(v) + (unidad ? ' ' + unidad : ''))}" data-tip="${esc(etqs[i])}"/>`; });
     }
     el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${s}</svg>`; };
-  const dibujarTodo = () => { GRAF.forEach(dibujar); // las tablas que no caben se desplazan: se llega a ellas con el teclado
+  /* 11/11 (Gabriela, por Coordinación: «le sigue faltando cambiar ese estilo de gráfico que no me gusta»): columnas y barras copiadas de la plantilla del centro
+     general (drawWeeks y drawCuentas), solo cambia el color. Columnas: ancho min(30, hueco × 0,58), esquinas de 3, alto 168, el número encima de cada una,
+     eje con 0, la mitad y el máximo, y la última (hoy, esta semana, este mes) con la etiqueta en negrita. Barras: alto 14, esquinas de 3, nombre a la izquierda
+     y valor a la derecha. */
+  const corta = (etqs, i, prim) => { const m = /^(\d+)\/(\d+)$/; if (!etqs.every(x => m.test(x))) return etqs[i]; const [, dd, mm] = etqs[i].match(m); return i === prim || mm !== etqs[i - 1].match(m)[2] ? etqs[i] : dd; };
+  const dibujarCol = (g, el, W) => { const { vals, etqs, fmt, unidad } = g, n = vals.length, H = 168, R = 2, T = 14, B = 20, ph = H - T - B, mx = Math.max(...vals, 0);
+    const top = vals.every(Number.isInteger) ? Math.max(4, Math.ceil(mx / 2) * 2) : nice(mx), ejes = [0, top / 2, top], L = Math.max(20, ...ejes.map(v => eje(v).length * 6 + 6));
+    const Y = v => T + ph - ph * v / top, bw = (W - L - R) / n, barW = Math.min(30, bw * .58), cada = bw >= 26 ? 1 : 2, prim = (n - 1) % cada; let s = '';
+    for (const v of ejes) s += `<line class="${v ? 'gl' : 'base'}" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="0" y="${Y(v) + 3.5}">${eje(v)}</text>`;
+    vals.forEach((v, i) => { const cx = L + bw * i + bw / 2;
+      if (v > 0) s += `<rect class="barra" x="${cx - barW / 2}" y="${Y(v)}" width="${barW}" height="${Y(0) - Y(v)}" rx="3"/><text class="val" x="${cx}" y="${Y(v) - 5}" text-anchor="middle">${esc(fmt(v))}</text>`;
+      if ((n - 1 - i) % cada === 0) s += `<text class="ax${i === n - 1 ? ' on' : ''}" x="${cx}" y="${H - 5}" text-anchor="middle">${esc(corta(etqs, i, prim))}</text>`;
+      s += `<rect class="hit" x="${L + bw * i}" y="${T}" width="${bw}" height="${ph}" data-val="${esc(fmt(v) + (unidad ? ' ' + unidad : ''))}" data-tip="${esc(etqs[i])}"/>`; });
+    el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${s}</svg>`; };
+  const dibujarHB = (g, el, W) => { const F = g.filas, mx = Math.max(...F.map(f => f.v), 0) || 1, val = f => f.t ?? n0(f.v), L = Math.min(Math.round(W * .46), Math.max(W < 420 ? 98 : 120, ...F.map(f => f.n.length * 7.4 + 12)));
+    const R = Math.max(34, ...F.map(f => val(f).length * 6.6 + 12)), rh = 30, H = F.length * rh, unit = (W - L - R) / mx, cab = Math.floor((L - 8) / 7); let s = '';
+    F.forEach((f, i) => { const y = i * rh + rh / 2, nom = f.n.length > cab ? f.n.slice(0, cab - 1) + '…' : f.n;
+      s += `<text class="rl" x="0" y="${y + 4}">${esc(nom)}</text>`;
+      if (f.v > 0) s += `<rect class="barra" x="${L + 1}" y="${y - 7}" width="${Math.max(2, f.v * unit - 2)}" height="14" rx="3"/>`;
+      s += `<text class="val" x="${W - R + 8}" y="${y + 4}">${esc(val(f))}</text><rect class="hit" x="0" y="${i * rh}" width="${W}" height="${rh}" data-val="${esc(val(f))}" data-tip="${esc(f.n)}"/>`; });
+    el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${s}</svg>`; };
+  const barrasH = (filas, nombre) => { const id = 'g' + GRAF.length; GRAF.push({ id, tipo: 'hbar', filas });
+    return `<div class="chart hbar" id="${id}" role="img" aria-label="${esc(nombre)}: ${filas.map(f => f.n + ' ' + (f.t ?? n0(f.v))).join(', ')}"></div>${tabla(['', 'Valor'], filas.map(f => [f.n, f.t ?? n0(f.v)]))}`; };
+  const dibujar0 = dibujar;
+  const dibujarTodo = () => { GRAF.forEach(g => { const el = document.getElementById(g.id); if (!el || !el.offsetParent || el.clientWidth < 50) return; if (g.tipo === 'columnas') dibujarCol(g, el, el.clientWidth); else if (g.tipo === 'hbar') dibujarHB(g, el, el.clientWidth); else dibujar0(g); }); // las tablas que no caben se desplazan: se llega a ellas con el teclado
     raiz.querySelectorAll('.desliza').forEach(el => { if (el.offsetParent && el.scrollWidth > el.clientWidth + 1) { el.tabIndex = 0; el.setAttribute('role', 'region'); el.setAttribute('aria-label', (el.closest('.card')?.querySelector('h2')?.textContent || 'Tabla') + ', se desplaza'); } else { el.removeAttribute('tabindex'); el.removeAttribute('role'); el.removeAttribute('aria-label'); } }); };
 
   // ── datos de uso ──
@@ -481,9 +501,9 @@ a.trow { min-height: 48px; }
       ${kpi('home', n0(d.entradas7), 'entradas en 7 días')}
     </div>
     <div class="dash">
-      ${card('Personas que abren la app', porDia.some(Boolean) ? grafico('linea', porDia, dias14.map(diaCorto), 'Personas que abren la app cada día, últimos 14 días', n0, 'personas') : '<p class="vacio">Nadie ha abierto la app en 14 días.</p>', { extra: '14 días' })}
+      ${card('Personas que abren la app', porDia.some(Boolean) ? grafico('columnas', porDia, dias14.map(diaCorto), 'Personas que abren la app cada día, últimos 14 días', n0, 'personas') : '<p class="vacio">Nadie ha abierto la app en 14 días.</p>', { extra: '14 días' })}
       ${card('Cuentas nuevas', altasSem.some(Boolean) ? grafico('columnas', altasSem, semanas.map(l => `${l.getDate()}/${l.getMonth() + 1}`), 'Cuentas nuevas cada semana, últimas 8 semanas', n0, 'cuentas') : '<p class="vacio">Sin cuentas nuevas en 8 semanas.</p>', { extra: 'por semana' })}
-      ${card('Visitas por origen', Object.keys(origen30).length ? hbarras(Object.entries(origen30).sort((a, b) => b[1] - a[1]).map(([o, n]) => ({ n: nomRed(o), v: n }))) : '<p class="vacio">Sin visitas con enlace todavía.</p>', { extra: '30 días' })}
+      ${card('Visitas por origen', Object.keys(origen30).length ? barrasH(Object.entries(origen30).sort((a, b) => b[1] - a[1]).map(([o, n]) => ({ n: nomRed(o), v: n })), 'Visitas por origen, 30 días') : '<p class="vacio">Sin visitas con enlace todavía.</p>', { extra: '30 días' })}
       ${card('Lista de espera', !d.espera?.abierta && !EFs.length ? '<p class="vacio">Cerrada hasta tener Brevo y la privacidad publicada.</p>'
         : `<div class="kpis">${kpi('user', n0(EFs.length), 'apuntadas')}${kpi('check', d.espera?.confirmadas == null ? '—' : n0(d.espera.confirmadas), 'confirmadas')}${kpi('spark', n0(altas7), 'en 7 días', comp(altas7, altasA, 'la semana anterior'))}</div>`)}
       ${card('Usuarias', `<div class="desliza"><table><thead><tr><th scope="col">Cuenta</th><th scope="col" class="num">Prendas</th><th scope="col" class="num">Looks</th><th scope="col" class="num">Días</th><th scope="col" class="num">IA</th></tr></thead>
@@ -507,10 +527,10 @@ a.trow { min-height: 48px; }
     </div>
     <div class="dash">
       ${card('IA por mes', mesesG.some(m => iaMes(m) > 0) ? grafico('columnas', mesesG.map(m => Math.round(aE(iaMes(m)) * 100) / 100), mesesG.map(m => nomMes(m, true)), 'Gasto de IA por mes, en euros', dec, '€') : '<p class="vacio">Sin gasto de IA todavía.</p>', { extra: 'en euros' })}
-      ${card(`${nomMes(mesAhora)}, por servicio`, (L => L.length ? hbarras(L) : '<p class="vacio">Nada este mes.</p>')([...Object.keys(SERV).map(s => ({ n: SERV[s], v: suma(G, g => g.mes === mesAhora && g.s === s), t: `${n0(suma(GN, g => g.mes === mesAhora && g.s === s))} · ${usd(suma(G, g => g.mes === mesAhora && g.s === s))}` })),
-        ...(DIR[mesAhora] ? [{ n: 'Tandas de la Dirección', v: DIR[mesAhora], t: usd(DIR[mesAhora]) }] : [])].filter(x => x.v > 0).sort((a, b) => b.v - a.v)))}
+      ${card(`${nomMes(mesAhora)}, por servicio`, (L => L.length ? barrasH(L, 'Gasto de IA de este mes por servicio') : '<p class="vacio">Nada este mes.</p>')([...Object.keys(SERV).map(s => ({ n: SERV[s], v: suma(G, g => g.mes === mesAhora && g.s === s), t: `${n0(suma(GN, g => g.mes === mesAhora && g.s === s))} · ${usd(suma(G, g => g.mes === mesAhora && g.s === s))}` })),
+        ...(DIR[mesAhora] ? [{ n: 'La Dirección', v: DIR[mesAhora], t: usd(DIR[mesAhora]) }] : [])].filter(x => x.v > 0).sort((a, b) => b.v - a.v)))}
       ${tope ? card('Antes de cobrar', `${meter(gastado, tope)}<div class="medida"><span>${eur2(gastado)} de ${eur(tope)} previstos</span><span>${pct(gastado, tope)} %</span></div>`) : ''}
-      ${card('Fijos previstos al mes', (P.fijos || []).length ? hbarras((P.fijos || []).map(([n, v]) => ({ n, v, t: eur(v) })).sort((a, b) => b.v - a.v)) : '<p class="vacio">Ninguno todavía.</p>', { extra: eur(fijosTot) })}
+      ${card('Fijos previstos al mes', (P.fijos || []).length ? barrasH((P.fijos || []).map(([n, v]) => ({ n, v, t: eur(v) })).sort((a, b) => b.v - a.v), 'Fijos previstos al mes') : '<p class="vacio">Ninguno todavía.</p>', { extra: eur(fijosTot) })}
       ${card('Pagos', PAG.length ? `<div class="rows">${PAG.slice().reverse().map(g => `<div class="trow"><b>${esc(g.concepto)}</b><small>${fecha(g.fecha)} · ${g.moneda === 'EUR' ? eur2(+g.importe) : esc(g.importe + ' ' + g.moneda)}</small></div>`).join('')}</div>` : '<p class="vacio">Ningún pago todavía.</p>', { count: PAG.length })}
       ${card('', `<p class="vacio">La IA se paga en dólares a Google; aquí va en euros${cambio ? `, a 1 $ = ${String(cambio).replace('.', ',')} € (BCE, ${fecha(P.usdEur.fecha)})` : ''}. Recortes y lecturas de looks, gratis.</p><div class="acc"><button class="btn-s" type="button" data-csv="dinero">Descargar contabilidad</button></div>`)}
     </div>
