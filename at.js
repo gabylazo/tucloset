@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.241'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.242'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -269,11 +269,11 @@ if (AT) (() => {
     let el = comoAplica(ps) ? COMO_ELEGIDO.get(idsDe(ps)) || '' : '';
     // 12/11 (Sheila, 2067): la primera vez que se viste ese look, primero se elige cómo llevar la de arriba y se genera una sola imagen ya así.
     // Si ya hay una prueba guardada (la del look o otra manera), sale esa sin preguntar
-    if (comoAplica(ps) && !el && !auto && clavePuesto(ps)) {
+    if (comoAplica(ps) && !el && clavePuesto(ps)) { // 12/11: también al abrir solo (auto), para encontrar la prueba hecha con otra manera de llevar la de arriba
       const base = clavePuesto(ps), pre = base.split('|')[0] + '~', av = '|' + (E.perfil?.avatarF || ''), P0 = E.puestos || {};
       const hecha = P0[base] instanceof Blob ? '' : COMOS().map(([v]) => v).find(v => P0[pre + v + av] instanceof Blob);
       if (hecha) { el = hecha; COMO_ELEGIDO.set(idsDe(ps), hecha); }
-      else if (!(P0[base] instanceof Blob)) {
+      else if (!auto && !(P0[base] instanceof Blob)) {
         const sug = como || 'suelta', alto0 = fig.offsetHeight || 320;
         if (!capa) { capa = document.createElement('div'); capa.className = 'at-puesto'; fig.after(capa); }
         capa.style.height = alto0 + 'px'; fig.style.display = 'none'; b.setAttribute('aria-pressed', 'true'); LS.set('tc_ver_avatar', '1');
@@ -637,6 +637,9 @@ if (AT) (() => {
       <div class="at-acciones"><button class="at-btn" data-atl="pongo">${t('Me lo pongo', 'I’ll wear it')}</button>
         <div class="at-enlaces">${botonPuesto() ? `<button class="at-enlace${yaProbado(psDe(c)) ? ' probado' : ''}" data-atl="puesto" data-puesto aria-pressed="false">${yaProbado(psDe(c)) ? `<span class="at-probado-i" aria-hidden="true">${IC_PUESTO}</span>${t('Verlo puesto: ya te lo has probado', 'See it on me: already tried on')}` : t('Verlo puesto', 'See it on me')}</button>` : ''}<button class="at-enlace" data-atl="cal" aria-expanded="${!!E.atCal}">${t('Al calendario', 'To the calendar')}</button><button class="at-enlace" data-atl="borrar">${t('Borrar', 'Delete')}</button></div>
         ${E.atCal ? `<div class="at-fila at-dias">${dias.map(([d, n]) => `<button data-atdia="${d}">${n}</button>`).join('')}</div>` : ''}</div>`;
+    // 12/11 (Gabriela: «en Looks aparece en pequeño el avatar coloreado, indicando que ya tiene una prueba, pero cuando lo abres no sale el avatar, salen las prendas sueltas; no tiene sentido»):
+    // el look que ya te has probado se abre puesto en tu avatar (la prueba guardada, sin gastar); el botón lo quita y vuelve a las prendas
+    const bpu = r.querySelector('[data-puesto]'); if (bpu && yaProbado(psDe(c))) requestAnimationFrame(() => requestAnimationFrame(() => verPuesto(bpu, r.querySelector('.at-centro'), psDe(c), c.como, false, true)));
     r.onclick = async e => {
       const b = e.target.closest('[data-atl],[data-atfav],[data-atdia]'); if (!b) return;
       if (b.dataset.atfav != null) { await alternarFav(c.ids, c.ocasion || 'Diario'); return abrirLook(id); }

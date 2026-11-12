@@ -3801,6 +3801,9 @@ async function puestoEnMi(ps, como, otra, soloGuardado, elegido) {
   const cm = elegido && elegido !== (como || 'suelta') ? elegido : '', k = clavePuesto(ps, cm);
   E.puestos = E.puestos || (await BD.get('puestos').catch(() => null)) || {};
   if (!otra && E.puestos[k] instanceof Blob) { if (!soloGuardado) fijarPuesto(k); return { blob: E.puestos[k], k }; }
+  // 12/11: si la prueba se hizo en otro móvil, está en la cuenta: se baja (sin gastar) en vez de enseñar las prendas sueltas
+  const enCuenta = (E.perfil?.probados || []).find(x => x.k === k && x.s && x.f);
+  if (enCuenta && !otra) { try { const rb = await api('/api/foto/' + enCuenta.f, { tiempo: 20000 }); if (rb.ok) { const b = await rb.blob(); if (b.size > 1000) { E.puestos[k] = b; const fl = fLocales(); fl[k] = enCuenta.f; ponerFLocales(fl); BD.set('puestos', E.puestos).catch(() => { }); if (!soloGuardado) fijarPuesto(k); return { blob: b, k }; } } } catch (e) { } }
   if (soloGuardado) return { nada: true };
   try {
     const fd = new FormData(); fd.append('avatar', await jpegBlanco(pf.avatar), 'avatar.jpg');
