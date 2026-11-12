@@ -1044,6 +1044,10 @@ html.at.oscuro .at-puestob.probado svg,html.at.oscuro .at-probado svg,html.at.os
 html.at.oscuro .at-puesto-esp{color:var(--sec)}
 html.at.oscuro .at-como button{background:none;border:0;color:var(--sec);text-decoration:underline;text-decoration-color:transparent;text-decoration-thickness:1.5px}
 html.at.oscuro .at-como button[aria-pressed="true"]{color:var(--tinta);text-decoration-color:var(--oro)}
+html.at.oscuro .at-como-tit{color:var(--tinta)}
+html.at.oscuro .at-como-elegir button{color:var(--tinta);text-decoration-color:var(--raya)}
+html.at.oscuro .at-como-elegir button.sug{text-decoration-color:var(--oro)}
+html.at.oscuro .at-como-nota{color:var(--sec)}
 html.at.oscuro .at-enlace[data-puesto][aria-pressed="true"]{color:var(--tinta);text-decoration-color:var(--oro)}
 html.at.oscuro .av-des summary{border-top:1px solid var(--linea, rgba(241,233,222,.15));border-bottom:1px solid var(--linea, rgba(241,233,222,.15))}
 html.at.oscuro .av-mini{background:var(--baldosa)}

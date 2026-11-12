@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.228'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.229'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -255,7 +255,25 @@ if (AT) (() => {
     let fig = zona?.querySelector('.at-look'); if (!fig) return;
     let capa = zona.querySelector('.at-puesto');
     if (b.getAttribute('aria-pressed') === 'true' && !otra && !auto && !cambio) { capa?.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); LS.set('tc_ver_avatar', null); return; }
-    const el = comoAplica(ps) ? COMO_ELEGIDO.get(idsDe(ps)) || '' : '';
+    let el = comoAplica(ps) ? COMO_ELEGIDO.get(idsDe(ps)) || '' : '';
+    // 12/11 (Sheila, 2067): la primera vez que se viste ese look, primero se elige cómo llevar la de arriba y se genera una sola imagen ya así.
+    // Si ya hay una prueba guardada (la del look o otra manera), sale esa sin preguntar
+    if (comoAplica(ps) && !el && !auto && clavePuesto(ps)) {
+      const base = clavePuesto(ps), pre = base.split('|')[0] + '~', av = '|' + (E.perfil?.avatarF || ''), P0 = E.puestos || {};
+      const hecha = P0[base] instanceof Blob ? '' : COMOS().map(([v]) => v).find(v => P0[pre + v + av] instanceof Blob);
+      if (hecha) { el = hecha; COMO_ELEGIDO.set(idsDe(ps), hecha); }
+      else if (!(P0[base] instanceof Blob)) {
+        const sug = como || 'suelta', alto0 = fig.offsetHeight || 320;
+        if (!capa) { capa = document.createElement('div'); capa.className = 'at-puesto'; fig.after(capa); }
+        capa.style.height = alto0 + 'px'; fig.style.display = 'none'; b.setAttribute('aria-pressed', 'true'); LS.set('tc_ver_avatar', '1');
+        capa.innerHTML = `<p class="at-como-tit" id="at-como-t">${t('¿Cómo llevas la de arriba?', 'How do you wear the top?')}</p>
+          <div class="at-como at-como-elegir" role="group" aria-labelledby="at-como-t">${COMOS().map(([v, l]) => `<button data-como="${v}"${v === sug ? ' class="sug"' : ''}>${l}</button>`).join('')}</div>
+          <p class="at-como-nota">${t(`Para este look, ${COMOS().find(([v]) => v === sug)[1].toLowerCase()}.`, `For this look: ${COMOS().find(([v]) => v === sug)[1].toLowerCase()}.`)}</p>`;
+        capa.querySelectorAll('[data-como]').forEach(x => { x.onclick = e => { e.stopPropagation(); COMO_ELEGIDO.set(idsDe(ps), x.dataset.como); verPuesto(b, zona, ps, como, false, false, true); }; });
+        if (b.matches(':focus-visible')) capa.querySelector('[data-como]')?.focus({ preventScroll: true }); // con teclado, el foco pasa a la elección
+        return;
+      }
+    }
     if (b.classList.contains('cargando')) return;
     let r = null;
     if (auto) { r = await puestoEnMi(ps, como, false, true, el); fig = zona.querySelector('.at-look'); if (!r.blob || !fig || !zona.isConnected || b.getAttribute('aria-pressed') === 'true') return; capa = zona.querySelector('.at-puesto'); }

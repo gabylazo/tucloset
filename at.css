@@ -467,6 +467,12 @@ html.at .at-puesto-otra { flex: none; font-size: 13px; }
 html.at .at-como { flex: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 6px; margin-top: 4px; }
 html.at .at-como button { min-height: 44px; padding: 0 8px; background: none; border: 0; color: var(--sec); font: inherit; font-size: 13px; letter-spacing: .02em; text-decoration: underline; text-decoration-color: transparent; text-decoration-thickness: 1.5px; text-underline-offset: 6px; cursor: pointer; }
 html.at .at-como button[aria-pressed="true"] { color: var(--tinta); text-decoration-color: var(--oro); }
+/* 12/11 (Sheila): antes de vestir el look, se elige cómo llevar la de arriba; la que propone el look, en tinta */
+html.at .at-como-tit { flex: none; margin: 0 0 4px; color: var(--tinta); font-size: 15px; text-align: center; }
+html.at .at-como-elegir { flex-direction: column; align-items: center; gap: 0; margin: 0; }
+html.at .at-como-elegir button { font-size: 14px; color: var(--tinta); text-decoration-color: var(--raya); }
+html.at .at-como-elegir button.sug { text-decoration-color: var(--oro); }
+html.at .at-como-nota { flex: none; margin: 6px 0 0; color: var(--sec); font-size: 12px; text-align: center; }
 @media (prefers-reduced-motion: reduce) { html.at .av-tarjeta.creando .av-img, html.at .at-puestob.cargando svg, html.at .at-puesto-esp { animation: none; } }
 html.at .at-enlace[data-puesto][aria-pressed="true"] { color: var(--tinta); text-decoration-color: var(--oro); }
 /* 07/11 (Gabriela: «el avatar aparece muy pequeño; que lo despliegues y se vea grande»): fila plegable con miniatura; desplegada, el avatar a todo el ancho */
