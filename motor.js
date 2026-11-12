@@ -144,7 +144,7 @@ const Motor = (() => {
     for (const l of pf.estilista?.looks || []) if (l.arriba && !l.capa) usoSolo.add(l.arriba);
     const dc = pf.diag?.color, ec = dc?.si ? dc : opc.colorEstacion, cint = pf.cintura === '1' || pf.cintura === 'si' ? 'si' : pf.cintura === '0' || pf.cintura === 'no' ? 'no' : undefined;
     const reglas = opc.pro ? (pf.diag?.cuerpo?.puntos || S[pf.tipoCuerpo] || null) : null;
-    return { estilos: pf.estilos || [], publico: pf.publico || (pf.ropa === 'hombre' ? 'masculino' : 'todo') /* 03/11: «¿Qué ropa llevas?» */, cintura: cint, tacon: pf.tacon, tacon_num: TACON[pf.tacon], evitarColores: pf.evitarColores || [], usoSolo, gustos: pf.gustos || {}, uso: pf.usoRopa || null, inspo: inspoDe([...(pf.inspo || []), ...(pf.propios || [])]) /* 12/11: también los looks que ella sube con foto */, calib: calibDe(pf.calib), diag: { estacion: ec ? { si: ec.si, no: ec.no } : undefined, puntos: reglas } };
+    return { estilos: pf.estilos || [], publico: pf.publico || (pf.ropa === 'hombre' ? 'masculino' : 'todo') /* 03/11: «¿Qué ropa llevas?» */, cintura: cint, tacon: pf.tacon, tacon_num: TACON[pf.tacon], evitarColores: pf.evitarColores || [], usoSolo, gustos: pf.gustos || {}, uso: pf.usoRopa || null, silueta: pf.tipoCuerpo || pf.diag?.cuerpo?.k || null, inspo: inspoDe([...(pf.inspo || []), ...(pf.propios || [])]) /* 12/11: también los looks que ella sube con foto */, calib: calibDe(pf.calib), diag: { estacion: ec ? { si: ec.si, no: ec.no } : undefined, puntos: reglas } };
   }
 
   /* ---------- 3. condiciones: las de las fórmulas sobre una prenda y las de las reglas sobre el look ---------- */
@@ -298,6 +298,7 @@ const Motor = (() => {
      · Como mucho dos además del bolso. */
   function complemento(tipo, l, ents, ctx) {
     if (ctx.ocasion === 'Deporte' || !l.calzado) return null;
+    if (tipo === 'cinturon' && l.silueta === 'ovalo') return null; // 12/11 (estudio de Moda, «Elevar look»): con silueta óvalo el diagnóstico dice «evitar: ceñido en el centro»
     const z = l.calzado._f, ropa = ['arriba', 'base_interior', 'abajo', 'vestido', 'capa'].map(k => l[k]).filter(Boolean).map(p => p._f);
     const media = ropa.reduce((s, f) => s + (f.form ?? 3), 0) / (ropa.length || 1), clave = claveRopa(l) + (l.calzado.id || '');
     const est = (l.estilos || []).slice(0, 2), neutro = f => String(f.color_clase).startsWith('neutro'), todoNeutro = ropa.every(neutro);
@@ -443,7 +444,7 @@ const Motor = (() => {
           const [hb] = H('bolso'); if (hb && c) { const b = cands(hb, ents)[0]; if (b) l2.bolso = b; }
           const le = () => ({ ...l2, estilos: formula.estilos || [] });
           if (COMPL && c && !l2.bolso) { const b = complemento('bolso', le(), ents, ctx); if (b) l2.bolso = b; }
-          if (COMPL && c && !l2.accesorio) { const a = complemento('cinturon', { ...le(), como: comoDe(formula, l2) }, ents, ctx); if (a) l2.accesorio = a; }
+          if (COMPL && c && !l2.accesorio) { const a = complemento('cinturon', { ...le(), como: comoDe(formula, l2), silueta: pf.silueta }, ents, ctx); if (a) l2.accesorio = a; }
           if (COMPL && c) { const pa = complemento('panuelo', le(), ents, ctx); if (pa) l2[l2.accesorio ? 'accesorio2' : 'accesorio'] = pa; const j = complemento('joyas', le(), ents, ctx); if (j) l2.joya = j; }
           salida.push(l2);
         }
