@@ -144,7 +144,7 @@ const Motor = (() => {
     for (const l of pf.estilista?.looks || []) if (l.arriba && !l.capa) usoSolo.add(l.arriba);
     const dc = pf.diag?.color, ec = dc?.si ? dc : opc.colorEstacion, cint = pf.cintura === '1' || pf.cintura === 'si' ? 'si' : pf.cintura === '0' || pf.cintura === 'no' ? 'no' : undefined;
     const reglas = opc.pro ? (pf.diag?.cuerpo?.puntos || S[pf.tipoCuerpo] || null) : null;
-    return { estilos: pf.estilos || [], publico: pf.publico || (pf.ropa === 'hombre' ? 'masculino' : 'todo') /* 03/11: «¿Qué ropa llevas?» */, cintura: cint, tacon: pf.tacon, tacon_num: TACON[pf.tacon], evitarColores: pf.evitarColores || [], usoSolo, gustos: pf.gustos || {}, inspo: inspoDe(pf.inspo), calib: calibDe(pf.calib), diag: { estacion: ec ? { si: ec.si, no: ec.no } : undefined, puntos: reglas } };
+    return { estilos: pf.estilos || [], publico: pf.publico || (pf.ropa === 'hombre' ? 'masculino' : 'todo') /* 03/11: «¿Qué ropa llevas?» */, cintura: cint, tacon: pf.tacon, tacon_num: TACON[pf.tacon], evitarColores: pf.evitarColores || [], usoSolo, gustos: pf.gustos || {}, inspo: inspoDe([...(pf.inspo || []), ...(pf.propios || [])]) /* 12/11: también los looks que ella sube con foto */, calib: calibDe(pf.calib), diag: { estacion: ec ? { si: ec.si, no: ec.no } : undefined, puntos: reglas } };
   }
 
   /* ---------- 3. condiciones: las de las fórmulas sobre una prenda y las de las reglas sobre el look ---------- */

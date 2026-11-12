@@ -1824,3 +1824,12 @@ html.oscuro .pn-error{color:#E8776B}
 .est-ficha{margin:10px auto 0}
 /* la foto de Editar entera, también la de un vestido largo (con height:100% en la rejilla se salía por abajo y se cortaba) */
 .previa img{position:absolute;inset:0}
+
+/* 12/11 (Sheila): «Súbelo con una foto» arriba de Nuevo look */
+.nl-foto { margin: 6px 0 22px; text-align: center; }
+.nl-foto-b { position: relative; display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 18px; border: 1px solid var(--tinta); color: var(--tinta); font-size: 14px; cursor: pointer; }
+.nl-foto-b input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.nl-foto-b:focus-within { outline: 2px solid var(--oro-t); outline-offset: 3px; }
+.nl-foto-b svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; }
+.nl-foto-b.leyendo { opacity: .6; cursor: progress; }
+.nl-foto-t { margin: 10px auto 0; max-width: 34ch; color: var(--sec); font-size: 13px; line-height: 1.5; }

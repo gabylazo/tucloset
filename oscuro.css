@@ -873,6 +873,10 @@ html.oscuro .est-av{color:var(--tinta)}
 html.oscuro .est-av small{color:var(--sec)}
 html.oscuro .est-gira{border:1.5px solid var(--linea2);border-top-color:var(--oro-t);border-radius:50%}
 @media (prefers-reduced-motion:reduce){html.oscuro .est-gira{border-color:var(--oro-t)}}
+html.oscuro .nl-foto-b{border:1px solid var(--tinta);color:var(--tinta)}
+html.oscuro .nl-foto-b:focus-within{outline:2px solid var(--oro-t);outline-offset:3px}
+html.oscuro .nl-foto-b svg{fill:none;stroke:currentColor}
+html.oscuro .nl-foto-t{color:var(--sec)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}

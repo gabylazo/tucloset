@@ -3175,8 +3175,62 @@ function pintarLooks() {
     pintarLooks();
   };
 }
+// 12/11 (Sheila, 2074–2078: «subir tus looks independientes… lo haces tú y te encanta, lo subes a la app y alimentas a tu propia estilista»):
+// arriba de «Nuevo look», súbelo con una foto. La IA lee la ropa (la misma lectura gratis de «Looks que te encantan»; la foto no se guarda) y la app
+// marca las prendas de tu clóset que más se parecen; ella revisa y guarda. Al guardar, el motor aprende de ese look (lookPropio)
+const MAX_PROPIOS = 30;
+const TIPO_TEXTO = [['Calzado', /zapat|bota|botin|sandal|mocas|deportiv|tenis|bailarin|salon|tacon|alpargat|zueco|chancl|mule|sneaker/], ['Bolsos', /bolso|cartera|mochila|clutch|bandolera|rinonera|shopper/],
+  ['Accesorios', /cintur|gafas|collar|pendient|panuelo|bufanda|gorr|sombrer|reloj|pulsera|bandana|diadema/], ['Vestidos', /vestido|\bmono\b|pichi/],
+  ['Abrigo', /abrigo|chaqueta|cazadora|blazer|americana|gabardina|trench|parka|plumifero|chaqueton|sobrecamisa|bomber/], ['Abajo', /pantal|vaquer|jean|falda|short|bermuda|legging|malla|jogger|cargo|culotte|palazzo/]];
+const sinTilde = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function buscarEnCloset(lista, prendas) {
+  const fi = p => { try { return Motor.ficha(p); } catch (e) { return {}; } };
+  const cand = prendas.map(p => ({ p, f: fi(p), n: sinTilde(p.nombre) })), pares = [];
+  (lista || []).forEach((x, i) => {
+    const txt = sinTilde(x.tipo), tipo = (TIPO_TEXTO.find(([, r]) => r.test(txt)) || ['Arriba'])[0];
+    const q = { id: '__foto' + i, nombre: (x.tipo || '') + ' ' + sinTilde(x.color), tipo, color: x.color || '' }, fq = fi(q), pal = txt.split(/[^a-z]+/).filter(w => w.length >= 4);
+    for (const c of cand) {
+      const mismo = c.p.tipo === tipo, cerca = ['Arriba', 'Abrigo'].includes(c.p.tipo) && ['Arriba', 'Abrigo'].includes(tipo);
+      if (!mismo && !cerca) continue;
+      let s = mismo ? 0 : -2;
+      if (fq.subtipo && fq.subtipo === c.f.subtipo) s += 4;
+      const col = x.color && c.p.color === x.color ? 3 : fq.familia && fq.familia === c.f.familia ? 1 : 0; s += col;
+      s += pal.filter(w => c.n.includes(w.slice(0, 5))).length;
+      if (s >= (col ? 5 : 7)) pares.push({ i, p: c.p, s }); // con otro color, solo si todo lo demás coincide (unas zapatillas blancas no son las marrones)
+    }
+  });
+  pares.sort((a, b) => b.s - a.s); const usadas = new Set(), hechas = new Set(), ids = [];
+  for (const x of pares) { if (hechas.has(x.i) || usadas.has(x.p.id)) continue; hechas.add(x.i); usadas.add(x.p.id); ids.push(x.p.id); }
+  return { ids, faltan: (lista || []).filter((x, i) => !hechas.has(i)) };
+}
+function pintarNlFoto(msg, leyendo) {
+  const z = $('nl-foto'); if (!z) return;
+  z.innerHTML = `<label class="nl-foto-b${leyendo ? ' leyendo' : ''}"><input type="file" accept="image/*" id="nl-foto-f"${leyendo ? ' disabled' : ''}><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 7.5h3.6l1.6-2.5h5.6l1.6 2.5H19v10H3z"/><circle cx="11" cy="12" r="3.4"/></svg><span>${leyendo ? t('Leyendo tu foto…', 'Reading your photo…') : t('Súbelo con una foto', 'Add it from a photo')}</span></label>
+    <p class="nl-foto-t" role="status">${msg || t('¿Te has hecho un look que te encanta? Hazle una foto puesto y busco esas prendas en tu clóset. Así aprendo tu estilo. La foto no se guarda.', 'Made a look you love? Take a photo wearing it and I will find those clothes in your closet, so I learn your style. The photo is not kept.')}</p>`;
+}
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'nl-foto-f') return;
+  const f = e.target.files?.[0]; if (!f) return;
+  if (!cuenta()?.token) return pintarNlFoto(t('Para leer la foto necesitas entrar en tu cuenta.', 'Sign in to your account to read the photo.'));
+  pintarNlFoto('', true); const r = await leerInspo(f);
+  if (r.sinRopa) return pintarNlFoto(t('No veo ropa en esa foto. Prueba con otra en la que se vea el look entero.', 'I can’t see clothes in that photo. Try one that shows the whole look.'));
+  if (r.error) return pintarNlFoto(['tope', 'tope-ia'].includes(r.error) ? t('Hoy ya no puedo leer más fotos. Prueba mañana.', 'I can’t read more photos today. Try tomorrow.') : t('No he podido leer la foto. Prueba otra vez.', 'I couldn’t read the photo. Try again.'));
+  const { ids, faltan } = buscarEnCloset(r.prendas, activas());
+  E.preseleccion = ids; E.nlFoto = { estilos: r.estilos || [], colores: r.colores || [], formalidad: r.formalidad || null };
+  document.querySelectorAll('#nl-prendas [data-sel]').forEach(b => b.classList.toggle('sel', ids.includes(b.dataset.sel)));
+  if (OCASIONES.includes(r.ocasion)) { $('nl-ocasiones').dataset.sel = r.ocasion; $('nl-ocasiones').querySelectorAll('[data-oc]').forEach(b => b.classList.toggle('sel', b.dataset.oc === r.ocasion)); }
+  const nom = x => [x.tipo, x.color ? adjColor(x.color) : ''].filter(Boolean).join(' ').toLowerCase();
+  const enc = ids.length ? (ids.length === 1 ? t('He marcado 1 prenda de tu clóset.', 'I’ve ticked 1 garment from your closet.') : t(`He marcado ${ids.length} prendas de tu clóset.`, `I’ve ticked ${ids.length} garments from your closet.`)) + ' ' + t('Revisa que sean las tuyas: toca una para quitarla o añadirla.', 'Check they are yours: tap one to remove or add it.') : t('No encuentro esa ropa en tu clóset. Elige tú las prendas abajo.', 'I can’t find those clothes in your closet. Pick them below.');
+  pintarNlFoto(enc + (faltan.length && ids.length ? ' ' + t('No encuentro', 'I can’t find') + ': ' + faltan.map(nom).join(', ') + '.' : ''));
+  $('nl-prendas').querySelector('.sel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+});
+function lookPropio(ids, c) { // lo que el motor aprende de un look que ella se ha hecho: cada pareja de prendas le gusta y, si vino de una foto, sus estilos y colores
+  anotarGusto(ids, 'si');
+  if (E.nlFoto && E.perfil) { c.deFoto = 1; E.perfil.propios = [...(E.perfil.propios || []), { id: c.id, ...E.nlFoto, fecha: hoyISO() }].slice(-MAX_PROPIOS); }
+  E.nlFoto = null;
+}
 function prepararNuevoLook(pre) {
-  E.preseleccion = Array.isArray(pre) ? pre.slice() : [];
+  E.preseleccion = Array.isArray(pre) ? pre.slice() : []; E.nlFoto = null; pintarNlFoto();
   $('nl-nombre').value = ''; $('nl-ocasiones').innerHTML = OCASIONES.map(o => `<button type="button" class="chip ${o === 'Diario' ? 'sel' : ''}" data-oc="${o}">${ocNombre(o)}</button>`).join('');
   $('nl-ocasiones').dataset.sel = 'Diario';
   const act = activas();
@@ -3185,8 +3239,9 @@ function prepararNuevoLook(pre) {
 async function guardarLook() {
   const ids = E.preseleccion; if (ids.length < 2) return toast(t('Elige al menos dos prendas', 'Pick at least two garments'));
   const nombre = $('nl-nombre').value.trim() || `${ocNombre($('nl-ocasiones').dataset.sel)} ${E.conjuntos.length + 1}`;
-  E.conjuntos.unshift({ id: uid(), nombre, ocasion: $('nl-ocasiones').dataset.sel, ids, creada: hoyISO(), usos: [] });
-  await guardar(); E.propuestas = []; toast(t('Conjunto guardado', 'Outfit saved')); ir('looks');
+  const c = { id: uid(), nombre, ocasion: $('nl-ocasiones').dataset.sel, ids, creada: hoyISO(), usos: [] }, deFoto = !!E.nlFoto;
+  E.conjuntos.unshift(c); lookPropio(ids, c);
+  await guardar(); programarNube(); E.propuestas = []; E.generados = []; toast(deFoto ? t('Look guardado. Lo tendré en cuenta en tus propuestas.', 'Look saved. I’ll keep it in mind for your suggestions.') : t('Conjunto guardado', 'Outfit saved')); ir('looks');
 }
 function abrirLook(id) {
   const c = E.conjuntos.find(x => x.id === id); if (!c) return;
@@ -3196,7 +3251,7 @@ function abrirLook(id) {
   $('lk-foto').innerHTML = c.img && planDemo() === 'pro' ? `<img src="${c.img}" alt="">` : maniqui(ps, false, COMP === 'simetrica' ? 'collage' : COMP);
   $('lk-piezas').innerHTML = ps.map(p => `<button data-ficha="${p.id}"><img src="${urlFoto(p)}" alt=""><span>${p.nombre}</span></button>`).join('');
   $('lk-pongo').onclick = () => ponerse(c.ids, c).then(() => abrirLook(id));
-  $('lk-borrar').onclick = async () => { if (await confirmar(t('¿Borrar este conjunto?', 'Delete this outfit?'), t('Las prendas se quedan en tu clóset.', 'The garments stay in your closet.'), t('Borrar', 'Delete'))) { E.conjuntos = E.conjuntos.filter(x => x.id !== id); await guardar(); E.propuestas = []; ir('looks'); } };
+  $('lk-borrar').onclick = async () => { if (await confirmar(t('¿Borrar este conjunto?', 'Delete this outfit?'), t('Las prendas se quedan en tu clóset.', 'The garments stay in your closet.'), t('Borrar', 'Delete'))) { if (E.perfil?.propios) E.perfil.propios = E.perfil.propios.filter(x => x.id !== id); E.conjuntos = E.conjuntos.filter(x => x.id !== id); await guardar(); E.propuestas = []; ir('looks'); } };
   ir('look');
 }
 
