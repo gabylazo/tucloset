@@ -76,6 +76,8 @@ const Motor = (() => {
       if (m.tmax_max) f.tmax = Math.min(f.tmax, m.tmax_max);
       if (m.lluvia_mala) f.lluvia_mala = true; if (m.deportiva) f.deportiva = true;
     }
+    // 12/11: si el nombre no dice la manga, manda la que la IA vio en la foto (p.manga); antes salía la del tipo de prenda y un top de manga larga contaba como sin mangas
+    if (p.manga && f.conf.manga !== 'nombre' && ['arriba', 'capa', 'vestido'].includes(f.cat) && ['larga', 'corta', 'sin_mangas'].includes(p.manga)) { f.manga = p.manga; f.conf.manga = 'foto'; }
     if (dep && ['arriba', 'abajo', 'capa', 'vestido'].includes(f.cat)) { f.deportiva = true; f.uso = 'deporte'; f.form = Math.min(f.form, 1); }
     // 06/11 (Moda, revisión del clóset real): las zapatillas de deporte son deportivas (solo ellas van a Deporte) pero también valen para el día a día, sin «uso: deporte»
     if (dep && f.cat === 'calzado') { f.deportiva = true; f.form = Math.min(f.form, 1); }
@@ -106,7 +108,7 @@ const Motor = (() => {
   }
   const CACHE = new WeakMap();
   function ficha(p, perfil) {
-    const sig = [p.nombre, p.tipo, p.color, p.estacion, p.x, JSON.stringify(p.est || 0), (p.detalles || []).join(), perfil.usoSolo?.has?.(p.id) ? 1 : 0].join('|'), c = CACHE.get(p);
+    const sig = [p.nombre, p.tipo, p.color, p.estacion, p.x, JSON.stringify(p.est || 0), (p.detalles || []).join(), p.manga || '', perfil.usoSolo?.has?.(p.id) ? 1 : 0].join('|'), c = CACHE.get(p);
     if (c && c.sig === sig) return c.f;
     const f = inferir(p, perfil); CACHE.set(p, { sig, f }); return f;
   }

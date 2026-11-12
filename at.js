@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.221'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.228'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -245,24 +245,34 @@ if (AT) (() => {
   const botonPuesto = ps => planDemo() === 'pro' && tieneAvatar() ? `<button class="at-puestob${ps && yaProbado(ps) ? ' probado' : ''}" data-puesto aria-pressed="false" aria-label="${ps && yaProbado(ps) ? t('Verlo puesto en mí: ya te lo has probado', 'See it on me: already tried on') : t('Verlo puesto en mí', 'See it on me')}">${IC_PUESTO}</button>` : '';
   // 07/11 (Gabriela: «quiero que el avatar, cuando se pruebe una ropa, se quede ahí fijo»): si lo dejas puesto, al pasar de look sigue puesto; lo ya probado sale del
   // móvil al momento y lo que no te has probado se queda en collage hasta que toques la figura (no se pide solo, para no gastar). Lo último probado se queda en Yo → Tu avatar
-  async function verPuesto(b, zona, ps, como, otra, auto) {
+  // 12/11 (Sheila: «me gustaría poder [ver] cómo me queda por dentro o semi dentro, como muchas veces se usa»): debajo del look puesto, cómo llevar la de arriba.
+  // Sale lo que dice el look; otra manera es otra prueba (≈ 0,03 $), que se guarda aparte. Lo elegido se recuerda para ese look mientras la app está abierta
+  const COMO_ELEGIDO = new Map(), idsDe = ps => ps.map(p => p.id).sort().join('+');
+  const COMOS = () => [['suelta', t('Por fuera', 'Untucked')], ['media', t('Medio por dentro', 'Half tucked')], ['por dentro', t('Por dentro', 'Tucked in')]];
+  const comoAplica = ps => { const top = ps.filter(p => p.tipo === 'Arriba').pop(); if (!top || !ps.some(p => p.tipo === 'Abajo')) return false;
+    const f = Motor.ficha(top); return !['body', 'top_corto', 'top_deportivo'].includes(f.subtipo) && top.est?.largo !== 'crop' && !/crop|\bcorto\b|body/i.test(top.nombre || ''); };
+  async function verPuesto(b, zona, ps, como, otra, auto, cambio) {
     let fig = zona?.querySelector('.at-look'); if (!fig) return;
     let capa = zona.querySelector('.at-puesto');
-    if (b.getAttribute('aria-pressed') === 'true' && !otra && !auto) { capa?.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); LS.set('tc_ver_avatar', null); return; }
+    if (b.getAttribute('aria-pressed') === 'true' && !otra && !auto && !cambio) { capa?.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); LS.set('tc_ver_avatar', null); return; }
+    const el = comoAplica(ps) ? COMO_ELEGIDO.get(idsDe(ps)) || '' : '';
     if (b.classList.contains('cargando')) return;
     let r = null;
-    if (auto) { r = await puestoEnMi(ps, como, false, true); fig = zona.querySelector('.at-look'); if (!r.blob || !fig || !zona.isConnected || b.getAttribute('aria-pressed') === 'true') return; capa = zona.querySelector('.at-puesto'); }
+    if (auto) { r = await puestoEnMi(ps, como, false, true, el); fig = zona.querySelector('.at-look'); if (!r.blob || !fig || !zona.isConnected || b.getAttribute('aria-pressed') === 'true') return; capa = zona.querySelector('.at-puesto'); }
     else LS.set('tc_ver_avatar', '1');
     const alto = fig.offsetHeight || capa?.offsetHeight || 320;
     if (!capa) { capa = document.createElement('div'); capa.className = 'at-puesto'; fig.after(capa); }
     capa.style.height = alto + 'px'; if (!r) capa.innerHTML = `<p class="at-puesto-esp" role="status">${t('Vistiéndote…', 'Dressing you…')}</p>`; fig.style.display = 'none';
     b.setAttribute('aria-pressed', 'true');
-    if (!r) { b.classList.add('cargando'); r = await puestoEnMi(ps, como, otra); b.classList.remove('cargando'); }
+    if (!r) { b.classList.add('cargando'); r = await puestoEnMi(ps, como, otra, false, el); b.classList.remove('cargando'); }
     if (!capa.isConnected) return;
     if (r.error) { capa.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); LS.set('tc_ver_avatar', null); return toast(r.error); }
     if (b.classList.contains('at-puestob') && !b.classList.contains('probado')) { b.classList.add('probado'); b.setAttribute('aria-label', t('Verlo puesto en mí: ya te lo has probado', 'See it on me: already tried on')); }
-    capa.innerHTML = `<img src="${URL.createObjectURL(r.blob)}" alt="${t('Tú con este look', 'You wearing this look')}"><button class="at-enlace at-puesto-otra">${t('No se parece: otra vez', 'Not right: try again')}</button>`;
+    const ahora = el || como || 'suelta', opc = comoAplica(ps) ? `<div class="at-como" role="group" aria-label="${t('Cómo llevar la de arriba', 'How to wear the top')}">${COMOS().map(([v, l]) => `<button data-como="${v}" aria-pressed="${v === ahora}">${l}</button>`).join('')}</div>` : '';
+    capa.innerHTML = `<img src="${URL.createObjectURL(r.blob)}" alt="${t('Tú con este look', 'You wearing this look')}">${opc}<button class="at-enlace at-puesto-otra">${t('No se parece: otra vez', 'Not right: try again')}</button>`;
     capa.querySelector('.at-puesto-otra').onclick = e => { e.stopPropagation(); verPuesto(b, zona, ps, como, true); };
+    capa.querySelectorAll('[data-como]').forEach(x => { x.onclick = e => { e.stopPropagation(); if (x.dataset.como === ahora || b.classList.contains('cargando')) return;
+      COMO_ELEGIDO.set(idsDe(ps), x.dataset.como); verPuesto(b, zona, ps, como, false, false, true); }; });
   }
 
   /* ---------- 07/11 (Gabriela: «una opción de elegir una prenda que quieras ponerte sí o sí, y que la app te cree un outfit con esa pieza, o te proponga varios»): en Hoy,

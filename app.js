@@ -2653,6 +2653,7 @@ function aplicarClas(p, o, antes, subida) {
   if (p.tipo === 'Abajo' && o.categoria === 'Pantalones' && ['alto', 'medio', 'bajo'].includes(o.tiro) && !est.tiro) est.tiro = o.tiro;
   if (p.tipo === 'Arriba' && ['crop', 'cintura', 'cadera', 'largo'].includes(o.largo) && !est.largo) est.largo = o.largo;
   if (Object.keys(est).length) p.est = est;
+  if (['Arriba', 'Abrigo', 'Vestidos'].includes(p.tipo) && ['larga', 'corta', 'sin_mangas'].includes(o.manga)) { p.manga = o.manga; p.mangaV = 1; }
   if (subida) { if (o.es_prenda) p.noPrenda = false; else if (!p.siPrenda) p.noPrenda = true; p.rec = 1; }
   else { p.rec = 3; p.rev = 1; p.estAuto = 1; } // que los repasos viejos del reconocedor del móvil no lo deshagan
   p.clas = 1;
@@ -2722,6 +2723,30 @@ function clasificarViejas() {
     return n;
   })();
   return clasificando;
+}
+// 12/11 (Sheila, mensaje 2061: «continuamos con la desproporción», un top crop de manga larga diminuto junto a un pantalón ancho): la app solo sabía la manga si
+// el nombre la decía; sin ella, el collage medía ese top como uno sin mangas (33 × 42 cm en vez de 45 × 58) y el motor lo trataba como de verano. Una vez por prenda,
+// lo de arriba, los vestidos y los abrigos que no dicen la manga en el nombre se la preguntan a la IA (la misma clasificación, ≈ 0,002 $); solo se guarda la manga
+const MANGA_NOMBRE = /manga|tirante|sin mangas|palabra de honor|halter|bandeau|strapless|un hombro|sleeve/i;
+let mangueando = null;
+function mangasViejas() {
+  if (mangueando) return mangueando;
+  if (clasParado || !cuenta()?.token || window.top !== window || !E.nubeBajada) return Promise.resolve(0);
+  mangueando = (async () => {
+    let n = 0, m = 0;
+    try {
+      for (const p of E.prendas.filter(p => ['Arriba', 'Abrigo', 'Vestidos'].includes(p.tipo) && !p.mangaV && !p.ejemplo && !p.src && !MANGA_NOMBRE.test(p.nombre || '') && !p.fotoRota && (p.cat instanceof Blob || p.foto instanceof Blob))) {
+        await new Promise(r => (window.requestIdleCallback || setTimeout)(r, { timeout: 800 }));
+        const o = await clasificarIA(p.cat instanceof Blob ? p.cat : p.foto); if (clasParado) break; if (!o) continue;
+        if (['larga', 'corta', 'sin_mangas'].includes(o.manga)) { if (p.manga !== o.manga) n++; p.manga = o.manga; }
+        p.mangaV = 1; m++;
+      }
+    } finally { mangueando = null; }
+    if (m) { await guardar(); programarNube(); }
+    if (n) { E.propuestas = []; E.generados = []; cuandoQuieto(() => { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'hoy') pintarHoy(); }); }
+    return n;
+  })();
+  return mangueando;
 }
 async function anadirFotos(files) {
   const nuevos = files.slice(0, Math.max(0, 20 - E.subida.length)).map(f => ({ id: uid(), estado: 'procesando', file: f }));
@@ -3650,21 +3675,22 @@ function fijarPuesto(k) { // lo que llevas puesto en Yo, con la cuenta (10/11)
 const puestoFijo = () => { const k = E.perfil?.avatarFijo; return k && E.puestos?.[k] instanceof Blob ? k : ''; };
 const ORDEN_PUESTO = ['Vestidos', 'Arriba', 'Abajo', 'Abrigo', 'Calzado', 'Bolsos', 'Accesorios'];
 const selLook = ps => ps.filter(p => !p.muestra && (p.cat instanceof Blob || p.foto instanceof Blob)).sort((a, b) => ORDEN_PUESTO.indexOf(a.tipo) - ORDEN_PUESTO.indexOf(b.tipo)).slice(0, 6);
-const clavePuesto = ps => { const sel = selLook(ps); return sel.length ? sel.map(p => p.id).sort().join('+') + '|' + (E.perfil?.avatarF || '') : ''; };
+// 12/11: si ella elige otra manera de llevar la de arriba que la del look («~media», «~por dentro»), es otra prueba con su propia foto; lo de después de la última «|» sigue siendo el avatar
+const clavePuesto = (ps, cm) => { const sel = selLook(ps); return sel.length ? sel.map(p => p.id).sort().join('+') + (cm ? '~' + cm : '') + '|' + (E.perfil?.avatarF || '') : ''; };
 // 10/11 (Gabriela: «los conjuntos que ya tengan avatar se quedan así… distinguiéndolo con el maniquí que indica avatar coloreado, como que ya tienes esa prueba»)
 const yaProbado = ps => { if (planDemo() !== 'pro' || !tieneAvatar()) return false; const k = clavePuesto(ps); return !!k && (E.puestos?.[k] instanceof Blob || (E.perfil?.probados || []).some(x => x.k === k && x.s)); };
-async function puestoEnMi(ps, como, otra, soloGuardado) {
+async function puestoEnMi(ps, como, otra, soloGuardado, elegido) {
   const pf = E.perfil || {}; if (!(pf.avatar instanceof Blob)) return { error: t('Primero crea tu avatar en Yo', 'First create your avatar in Me') };
   if (!permiso('avatar')) return { error: errorAvatar(403, 'permiso') };
   const sel = selLook(ps); if (!sel.length) return { error: t('Este look aún no tiene fotos', 'This look has no photos yet') };
-  const k = clavePuesto(ps);
+  const cm = elegido && elegido !== (como || 'suelta') ? elegido : '', k = clavePuesto(ps, cm);
   E.puestos = E.puestos || (await BD.get('puestos').catch(() => null)) || {};
   if (!otra && E.puestos[k] instanceof Blob) { if (!soloGuardado) fijarPuesto(k); return { blob: E.puestos[k], k }; }
   if (soloGuardado) return { nada: true };
   try {
     const fd = new FormData(); fd.append('avatar', await jpegBlanco(pf.avatar), 'avatar.jpg');
     for (const [i, p] of sel.entries()) fd.append('p' + i, await jpegBlanco(p.cat instanceof Blob ? p.cat : p.foto, 768), `p${i}.jpg`);
-    fd.append('nombres', JSON.stringify(sel.map(p => p.nombre || ''))); if (como) fd.append('como', como);
+    fd.append('nombres', JSON.stringify(sel.map(p => p.nombre || ''))); if (cm || como) fd.append('como', cm || como);
     // 11/11 (Gabriela: «sigo teniendo dos avatares en mi cuenta»): ya no va la selfie. Con dos caras de referencia (el avatar y la selfie, que había cambiado
     // después), la IA copiaba unas veces una y otras la otra, y salían dos personas. La cara sale solo del avatar; el parecido se arregla en el avatar («No me parezco»)
     const r = await apiAvatar('/api/avatar?que=puesto' + (otra ? '&otra=1' : ''), fd);
@@ -4184,7 +4210,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
-  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
+  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
