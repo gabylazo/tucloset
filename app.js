@@ -3695,6 +3695,15 @@ async function apiAvatar(ruta, fd) {
   if (r.status === 403 && (await r.clone().json().catch(() => ({}))).error === 'permiso' && permiso('avatar') && await permisoAlServidor('avatar')) r = await api(ruta, { method: 'POST', body: fd, tiempo: 150000 });
   return r;
 }
+// 12/11 (Gabriela: «¿no puede ser que el avatar se actualice automático luego que cambies alguna foto?»): si ya tiene avatar y cambia la selfie o la de cuerpo,
+// el avatar se rehace solo. Se espera 15 s por si cambia también la otra foto (una sola vez para las dos) y solo al cambiarla en este móvil, no al bajarlas de la nube
+let avatarEspera = 0;
+function avatarTrasFoto() {
+  clearTimeout(avatarEspera);
+  avatarEspera = setTimeout(() => { const pf = E.perfil || {};
+    if (tieneAvatar() && planDemo() === 'pro' && pf.selfie instanceof Blob && pf.cuerpo instanceof Blob && pf.avatarDe !== firmaAvatar() && !avatarEnCurso) {
+      avatarAbierto = true; toast(t('Rehaciendo tu avatar con tu foto nueva', 'Redoing your avatar with your new photo')); crearAvatar(); } }, 15000);
+}
 async function crearAvatar(nota, palabras) {
   const pf = E.perfil || {}; if (avatarEnCurso) return;
   if (!cuenta()) return toast(t('Entra en tu cuenta para crear tu avatar', 'Sign in to create your avatar'));
@@ -4111,7 +4120,8 @@ async function guardarFotoPerfil(k, file) {
   if (!permiso('diag')) return toast(t('Marca antes el permiso de debajo', 'First tick the permission below'));
   try { const r = await procesarFoto(file); E.perfil = E.perfil || {}; E.perfil[k] = r.blob; diagFallo = 0; await guardar(); pintarSilueta(); toast(k === 'selfie' ? t('Selfie guardada', 'Selfie saved') : t('Foto de cuerpo guardada', 'Body photo saved'));
     // 0.12: con las dos fotos del alta, el diagnóstico se hace solo, por detrás («no son cosas aisladas, las fotos del inicio con las opciones que pones en Yo»)
-    diagFallo = 0; diagHastaAlDia().then(r => { if (E.pantalla === 'cuerpo') pintarCuerpo(); if (r && (r.res.color || r.res.cuerpo)) toast(t('Listo: tus colores y tu tipo de cuerpo están en Yo', 'Done: your colours and body type are in Me')); }); }
+    diagFallo = 0; diagHastaAlDia().then(r => { if (E.pantalla === 'cuerpo') pintarCuerpo(); if (r && (r.res.color || r.res.cuerpo)) toast(t('Listo: tus colores y tu tipo de cuerpo están en Yo', 'Done: your colours and body type are in Me')); });
+    avatarTrasFoto(); }
   catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); }
 }
 
