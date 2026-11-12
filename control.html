@@ -514,6 +514,7 @@ a.trow { min-height: 48px; }
       ${card('Próximas fechas', `<div class="rows">${proximas.map(x => `<div class="trow"><b>${esc(x.q.replace(/ \(propuesta\)$/, ''))}</b><small>${esc(x.f)} · ${rel(x.f)}</small></div>`).join('') || '<p class="vacio">Sin fechas a la vista.</p>'}</div>`)}
       ${infraAhora ? card('Infraestructura', `<div class="medida"><span>${esc(infraAhora.n)}: ${infraListas} de ${infraAhora.items.length} listas</span><span>${pct(infraListas, infraAhora.items.length)} %</span></div><div class="meter" role="img" aria-label="${infraListas} de ${infraAhora.items.length} listas"><i style="width:${pct(infraListas, infraAhora.items.length)}%;background:var(--good)"></i></div>
         <div class="rows">${infraAhora.items.filter(x => x.e !== 'hecho').slice(0, 4).map(x => `<div class="trow"><b>${esc(x.t)}</b><small>${esc(x.q)}</small></div>`).join('')}</div><a class="more" href="#mas">Todas las fases</a>`, { extra: esc(infraAhora.f ? infraAhora.i + '–' + infraAhora.f : '') }) : ''}
+      ${card('Lo programado', listaEst(P.programado || []), { count: (P.programado || []).filter(x => x.e !== 'hecho').length })}
       ${card('Para mirar', `<div class="rows">${(P.mirar || []).map(x => x.url ? `<a class="trow" href="${esc(x.url)}"><b>${esc(x.t)}</b><small>${esc(x.n || '')}</small>${ic('chev')}</a>` : `<div class="trow"><b>${esc(x.t)}</b><small>${esc(x.n || '')}</small></div>`).join('')}</div>`)}
     </div>
   </section>
