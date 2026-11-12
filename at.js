@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.232'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.236'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -426,7 +426,7 @@ if (AT) (() => {
     const conB = pc ? `<span class="at-conp on"><button class="at-conp-n" data-hzcon aria-label="${t('Con', 'With')} ${esc(pc.nombre)}: ${t('cambiar la prenda', 'change the garment')}"><img src="${urlCat(pc)}" alt=""><span class="at-conp-t">${esc(pc.nombre)}</span></button><button class="at-conp-x" data-hzconx aria-label="${t('Quitar la prenda', 'Remove the garment')}">${I.cerrar}</button></span>`
       : `<button class="at-conp" data-hzcon>${I.percha}${t('Con una prenda', 'With a garment')}</button>`;
     const ocB = `<div class="at-cab-fila">${ocBoton(oc)}${conB}</div>`;
-    pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocB + '</header>')}${ocs}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}${nota}</div>
+    pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocB + '</header>')}${ocs}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}${nota}<button class="at-desc" id="at-desc" aria-label="${t('Descartar este look: no volverá a salir', 'Discard this look: it won’t come back')}">${I.cerrar}</button></div>
       <div class="at-pie"><button class="at-fav${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button>${botonPuesto(ps)}</div></div>`;
     // el look ocupa el hueco que de verdad queda entre la cabecera y el botón (en cada móvil es distinto)
     const z = $('at-hoy'), ajustar = () => { const fig = z.querySelector('.at-look'); if (!fig || !z.clientHeight) return;
@@ -438,6 +438,19 @@ if (AT) (() => {
     const bp = pant.querySelector('[data-puesto]'); if (bp) { bp.onclick = () => verPuesto(bp, z, ps, pr.como); if (LS.get('tc_ver_avatar')) requestAnimationFrame(() => requestAnimationFrame(() => verPuesto(bp, z, ps, pr.como, false, true))); }
     pant.querySelector('[data-hzcon]').onclick = elegirPrendaHoy;
     const cx = pant.querySelector('[data-hzconx]'); if (cx) cx.onclick = () => { E.hoyCon = null; E.propuestas = []; E.hoyIdx = 0; pintarHoy(); };
+    // 12/11 (Sheila, mensajes 2072, 2111 y 2119: «dónde está la opción para rechazar look»): una ✕ en la esquina del look, sin el texto «No me gusta»
+    // que Gabriela quitó el 03/11. Una propuesta descartada no vuelve; un look guardado o del calendario solo se aparta por hoy. Con «Deshacer».
+    $('at-desc').onclick = async () => {
+      const k = claveLook(pr.ids), i = E.hoyIdx || 0; anotarGusto(pr.ids, 'no'); const g = E.perfil.gustos;
+      if (pr.tipo === 'propuesta') g.fuera = [...(g.fuera || []), k].slice(-300); else { if (g.hoy?.d !== hoyISO()) g.hoy = { d: hoyISO(), k: [] }; g.hoy.k.push(k); }
+      lista.splice(i, 1); if (E.hoyIdx >= lista.length) E.hoyIdx = 0; if (!lista.length) { E.propuestas = []; E.hoyIdx = 0; }
+      await guardar(); programarNube(); pintarHoy();
+      toast(t('Descartado. No volverá a salir', 'Discarded. It won’t come back'), [t('Deshacer', 'Undo'), async () => {
+        if (g.fuera) g.fuera = g.fuera.filter(x => x !== k); if (g.hoy?.k) g.hoy.k = g.hoy.k.filter(x => x !== k);
+        parejas(pr.ids.map(P).filter(Boolean)).forEach(q => { if (g.no?.[q] > 1) g.no[q]--; else if (g.no) delete g.no[q]; });
+        if (E.propuestas.length) { E.propuestas.splice(i, 0, pr); E.hoyIdx = i; } else E.propuestas = [];
+        await guardar(); programarNube(); pintarHoy(); }]);
+    };
     $('at-pongo').onclick = async e => { const b = e.currentTarget; await ponerse(pr.ids, pr.c); await datosLook(pr); b.classList.add('hecho'); b.setAttribute('aria-pressed', 'true'); b.textContent = t('Puesto hoy', 'Worn today'); };
     // el corazón, y el doble toque sobre el look como en Instagram (un toque sobre una prenda abre su ficha, un instante después para distinguirlos)
     const fv = $('at-fav'), alternar = async quiero => { if (quiero != null && esFav(pr.ids) === quiero) { fv.classList.remove('late'); void fv.offsetWidth; fv.classList.add('late'); return; }

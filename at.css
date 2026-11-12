@@ -661,3 +661,8 @@ html.at .at-cam-actual p { margin: 0 0 2px; color: var(--tinta); font-size: 15px
 html.at .at-cam-actual .at-enlace { min-height: 44px; padding: 0; }
 html.at .at-cam-sub { margin: 26px 0 10px; color: var(--sec); font: 400 14px/1.3 var(--f); }
 html.at .at-con-rej .at-cel.no img { opacity: .5; }
+
+/* 12/11 (Sheila): descartar el look de Hoy, una ✕ en la esquina de arriba a la derecha del look */
+html.at .at-hoy { position: relative; }
+html.at .at-desc { position: absolute; top: 0; right: 4px; z-index: 3; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: var(--tinta); background: none; border: 0; padding: 0; }
+html.at .at-desc svg { width: 20px; height: 20px; }

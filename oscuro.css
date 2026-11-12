@@ -1121,6 +1121,7 @@ html.at.oscuro .at-sem-capa{color:var(--sec)}
 html.at.oscuro .at-cam-actual img{background:var(--baldosa)}
 html.at.oscuro .at-cam-actual p{color:var(--tinta)}
 html.at.oscuro .at-cam-sub{color:var(--sec)}
+html.at.oscuro .at-desc{color:var(--tinta);background:none;border:0}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz
