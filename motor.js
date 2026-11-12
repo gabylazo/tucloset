@@ -140,6 +140,7 @@ const Motor = (() => {
     return { est, f };
   }
   function perfilMotor(pf = {}, opc = {}) {
+    pf = pf || {}; // 12/11: sin perfil todavía (null), como antes de terminar el alta
     const usoSolo = new Set(pf.usoSolo || []); // el chaleco que los looks a mano llevan sin nada encima lo lleva solo
     for (const l of pf.estilista?.looks || []) if (l.arriba && !l.capa) usoSolo.add(l.arriba);
     const dc = pf.diag?.color, ec = dc?.si ? dc : opc.colorEstacion, cint = pf.cintura === '1' || pf.cintura === 'si' ? 'si' : pf.cintura === '0' || pf.cintura === 'no' ? 'no' : undefined;
