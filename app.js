@@ -3745,7 +3745,7 @@ async function puestoEnMi(ps, como, otra, soloGuardado, elegido) {
   try {
     const fd = new FormData(); fd.append('avatar', await jpegBlanco(pf.avatar), 'avatar.jpg');
     for (const [i, p] of sel.entries()) fd.append('p' + i, await jpegBlanco(p.cat instanceof Blob ? p.cat : p.foto, 768), `p${i}.jpg`);
-    fd.append('nombres', JSON.stringify(sel.map(p => p.nombre || ''))); if (cm || como) fd.append('como', cm || como);
+    fd.append('nombres', JSON.stringify(sel.map(p => p.nombre || ''))); const cmo = cm || como || (sel.some(p => p.tipo === 'Arriba') && sel.some(p => p.tipo === 'Abajo') ? 'suelta' : ''); if (cmo) fd.append('como', cmo); // 12/11 (Sheila, 2095): siempre se dice la manera; sin ella la IA hacía lo que quería y debajo se marcaba «Por fuera»
     // 11/11 (Gabriela: «sigo teniendo dos avatares en mi cuenta»): ya no va la selfie. Con dos caras de referencia (el avatar y la selfie, que había cambiado
     // después), la IA copiaba unas veces una y otras la otra, y salían dos personas. La cara sale solo del avatar; el parecido se arregla en el avatar («No me parezco»)
     const r = await apiAvatar('/api/avatar?que=puesto' + (otra ? '&otra=1' : ''), fd);
