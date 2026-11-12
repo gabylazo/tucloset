@@ -1,0 +1,16 @@
+{
+  "id": "./control.html",
+  "name": "Control TuCloset",
+  "short_name": "Control",
+  "description": "Centro de control de TuCloset, solo para las socias.",
+  "start_url": "./control.html",
+  "scope": "./control.html",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "lang": "es",
+  "icons": [
+    { "src": "iconos/icono-129-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "iconos/icono-129-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
