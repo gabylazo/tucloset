@@ -437,7 +437,7 @@ html.at .ac-fotos label .mini-et { color: var(--tinta); }
 /* 07/11: el avatar (Yo, en el Pro) y «Puesto en mí» (Hoy y cada look) */
 html.at .av-tarjeta { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 0 20px 8px; }
 html.at .av-tarjeta .es-tit { margin: 22px 0 12px; }
-html.at .av-img { width: 96px; height: 128px; display: flex; align-items: center; justify-content: center; background: var(--baldosa); padding: 0; border: 0; }
+html.at .av-img { width: 96px; height: 128px; display: flex; align-items: center; justify-content: center; background: none; padding: 0; border: 0; } /* 12/11: sin el cuadro gris (Gabriela) */
 html.at .av-img img { width: 100%; height: 100%; object-fit: contain; }
 html.at .av-vacio svg { width: 44px; height: 44px; fill: none; stroke: var(--sec); stroke-width: 1.1; }
 html.at .av-p { font-size: 14px; color: var(--sec); line-height: 1.45; margin: 12px 0 10px; max-width: 30ch; }
@@ -480,7 +480,7 @@ html.at .av-con { align-items: stretch; }
 html.at .av-con .es-tit { text-align: center; }
 html.at .av-des summary { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 8px 0; cursor: pointer; list-style: none; border-top: 1px solid var(--linea, rgba(74,53,38,.15)); border-bottom: 1px solid var(--linea, rgba(74,53,38,.15)); }
 html.at .av-des summary::-webkit-details-marker { display: none; }
-html.at .av-mini { width: 42px; height: 56px; flex: none; background: var(--baldosa); display: flex; }
+html.at .av-mini { width: 42px; height: 56px; flex: none; background: none; display: flex; }
 html.at .av-mini img { width: 100%; height: 100%; object-fit: contain; }
 html.at .av-sum { flex: 1; text-align: left; font-size: 15px; color: var(--tinta); }
 html.at .av-plegar, html.at .av-des[open] .av-ver, html.at .av-des[open] .av-mini { display: none; }
@@ -488,10 +488,16 @@ html.at .av-des[open] .av-plegar { display: inline; }
 html.at .av-flecha { width: 20px; height: 20px; fill: none; stroke: var(--sec); stroke-width: 1.4; transition: transform .2s; }
 html.at .av-des[open] .av-flecha { transform: rotate(180deg); }
 html.at .av-des[open] summary { border-bottom: 0; }
-html.at .av-grande { display: block; width: 100%; padding: 0; border: 0; background: var(--baldosa); margin: 4px 0 0; cursor: zoom-in; }
+html.at .av-grande { display: block; width: 100%; padding: 0; border: 0; background: none; margin: 4px 0 0; cursor: zoom-in; }
 html.at .av-grande img { display: block; width: 100%; height: auto; max-height: 72vh; object-fit: contain; margin: 0 auto; }
 html.at .av-des .av-p { text-align: center; margin-top: 12px; }
-html.at .av-des .av-acc { justify-content: center; display: flex; gap: 24px; padding-bottom: 8px; }
+html.at .av-des .av-acc { justify-content: center; display: flex; gap: 24px; padding: 12px 0 8px; }
+html.at .av-ico { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; background: none; color: var(--tinta); cursor: pointer; position: relative; }
+html.at .av-ico svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+html.at .av-ico.av-aviso::after { content: ''; position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--oro); }
+html.at .at-puesto .at-como { flex-wrap: nowrap; gap: 0 4px; }
+html.at .at-puesto-otra.av-ico { flex: none; }
+html.at .pr-pal { width: 100%; margin: 0 0 18px; border: 1px solid var(--linea2, rgba(74,53,38,.3)); padding: 10px 12px; font-size: 15px; }
 @media (prefers-reduced-motion: reduce) { html.at .av-flecha { transition: none; } }
 
 /* 07/11: en Hoy, «Con una prenda» junto a la ocasión (Gabriela: «elegir una prenda que quieras ponerte sí o sí»); elegida, su foto pequeña, su nombre y la equis */

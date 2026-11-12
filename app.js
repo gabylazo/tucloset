@@ -3695,7 +3695,7 @@ async function apiAvatar(ruta, fd) {
   if (r.status === 403 && (await r.clone().json().catch(() => ({}))).error === 'permiso' && permiso('avatar') && await permisoAlServidor('avatar')) r = await api(ruta, { method: 'POST', body: fd, tiempo: 150000 });
   return r;
 }
-async function crearAvatar(nota) {
+async function crearAvatar(nota, palabras) {
   const pf = E.perfil || {}; if (avatarEnCurso) return;
   if (!cuenta()) return toast(t('Entra en tu cuenta para crear tu avatar', 'Sign in to create your avatar'));
   if (!(pf.selfie instanceof Blob) || !(pf.cuerpo instanceof Blob)) return panelDiagFotos();
@@ -3704,7 +3704,7 @@ async function crearAvatar(nota) {
   try {
     const fd = new FormData(); fd.append('cara', await jpegBlanco(pf.selfie), 'cara.jpg'); fd.append('cuerpo', await jpegBlanco(pf.cuerpo), 'cuerpo.jpg');
     const sil = siluetaTxt(); if (sil) fd.append('silueta', sil);
-    if (nota?.length && pf.avatar instanceof Blob) { fd.append('nota', nota.join(',')); fd.append('previo', await jpegBlanco(pf.avatar, 768), 'previo.jpg'); } // 09/11: «No me parezco»
+    if ((nota?.length || palabras) && pf.avatar instanceof Blob) { fd.append('nota', (nota || []).join(',')); if (palabras) fd.append('palabras', palabras.slice(0, 200)); fd.append('previo', await jpegBlanco(pf.avatar, 768), 'previo.jpg'); } // 09/11: «No me parezco»
     try { const fr = await (await diagMod()).D.caraDeFrente?.([pf.selfie, pf.cuerpo]); if (fr) fd.append('frente', fr, 'frente.jpg'); } catch (e) { } // 11/11: la cara más de frente
     const r = await apiAvatar('/api/avatar?que=avatar', fd);
     if (!r.ok) { const j = await r.json().catch(() => ({})); return toast(errorAvatar(r.status, j.error)); }
@@ -3716,16 +3716,19 @@ async function crearAvatar(nota) {
 }
 // 09/11 (Gabriela: «creo que se debería mejorar un poco más el parecido»): «No me parezco» dice a la IA en qué falla el avatar; se rehace desde tus dos fotos,
 // con el anterior delante para que corrija eso y deje lo demás
-const PARECIDO = [['cara', 'La cara', 'The face'], ['pelo', 'El pelo', 'The hair'], ['cuerpo', 'El cuerpo', 'The body'], ['piel', 'El tono de piel', 'The skin tone'], ['altura', 'Las proporciones', 'The proportions'], ['edad', 'La edad', 'The age']];
+// 12/11 (Gabriela: «¿cómo puedo cambiar que no me parezco de la cara, de la nariz para abajo?»): partes de la cara y, además, decirlo con sus palabras
+const PARECIDO = [['ojos', 'Los ojos', 'The eyes'], ['nariz', 'La nariz', 'The nose'], ['boca', 'La boca', 'The mouth'], ['barbilla', 'Barbilla y mandíbula', 'Chin and jaw'], ['cara', 'La cara entera', 'The whole face'], ['pelo', 'El pelo', 'The hair'], ['cuerpo', 'El cuerpo', 'The body'], ['piel', 'El tono de piel', 'The skin tone'], ['altura', 'Las proporciones', 'The proportions'], ['edad', 'La edad', 'The age']];
 function panelParecido() {
   const pf = E.perfil || {}; if (!(pf.selfie instanceof Blob) || !(pf.cuerpo instanceof Blob)) return panelDiagFotos();
-  abrirPanel(t('No me parezco', 'Not like me'), `<p class="pn-lema">${t('¿En qué no te pareces? Marca lo que falle y rehago tu avatar desde tus dos fotos.', 'What does not look like you? Tick what is wrong and I will redo your avatar from your two photos.')}</p>
+  abrirPanel(t('No me parezco', 'Not like me'), `<p class="pn-lema">${t('¿Qué no se parece?', 'What does not look like you?')}</p>
     <div class="an-deta pr-op" role="group" aria-label="${t('Lo que falla', 'What is wrong')}">${PARECIDO.map(([k, es, en]) => `<button type="button" data-par="${k}" aria-pressed="false">${t(es, en)}</button>`).join('')}</div>
-    <button class="boton" id="pr-ok" disabled>${t('Rehacer mi avatar', 'Redo my avatar')}</button>
-    <p class="pn-nota">${t('Tarda unos 30 segundos. Si tu selfie tiene buena luz y estás de frente, sale más parecido.', 'It takes about 30 seconds. A well-lit selfie facing the camera gives a closer likeness.')}</p>`, cap => {
+    <textarea id="pr-pal" class="ag-desc pr-pal" rows="2" maxlength="200" aria-label="${t('Dímelo con tus palabras', 'Tell me in your own words')}" placeholder="${t('O dímelo: de la nariz para abajo no me parezco', 'Or tell me: from the nose down it is not me')}"></textarea>
+    <button class="boton" id="pr-ok" disabled>${t('Rehacer mi avatar', 'Redo my avatar')}</button>`, cap => {
+    const listo = () => { cap.querySelector('#pr-ok').disabled = !cap.querySelector('[data-par][aria-pressed="true"]') && !cap.querySelector('#pr-pal').value.trim(); };
+    cap.querySelector('#pr-pal').addEventListener('input', listo);
     cap.addEventListener('click', e => { const b = e.target.closest('[data-par]');
-      if (b) { const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); b.classList.toggle('on', on); cap.querySelector('#pr-ok').disabled = !cap.querySelector('[data-par][aria-pressed="true"]'); return; }
-      if (e.target.closest('#pr-ok')) { const nota = [...cap.querySelectorAll('[data-par][aria-pressed="true"]')].map(x => x.dataset.par); cap.remove(); avatarAbierto = true; crearAvatar(nota); } });
+      if (b) { const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); b.classList.toggle('on', on); listo(); return; }
+      if (e.target.closest('#pr-ok')) { const nota = [...cap.querySelectorAll('[data-par][aria-pressed="true"]')].map(x => x.dataset.par), pal = cap.querySelector('#pr-pal').value.trim(); cap.remove(); avatarAbierto = true; crearAvatar(nota, pal); } });
   });
 }
 async function borrarAvatar() { // 10/11: borrar el avatar es retirar su permiso (casilla 2 de la privacidad: «puedo borrar mi avatar cuando quiera»)
@@ -3768,6 +3771,12 @@ async function puestoEnMi(ps, como, otra, soloGuardado, elegido) {
   } catch (e) { return { error: t('Sin conexión: prueba otra vez', 'No connection: try again') }; }
 }
 // la tarjeta de Yo, solo en el Pro: sin fotos, lleva a ponerlas; con fotos, «Crear mi avatar»; con avatar, el avatar (se toca para verlo), «Rehacer» y «Borrar»
+// 12/11 (Gabriela: «sale mucho texto debajo… evita el mayor texto posible, y las opciones de No me parezco, Rehacer y Borrar ponlas con iconos»)
+const IC_AVA = { parecido: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.2 10h.01M14.8 10h.01M9 15.2c1.7 1.2 4.3 1.2 6 0"/></svg>',
+  crear: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/></svg>',
+  borrar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7M10.5 10.5v6M13.5 10.5v6"/></svg>',
+  quitar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>' };
+const botAva = (k, es, en, extra = '') => `<button class="av-ico${extra}" data-avatar="${k}" aria-label="${t(es, en)}" title="${t(es, en)}">${IC_AVA[k]}</button>`;
 function tarjetaAvatar() {
   if (planDemo() !== 'pro') return '';
   const pf = E.perfil || {}, fotos = pf.selfie instanceof Blob && pf.cuerpo instanceof Blob, av = tieneAvatar(), viejas = av && pf.avatarDe && pf.avatarDe !== firmaAvatar();
@@ -3778,15 +3787,14 @@ function tarjetaAvatar() {
     return `<section class="av-tarjeta av-con"><h2 class="es-tit">${t('Tu avatar', 'Your avatar')}</h2>
       <details class="av-des" ${avatarAbierto ? 'open' : ''}><summary><span class="av-mini"><img src="${uF}" alt=""></span><span class="av-sum"><span class="av-ver">${t('Ver mi avatar', 'See my avatar')}</span><span class="av-plegar">${t('Plegar', 'Fold')}</span></span><svg class="av-flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
         <button class="av-grande" data-avatar="ver" aria-label="${t('Ver tu avatar a pantalla completa', 'See your avatar full screen')}"><img src="${uF}" alt="${kf ? t('Tú con lo último que te has probado', 'You wearing the last look you tried on') : t('Tu avatar', 'Your avatar')}"></button>
-        <p class="av-p">${kf ? t('Lo último que te has probado.', 'The last look you tried on.') + ` <button class="at-enlace" data-avatar="quitar">${t('Quitar este', 'Remove it')}</button>` : t(`En Hoy, toca ${IC_PUESTO} para verte el look puesto.`, `In Today, tap ${IC_PUESTO} to see the look on you.`)}</p>${tira}
-        ${viejas ? `<p class="av-p av-viejas">${t('Tus fotos son más nuevas que tu avatar. Si quieres que se parezca a las de ahora, pulsa Rehacer.', 'Your photos are newer than your avatar. Tap Redo if you want it to look like them.')}</p>` : ''}
-        <div class="av-acc"><button class="at-enlace" data-avatar="parecido">${t('No me parezco', 'Not like me')}</button><button class="at-enlace" data-avatar="crear">${t('Rehacer', 'Redo')}</button><button class="at-enlace" data-avatar="borrar">${t('Borrar', 'Delete')}</button></div></details></section>`; }
+${tira}
+        <div class="av-acc">${kf ? botAva('quitar', 'Quitar lo que llevas puesto', 'Remove what you are wearing') : ''}${botAva('parecido', 'No me parezco', 'Not like me')}${viejas ? botAva('crear', 'Rehacer: tus fotos son más nuevas que tu avatar', 'Redo: your photos are newer than your avatar', ' av-aviso') : botAva('crear', 'Rehacer', 'Redo')}${botAva('borrar', 'Borrar', 'Delete')}</div></details></section>`; }
   const img = av ? `<button class="av-img" data-avatar="ver" aria-label="${t('Ver tu avatar', 'See your avatar')}"><img src="${URL.createObjectURL(pf.avatar)}" alt=""></button>` : `<span class="av-img av-vacio">${IC_PUESTO}</span>`;
   const txt = avatarEnCurso ? t('Creando tu avatar… tarda unos 30 segundos.', 'Creating your avatar… it takes about 30 seconds.')
     : av ? (viejas ? t('Tus fotos son más nuevas que tu avatar. Si quieres que se parezca a las de ahora, pulsa Rehacer.', 'Your photos are newer than your avatar. Tap Redo if you want it to look like them.') : t(`En Hoy, toca ${IC_PUESTO} para verte el look puesto.`, `In Today, tap ${IC_PUESTO} to see the look on you.`))
     : fotos ? t('Con tus dos fotos, para verte los looks puestos.', 'From your two photos, to see the looks on you.') : t('Con una foto de tu cara y otra de cuerpo entero.', 'From a photo of your face and a full-body one.');
   const perm = permiso('avatar'), cas = !perm && !avatarEnCurso && fotos ? casillaPermiso('avatar') : '';
-  const bot = avatarEnCurso ? '' : av ? `<div class="av-acc"><button class="at-enlace" data-avatar="crear">${t('Rehacer', 'Redo')}</button><button class="at-enlace" data-avatar="borrar">${t('Borrar', 'Delete')}</button></div>`
+  const bot = avatarEnCurso ? '' : av ? `<div class="av-acc">${botAva('crear', 'Rehacer', 'Redo')}${botAva('borrar', 'Borrar', 'Delete')}</div>`
     : `<button class="at-btn" data-${fotos ? 'avatar="crear"' : 'diag="fotos"'} ${fotos && !perm ? 'disabled' : ''}>${fotos ? t('Crear mi avatar', 'Create my avatar') : t('Añadir mis fotos', 'Add my photos')}</button>`;
   return `<section class="av-tarjeta${avatarEnCurso ? ' creando' : ''}" aria-busy="${avatarEnCurso}"><h2 class="es-tit">${t('Tu avatar', 'Your avatar')}</h2>${img}<p class="av-p">${txt}</p>${cas}${bot}
     ${!av && fotos && !avatarEnCurso && perm ? `<p class="av-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Tus fotos se envían una vez para crearlo. El avatar se guarda en tu cuenta, privado.', 'Your photos are sent once to create it. The avatar is kept in your account, private.') : t('Tus fotos se envían una vez para crearlo y no se guardan. El avatar se queda en tu móvil.', 'Your photos are sent once to create it and are not stored. The avatar stays on your phone.')}</p>` : ''}</section>`;

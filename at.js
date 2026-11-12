@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.236'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.238'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -258,7 +258,8 @@ if (AT) (() => {
   // 12/11 (Sheila: «me gustaría poder [ver] cómo me queda por dentro o semi dentro, como muchas veces se usa»): debajo del look puesto, cómo llevar la de arriba.
   // Sale lo que dice el look; otra manera es otra prueba (≈ 0,03 $), que se guarda aparte. Lo elegido se recuerda para ese look mientras la app está abierta
   const COMO_ELEGIDO = new Map(), idsDe = ps => ps.map(p => p.id).sort().join('+');
-  const COMOS = () => [['suelta', t('Por fuera', 'Untucked')], ['media', t('Medio por dentro', 'Half tucked')], ['por dentro', t('Por dentro', 'Tucked in')]];
+  // 12/11 (Gabriela: «mucho texto… muy mal hechos, sin alineación»): palabras cortas en una fila
+  const COMOS = () => [['suelta', t('Fuera', 'Out')], ['media', t('A medias', 'Half')], ['por dentro', t('Dentro', 'In')]];
   const comoAplica = ps => { const top = ps.filter(p => p.tipo === 'Arriba').pop(); if (!top || !ps.some(p => p.tipo === 'Abajo')) return false;
     const f = Motor.ficha(top); return !['body', 'top_corto', 'top_deportivo'].includes(f.subtipo) && top.est?.largo !== 'crop' && !/crop|\bcorto\b|body/i.test(top.nombre || ''); };
   async function verPuesto(b, zona, ps, como, otra, auto, cambio) {
@@ -278,7 +279,7 @@ if (AT) (() => {
         capa.style.height = alto0 + 'px'; fig.style.display = 'none'; b.setAttribute('aria-pressed', 'true'); LS.set('tc_ver_avatar', '1');
         capa.innerHTML = `<p class="at-como-tit" id="at-como-t">${t('¿Cómo llevas la de arriba?', 'How do you wear the top?')}</p>
           <div class="at-como at-como-elegir" role="group" aria-labelledby="at-como-t">${COMOS().map(([v, l]) => `<button data-como="${v}"${v === sug ? ' class="sug"' : ''}>${l}</button>`).join('')}</div>
-          <p class="at-como-nota">${t(`Para este look, ${COMOS().find(([v]) => v === sug)[1].toLowerCase()}.`, `For this look: ${COMOS().find(([v]) => v === sug)[1].toLowerCase()}.`)}</p>`;
+`;
         capa.querySelectorAll('[data-como]').forEach(x => { x.onclick = e => { e.stopPropagation(); COMO_ELEGIDO.set(idsDe(ps), x.dataset.como); verPuesto(b, zona, ps, como, false, false, true); }; });
         if (b.matches(':focus-visible')) capa.querySelector('[data-como]')?.focus({ preventScroll: true }); // con teclado, el foco pasa a la elección
         return;
@@ -297,7 +298,7 @@ if (AT) (() => {
     if (r.error) { capa.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); LS.set('tc_ver_avatar', null); return toast(r.error); }
     if (b.classList.contains('at-puestob') && !b.classList.contains('probado')) { b.classList.add('probado'); b.setAttribute('aria-label', t('Verlo puesto en mí: ya te lo has probado', 'See it on me: already tried on')); }
     const ahora = el || como || 'suelta', opc = comoAplica(ps) ? `<div class="at-como" role="group" aria-label="${t('Cómo llevar la de arriba', 'How to wear the top')}">${COMOS().map(([v, l]) => `<button data-como="${v}" aria-pressed="${v === ahora}">${l}</button>`).join('')}</div>` : '';
-    capa.innerHTML = `<img src="${URL.createObjectURL(r.blob)}" alt="${t('Tú con este look', 'You wearing this look')}">${opc}<button class="at-enlace at-puesto-otra">${t('No se parece: otra vez', 'Not right: try again')}</button>`;
+    capa.innerHTML = `<img src="${URL.createObjectURL(r.blob)}" alt="${t('Tú con este look', 'You wearing this look')}">${opc}<button class="at-puesto-otra av-ico" aria-label="${t('No se parece: otra vez', 'Not right: try again')}" title="${t('Otra vez', 'Try again')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/></svg></button>`;
     capa.querySelector('.at-puesto-otra').onclick = e => { e.stopPropagation(); verPuesto(b, zona, ps, como, true); };
     capa.querySelectorAll('[data-como]').forEach(x => { x.onclick = e => { e.stopPropagation(); if (x.dataset.como === ahora || b.classList.contains('cargando')) return;
       COMO_ELEGIDO.set(idsDe(ps), x.dataset.como); verPuesto(b, zona, ps, como, false, false, true); }; });
