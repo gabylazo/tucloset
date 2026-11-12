@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.229'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.232'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -142,7 +142,7 @@ if (AT) (() => {
       const attr = fichas && !p.muestra ? ` data-ficha="${p.id}" role="button" tabindex="0" aria-label="${esc(p.nombre || '')}"` : '';
       if (conCat(p) || p.muestra) return `<img class="at-p" src="${conCat(p) ? urlCat(p) : p.src}" alt="${esc(p.nombre || '')}" style="left:${x / c.W * 100}%;top:${y / c.H * 100}%;width:${w / c.W * 100}%;height:${h / c.H * 100}%"${attr}>`;
       const html = pieza(p, x, y, w, h, c.W, c.H); // sin foto de catálogo todavía: el recorte de siempre
-      return attr ? html.replace(/^<(img|i) /, `<$1${attr} `) : html;
+      return attr ? html.replace(/^<(img|i) /, `<$1${attr} `).replace(' alt=""', '') : html; // con su nombre en aria-label (alt vacío + botón chocaban, axe)
     }).join('');
   }
   /* ---------- el look: la distribución que mejor llena su recuadro (Gabriela, 06/11 noche: «buscar distribuciones óptimas en función del número de piezas y no tener
@@ -339,6 +339,46 @@ if (AT) (() => {
         cap.addEventListener('click', e => { const b = e.target.closest('[data-con]'); if (!b) return; cap.remove(); E.hoyCon = b.dataset.con; E.propuestas = []; E.hoyIdx = 0; E.hzPreg = false; pintarHoy(); }); });
   }
 
+  /* ---------- 12/11 (Sheila, mensaje 2084: «tocar una prenda e intercambiarla por una del mismo grupo… me voy a poner esto de noche y me gusta pero usaría tacones,
+     entonces toco en los zapatos y los intercambio por tacones… así como interactivo»): al tocar una prenda del look de Hoy salen las de su mismo tipo, primero las que
+     mejor van con el resto del look (el juez del motor, con la ocasión y el tiempo de hoy) y al final las que pegan menos; elegir una cambia el look al momento.
+     Su ficha sigue a un toque, arriba del panel ---------- */
+  const K_JUEZ = { Abajo: 'abajo', Vestidos: 'vestido', Abrigo: 'capa', Calzado: 'calzado', Bolsos: 'bolso' };
+  const juezDe = (ps, plan) => {
+    const o = { tiempo: E.tiempo?.t != null ? E.tiempo : { t: 18, max: 21, min: 12 }, plan: plan || 'Diario', perfil: E.perfil, hoy: hoyISO(), hora: new Date().getHours() };
+    for (const p of ps) { if (p.muestra) continue;
+      if (p.tipo === 'Arriba') { if (esCapa(p) && !o.capa) o.capa = p; else if (!o.arriba) o.arriba = p; else if (!o.base_interior) o.base_interior = p; }
+      else if (p.tipo === 'Accesorios') { if (!o.accesorio) o.accesorio = p; }
+      else if (K_JUEZ[p.tipo] && !o[K_JUEZ[p.tipo]]) o[K_JUEZ[p.tipo]] = p; }
+    if (o.capa && !o.arriba) { o.arriba = o.capa; delete o.capa; }
+    try { const j = Motor.juzgar(o); return { nota: j.nota, duros: j.veto.duros }; } catch (e) { return { nota: -9, duros: [] }; }
+  };
+  function cambiarPieza(pr, ps, id, oc) {
+    const p = ps.find(x => x.id === id) || P(id); if (!p || !pr) return;
+    const resto = ps.filter(x => x.id !== id && !x.muestra);
+    // solo cuentan los vetos que trae la prenda nueva: los que ya tenía el look (p. ej. «falta una capa») no son culpa suya
+    const ya = new Set(juezDe(ps, oc).duros.map(v => v.id));
+    const cands = activas().filter(q => q.tipo === p.tipo && q.id !== id && !ps.some(x => x.id === q.id) && urlCat(q) && !sinFoto(q))
+      .map(q => { const j = juezDe([...resto, q], oc), nuevos = j.duros.filter(v => !ya.has(v.id)); return { q, nota: j.nota, duro: nuevos.length > 0, por: nuevos[0]?.mensaje || '' }; })
+      .sort((a, b) => (a.duro - b.duro) || (b.nota - a.nota));
+    const celda = x => `<button class="at-cel${conCat(x.q) ? '' : ' sin-cat'}${x.duro ? ' no' : ''}" data-otrapz="${x.q.id}" aria-label="${esc(x.q.nombre)}${x.duro ? ', ' + (idioma() === 'en' || !x.por ? t('pega menos con este look', 'goes less well with this look') : esc(x.por.replace(/\.$/, '').toLowerCase())) : ''}"><img src="${urlCat(x.q)}" alt=""></button>`;
+    const bien = cands.filter(x => !x.duro), menos = cands.filter(x => x.duro);
+    const html = `<div class="at-cam-actual"><img src="${urlCat(p)}" alt=""><div><p>${esc(p.nombre)}</p><button class="at-enlace" data-camficha>${t('Ver su ficha', 'See its details')}</button></div></div>`
+      + (cands.length ? `<p class="at-con-txt">${t('Elige otra: primero las que mejor van con el resto del look.', 'Pick another: the ones that go best with the rest of the look come first.')}</p>`
+        + (bien.length ? `<div class="at-con-rej">${bien.map(celda).join('')}</div>` : '')
+        + (menos.length ? `<h2 class="at-cam-sub">${t('Pegan menos con este look', 'Go less well with this look')}</h2><div class="at-con-rej">${menos.map(celda).join('')}</div>` : '')
+        : `<p class="at-con-txt">${t('No tienes otra prenda de este tipo en tu clóset.', 'You have no other garment of this kind in your closet.')}</p>`);
+    abrirPanel(t('Cambiar esta prenda', 'Swap this garment'), html, cap => {
+      cap.querySelector('[data-camficha]').onclick = () => { cap.remove(); abrirFicha(id); };
+      cap.addEventListener('click', e => { const b = e.target.closest('[data-otrapz]'); if (!b) return; cap.remove();
+        const q = P(b.dataset.otrapz), ids = pr.ids.includes(id) ? pr.ids.map(x => x === id ? q.id : x) : [...pr.ids, q.id];
+        const nuevo = { ...pr, ids, cambiada: 1 }; if (nuevo.tipo === 'conjunto') { delete nuevo.tipo; delete nuevo.c; }
+        const i = E.propuestas.indexOf(pr); if (i >= 0) E.propuestas[i] = nuevo; else { E.propuestas.unshift(nuevo); E.hoyIdx = 0; }
+        const x = cands.find(c => c.q.id === q.id); // si pega menos, se cambia igual y se dice por qué (el mensaje del veto del motor)
+        pintarHoy(); toast(x?.duro && x.por && idioma() !== 'en' ? `Con ${q.nombre.toLowerCase()}. Ojo: ${x.por.charAt(0).toLowerCase() + x.por.slice(1)}` : t(`Con ${q.nombre.toLowerCase()}`, `With ${q.nombre.toLowerCase()}`)); });
+    });
+  }
+
   /* ---------- HOY: el nombre, la fecha con el tiempo, el look grande y quieto; debajo, la ocasión y «Me lo pongo» ---------- */
   pintarHoy = function () {
     if (!E.perfil?.ropa && E.perfil?.alta) setTimeout(preguntarRopa, 400);
@@ -408,7 +448,7 @@ if (AT) (() => {
       const ahora = Date.now(), f = e.target.closest('[data-ficha]'), enLook = e.target.closest('.at-look'); if (!enLook) return;
       e.stopPropagation(); clearTimeout(espera);
       if (ahora - toque < 280) { toque = 0; return alternar(true); }
-      toque = ahora; if (f) espera = setTimeout(() => abrirFicha(f.dataset.ficha), 280);
+      toque = ahora; if (f) espera = setTimeout(() => cambiarPieza(pr, ps, f.dataset.ficha, oc), 280); // 12/11: tocarla deja cambiarla (su ficha, arriba en el panel)
     }, true);
     // deslizar el look también cambia de look
     let x0 = null;

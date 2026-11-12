@@ -877,6 +877,10 @@ html.oscuro .nl-foto-b{border:1px solid var(--tinta);color:var(--tinta)}
 html.oscuro .nl-foto-b:focus-within{outline:2px solid var(--oro-t);outline-offset:3px}
 html.oscuro .nl-foto-b svg{fill:none;stroke:currentColor}
 html.oscuro .nl-foto-t{color:var(--sec)}
+html.oscuro #p-estilo .es-uso-l button{background:none;border:1px solid var(--linea);border-radius:0;color:var(--tinta)}
+html.oscuro #p-estilo .es-uso-l button span{color:var(--sec)}
+html.oscuro #p-estilo .es-uso-l button.on{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+html.oscuro #p-estilo .es-uso .es-d{color:var(--sec)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}
@@ -1114,6 +1118,9 @@ html.at.oscuro .at-sem-dias button{border:0;border-radius:50%;background:transpa
 html.at.oscuro .at-sem-dias button.on{background:var(--tinta);box-shadow:none;color:var(--accion-t)}
 html.at.oscuro .at-sem-vacio p{color:var(--sec)}
 html.at.oscuro .at-sem-capa{color:var(--sec)}
+html.at.oscuro .at-cam-actual img{background:var(--baldosa)}
+html.at.oscuro .at-cam-actual p{color:var(--tinta)}
+html.at.oscuro .at-cam-sub{color:var(--sec)}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz

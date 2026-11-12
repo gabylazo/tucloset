@@ -144,7 +144,7 @@ const Motor = (() => {
     for (const l of pf.estilista?.looks || []) if (l.arriba && !l.capa) usoSolo.add(l.arriba);
     const dc = pf.diag?.color, ec = dc?.si ? dc : opc.colorEstacion, cint = pf.cintura === '1' || pf.cintura === 'si' ? 'si' : pf.cintura === '0' || pf.cintura === 'no' ? 'no' : undefined;
     const reglas = opc.pro ? (pf.diag?.cuerpo?.puntos || S[pf.tipoCuerpo] || null) : null;
-    return { estilos: pf.estilos || [], publico: pf.publico || (pf.ropa === 'hombre' ? 'masculino' : 'todo') /* 03/11: «¿Qué ropa llevas?» */, cintura: cint, tacon: pf.tacon, tacon_num: TACON[pf.tacon], evitarColores: pf.evitarColores || [], usoSolo, gustos: pf.gustos || {}, inspo: inspoDe([...(pf.inspo || []), ...(pf.propios || [])]) /* 12/11: también los looks que ella sube con foto */, calib: calibDe(pf.calib), diag: { estacion: ec ? { si: ec.si, no: ec.no } : undefined, puntos: reglas } };
+    return { estilos: pf.estilos || [], publico: pf.publico || (pf.ropa === 'hombre' ? 'masculino' : 'todo') /* 03/11: «¿Qué ropa llevas?» */, cintura: cint, tacon: pf.tacon, tacon_num: TACON[pf.tacon], evitarColores: pf.evitarColores || [], usoSolo, gustos: pf.gustos || {}, uso: pf.usoRopa || null, inspo: inspoDe([...(pf.inspo || []), ...(pf.propios || [])]) /* 12/11: también los looks que ella sube con foto */, calib: calibDe(pf.calib), diag: { estacion: ec ? { si: ec.si, no: ec.no } : undefined, puntos: reglas } };
   }
 
   /* ---------- 3. condiciones: las de las fórmulas sobre una prenda y las de las reglas sobre el look ---------- */
@@ -453,11 +453,26 @@ const Motor = (() => {
   }
   const claveRopa = l => ['arriba', 'base_interior', 'abajo', 'vestido', 'capa'].map(k => l[k]?.id).filter(Boolean).sort().join();
   const huella = s => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return (h % 1000) / 1000; };
+  /* 12/11 (Sheila, mensaje 2086: «cómo la usuaria quiere interactuar con su clóset… no repetir prenda… intentar usar toda la ropa nueva… da igual… priorizar repetir
+     hasta que estén sucias para no acumular muchas cosas puestas una vez… hazlo una opción y en función de eso creas looks»): Mi estilo → Cómo usas tu ropa (pf.uso).
+     Sin elegir, lo de siempre (el grupo «variedad»: lo puesto hace poco baja, lo poco estrenado sube). Variar lo aprieta; estrenar sube lo que nunca te has puesto;
+     repetir quita esa variedad y sube lo que llevas esta semana (lo sucio no sale: «Sucia» lo quita del clóset); me da igual quita la variedad y deja solo el estilo */
+  const USO_P = .15, ROPA_K = ['arriba', 'base_interior', 'abajo', 'vestido', 'capa'];
+  function ajusteUso(l, pts, pf, hoy) {
+    const m = pf.uso; if (!['variar', 'estrenar', 'repetir', 'igual'].includes(m)) return { p: 0, ayer: true };
+    const variedad = (R.puntos.grupos.variedad || 0) * Math.max(-1, Math.min(1, pts.suma.variedad || 0));
+    const ropa = ROPA_K.map(k => l[k]).filter(x => x?.p && !x.muestra), media = f => ropa.length ? ropa.reduce((s, x) => s + f(x.p), 0) / ropa.length : 0;
+    const dias = p => { let d = null; for (const u of p.usos || []) { const k = diasDesde(u, hoy); if (k >= 0 && (d == null || k < d)) d = k; } return d; };
+    if (m === 'igual') return { p: -variedad, ayer: false };
+    if (m === 'repetir') return { p: -variedad + USO_P * media(p => { const d = dias(p); return d == null ? -.3 : d <= 7 ? 1 : d <= 14 ? .4 : -.1; }), ayer: false };
+    if (m === 'estrenar') return { p: USO_P * media(p => !(p.usos || []).length ? 1 : p.creada && diasDesde(p.creada, hoy) <= 21 ? .6 : -.2), ayer: true };
+    return { p: USO_P * media(p => { const d = dias(p); return d == null ? .6 : d <= 3 ? -1 : d <= 7 ? -.4 : d <= 14 ? .2 : .6; }), ayer: true };
+  }
   function evaluar(l, ctx, pf, hoy) {
-    const c = camposLook(l, ctx, pf, hoy), e = entorno(l, c, ctx, pf), veto = vetar(e), pts = puntuar(l, c, e);
+    const c = camposLook(l, ctx, pf, hoy), e = entorno(l, c, ctx, pf), veto = vetar(e), pts = puntuar(l, c, e), uso = ajusteUso(l, pts, pf, hoy);
     // un look puesto ayer no es la primera idea: el peso del grupo «variedad» solo no lo baja lo bastante
-    const ayer = c.dias_desde_ultimo_uso === 1 || c.dias_desde_ultimo_uso === 0 ? (c.es_favorito ? .05 : .15) : 0;
-    return { ...l, ctx, campos: c, veto, pts, nota: pts.total + veto.p / 2 - ayer + huella(hoy + claveRopa(l)) * .04 + AF.nota * (PIEZAS.reduce((s, k) => s + afin(l[k]), 0) / Math.max(1, PIEZAS.filter(k => l[k]).length)), casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
+    const ayer = uso.ayer && (c.dias_desde_ultimo_uso === 1 || c.dias_desde_ultimo_uso === 0) ? (c.es_favorito ? .05 : .15) : 0;
+    return { ...l, ctx, campos: c, veto, pts, nota: pts.total + uso.p + veto.p / 2 - ayer + huella(hoy + claveRopa(l)) * .04 + AF.nota * (PIEZAS.reduce((s, k) => s + afin(l[k]), 0) / Math.max(1, PIEZAS.filter(k => l[k]).length)), casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
   }
   function elegir(cs, n, excluir) {
     const ok = cs.filter(l => !l.veto.duros.length && !l.casi && !excluir.has(claveLook(l))).sort((a, b) => b.nota - a.nota), sel = [], usoA = new Map(), usoB = new Map(), usoF = new Map(), usoZ = new Map(), vistos = new Set(), gemelos = new Set();
@@ -565,7 +580,7 @@ const Motor = (() => {
     const ocs = dep ? ['Deporte'] : ['Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', ...(aptoDeporte(ent) ? ['Deporte'] : [])];
     const pool = [p, ...resto.filter(x => ficha(x, {}).cat !== f.cat)], vistos = new Map(), socios = new Set(), enOc = new Set();
     for (const tiempo of tiempos) for (const plan of ocs) {
-      const r = looks({ prendas: pool, tiempo, plan, perfil: o.perfil, n: 8, hoy: o.hoy, hora: plan === 'Noche' ? 20 : 12, excluir: o.excluir, pro: true, colorEstacion: o.colorEstacion, depurar: true, complementos: ['bolso', 'accesorio'].includes(f.cat), parejas: o.parejas || 40 });
+      const r = looks({ prendas: pool, tiempo, plan, perfil: { ...(o.perfil || {}), usoRopa: null }, n: 8, hoy: o.hoy, hora: plan === 'Noche' ? 20 : 12, excluir: o.excluir, pro: true, colorEstacion: o.colorEstacion, depurar: true, complementos: ['bolso', 'accesorio'].includes(f.cat), parejas: o.parejas || 40 });
       for (const l of r.todos || []) {
         if (l.veto.duros.length || l.casi || l.nota < min) continue;
         const ps = PIEZAS.map(k => l[k]).filter(x => x && !x.muestra); if (!ps.some(x => x.id === p.id)) continue;

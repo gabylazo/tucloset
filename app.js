@@ -4357,8 +4357,20 @@ function pintarEstilo() {
     + `<p class="es-cuenta" aria-live="polite">${el.length ? `<b>${el.length} ${t('de', 'of')} ${MAX_ESTILOS}</b>${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(', ')}` : '&nbsp;'}</p>`
     // 0.108 · «Enseñar la cintura» (Gabriela, 28/10: «12. sí»): preferencia de estilo, saltable, guardada solo en este móvil
     + `<div class="es-cint"><h3 class="es-tit">${t('Un detalle más', 'One more thing')}</h3><p>${t('¿Te gusta enseñar la cintura?', 'Do you like showing your waist?')}</p><div>${[['1', t('Sí', 'Yes')], ['0', t('No', 'No')]].map(([v, n]) => `<button data-cintura="${v}" class="${cinturaPref() === v ? 'on' : ''}">${n}</button>`).join('')}</div><span class="es-d">${t('Así sabemos si proponerte tops cortos con pantalones de tiro bajo.', 'So we know whether to suggest crop tops with low-rise trousers.')}</span></div>`
-    + bloqueGusto() + bloqueInspo();
+    + bloqueUso() + bloqueGusto() + bloqueInspo();
 }
+// 12/11 (Sheila, 2086): cómo usas tu ropa; viaja con la cuenta (perfil.usoRopa) y el motor ordena los looks según eso (ajusteUso en motor.js)
+const USOS_ROPA = () => [['variar', t('Variar', 'Mix it up'), t('Lo que te pusiste hace poco sale menos.', 'What you wore recently comes up less.')],
+  ['estrenar', t('Estrenar lo nuevo', 'Wear the new things'), t('Primero lo que aún no te has puesto.', 'What you haven’t worn yet comes first.')],
+  ['repetir', t('Repetir hasta lavarla', 'Rewear until washed'), t('Lo que llevas esta semana vuelve a salir hasta que la marques como sucia.', 'What you wore this week comes back until you mark it as dirty.')],
+  ['igual', t('Me da igual', 'I don’t mind'), t('Solo cuenta el estilo.', 'Only style counts.')]];
+function bloqueUso() {
+  const v = E.perfil?.usoRopa || '';
+  return `<div class="es-uso"><h3 class="es-tit" id="es-uso-t">${t('Cómo usas tu ropa', 'How you use your clothes')}</h3><div class="es-uso-l" role="group" aria-labelledby="es-uso-t">${USOS_ROPA().map(([k, n, d]) => `<button data-usoropa="${k}" aria-pressed="${v === k}" class="${v === k ? 'on' : ''}"><b>${n}</b><span>${d}</span></button>`).join('')}</div>
+    <span class="es-d">${v ? t('Toca otra vez para quitarlo.', 'Tap again to clear it.') : t('Si no eliges, varío un poco.', 'If you don’t choose, I mix it up a little.')}</span></div>`;
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-usoropa]'); if (!b || !E.perfil) return;
+  E.perfil.usoRopa = E.perfil.usoRopa === b.dataset.usoropa ? '' : b.dataset.usoropa; guardar(); programarNube(); E.propuestas = []; E.generados = []; pintarEstilo(); });
 // 06/11 · Looks que te encantan (Gabriela: «puedes pedirle fotos a la usuaria de 5 outfits… tú vas valorando, eres el que sabe»; Sheila lo propuso el 14/10).
 // Hasta cinco fotos de looks (suyos, de Pinterest o de Instagram): el servidor lee la ropa (/api/inspo, IA de visión de Cloudflare) y la foto no se guarda en ningún
 // sitio. Lo leído (prendas, colores, estilos, formalidad y ocasión) va en el perfil, viaja con la cuenta, y el motor tira de los estilos y colores que más se repiten
