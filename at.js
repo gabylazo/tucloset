@@ -1480,16 +1480,20 @@ if (AT) (() => {
   // una idea abierta: igual que un look, pero aún sin guardar
   function abrirIdea(x) {
     ir('look'); let r = $('at-look'); if (!r) { r = document.createElement('div'); r.id = 'at-look'; r.className = 'at-abierto'; $('p-look').append(r); }
-    const [ancho, alto] = caja(), W = Math.min(330, ancho - 60), H = Math.max(260, alto - 330), fav = esFav(x.ids), porque = !en() && x.porque;
+    const [ancho, alto] = caja(), W = Math.min(330, ancho - 60), H = Math.max(260, alto - 330), fav = esFav(x.ids), porque = !en() && x.porque, pu = !!botonPuesto(), prob = pu && yaProbado(psDe(x));
     r.innerHTML = `<div class="at-barra-sup"><button class="at-volver" data-ir="looks" aria-label="${t('Volver', 'Back')}">${I.iz}</button><button class="at-fav${fav ? ' on' : ''}" data-atfav aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button></div>
       <h1 class="at-h1">${esc(ocNombre(x.ocasion))}</h1>
       <div class="at-centro">${figura(psDe(x), W, H, true)}</div>
       <div class="at-acciones"><button class="at-btn" data-atl="pongo">${t('Me lo pongo', 'I’ll wear it')}</button>
-        ${porque ? `<div class="at-enlaces"><button class="at-enlace" data-atl="porque" aria-expanded="${!!E.ideaPorque}">${t('Por qué funciona', 'Why it works')}</button></div>${E.ideaPorque ? `<p class="at-porque">${esc(porque)}</p>` : ''}` : ''}</div>`;
+        ${porque || pu ? `<div class="at-enlaces">${pu ? `<button class="at-enlace${prob ? ' probado' : ''}" data-atl="puesto" data-puesto aria-pressed="false">${prob ? `<span class="at-probado-i" aria-hidden="true">${IC_PUESTO}</span>${t('Verlo puesto: ya te lo has probado', 'See it on me: already tried on')}` : t('Verlo puesto', 'See it on me')}</button>` : ''}${porque ? `<button class="at-enlace" data-atl="porque" aria-expanded="${!!E.ideaPorque}">${t('Por qué funciona', 'Why it works')}</button>` : ''}</div>${porque && E.ideaPorque ? `<p class="at-porque">${esc(porque)}</p>` : ''}` : ''}</div>`;
+    // 12/11 (Gabriela: «esto aún no me sale»): las ideas de Looks (y las de viaje, con esta prenda, inspiración y pareja) se abren por aquí, sin avatar ni «Verlo puesto».
+    // Ahora llevan el botón como los looks guardados, y la que ya te has probado se abre puesta en tu avatar (la prueba guardada, sin gastar).
+    const bpu = r.querySelector('[data-puesto]'); if (bpu && prob) requestAnimationFrame(() => requestAnimationFrame(() => verPuesto(bpu, r.querySelector('.at-centro'), psDe(x), x.como, false, true)));
     r.onclick = async e => {
       const b = e.target.closest('[data-atl],[data-atfav]'); if (!b) return;
       if (b.dataset.atfav != null) { await alternarFav(x.ids, x.ocasion); await datosLook(x); return abrirIdea(x); }
       if (b.dataset.atl === 'porque') { E.ideaPorque = !E.ideaPorque; return abrirIdea(x); }
+      if (b.dataset.atl === 'puesto') return verPuesto(b, r.querySelector('.at-centro'), psDe(x), x.como);
       await ponerse(x.ids, null); await datosLook(x); E.propuestas = []; b.textContent = t('Puesto hoy', 'Worn today'); b.classList.add('hecho');
     };
   }
