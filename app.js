@@ -85,6 +85,7 @@ const nomColor = c => idioma() === 'en' ? COLOR_EN[c] || c : c;
 
 /* ---------- idioma ---------- */
 const T = {
+  ac_inv: ['Código de invitación', 'Invitation code'], ac_inv_pista: ['TuCloset abre muy pronto. Por ahora se entra con invitación.', 'TuCloset opens very soon. For now, entry is by invitation.'],
   ac_crear: ['Crea tu clóset', 'Create your closet'], ac_nombre: ['Tu nombre', 'Your name'], ac_ciudad: ['Tu ciudad', 'Your city'], ac_ubic: ['Usar mi ubicación', 'Use my location'],
   ac_nota: ['La ciudad es solo para el tiempo. Con correo, tu clóset se guarda en tu cuenta. Tu selfie y tu foto de cuerpo se quedan en tu móvil, salvo que elijas guardarlas también en tu cuenta.', 'The city is only for the weather. With an email your closet is saved to your account. Your selfie and body photo stay on your phone unless you choose to keep them in your account too.'], ac_clave_pista: ['mínimo 8 caracteres', 'at least 8 characters'],
   ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Con estas dos fotos la app saca tu tipo de cuerpo y tus colores. Sirven para todo: no te las volverá a pedir.', 'With these two photos the app works out your body type and colours. They are used for everything: you will not be asked again.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_estilo: ['Tu estilo', 'Your style'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
@@ -196,6 +197,17 @@ const API = (() => { try { const q = localStorage.getItem('tc_api'); if (q) retu
 // mientras el servidor no esté publicado, la web pública no enseña las cuentas (en local, sí, con el servidor de pruebas)
 const NUBE = true; // 0.76: servidor publicado en Cloudflare (tucloset-api.apptucloset.workers.dev)
 const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { } } };
+// 12/11 (Coordinación de marketing, para Gabriela: «si alguien pulsa el enlace e intenta crearse una cuenta, todavía no puede»): PROPUESTA, apagada.
+// Con PRONTO, quien llega desde las redes (?o=…) sin cuenta en ese móvil ve «Abrimos muy pronto» y un solo botón en vez de crear la cuenta.
+// ?pronto=1 la enseña para verla. Cuando haya lista de espera, el botón pasa a «Apúntate» (espera.html?o=<red>).
+const PRONTO = false;
+function portadaPronto() {
+  const q = new URLSearchParams(location.search);
+  if (!(q.get('pronto') === '1' || (PRONTO && /^(ig|tt|pin)/.test(ORIGEN) && !LS.get('tc_cuenta')))) return;
+  const ab = $('p-inicio')?.querySelector('.abajo'); if (!ab) return;
+  ab.innerHTML = `<p class="pronto">${t('Abrimos muy pronto', 'Opening very soon')}</p>
+    <a class="boton" href="https://www.instagram.com/tucloset.app/" rel="noopener">${t('Síguenos en Instagram', 'Follow us on Instagram')}</a>`;
+}
 let ORIGEN = ''; // 09/11: la red desde la que llegó esta visita (?o=ig|tt|pin…); vive solo mientras la página está abierta
 const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.parse(LS.get('tc_cuenta') || 'null'); } catch (e) { return null; } };
 // 09/11 (Gabriela: «acabo de abrir el perfil de Sheila desde mi móvil… se ha unido al mío y ha sumado sus prendas a mi clóset; una cuenta enlazada a un clóset, no
@@ -615,7 +627,7 @@ async function bajarNube() {
   if (estacionesAuto()) await guardar(); // 0.101: estación por tipo, también para lo que llega de otros móviles
   E.propuestas = []; E.generados = []; E.nubeBajada = true; return true;
 }
-const ERR_CUENTA = { correo: ['Escribe un correo válido', 'Enter a valid email'], clave_corta: ['La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'], ya_existe: ['Ese correo ya tiene cuenta: entra con él', 'That email already has an account: sign in'], credenciales: ['Correo o contraseña incorrectos', 'Wrong email or password'], frenado: ['Demasiados intentos: espera 15 minutos', 'Too many attempts: wait 15 minutes'],
+const ERR_CUENTA = { invitacion: ['Ese código de invitación no vale. TuCloset abre muy pronto.', 'That invitation code is not valid. TuCloset opens very soon.'], correo: ['Escribe un correo válido', 'Enter a valid email'], clave_corta: ['La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'], ya_existe: ['Ese correo ya tiene cuenta: entra con él', 'That email already has an account: sign in'], credenciales: ['Correo o contraseña incorrectos', 'Wrong email or password'], frenado: ['Demasiados intentos: espera 15 minutos', 'Too many attempts: wait 15 minutes'],
   actualiza: ['Hay una versión nueva de la app: ciérrala y vuelve a abrirla', 'There is a new version of the app: close it and open it again'], envio: ['No he podido mandarte el código. Revisa el correo y prueba otra vez.', 'I could not send you the code. Check the email and try again.'] };
 // 09/11 (Gabriela: «aparte de la contraseña, agrega un paso de verificación por correo»): al crear la cuenta y al entrar desde un móvil nuevo, el servidor manda
 // un código de 6 cifras desde app@tucloset.app y la sesión se abre al escribirlo. Cada móvil lleva un número al azar (tc_disp) que no se borra al cerrar sesión,
@@ -647,7 +659,7 @@ function pedirCodigo(d) {
 async function abrirCuenta(modo, correo, clave, nombre) {
   // 0.93 (Sheila, 24/10: «tengo mucho problema para entrar a mi cuenta»: con el clóset de pruebas abierto, entrar se bloqueaba): se pasa sola a «Mi ropa»
   if (CLOSET_ACT) { CLOSET_ACT = ''; try { localStorage.setItem('tc_closet', ''); } catch (e) { } BD.cerrar(); E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {}; E.propuestas = []; E.generados = []; urls.clear(); alfa.clear(); }
-  let r; try { r = await api('/api/' + modo, { method: 'POST', json: { correo, clave, nombre, o: modo === 'alta' && ORIGEN || undefined, disp: dispId(), en: idioma() === 'en' } }); } catch (e) { toast(t('Sin conexión con el servidor. Inténtalo en un momento.', 'Cannot reach the server. Try again shortly.')); return false; }
+  let r; try { r = await api('/api/' + modo, { method: 'POST', json: { correo, clave, nombre, o: modo === 'alta' && ORIGEN || undefined, inv: modo === 'alta' && LS.get('tc_inv') || undefined, disp: dispId(), en: idioma() === 'en' } }); } catch (e) { toast(t('Sin conexión con el servidor. Inténtalo en un momento.', 'Cannot reach the server. Try again shortly.')); return false; }
   let d = await r.json().catch(() => ({}));
   if (!r.ok) { const m = ERR_CUENTA[d.error]; toast(m ? t(m[0], m[1]) : t('No se ha podido. Inténtalo de nuevo.', 'It did not work. Try again.')); return false; }
   if (d.codigo) { d = await pedirCodigo(d); if (!d) return false; } // 09/11: el código del correo
@@ -1801,6 +1813,7 @@ function ir(nombre, datos) {
   if (nombre === 'inicio' && !$('intro')) $('p-inicio').classList.add('aparece');
   if (nombre === 'anadir') prepararAnadir(datos);
   if (nombre === 'subir' && !datos) prepararSubir();
+  if (nombre === 'alta') mirarInvitacion();
   if (nombre === 'nuevo-look') prepararNuevoLook(datos);
   if (nombre === 'hoy') pintarHoy();
   if (nombre === 'cuerpo') pintarCuerpo();
@@ -4062,8 +4075,18 @@ async function cargarEjemplo() {
 async function quitarEjemplo() { E.prendas = E.prendas.filter(p => !p.ejemplo); E.conjuntos = E.conjuntos.filter(c => !c.ejemplo); await guardar(); E.propuestas = []; pintarYo(); toast(t('Ejemplo quitado', 'Sample removed')); }
 
 /* ---------- alta ---------- */
+// 12/11 (sí de Gabriela; con el de Sheila se enciende INVITACION en el servidor): crear una cuenta pide un código de invitación.
+// Las probadoras lo traen en su enlace (tucloset.app/?inv=CODIGO) y no ven el campo; las demás lo ven en «Crea tu clóset».
+let INV_ON = null;
+async function mirarInvitacion(c) {
+  try { const r = await api('/api/invitacion' + (c ? '?c=' + encodeURIComponent(c) : ''), { tiempo: 10000 }), j = await r.json(); INV_ON = !!j.on; if (!c) pintarInvitacion(); return j; } catch (e) { return null; }
+}
+function pintarInvitacion() { const c = $('a-inv-c'); if (!c) return; const guardado = LS.get('tc_inv'); c.hidden = !INV_ON || !!guardado; if (guardado) $('a-inv').value = guardado; }
 async function guardarAlta() {
   const co = $('a-correo').value.trim(), cl = $('a-clave').value;
+  if (INV_ON !== false && !cuenta()) { const cod = ($('a-inv').value || LS.get('tc_inv') || '').trim().toUpperCase(), j = await mirarInvitacion(cod || '-');
+    if (j?.on && !j.ok) { LS.set('tc_inv', null); $('a-inv-c').hidden = false; $('a-inv').focus(); return toast(cod ? t('Ese código de invitación no vale. TuCloset abre muy pronto.', 'That invitation code is not valid. TuCloset opens very soon.') : t('Escribe tu código de invitación', 'Enter your invitation code')); }
+    if (j?.on) LS.set('tc_inv', cod); }
   if (co && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(co)) return toast(t('Escribe un correo válido', 'Enter a valid email'));
   if (co && cl.length < 8) return toast(t('La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'));
   const pf = E.perfil || {}; E.perfil = Object.assign(pf, { nombre: $('a-nombre').value.trim() || pf.nombre || '', ciudad: $('a-ciudad').value.trim() || pf.ciudad || '', idioma: idioma(), alta: pf.alta || hoyISO() });
@@ -4236,7 +4259,9 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (document.readyState === 'loading') await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true })); // 0.127: primero todos los scripts (el diseño y el motor); si no, en un móvil lento la primera pantalla salía con el diseño antiguo
   entrada(new URLSearchParams(location.search));
   // 09/11: contador de visitas por red (parámetro común de la coordinación de marketing). Se manda una vez y se quita «o» de la dirección: al recargar no cuenta otra vez y no se guarda nada en el móvil
+  try { const q = new URLSearchParams(location.search), v = (q.get('inv') || '').trim().toUpperCase(); if (q.has('inv')) { if (/^[A-Z0-9-]{4,24}$/.test(v)) LS.set('tc_inv', v); q.delete('inv'); history.replaceState(history.state, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } } catch (e) { } // 12/11: el enlace de invitación
   try { const q = new URLSearchParams(location.search), o = (q.get('o') || '').toLowerCase(); if (q.has('o') && window.top === window) { q.delete('o'); history.replaceState(history.state, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); if (/^[a-z0-9-]{1,24}$/.test(o)) { ORIGEN = o; api('/api/visita', { method: 'POST', json: { o }, tiempo: 10000 }).catch(() => { }); } } } catch (e) { }
+  portadaPronto();
   E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {};
   E.puestos = (await BD.get('puestos').catch(() => null)) || {}; migrarProbados();
   if (aplicarRetiradas() | diagAEspera()) await BD.set('perfil', E.perfil).catch(() => { }); // 10/11: sin el permiso del diagnóstico, su resultado queda aparte
@@ -4259,7 +4284,8 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (q.get('ejemplo') && !E.prendas.length && !PUBLICA) await cargarEjemplo();
   // 0.96 (Gabriela, 24/10: «se sigue demorando en abrir la app»): con sesión o con prendas se entra directa en Hoy; el repaso de la bienvenida, solo con ?repaso=1
   const REPASO = q.get('repaso') === '1' || (q.get('repaso') !== '0' && !cuenta() && !E.prendas.length); // 0.48 (Gabriela, 22/10: «cada vez que abra la app, salgan todos los pasos con posibilidad de siguiente página»): mientras diseñamos, se entra siempre por la bienvenida y los pasos del alta; ?repaso=0 vuelve a lo de una usuaria real (directo a Hoy)
-  const destino = q.get('pantalla') || (REPASO || !(E.perfil?.alta || E.prendas.length) ? 'inicio' : 'closet'); // 04/11 (Gabriela: «cuando una persona entre por su cuenta salga abriendo tu clóset»)
+  // 12/11 (Gabriela, vía Coordinación: «por qué la app cada vez que la abres te lleva a tu ropa, debería llevarte a Hoy con el outfit seleccionado»): abre en Hoy, con lo que te pones hoy el primero (antes, 04/11, en Clóset)
+  const destino = q.get('pantalla') || (REPASO || !(E.perfil?.alta || E.prendas.length) ? 'inicio' : 'hoy');
   if (E.perfil) { if (E.perfil.nombre) $('a-nombre').value = E.perfil.nombre; if (E.perfil.ciudad) $('a-ciudad').value = E.perfil.ciudad; } // en el repaso no se pierde lo ya puesto
   if (destino !== 'inicio') { const tc = cargarTiempo(); if (destino === 'hoy') await Promise.race([tc, new Promise(r => setTimeout(r, 1200))]); tc.then(() => cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); })).catch(() => { }); } // 0.96: no se espera al tiempo más de 1,2 s; cuando llega, se repinta Hoy
   ir(destino);
