@@ -672,3 +672,7 @@ html.at .at-con-rej .at-cel.no img { opacity: .5; }
 html.at .at-hoy { position: relative; }
 html.at .at-desc { position: absolute; top: 0; right: 4px; z-index: 3; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: var(--tinta); background: none; border: 0; padding: 0; }
 html.at .at-desc svg { width: 20px; height: 20px; }
+
+/* 12/11 (Gabriela: «el tiempo que esperas para ver la prenda con el fondo quitado sea el que esperes para verla ya estilizada»): mientras se estiliza, el recorte apagado y «Estilizando…» */
+html.at .at-cel.est-pend img { opacity: .3; }
+html.at .at-cel.est-pend i { color: var(--tinta); }

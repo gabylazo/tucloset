@@ -1848,3 +1848,9 @@ html.oscuro .pn-error{color:#E8776B}
 #p-inicio .abajo a.boton{text-decoration:none}
 /* 12/11: el campo del código de invitación (solo con INVITACION en el servidor) */
 .ac-campo[hidden]{display:none}
+
+/* 12/11: la subida, mientras se estiliza cada prenda */
+#s-raiz .rej .est-p img, #s-raiz .est-p-img { opacity: .3 }
+#s-raiz .s-est { position: absolute; left: 0; right: 0; top: 42%; text-align: center; font-size: 13px; letter-spacing: .04em; color: var(--tinta) }
+#s-raiz .foto { position: relative }
+#s-raiz .rej small{color:#6E5F54} /* 12/11: 4,46:1 sobre #F6F4F1 no llegaba a 4,5 */

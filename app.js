@@ -957,7 +957,7 @@ let estilizando = null, catParado = false;
 // 11/11 (Sheila: «quizás le puede salir un cartel de estilizando, así las usuarias se enteran… al menos en el primer uso»): mientras se planchan, el Clóset dice
 // «Estilizando tus fotos · 1 de 3» y, hasta que termine la primera tanda (tc_est_visto), qué es y cuánto tarda; la ficha de la prenda que se plancha, también.
 const porEstilizar = p => !p.cat && !p.conCat && !p.catNo && !p.ejemplo && !(p.catPregunta && p.catProp instanceof Blob)
-  && (p.catProp instanceof Blob || (p.foto instanceof Blob && !p.fotoRota && (p.catFallos || 0) < 2));
+  && (p.catProp instanceof Blob || (p.foto instanceof Blob && !p.fotoRota && ((p.catFallos || 0) < 3 || p.catFalloDia !== hoyISO())));
 function avisoEst() {
   const pa = $('pared'); let av = $('est-av'); const e = E.estil;
   if (e && !av && pa) { av = document.createElement('p'); av.id = 'est-av'; av.className = 'est-av'; av.setAttribute('role', 'status'); pa.before(av); }
@@ -966,27 +966,44 @@ function avisoEst() {
   const fi = $('at-ficha'), fe = $('est-ficha');
   if (fi && fe) fe.hidden = !(e && e.id === fi.dataset.id);
 }
+// 12/11 (Gabriela: «no habría topes de piezas a estilizar, y sería automático pieza a pieza… no puede haber una pieza sin estilizar cuando se suba otra… el tiempo
+// que esperas para ver la prenda con el fondo quitado sea el que esperes para verla ya estilizada»): la foto de catálogo se pide en cuanto la prenda tiene el fondo
+// quitado, ya en la subida, y 4 a la vez (antes, de una en una y después de guardar: 8 prendas, casi 2 minutos). Si falla, dos intentos más (el último con el otro
+// modelo); si aun así falla, al día siguiente otra vez. Con el tope de Google, se vuelve a probar sola cada 10 minutos. Mientras, la subida y el Clóset dicen «Estilizando…»
+const EST_A_LA_VEZ = 4; let estLibres = EST_A_LA_VEZ, catReintento = 0; const estCola = [], CAT_PEND = new Map();
+const turnoEst = () => estLibres > 0 ? (estLibres--, Promise.resolve()) : new Promise(r => estCola.push(r));
+const soltarEst = () => { const r = estCola.shift(); if (r) r(); else estLibres++; };
+const estPend = p => !!(estilizando || CAT_PEND.has(p.id)) && porEstilizar(p) && !(p.catProp instanceof Blob);
+async function catalogoConReintento(p) {
+  for (let i = 0; i < 3; i++) {
+    await turnoEst(); let r; try { r = catParado ? 'parar' : await pedirCatalogo(p, i === 2 || undefined); } finally { soltarEst(); }
+    if (r === true || r === 'parar') return r;
+  }
+  p.catFalloDia = hoyISO(); return null;
+}
 function estilizarNuevas() {
   if (estilizando) return estilizando;
   if (catParado || !cuenta()?.token || window.top !== window) return Promise.resolve(0);
   estilizando = (async () => {
     await 0; let hechas = 0, propuestas = 0, k = 0; const vistos = new Set();
+    E.prendas.forEach(q => { if (q.catFalloDia && q.catFalloDia !== hoyISO()) { delete q.catFallos; delete q.catFalloDia; } });
+    const una = async p => {
+      if (CAT_PEND.has(p.id)) { const it = await CAT_PEND.get(p.id).catch(() => null); CAT_PEND.delete(p.id); if (it?.catProp instanceof Blob && !(p.catProp instanceof Blob)) { p.catProp = it.catProp; p.catPropAR = it.catPropAR; }
+        else if (it && catParado) return 'parar'; else if (it) { p.catFallos = 3; p.catFalloDia = hoyISO(); return; } } // ya falló tres veces en la subida: mañana otra vez
+      const r = p.catProp instanceof Blob ? true : await catalogoConReintento(p); if (r === 'parar') return 'parar';
+      if (r && p.catPregunta) propuestas++;
+      else if (r && await usarCat(p, !p.catAuto)) { hechas++; if (E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }
+      await BD.set('prendas', E.prendas).catch(() => { });
+      if ($('at-ficha')?.dataset.id === p.id && E.pantalla === 'ficha') abrirFicha(p.id);
+    };
     try {
-      for (;;) {
-        // 07/11 (Gabriela: «a medida que uno vaya subiendo una pieza, pues se estiliza directamente y se elimina la foto original»; «lo de Sheila es exactamente
-        // todo igual a lo que hicimos con lo mío… es un usuario más»): ya no se pregunta «Usar esta / Dejar la mía»; la foto de catálogo se pone sola, y no solo
-        // en las prendas nuevas: también en las que se subieron antes de esto (las de Sheila). En esas, la recortada y la original se quedan en la nube hasta
-        // que su dueña diga que le gustan (decisión del 06/11); en las nuevas se borran, como pidió Gabriela.
-        const cola = E.prendas.filter(q => porEstilizar(q) && !vistos.has(q.id)), p = cola[0];
-        if (!p) break;
+      const obrera = async () => { for (;;) {
+        // primero las que faltaban de antes y después las recién subidas (que ya se están estilizando desde la subida)
+        const cola = E.prendas.filter(q => porEstilizar(q) && !vistos.has(q.id)).reverse(), p = cola[0];
+        if (!p || catParado) return;
         vistos.add(p.id); E.estil = { i: ++k, n: k + cola.length - 1, id: p.id }; avisoEst();
-        const r = p.catProp instanceof Blob ? true : await pedirCatalogo(p); if (r === 'parar') break;
-        // 11/11 (Sheila: «estoy intentando cambiar la foto y no me deja»): una foto cambiada a mano en Editar no se sustituye sola: se propone («Usar esta» / «Dejar la mía»)
-        if (r && p.catPregunta) propuestas++;
-        else if (r && await usarCat(p, !p.catAuto)) hechas++;
-        await BD.set('prendas', E.prendas).catch(() => { });
-        if ($('at-ficha')?.dataset.id === p.id && E.pantalla === 'ficha') abrirFicha(p.id);
-      }
+        if (await una(p) === 'parar') return; } };
+      await Promise.all(Array.from({ length: EST_A_LA_VEZ }, obrera));
     } finally { estilizando = null; if (E.estil) { try { localStorage.setItem('tc_est_visto', '1'); } catch (x) { } } E.estil = null; avisoEst(); }
     if (propuestas) { await guardar(); if (E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); if (!$('rep-capa') && !$('cat-capa')) toast(t('Tu foto nueva tiene versión de catálogo: elige cuál te quedas', 'Your new photo has a catalogue version: choose which to keep'), [t('Ver', 'View'), () => abrirCatalogo()]); }
     if (hechas) { await guardar(); if (E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); if (!$('rep-capa') && !$('cat-capa')) toast(hechas === 1 ? t('Tu prenda ya tiene foto de catálogo: míralo en el Clóset', 'Your garment has a catalogue photo: see it in the Closet') : t(`${hechas} prendas tienen ya foto de catálogo: míralas en el Clóset`, `${hechas} garments have a catalogue photo: see them in the Closet`)); }
@@ -1006,7 +1023,7 @@ async function pedirCatalogo(p, otra, fuente = p.foto, pista) {
     let cuerpo = b, cab = { 'Content-Type': 'image/jpeg' };
     if (p.original instanceof Blob && fuente !== p.cat) { const o = await jpegBlanco(p.original, 1024).catch(() => null); if (o) { cuerpo = new FormData(); cuerpo.append('foto', b, 'foto.jpg'); cuerpo.append('orig', o, 'orig.jpg'); cab = {}; } }
     const r = await api('/api/catalogo?' + q, { method: 'POST', body: cuerpo, headers: cab, tiempo: 90000 });
-    if (r.status === 429 || r.status === 503) { catParado = true; return 'parar'; } // tope del día o del mes, o sin clave: se vuelve a probar al abrir la app otro día
+    if (r.status === 429 || r.status === 503) { catParado = true; clearTimeout(catReintento); catReintento = setTimeout(() => { catParado = false; estilizarNuevas(); }, 10 * 60e3); return 'parar'; } // tope del día o del mes, o sin clave: se vuelve a probar al abrir la app otro día
     if (r.status === 401) return 'parar';
     if (!r.ok) { p.catFallos = (p.catFallos || 0) + 1; return null; }
     const fin = await afinarCat(await r.blob()); if (!fin) { p.catFallos = (p.catFallos || 0) + 1; return null; }
@@ -2571,7 +2588,7 @@ function pintarSubida() {
     const i = E.subida.indexOf(det), listo = det.estado === 'listo';
     const ops = (lista, sel, k, nom) => `<div class="ops">${lista.map(x => `<button type="button" class="${x === sel ? 'on' : ''}" data-s${k}="${x}">${nom(x)}</button>`).join('')}</div>`;
     raiz.innerHTML = `<div class="sb uno">${n === 1 ? X : `<button class="x" data-svolver aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>`}<div class="tit"><h1>${t('Revisa tu prenda', 'Check your garment')}</h1>${n > 1 ? `<div class="mini-et">${i + 1} ${t('de', 'of')} ${n}</div>` : ''}</div>
-      <div class="foto">${det.url && listo ? `<button type="button" class="s-recortar" data-srecortar aria-label="${t('Arreglar la foto: marca la prenda y le quito el fondo otra vez', 'Fix the photo: frame the garment and I remove the background again')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/></svg><span aria-hidden="true">${t('Arreglar foto', 'Fix photo')}</span></button>` : ''}${det.url ? `<img src="${det.url}" alt="">` : `<p class="s-procesando">${t('Quitando el fondo y reconociendo la prenda…', 'Removing the background and recognising the garment…')}</p>`}</div>
+      <div class="foto">${det.url && listo ? `<button type="button" class="s-recortar" data-srecortar aria-label="${t('Arreglar la foto: marca la prenda y le quito el fondo otra vez', 'Fix the photo: frame the garment and I remove the background again')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/></svg><span aria-hidden="true">${t('Arreglar foto', 'Fix photo')}</span></button>` : ''}${det.url ? `<img src="${(!det.usaOriginal && det.urlCat) || det.url}" alt=""${det.catP ? ' class="est-p-img"' : ''}>${det.catP ? `<span class="s-est" role="status">${t('Estilizando…', 'Styling…')}</span>` : ''}` : `<p class="s-procesando">${t('Quitando el fondo y reconociendo la prenda…', 'Removing the background and recognising the garment…')}</p>`}</div>
       ${listo && det.noPrenda && !det.siPrenda ? `<div class="s-aviso"><b>${t('Esta foto no parece una prenda', 'This photo does not look like a garment')}</b><span>${t('No coincide con ninguna categoría de ropa. Si es una captura, un texto u otra cosa, quítala.', 'It does not match any clothing category. If it is a screenshot, text or something else, remove it.')}</span><div><button class="boton" data-squita>${t('Quitarla', 'Remove it')}</button><button class="txt sub-l" data-ssi>${t('Sí es una prenda', 'It is a garment')}</button></div></div>` : ''}
       ${listo && det.dudoso && !(det.noPrenda && !det.siPrenda) ? `<div class="s-aviso"><b>${t('Revisa el recorte', 'Check the cut-out')}</b><span>${t('Si le falta un trozo o le sobra fondo, toca «Arreglar foto».', 'If a piece is missing or there is background left, tap “Fix photo”.')}</span></div>` : ''}
       ${listo && det.fondo && !det.dudoso && !(det.cv >= 3) && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso: si el recorte sale con restos, toca «Arreglar foto».', 'The background is not plain: if the cut-out keeps bits of it, tap “Fix photo”.')}</p>${reglasFoto()}` : ''}
@@ -2590,8 +2607,8 @@ function pintarSubida() {
       <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo && !(det.noPrenda && !det.siPrenda) ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(t('Añadir más prendas', 'Add more garments'), 'txt sub-l')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button><button class="txt sub-l" data-squita>${t('Quitar esta prenda', 'Remove this garment')}</button>`}</div></div>`;
   } else {
     const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)).length, nop = E.subida.filter(i => i.noPrenda && !i.siPrenda).length;
-    raiz.innerHTML = `<div class="sb rv">${X}<div class="tit"><h1>${n} ${t('prendas', 'garments')}</h1><div class="mini-et">${E.subida.some(i => i.estado !== 'listo') ? t('Quitando los fondos…', 'Removing backgrounds…') : E.subida.some(i => i.clasP) ? t('Afinando nombres y detalles…', 'Refining names and details…') : t('Revisa y guarda', 'Check and save')}</div></div>
-      <div class="rej">${E.subida.map(it => `<button type="button" data-sdet="${it.id}">${it.url ? `<img src="${it.url}" alt="">` : ''}${it.estado === 'listo' && it.noPrenda && !it.siPrenda ? `<p class="no">${t('No es una prenda', 'Not a garment')}<small>${t('Toca para revisarla', 'Tap to check')}</small></p>` : it.estado === 'listo' ? `<em></em><p>${it.nombre}<small>${it.dudoso ? t('Revisa el recorte', 'Check the cut-out') : `${catTxt(catDe(it))} · ${it.color}`}</small></p>` : `<p><small>${t('Quitando el fondo…', 'Removing the background…')}</small></p>`}</button>`).join('')}${n < 20 ? mas(`<svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><small>${t('Añadir más', 'Add more')}</small>`, 'mas') : ''}</div>
+    raiz.innerHTML = `<div class="sb rv">${X}<div class="tit"><h1>${n} ${t('prendas', 'garments')}</h1><div class="mini-et">${E.subida.some(i => i.estado !== 'listo') ? t('Quitando los fondos…', 'Removing backgrounds…') : E.subida.some(i => i.catP) ? t('Estilizando…', 'Styling…') : E.subida.some(i => i.clasP) ? t('Afinando nombres y detalles…', 'Refining names and details…') : t('Revisa y guarda', 'Check and save')}</div></div>
+      <div class="rej">${E.subida.map(it => `<button type="button" data-sdet="${it.id}"${it.catP ? ' class="est-p"' : ''}>${it.url ? `<img src="${(!it.usaOriginal && it.urlCat) || it.url}" alt="">` : ''}${it.catP ? `<span class="s-est" role="status">${t('Estilizando…', 'Styling…')}</span>` : ''}${it.estado === 'listo' && it.noPrenda && !it.siPrenda ? `<p class="no">${t('No es una prenda', 'Not a garment')}<small>${t('Toca para revisarla', 'Tap to check')}</small></p>` : it.estado === 'listo' ? `<em></em><p>${it.nombre}<small>${it.dudoso ? t('Revisa el recorte', 'Check the cut-out') : `${catTxt(catDe(it))} · ${it.color}`}</small></p>` : `<p><small>${t('Quitando el fondo…', 'Removing the background…')}</small></p>`}</button>`).join('')}${n < 20 ? mas(`<svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><small>${t('Añadir más', 'Add more')}</small>`, 'mas') : ''}</div>
       ${E.subida.some(i => i.estado === 'listo' && i.dudoso && !(i.noPrenda && !i.siPrenda)) ? `<p class="s-aviso-l">${t('Las que dicen «Revisa el recorte» pueden haber salido mal: tócalas para verlas.', 'The ones that say «Check the cut-out» may have come out wrong: tap them to see.')}</p>` : ''}
       ${nop ? `<p class="s-aviso-l">${nop === 1 ? t('Hay 1 foto que no coincide con ninguna categoría de prenda: no se guardará.', '1 photo does not match any clothing category: it will not be saved.') : t(`Hay ${nop} fotos que no coinciden con ninguna categoría de prenda: no se guardarán.`, `${nop} photos do not match any clothing category: they will not be saved.`)}</p>` : ''}
       <div class="bts"><button class="boton" data-sguardar ${listos ? '' : 'disabled'}>${listos === 1 ? t('Guardar 1 prenda', 'Save 1 garment') : t(`Guardar ${listos} prendas`, `Save ${listos} garments`)}</button><span class="txt">${t('Toca una prenda para ver su ficha y cambiar nombre, tipo, color o estación', 'Tap a garment to open its card and change name, type, colour or season')}</span></div></div>`;
@@ -2612,8 +2629,8 @@ function pintarSubida() {
     else if (d.scolor2) { const propio = !NOMBRE_AUTO.test(det.nombre) && !/ (de rayas|de cuadros|de lunares|de flores)( [a-záéíóú ]+)?$/.test(det.nombre); det.color2 = d.scolor2; if (!propio && det.x && NOM_X[det.x]) det.nombre = nomEstampado(det.x, det.estampado, det.color2); pintarSubida(); }
     // 06/11 (Gabriela: «el icono de recortar tiene que ser mientras estás subiendo, no después, porque me siguen saliendo los pies en un vestido negro corto»)
     else if (d.srecortar !== undefined) { if (det.usaOriginal) { const r = await recortarAMano(det.original); if (!r) return; det.original = r; det.recMano = 1; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(r); return pintarSubida(); }
-      const q = await arreglarFoto(det.original, det.blob); if (!q) return; det.blob = q.blob; det.cv = q.cv; det.recMano = 1; if (q.dudoso) det.dudoso = 1; else delete det.dudoso; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(q.blob); pintarSubida(); }
-    else if (d.sgirar !== undefined) { b.disabled = true; det.blob = await girarBlob(det.blob); if (det.original) det.original = await girarBlob(det.original); URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(det.usaOriginal ? det.original : det.blob); pintarSubida(); }
+      const q = await arreglarFoto(det.original, det.blob); if (!q) return; det.blob = q.blob; det.cv = q.cv; det.recMano = 1; if (q.dudoso) det.dudoso = 1; else delete det.dudoso; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(q.blob); estilizarSubida(det); pintarSubida(); }
+    else if (d.sgirar !== undefined) { b.disabled = true; det.blob = await girarBlob(det.blob); if (det.original) det.original = await girarBlob(det.original); estilizarSubida(det); URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(det.usaOriginal ? det.original : det.blob); pintarSubida(); }
     else if (d.sorig !== undefined) { det.usaOriginal = !det.usaOriginal; URL.revokeObjectURL(det.url); det.url = URL.createObjectURL(det.usaOriginal ? det.original : det.blob); pintarSubida(); }
   };
   const nom = raiz.querySelector('[data-snom]'); if (nom) nom.oninput = e => { det.nombre = e.target.value; };
@@ -2765,11 +2782,27 @@ async function anadirFotos(files) {
   const nuevos = files.slice(0, Math.max(0, 20 - E.subida.length)).map(f => ({ id: uid(), estado: 'procesando', file: f }));
   if (!nuevos.length) return toast(t('Como mucho 20 fotos cada vez', 'At most 20 photos at a time'));
   E.subida.push(...nuevos); pintarSubida();
-  for (const it of nuevos) {
-    try { const r = await procesarPrenda(it.file); Object.assign(it, r, { estado: 'listo', url: URL.createObjectURL(r.blob), nombre: nombreReconocido(r.x, r.color) || (r.cat ? nombreSubida(r, r.cat) : nombreAuto(r.tipo, r.color)) }); it.estacion = estacionPorPrenda(it); delete it.file; clasificarSubida(it); }
+  let k = 0; const obrera = async () => { for (let it; (it = nuevos[k++]);) { // 12/11: 3 a la vez (antes, de una en una)
+    try { const r = await procesarPrenda(it.file); Object.assign(it, r, { estado: 'listo', url: URL.createObjectURL(r.blob), nombre: nombreReconocido(r.x, r.color) || (r.cat ? nombreSubida(r, r.cat) : nombreAuto(r.tipo, r.color)) }); it.estacion = estacionPorPrenda(it); delete it.file; clasificarSubida(it); estilizarSubida(it); }
     catch (e) { E.subida = E.subida.filter(x => x !== it); toast(t('No he podido leer una de las fotos', 'Could not read one of the photos')); }
-    pintarSubida();
-  }
+    pintarSubida(); } };
+  await Promise.all([obrera(), obrera(), obrera()]);
+}
+function repintarSubida(it) { // sin quitarle el campo en el que esté escribiendo
+  if (E.pantalla !== 'subir' || !E.subida.includes(it)) return;
+  const ae = document.activeElement;
+  if (ae && $('s-raiz')?.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) ae.addEventListener('blur', () => setTimeout(pintarSubida, 0), { once: true }); else pintarSubida();
+}
+// 12/11: la foto de catálogo de cada prenda de la subida, en cuanto tiene el fondo quitado (con el tipo que da la clasificación, si llega en 5 s: zapato y bolso salen mejor así)
+function estilizarSubida(it) {
+  if (catParado || !cuenta()?.token || window.top !== window || !(it.blob instanceof Blob)) return;
+  const de = it.blob; delete it.catProp; if (it.urlCat) { URL.revokeObjectURL(it.urlCat); delete it.urlCat; }
+  const pr = it.catP = (async () => {
+    if (it.clasP) await Promise.race([it.clasP, new Promise(r => setTimeout(r, 5000))]);
+    const q = { foto: de, original: it.original, nombre: it.nombre, tipo: it.tipo }, r = await catalogoConReintento(q);
+    if (r === true && it.blob === de) { it.catProp = q.catProp; it.catPropAR = q.catPropAR; it.urlCat = URL.createObjectURL(q.catProp); }
+    return it.blob === de ? it : null;
+  })().catch(() => null).finally(() => { if (it.catP === pr) delete it.catP; repintarSubida(it); });
 }
 async function guardarSubida() {
   const pend = E.subida.map(i => i.clasP).filter(Boolean);
@@ -2778,6 +2811,8 @@ async function guardarSubida() {
   if (enGratis() && E.prendas.length + listos.length > TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas: te quedan ${Math.max(0, TOPE_GRATIS - E.prendas.length)}.`, `The free version holds ${TOPE_GRATIS} garments: ${Math.max(0, TOPE_GRATIS - E.prendas.length)} left.`));
   listos.forEach(it => { if (it.detalles?.length) it.notas = it.detalles.join(', ').toLowerCase().replace(/^./, c => c.toUpperCase()); });
   listos.forEach(it => E.prendas.unshift({ id: uid(), rec: it.rec ? 3 : 0, nombre: it.nombre.trim() || tipoNombre(it.tipo), color: it.color, tipo: it.tipo, estacion: it.estacion || 'Todo el año', estAuto: 1, catAuto: 1, notas: it.notas || '', foto: it.usaOriginal ? it.original : it.blob, creada: hoyISO(), usos: [], estado: '', x: it.x || null, original: it.original || undefined, rev: 1, cv: it.usaOriginal ? 5 : it.cv || 1, recMano: it.recMano || undefined, precio: precioDe(it.precioTxt), compra: (precioDe(it.precioTxt) && it.compra) || undefined, detalles: it.detalles?.length ? it.detalles : undefined, catM: it.catM || undefined, estampado: it.estampado || undefined, color2: it.color2 || undefined, dudoso: it.dudoso && !it.usaOriginal ? 1 : undefined, clas: it.clas || undefined, est: it.est && Object.keys(it.est).length ? { ...it.est } : undefined })); // est: tiro o largo marcados en «¿Me lo compro?»
+  listos.forEach((it, i) => { const np = E.prendas[listos.length - 1 - i]; if (it.usaOriginal || np.foto !== it.blob) return; // 12/11
+    if (it.catProp instanceof Blob) { np.catProp = it.catProp; np.catPropAR = it.catPropAR; } else if (it.catP) CAT_PEND.set(np.id, it.catP); });
   await guardar(); E.propuestas = []; E.generados = []; E.subida = []; E.sDet = null;
   revisarRepetidas().then(n => { if (n) setTimeout(abrirRepetidas, 600); }).catch(() => { }); setTimeout(estilizarNuevas, 1500);
   toast(t(`${listos.length} ${listos.length === 1 ? 'prenda guardada' : 'prendas guardadas'} en tu clóset`, `${listos.length} saved to your closet`)); ir('closet'); setTimeout(enderezarTodas, 2500);
