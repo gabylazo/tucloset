@@ -3726,7 +3726,7 @@ async function crearAvatar(nota, palabras) {
 // 09/11 (Gabriela: «creo que se debería mejorar un poco más el parecido»): «No me parezco» dice a la IA en qué falla el avatar; se rehace desde tus dos fotos,
 // con el anterior delante para que corrija eso y deje lo demás
 // 12/11 (Gabriela: «¿cómo puedo cambiar que no me parezco de la cara, de la nariz para abajo?»): partes de la cara y, además, decirlo con sus palabras
-const PARECIDO = [['ojos', 'Los ojos', 'The eyes'], ['nariz', 'La nariz', 'The nose'], ['boca', 'La boca', 'The mouth'], ['barbilla', 'Barbilla y mandíbula', 'Chin and jaw'], ['cara', 'La cara entera', 'The whole face'], ['pelo', 'El pelo', 'The hair'], ['cuerpo', 'El cuerpo', 'The body'], ['piel', 'El tono de piel', 'The skin tone'], ['altura', 'Las proporciones', 'The proportions'], ['edad', 'La edad', 'The age']];
+const PARECIDO = [['forma', 'La forma de la cara', 'The face shape'], ['ojos', 'Los ojos', 'The eyes'], ['nariz', 'La nariz', 'The nose'], ['boca', 'La boca', 'The mouth'], ['barbilla', 'Barbilla y mandíbula', 'Chin and jaw'], ['cara', 'La cara entera', 'The whole face'], ['pelo', 'El pelo', 'The hair'], ['cuerpo', 'El cuerpo', 'The body'], ['piel', 'El tono de piel', 'The skin tone'], ['altura', 'Las proporciones', 'The proportions'], ['edad', 'La edad', 'The age']];
 function panelParecido() {
   const pf = E.perfil || {}; if (!(pf.selfie instanceof Blob) || !(pf.cuerpo instanceof Blob)) return panelDiagFotos();
   abrirPanel(t('No me parezco', 'Not like me'), `<p class="pn-lema">${t('¿Qué no se parece?', 'What does not look like you?')}</p>
