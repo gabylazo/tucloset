@@ -84,19 +84,29 @@ if (AT) (() => {
     if (conCat(p)) { if (p.catAR) return 1 / p.catAR; const s = urlCat(p), a = AR.get(s); if (a) return 1 / a; medir(s); return 1.2; }
     return p.caja?.[4] || 1.2;
   }
-  const ANCHO = { Arriba: [30, 70], Abrigo: [46, 80], Abajo: [36, 66], Vestidos: [34, 72] }; // cm, la prenda puesta y vista de frente
+  const ANCHO = { Arriba: [34, 70], Abrigo: [46, 80], Abajo: [36, 66], Vestidos: [34, 72] }; // cm, la prenda puesta y vista de frente
+  const LARGO_EST = { crop: 42, cintura: 54, cadera: 64, largo: 74 }, SIN_HOMBROS = /palabra de honor|bandeau|strapless|sin tirantes/, HOMBRO_CAIDO = /hombros? al aire|bardot|off.?shoulder|hombro ca[ií]do/;
   function medidas(p) {
     const r = razon(p);
     if (p.tipo === 'Calzado') return [26, 26 * r];
     if (p.tipo === 'Bolsos') { const L = 30; return r >= 1 ? [L / r, L] : [L, L * r]; }
     if (p.tipo === 'Accesorios') { const L = 20; return r >= 1 ? [L / r, L] : [L, L * r]; }
     // con manga larga la foto llega hasta el puño: casi 60 cm aunque el cuerpo sea corto (03/11: un top corto de manga larga salía diminuto junto al pantalón)
-    let L = largoDe(p); if (['Arriba', 'Abrigo'].includes(p.tipo) && typeof Motor !== 'undefined' && Motor.ficha(p).manga === 'larga') L = Math.max(L, 58);
+    let L = largoDe(p);
+    // 12/11 (Sheila, mensaje 2069: «sigue quedando desproporcionado, el top», un top palabra de honor que salía con el largo de una camiseta, 62 cm): en lo de arriba manda
+    // hasta dónde llega (est.largo, de la IA o de Editar) salvo que el nombre diga algo concreto, y los que empiezan en el pecho (palabra de honor, bandeau) miden 16 cm menos;
+    // los de hombros al aire, 8
+    if (p.tipo === 'Arriba') { const n = (p.nombre || '').toLowerCase();
+      if (LARGO_EST[p.est?.largo] && !LARGO_NOMBRE.some(([r]) => r.test(n))) L = LARGO_EST[p.est.largo];
+      if (SIN_HOMBROS.test(n)) L = Math.max(26, L - 16); else if (HOMBRO_CAIDO.test(n) || (p.detalles || []).includes('Hombros al aire')) L = Math.max(30, L - 8); }
+    if (['Arriba', 'Abrigo'].includes(p.tipo) && typeof Motor !== 'undefined' && Motor.ficha(p).manga === 'larga') L = Math.max(L, 58);
     // 10/11 (Sheila: «imagina el cuerpo de la usuaria y haz distribuciones visualmente proporcionales»): en las fotos sobre la cama las mangas abiertas o una falda doblada
     // dan anchos que nada tienen que ver con un cuerpo (una minifalda de 28 cm junto a una cazadora de 113). El ancho se lleva a lo que mide esa prenda puesta y, para no
     // deformar la foto, cambia el largo, como mucho un 25 %. Las fotos de catálogo casi nunca se salen del margen.
     const [a0, a1] = ANCHO[p.tipo] || [0, 1e4], w = L / r, wo = Math.min(a1, Math.max(a0, w));
-    if (wo !== w) L = Math.min(L * 1.25, Math.max(L * .75, wo * r));
+    // lo de arriba nunca es más estrecho que un cuerpo: ahí manda el ancho, sin tope (un top palabra de honor de 26 cm de largo sería de 20 de ancho)
+    if (p.tipo === 'Arriba' && w < a0) L = a0 * r;
+    else if (wo !== w) L = Math.min(L * 1.25, Math.max(L * .75, wo * r));
     return [L / r, L];
   }
   const eje = p => conCat(p) || p.muestra ? .5 : (p.caja?.[5] ?? .5);
