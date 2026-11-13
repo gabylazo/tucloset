@@ -296,7 +296,7 @@ async function subirNube(reintento) {
       // 07/11 (Gabriela: «la app debería guardarlas, no depender de nada»; «en el Mac tampoco aparece ninguna foto del análisis»): con «Guardar mis fotos en mi cuenta»,
       // la selfie, la foto de cuerpo y el avatar van también a su cuenta (privadas: solo se piden con su sesión) y vuelven a cualquier móvil u ordenador donde entre
       { const pf = E.perfil || {}; if (pf.fotosCuenta) for (const k of FOTOS_DIAG) if (pf[k] instanceof Blob && pf[k + 'Sub'] !== firma(pf[k]) && LS.get('tc_bajada_' + k) !== firma(pf[k])) {
-        try { await subirFoto('/api/foto/diag-' + k, pf[k]); pf[k + 'Sub'] = firma(pf[k]); LS.set('tc_bajada_' + k, pf[k + 'Sub']); cambio = true; await BD.set('perfil', E.perfil); } catch (e) { fallos++; } } }
+        try { if (k !== 'avatar' && !pf[k + 'T']) pf[k + 'T'] = new Date().toISOString(); await subirFoto('/api/foto/diag-' + k, pf[k]); pf[k + 'Sub'] = firma(pf[k]); LS.set('tc_bajada_' + k, pf[k + 'Sub']); cambio = true; await BD.set('perfil', E.perfil); } catch (e) { fallos++; } } }
       // 10/11: lo que te pruebas con el avatar, también a la cuenta; y fuera de la cuenta lo que ya no está (lo borra el primer móvil que suba)
       { const pf = E.perfil || {}, fl = fLocales(); let pc = false;
         if (pf.fotosCuenta) for (const x of pf.probados || []) { const b = E.puestos?.[x.k]; if (b instanceof Blob && fl[x.k] === x.f && x.s !== firma(b)) {
@@ -421,7 +421,7 @@ const juntarPermisos = (a, b) => { const r = { ...(a || {}) }; for (const [k, v]
 function borrarDe(k) { // lo que salió de cada permiso: las fotos, las medidas y el análisis (diag); el avatar y lo que te has visto puesto (diag y avatar)
   const pf = E.perfil || {};
   if (k === 'diag') {
-    for (const f of ['selfie', 'cuerpo']) { if (pf[f + 'Sub']) api('/api/foto/diag-' + f, { method: 'DELETE' }).catch(() => { }); delete pf[f]; delete pf[f + 'Sub']; LS.set('tc_bajada_' + f, null); }
+    for (const f of ['selfie', 'cuerpo']) { if (pf[f + 'Sub']) api('/api/foto/diag-' + f, { method: 'DELETE' }).catch(() => { }); delete pf[f]; delete pf[f + 'Sub']; delete pf[f + 'T']; LS.set('tc_bajada_' + f, null); }
     ['medidas', 'medidasT', 'diag', 'diagEspera', 'tipoCuerpo', 'caras'].forEach(x => delete pf[x]);
     if (pf.colores?.fuente === 'foto') { delete pf.colores.est; delete pf.colores.sub; delete pf.colores.fuente; }
     ['tc_diag_medidas', 'tc_diag_caras'].forEach(x => { try { localStorage.removeItem(x); } catch (e) { } });
@@ -613,11 +613,15 @@ async function bajarNube() {
   // o se bajó (tc_bajada_*) se cambia por la de la cuenta; medidas y análisis, los más nuevos (medidasT, diag.t). La primera vez (sin tc_sinc_v), manda la cuenta.
   const pl = E.perfil || {}, dp = doc.perfil || {}, migr = !LS.get('tc_sinc_v');
   const vieja = k => FOTOS_DIAG.includes(k) && dp.fotosCuenta && dp[k + 'Sub'] && firma(pl[k]) !== dp[k + 'Sub'] && (migr || LS.get('tc_bajada_' + k) === firma(pl[k])
-    || (k === 'avatar' && dp.avatarF && (pl.avatarF || '') < dp.avatarF)); // 11/11: un avatar más viejo que el de la cuenta se cambia por el de la cuenta (y no se sube encima)
+    || (k === 'avatar' && dp.avatarF && (pl.avatarF || '') < dp.avatarF) // 11/11: un avatar más viejo que el de la cuenta se cambia por el de la cuenta (y no se sube encima)
+    // 13/11 (Gabriela: «mi foto de cara de mi cuenta en el móvil es diferente a la que elegí en el Mac»): la selfie y la de cuerpo llevan la hora en que se eligieron
+    // (selfieT, cuerpoT) y gana la más nueva en todos los aparatos. Sin hora en ninguno de los dos lados (fotos de antes), manda la cuenta: así un móvil con una foto
+    // que nunca llegó a subirse ya no la sube encima de la elegida en otro aparato.
+    || (k !== 'avatar' && (dp[k + 'T'] ? (pl[k + 'T'] || '') < dp[k + 'T'] : !pl[k + 'T'])));
   const medMia = pl.medidas && Object.keys(pl.medidas).length && (!dp.medidas || (pl.medidasT || '') > (dp.medidasT || ''));
   const mio = pl.diag && (pl.diag.t || '') > (dp.diag?.t || '');
   const avAqui = pl.avatar instanceof Blob && !vieja('avatar') && firma(pl.avatar) !== dp.avatarSub; // un avatar hecho aquí y aún sin subir: con su fecha y su firma
-  E.perfil = { ...dp, ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => (v instanceof Blob && !vieja(k)) || (medMia && ['medidas', 'medidasT'].includes(k)) || (mio && ['diag', 'tipoCuerpo', 'caras'].includes(k)) || (avAqui && ['avatarAR', 'avatarF', 'avatarDe'].includes(k)))) };
+  E.perfil = { ...dp, ...Object.fromEntries(Object.entries(pl).filter(([k, v]) => (v instanceof Blob && !vieja(k)) || (/^(selfie|cuerpo)T$/.test(k) && pl[k.slice(0, -1)] instanceof Blob && !vieja(k.slice(0, -1))) || (medMia && ['medidas', 'medidasT'].includes(k)) || (mio && ['diag', 'tipoCuerpo', 'caras'].includes(k)) || (avAqui && ['avatarAR', 'avatarF', 'avatarDe'].includes(k)))) };
   Object.assign(E.perfil, juntarProbados(dp, pl, E.perfil.avatarF || '')); limpiarPuestosLocales();
   if (mio && pl.colores?.fuente === 'foto') E.perfil.colores = { ...(E.perfil.colores || {}), est: pl.colores.est, sub: pl.colores.sub, fuente: 'foto' };
   LS.set('tc_sinc_v', '1');
@@ -958,11 +962,23 @@ let estilizando = null, catParado = false;
 // «Estilizando tus fotos · 1 de 3» y, hasta que termine la primera tanda (tc_est_visto), qué es y cuánto tarda; la ficha de la prenda que se plancha, también.
 const porEstilizar = p => !p.cat && !p.conCat && !p.catNo && !p.ejemplo && !(p.catPregunta && p.catProp instanceof Blob)
   && (p.catProp instanceof Blob || (p.foto instanceof Blob && !p.fotoRota && ((p.catFallos || 0) < 3 || p.catFalloDia !== hoyISO())));
+// 13/11 (Gabriela y Sheila: «mientras el usuario espera la estilización de las prendas, que salga el icono del clóset con alguna animación; puede presentar
+// simulación y propuestas»): el armario abre y cierra las puertas y debajo van pasando tres frases. El retraso negativo, contado desde que arrancó la página,
+// (desde que empezó esta espera) hace que la animación siga donde iba aunque el aviso se vuelva a pintar con cada prenda.
+let EST_T0 = 0, EST_ULT = 0; // la espera empieza con la primera frase; si pasan 20 s sin pintarla, la siguiente espera vuelve a empezar
+const ARMARIO_EST = '<svg class="est-arm" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5a4 4 0 0 1 8 0M5.5 6.5h13M6.5 6.5v14h11v-14M7 20.5v1.5M17 20.5v1.5"/><path class="est-dentro" d="M8.4 9.6h7.2M12 9.6v.8M12 10.4l2.6 2.8H9.4z"/><g class="est-pi"><path d="M6.5 6.5H12v14H6.5z"/><circle cx="11" cy="13.5" r=".5"/></g><g class="est-pd"><path d="M12 6.5h5.5v14H12z"/><circle cx="13" cy="13.5" r=".5"/></g></svg>';
+const retrasoEst = c => { const ahora = Date.now(); if (ahora - EST_ULT > 20000) EST_T0 = ahora; EST_ULT = ahora; return `-${(((ahora - EST_T0) / 1000) % c).toFixed(2)}s`; };
+function frasesEspera(primera) {
+  const k = E.prendas.filter(p => p.cat && !p.ejemplo).length;
+  const f = [primera, k >= 4 ? t(`Ya tienes ${k} prendas listas: tu look de hoy te espera en Hoy.`, `${k} garments ready: today's look is waiting in Today.`) : t('Después, cada mañana te propongo un look con ellas.', 'Then every morning I suggest a look with them.'),
+    t('Puedes seguir usando la app: sigue sola.', 'You can keep using the app: it carries on by itself.')];
+  return `<span class="est-rot" style="--d:${retrasoEst(13.5)}">${f.map((x, i) => `<span style="--i:${i}">${escH(x)}</span>`).join('')}</span>`;
+}
 function avisoEst() {
   const pa = $('pared'); let av = $('est-av'); const e = E.estil;
   if (e && !av && pa) { av = document.createElement('p'); av.id = 'est-av'; av.className = 'est-av'; av.setAttribute('role', 'status'); pa.before(av); }
   if (av) { av.hidden = !e; if (e) { let visto = 0; try { visto = localStorage.getItem('tc_est_visto'); } catch (x) { }
-    av.innerHTML = `<span class="est-gira" aria-hidden="true"></span><span>${e.n > 1 ? t(`Estilizando tus fotos · ${e.i} de ${e.n}`, `Styling your photos · ${e.i} of ${e.n}`) : t('Estilizando tu foto', 'Styling your photo')}${visto ? '' : `<small>${t('La convierto en foto de catálogo: unos 15 segundos por prenda. Puedes seguir usando la app.', 'I turn it into a catalogue photo: about 15 seconds per garment. You can keep using the app.')}</small>`}</span>`; } }
+    av.innerHTML = `<span class="est-arm-c" style="--d:${retrasoEst(3.2)}">${ARMARIO_EST}</span><span>${e.n > 1 ? t(`Estilizando tus fotos · ${e.i} de ${e.n}`, `Styling your photos · ${e.i} of ${e.n}`) : t('Estilizando tu foto', 'Styling your photo')}<small>${frasesEspera(visto ? t('La convierto en foto de catálogo.', 'I turn it into a catalogue photo.') : t('La convierto en foto de catálogo: unos 15 segundos por prenda.', 'I turn it into a catalogue photo: about 15 seconds per garment.'))}</small></span>`; } }
   const fi = $('at-ficha'), fe = $('est-ficha');
   if (fi && fe) fe.hidden = !(e && e.id === fi.dataset.id);
 }
@@ -2622,7 +2638,7 @@ function pintarSubida() {
       <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo && !(det.noPrenda && !det.siPrenda) ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(t('Añadir más prendas', 'Add more garments'), 'txt sub-l')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button><button class="txt sub-l" data-squita>${t('Quitar esta prenda', 'Remove this garment')}</button>`}</div></div>`;
   } else {
     const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)).length, nop = E.subida.filter(i => i.noPrenda && !i.siPrenda).length;
-    raiz.innerHTML = `<div class="sb rv">${X}<div class="tit"><h1>${n} ${t('prendas', 'garments')}</h1><div class="mini-et">${E.subida.some(i => i.estado !== 'listo') ? t('Quitando los fondos…', 'Removing backgrounds…') : E.subida.some(i => i.catP) ? t('Estilizando…', 'Styling…') : E.subida.some(i => i.clasP) ? t('Afinando nombres y detalles…', 'Refining names and details…') : t('Revisa y guarda', 'Check and save')}</div></div>
+    raiz.innerHTML = `<div class="sb rv">${X}<div class="tit"><h1>${n} ${t('prendas', 'garments')}</h1><div class="mini-et">${E.subida.some(i => i.estado !== 'listo') ? t('Quitando los fondos…', 'Removing backgrounds…') : E.subida.some(i => i.catP) ? t('Estilizando…', 'Styling…') : E.subida.some(i => i.clasP) ? t('Afinando nombres y detalles…', 'Refining names and details…') : t('Revisa y guarda', 'Check and save')}</div>${E.subida.some(i => i.estado !== 'listo' || i.catP) ? `<p class="est-av est-sub" role="status"><span class="est-arm-c" style="--d:${retrasoEst(3.2)}">${ARMARIO_EST}</span><small>${frasesEspera(t('Le quito el fondo y la convierto en foto de catálogo.', 'I remove the background and turn it into a catalogue photo.'))}</small></p>` : ''}</div>
       <div class="rej">${E.subida.map(it => `<button type="button" data-sdet="${it.id}"${it.catP ? ' class="est-p"' : ''}>${it.url ? `<img src="${(!it.usaOriginal && it.urlCat) || it.url}" alt="">` : ''}${it.catP ? `<span class="s-est" role="status">${t('Estilizando…', 'Styling…')}</span>` : ''}${it.estado === 'listo' && it.noPrenda && !it.siPrenda ? `<p class="no">${t('No es una prenda', 'Not a garment')}<small>${t('Toca para revisarla', 'Tap to check')}</small></p>` : it.estado === 'listo' ? `<em></em><p>${it.nombre}<small>${it.dudoso ? t('Revisa el recorte', 'Check the cut-out') : `${catTxt(catDe(it))} · ${it.color}`}</small></p>` : `<p><small>${t('Quitando el fondo…', 'Removing the background…')}</small></p>`}</button>`).join('')}${n < 20 ? mas(`<svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><small>${t('Añadir más', 'Add more')}</small>`, 'mas') : ''}</div>
       ${E.subida.some(i => i.estado === 'listo' && i.dudoso && !(i.noPrenda && !i.siPrenda)) ? `<p class="s-aviso-l">${t('Las que dicen «Revisa el recorte» pueden haber salido mal: tócalas para verlas.', 'The ones that say «Check the cut-out» may have come out wrong: tap them to see.')}</p>` : ''}
       ${nop ? `<p class="s-aviso-l">${nop === 1 ? t('Hay 1 foto que no coincide con ninguna categoría de prenda: no se guardará.', '1 photo does not match any clothing category: it will not be saved.') : t(`Hay ${nop} fotos que no coinciden con ninguna categoría de prenda: no se guardarán.`, `${nop} photos do not match any clothing category: they will not be saved.`)}</p>` : ''}
@@ -4171,7 +4187,7 @@ function pintarSilueta() {
 }
 async function guardarFotoPerfil(k, file) {
   if (!permiso('diag')) return toast(t('Marca antes el permiso de debajo', 'First tick the permission below'));
-  try { const r = await procesarFoto(file); E.perfil = E.perfil || {}; E.perfil[k] = r.blob; diagFallo = 0; await guardar(); pintarSilueta(); toast(k === 'selfie' ? t('Selfie guardada', 'Selfie saved') : t('Foto de cuerpo guardada', 'Body photo saved'));
+  try { const r = await procesarFoto(file); E.perfil = E.perfil || {}; E.perfil[k] = r.blob; E.perfil[k + 'T'] = new Date().toISOString(); diagFallo = 0; await guardar(); pintarSilueta(); toast(k === 'selfie' ? t('Selfie guardada', 'Selfie saved') : t('Foto de cuerpo guardada', 'Body photo saved'));
     // 0.12: con las dos fotos del alta, el diagnóstico se hace solo, por detrás («no son cosas aisladas, las fotos del inicio con las opciones que pones en Yo»)
     diagFallo = 0; diagHastaAlDia().then(r => { if (E.pantalla === 'cuerpo') pintarCuerpo(); if (r && (r.res.color || r.res.cuerpo)) toast(t('Listo: tus colores y tu tipo de cuerpo están en Yo', 'Done: your colours and body type are in Me')); });
     avatarTrasFoto(); }

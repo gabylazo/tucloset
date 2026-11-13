@@ -1854,3 +1854,19 @@ html.oscuro .pn-error{color:#E8776B}
 #s-raiz .s-est { position: absolute; left: 0; right: 0; top: 42%; text-align: center; font-size: 13px; letter-spacing: .04em; color: var(--tinta) }
 #s-raiz .foto { position: relative }
 #s-raiz .rej small{color:#6E5F54} /* 12/11: 4,46:1 sobre #F6F4F1 no llegaba a 4,5 */
+
+/* 13/11 (Gabriela y Sheila): mientras se estiliza, el armario abre y cierra las puertas y van pasando tres frases (frasesEspera) */
+.est-arm-c{flex:none;display:block;width:34px;height:34px}
+.est-arm{width:34px;height:34px;fill:none;stroke:var(--oro-t);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.est-arm .est-pi,.est-arm .est-pd{transform-box:fill-box;animation:est-puerta 3.2s cubic-bezier(.45,0,.2,1) var(--d,0s) infinite}
+.est-arm .est-pi{transform-origin:left center}.est-arm .est-pd{transform-origin:right center}
+.est-arm path,.est-arm circle{vector-effect:non-scaling-stroke}
+.est-arm .est-dentro{animation:est-dentro 3.2s ease var(--d,0s) infinite}
+@keyframes est-puerta{0%,12%,88%,100%{transform:none}38%,62%{transform:scaleX(-.6)}}
+@keyframes est-dentro{0%,25%,75%,100%{opacity:0}40%,60%{opacity:1}}
+.est-rot{display:grid;margin-top:3px;color:var(--tinta)}
+.est-rot>span{grid-area:1/1;opacity:0;animation:est-frase 13.5s linear calc(var(--d,0s) + var(--i) * 4.5s) infinite}
+@keyframes est-frase{0%,33.3%{opacity:1}33.34%,100%{opacity:0}}
+.est-sub{align-items:center;margin:14px auto 4px;text-align:left}
+.est-sub small{margin-top:0;font-size:13px}
+@media (prefers-reduced-motion:reduce){.est-arm .est-pi,.est-arm .est-pd,.est-arm .est-dentro{animation:none}.est-arm .est-dentro{opacity:1}.est-arm .est-pi,.est-arm .est-pd{transform:scaleX(-.6)}.est-rot>span{animation:none}.est-rot>span:first-child{opacity:1}}

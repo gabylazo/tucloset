@@ -885,6 +885,8 @@ html.oscuro #p-inicio .pronto{color:var(--accion)}
 html.oscuro #p-inicio .abajo a.boton{text-decoration:none}
 html.oscuro #s-raiz .s-est{color:var(--tinta)}
 html.oscuro #s-raiz .rej small{color:#6E5F54}
+html.oscuro .est-arm{fill:none;stroke:var(--oro-t)}
+html.oscuro .est-rot{color:var(--tinta)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}
