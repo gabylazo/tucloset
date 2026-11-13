@@ -1315,26 +1315,33 @@ img{-webkit-user-drag:none}
 .ag-mas{flex:none;width:44px;height:44px;margin-right:-10px;display:grid;place-items:center;color:var(--tinta)}
 .ag-mas .ag-ic{transition:transform .18s}
 .ag-mas[aria-expanded=true] .ag-ic{transform:rotate(45deg)}
-/* 13/11, noche (Gabriela: «lo de abajo de la fecha sobra y mejora el diseño de eso, y luego el despliegue de los datos a añadir del plan»): el «+» abre
-   dos filas a todo el ancho, sin recuadro; sin planes, debajo de la fecha no hay texto; y el formulario va en filas, como la agenda del iPhone: el título
-   arriba y cada dato en una línea (nombre a la izquierda, valor a la derecha), con el control del sistema encima, transparente */
-.ag-menu{margin:4px 0 10px;display:grid;border-top:1px solid var(--linea)}
-.ag-menu button{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:0;border-bottom:1px solid var(--linea);font-size:16px;font-weight:300;color:var(--tinta);text-align:left}
-.ag-menu button .ag-ic{flex:none;width:18px;height:18px;color:var(--sec)}
+/* 13/11, noche (Gabriela: «lo de abajo de la fecha sobra y mejora el diseño de eso, y luego el despliegue de los datos a añadir del plan»; entre tres
+   propuestas eligió la A, «Con iconos»): sin planes, debajo de la fecha no hay texto; el «+» abre tres iconos con su nombre (Evento, Varios días, Viaje),
+   como los de Ideas y la ficha; y el formulario va en filas: el título arriba y cada dato en una línea con su icono delante, con el control del sistema
+   encima, transparente */
+.ag-menu{display:flex;justify-content:space-around;margin:2px 0 10px;padding:8px 0 16px;border-bottom:1px solid var(--linea)}
+.ag-mi{flex:0 0 30%;display:flex;flex-direction:column;align-items:center;gap:7px;min-height:44px;font:400 12.5px/1.2 var(--f);color:var(--sec)}
+.ag-mi-c{display:grid;place-items:center;width:50px;height:50px;border:1px solid var(--linea2);color:var(--tinta)}
+.ag-mi:focus-visible{outline:none}
+.ag-mi:focus-visible .ag-mi-c{outline:2px solid var(--tinta);outline-offset:2px}
 .ag-form{margin:4px 0;text-align:left}
 .ag-form .ag-tit{display:block;width:100%;box-sizing:border-box;margin:0;padding:10px 0 13px;border:0;border-bottom:1px solid var(--linea2);border-radius:0;background:none;font:300 21px/1.25 var(--f);color:var(--tinta);text-align:left}
-.ag-form .ag-tit:focus,.ag-form .ag-esc:focus{outline:0;border-bottom-color:var(--tinta)}
+.ag-form .ag-tit:focus{outline:0;border-bottom-color:var(--tinta)}
+.ag-form .ag-esc:focus{outline:0}
 .ag-form .ag-tit::placeholder,.ag-form .ag-esc::placeholder{color:var(--sec);opacity:1}
-.ag-f{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:52px;border-bottom:1px solid var(--linea);font-size:16px;cursor:pointer}
+.ag-f{position:relative;display:flex;align-items:center;gap:14px;min-height:52px;border-bottom:1px solid var(--linea);font-size:16px;cursor:pointer}
 .ag-f:focus-within{border-bottom-color:var(--tinta)}
 .ag-f:has(.ag-nat:focus-visible){outline:2px solid var(--tinta);outline-offset:2px}
-.ag-l{flex:none;font-weight:300;color:var(--sec)}
-.ag-v{display:flex;align-items:center;gap:6px;min-width:0;color:var(--tinta);text-align:right}
+.ag-f>.ag-ic{flex:none;width:20px;height:20px;color:var(--sec)}
+.ag-v{flex:1;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;color:var(--tinta)}
 .ag-v .no{font-weight:300;color:var(--sec)}
 .ag-v .ag-ic{flex:none;width:16px;height:16px;color:var(--sec)}
 .ag-nat{position:absolute;left:0;top:0;width:100%;height:100%;box-sizing:border-box;margin:0;padding:0;border:0;opacity:0;font:inherit;font-size:16px;cursor:pointer;-webkit-appearance:none;appearance:none}
 .ag-nat::-webkit-calendar-picker-indicator{position:absolute;left:0;top:0;width:100%;height:100%;margin:0;padding:0;cursor:pointer}
-.ag-form .ag-esc{display:block;width:100%;box-sizing:border-box;min-height:52px;margin:0;padding:15px 0 14px;border:0;border-bottom:1px solid var(--linea);border-radius:0;background:none;font:300 16px/1.4 var(--f);color:var(--tinta);text-align:left;resize:none;overflow:hidden}
+.ag-fe{cursor:text}
+.ag-fd{align-items:flex-start}
+.ag-fd>.ag-ic{margin-top:16px}
+.ag-form .ag-esc{flex:1;min-width:0;display:block;box-sizing:border-box;margin:0;padding:15px 0 14px;border:0;border-radius:0;background:none;font:300 16px/1.4 var(--f);color:var(--tinta);text-align:left;resize:none;overflow:hidden}
 .ag-form .ag-dias{justify-content:space-between;gap:4px;padding:10px 0;border-bottom:1px solid var(--linea)}
 .ag-form .ag-dias button{width:40px;height:40px}
 .ag-form .cal-bts{margin-top:28px}

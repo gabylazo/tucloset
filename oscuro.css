@@ -588,21 +588,24 @@ html.oscuro .ag .ag-dia{border-top:1px solid var(--linea);border-bottom:0}
 html.oscuro .ag.con-form .ag-dia{border-top:0}
 html.oscuro .ag-ic{fill:none;stroke:currentColor}
 html.oscuro .ag-mas{color:var(--tinta)}
-html.oscuro .ag-menu{border-top:1px solid var(--linea)}
-html.oscuro .ag-menu button{border-bottom:1px solid var(--linea);color:var(--tinta)}
-html.oscuro .ag-menu button .ag-ic{color:var(--sec)}
+html.oscuro .ag-menu{border-bottom:1px solid var(--linea)}
+html.oscuro .ag-mi{color:var(--sec)}
+html.oscuro .ag-mi-c{border:1px solid var(--linea2);color:var(--tinta)}
+html.oscuro .ag-mi:focus-visible{outline:none}
+html.oscuro .ag-mi:focus-visible .ag-mi-c{outline:2px solid var(--tinta);outline-offset:2px}
 html.oscuro .ag-form .ag-tit{border:0;border-bottom:1px solid var(--linea2);border-radius:0;background:none;color:var(--tinta)}
-html.oscuro .ag-form .ag-tit:focus,html.oscuro .ag-form .ag-esc:focus{outline:0;border-bottom-color:var(--tinta)}
+html.oscuro .ag-form .ag-tit:focus{outline:0;border-bottom-color:var(--tinta)}
+html.oscuro .ag-form .ag-esc:focus{outline:0}
 html.oscuro .ag-form .ag-tit::placeholder,html.oscuro .ag-form .ag-esc::placeholder{color:var(--sec)}
 html.oscuro .ag-f{border-bottom:1px solid var(--linea)}
 html.oscuro .ag-f:focus-within{border-bottom-color:var(--tinta)}
 html.oscuro .ag-f:has(.ag-nat:focus-visible){outline:2px solid var(--tinta);outline-offset:2px}
-html.oscuro .ag-l{color:var(--sec)}
+html.oscuro .ag-f>.ag-ic{color:var(--sec)}
 html.oscuro .ag-v{color:var(--tinta)}
 html.oscuro .ag-v .no{color:var(--sec)}
 html.oscuro .ag-v .ag-ic{color:var(--sec)}
 html.oscuro .ag-nat{border:0}
-html.oscuro .ag-form .ag-esc{border:0;border-bottom:1px solid var(--linea);border-radius:0;background:none;color:var(--tinta)}
+html.oscuro .ag-form .ag-esc{border:0;border-radius:0;background:none;color:var(--tinta)}
 html.oscuro .ag-form .ag-dias{border-bottom:1px solid var(--linea)}
 html.oscuro .ag-ev+.ag-ev{border-top:1px solid var(--linea)}
 html.oscuro .ag-mini{background:var(--baldosa,var(--gris))}
