@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.242'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.247'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -59,6 +59,7 @@ if (AT) (() => {
     pin: svg('<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>'),
     pareja: svg('<circle cx="8.8" cy="8.5" r="2.9"/><circle cx="15.8" cy="9.3" r="2.4"/><path d="M3.5 19.5c.8-3.2 2.8-5 5.3-5s4.5 1.8 5.3 5M13.6 15c.7-.5 1.4-.7 2.2-.7 2 0 3.5 1.5 4.2 4.2"/>'),
     chispa: svg('<path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8z"/><path d="M18.5 16v4M16.5 18h4"/>'),
+    recrear: svg('<path d="M3.5 5.5h10v13h-10z"/><path d="M6 16l2.6-3.2 2 2.1 1-1.1 1.9 2.2"/><path d="M18 4l.9 2.6 2.6.9-2.6.9L18 11l-.9-2.6-2.6-.9 2.6-.9z"/>'), // 13/11: una foto y una chispa (Recrear un look)
     tina: svg('<path d="M3.5 8.5l2 10h13l2-10"/><path d="M3.5 8.5c1.5 1.3 2.9 1.3 4.3 0s2.9-1.3 4.2 0 2.9 1.3 4.2 0 2.9-1.3 4.3 0"/>'),
     girar: svg('<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/>'),
     cal: svg('<rect x="4" y="5.5" width="16" height="14" rx="1"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>'),
@@ -665,12 +666,12 @@ if (AT) (() => {
     if (E.lkTab === 'ideas') return pintarIdeas(raiz);
     const fav = E.lkTab === 'fav', lista = E.conjuntos.filter(c => !fav || c.fav || esFav(c.ids));
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
-    // 09/11 (decisión 36, pedida por Gabriela): «Crear un look» y «Mi cápsula» en una fila corta, como las acciones de Ideas, y los looks guardados justo debajo
-    const acc = fav ? '' : `<div class="at-iconos at-ideas-acc at-mios-acc" role="group" aria-label="${t('Crear looks', 'Create looks')}"><button class="at-ib" data-ir="nuevo-look"><span class="at-ib-c">${I.mas}</span><span class="at-ib-t">${t('Crear un look', 'Create a look')}</span></button><button class="at-ib" data-capsula><span class="at-ib-c">${I.percha}</span><span class="at-ib-t">${t('Mi cápsula', 'My capsule')}</span></button><button class="at-ib" data-semana><span class="at-ib-c">${I.cal}</span><span class="at-ib-t">${t('Mi semana', 'My week')}</span></button></div>`;
+    // 09/11 (decisión 36, pedida por Gabriela): «Crear un look» y «Mi cápsula» en una fila corta (13/11: y «Recrear un look», pedido por Sheila), como las acciones de Ideas, y los looks guardados justo debajo
+    const acc = fav ? '' : `<div class="at-iconos at-ideas-acc at-mios-acc" role="group" aria-label="${t('Crear looks', 'Create looks')}"><button class="at-ib" data-ir="nuevo-look"><span class="at-ib-c">${I.mas}</span><span class="at-ib-t">${t('Crear un look', 'Create a look')}</span></button><button class="at-ib" data-recrear><span class="at-ib-c">${I.recrear}</span><span class="at-ib-t">${t('Recrear un look', 'Recreate a look')}</span></button><button class="at-ib" data-capsula><span class="at-ib-c">${I.percha}</span><span class="at-ib-t">${t('Mi cápsula', 'My capsule')}</span></button><button class="at-ib" data-semana><span class="at-ib-c">${I.cal}</span><span class="at-ib-t">${t('Mi semana', 'My week')}</span></button></div>`;
     const t1 = c => `<figure class="at-t">${baldosa(psDe(c), TW, TH, ` data-look="${c.id}" aria-label="${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}"`)}<figcaption>${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</figcaption></figure>`;
     raiz.innerHTML = filaLooks(E.lkTab) + acc + (lista.length ? `<div class="at-rej2">${lista.map(t1).join('')}</div>` : !fav ? `<div class="at-vacio"><p>${t('Aún no has guardado ningún look. Crea uno o guárdalo desde Hoy.', 'You have not saved any looks yet. Create one or save it from Today.')}</p></div>`
       : `<div class="at-vacio"><p>${t('Aún no tienes favoritos. Abre un look y toca el corazón.', 'No favourites yet. Open a look and tap the heart.')}</p></div>`);
-    raiz.onclick = e => { if (e.target.closest('[data-capsula]')) return abrirCapsula(); if (e.target.closest('[data-semana]')) { E.semana = null; abrirSemana(); return $('at-sem-t')?.focus({ preventScroll: true }); } const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
+    raiz.onclick = e => { if (e.target.closest('[data-recrear]')) return abrirRecrear(); if (e.target.closest('[data-capsula]')) return abrirCapsula(); if (e.target.closest('[data-semana]')) { E.semana = null; abrirSemana(); return $('at-sem-t')?.focus({ preventScroll: true }); } const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
   };
   // el calendario de siempre, con la cabecera de Looks
   const pintarAgendaVieja = pintarAgenda;
@@ -1475,6 +1476,80 @@ if (AT) (() => {
       if (b.dataset.ginsp) { E.inspG = b.dataset.ginsp; return abrirInspira(); }
       if (b.dataset.arq) return abrirInspira(b.dataset.arq);
       if (b.dataset.insplook) { const x = E.inspLooks[+b.dataset.insplook]; cap.remove(); return abrirIdea(x); }
+    };
+  }
+
+  /* ---------- 13/11 RECREAR UN LOOK (Sheila, mensaje 2139: «subir una captura de un look que le gusta en otra persona y que la app le haga uno del mismo
+     estilo con su ropa»; encargo suyo). La foto se lee como en «Looks que te encantan» (/api/inspo, gratis; no se guarda en ningún sitio: solo se ve en este
+     móvil mientras está abierta) y Motor.recrear busca lo más parecido de su clóset y lo pasa por el juez. «Tu versión» sale al lado de la foto, con lo que
+     se parece y lo que falta, sin enlaces de compra. Ponérselo o guardarlo cuenta como gusto: las parejas de prendas y los estilos y colores de la foto ---------- */
+  const HEX = Object.fromEntries(COLORES), EST_TXT = { rayas: ['de rayas', 'striped'], cuadros: ['de cuadros', 'checked'], flores: ['de flores', 'floral'], lunares: ['de lunares', 'polka-dot'], animal: ['de animal print', 'animal-print'] };
+  const generoDe = txt => { const w = String(txt || '').toLowerCase().split(/\s+/)[0] || ''; return { pl: /s$/.test(w), f: /as?$/.test(w) }; };
+  const mayus = x => x.charAt(0).toUpperCase() + x.slice(1);
+  const prendaFoto = x => { const { pl, f } = generoDe(x.tipo), es = EST_TXT[x.estampado];
+    return en() ? [x.color ? nomColor(x.color).toLowerCase() : '', es ? es[1] : '', x.tipo].filter(Boolean).join(' ')
+      : [f ? (pl ? 'unas' : 'una') : (pl ? 'unos' : 'un'), x.tipo, x.color ? adjColor(x.color, f, pl) : '', es ? es[0] : ''].filter(Boolean).join(' '); };
+  const tuPrenda = p => { const n = String(p.nombre || ''); return en() ? `your ${n.toLowerCase()}` : `${generoDe(n).pl ? 'tus' : 'tu'} ${n.charAt(0).toLowerCase() + n.slice(1)}`; };
+  const aprenderRc = (C, id) => { if (C.aprendido) return; C.aprendido = 1; const l = C.lec; E.perfil = E.perfil || {};
+    E.perfil.propios = [...(E.perfil.propios || []), { id: id || 'rc-' + uid(), estilos: l.estilos || [], colores: l.colores || [], formalidad: l.formalidad || null, fecha: hoyISO() }].slice(-MAX_PROPIOS); };
+  function abrirRecrear() {
+    const cap = capaDe('at-recrear', 'at-rc', t('Recrear un look', 'Recreate a look')), C = E.recrear = E.recrear || { fase: 'foto' };
+    const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button>`, h1 = `<h1>${t('Recrear un look', 'Recreate a look')}</h1>`;
+    const foto = (txt, cls) => `<label class="${cls || 'at-btn'} at-cm-foto">${txt}<input type="file" accept="image/*" data-rcfoto aria-label="${txt}"></label>`;
+    if (C.fase === 'foto') cap.innerHTML = `${X}${h1}<p class="at-vj-sub">${t('Sube la foto de un look que te guste, lo lleve quien lo lleve, y te lo armo con tu ropa.', 'Upload a photo of a look you like, whoever is wearing it, and I’ll put it together from your clothes.')}</p>
+      <div class="at-cm-guia" aria-hidden="true">${I.recrear}</div>${C.error ? `<p class="at-cm-error" role="alert">${esc(C.error)}</p>` : ''}
+      ${!cuenta()?.token ? `<button class="at-btn" data-ir="entrar">${t('Entra en tu cuenta para usarlo', 'Sign in to use it')}</button>` : activas().length < 3 ? `<p class="at-vj-sub">${t('Primero sube tu ropa: con tres prendas ya puedo empezar.', 'Add your clothes first: three garments are enough to start.')}</p>` : foto(t('Elegir una foto', 'Choose a photo'))}
+      <p class="at-cm-pie">${t('Una captura, una foto de revista o de una amiga. Leo la ropa y la foto no se guarda.', 'A screenshot, a magazine photo or a friend’s. I read the clothes and the photo isn’t kept.')}</p>`;
+    else if (C.fase === 'leyendo') cap.innerHTML = `${X}${h1}<div class="at-rc-par"><figure class="at-rc-f"><img src="${C.url}" alt="${t('Tu foto', 'Your photo')}" style="width:180px;height:225px"></figure></div><p class="at-vj-sub" role="status">${t('Leyendo el look y buscando en tu clóset…', 'Reading the look and searching your closet…')}</p>`;
+    else {
+      const v = C.r.versiones[C.i], n = C.r.versiones.length, [ancho] = caja(), TW = Math.floor((Math.min(ancho, 480) - 40 - 12) / 2), TH = Math.round(TW * 1.25);
+      const det = v.detalle.filter(d => d.foto && P(d.id)), se = det.filter(d => d.nivel === 'igual'), falta = det.filter(d => !se.includes(d));
+      const fila = (p, txt, sub) => `<li>${p ? `<img src="${urlCat(p)}" alt="">` : '<span class="at-rc-hueco" aria-hidden="true"></span>'}<span><b>${esc(txt)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></li>`;
+      const avisos = { frio: t('Con el tiempo de hoy no es para hoy: guárdalo para un día más templado.', 'Not for today’s weather: save it for a milder day.'), calor: t('Hoy hace demasiado calor para él: guárdalo para un día más fresco.', 'Too warm for it today: save it for a cooler day.'),
+        lluvia: t('Hoy llueve: guárdalo para un día seco.', 'It’s raining today: save it for a dry day.'), estacion: t('Es de otra temporada: guárdalo para entonces.', 'It’s for another season: save it for then.') };
+      const nota = [v.aviso ? avisos[v.aviso] : v.adaptado ? t('He cambiado alguna prenda por el tiempo de hoy.', 'I swapped a piece for today’s weather.') : '', v.faltaCapa ? t('Con este tiempo, con tu abrigo encima.', 'In this weather, with your coat on top.') : ''].filter(Boolean).join(' ');
+      const puesto = C.puesto === C.i, guardado = C.guardado[C.i];
+      cap.innerHTML = `${X}${h1}
+        <div class="at-rc-par">
+          <figure class="at-rc-f"><img src="${C.url}" alt="${t('Tu foto', 'Your photo')}" style="width:${TW}px;height:${TH}px"><figcaption>${t('La foto', 'The photo')}</figcaption></figure>
+          <figure class="at-t at-rc-v" style="width:${TW}px">${baldosaFija(psDe(v), TW, TH, t('Tu versión, con tu ropa', 'Your version, with your clothes'))}<figcaption>${t('Tu versión', 'Your version')}${n > 1 ? ` (${C.i + 1} ${t('de', 'of')} ${n})` : ''}</figcaption></figure>
+        </div>
+        ${nota ? `<p class="at-vj-nota at-rc-nota">${nota}</p>` : ''}
+        ${se.length ? `<h2 class="at-vj-h2">${t('Se parece', 'Close match')}</h2><ul class="at-rc-l">${se.map(d => fila(P(d.id), P(d.id).nombre, t('Como en la foto', 'As in the photo'))).join('')}</ul>` : ''}
+        ${falta.length || C.r.faltan.length ? `<h2 class="at-vj-h2">${t('Te faltaría', 'You’d need')}</h2><ul class="at-rc-l">${falta.map(d => fila(P(d.id), mayus(prendaFoto(d.foto)), d.nivel === 'parecido' ? t(`Con ${tuPrenda(P(d.id))} queda parecido.`, `With ${tuPrenda(P(d.id))} it looks similar.`) : t(`Lo más cercano: ${tuPrenda(P(d.id))}.`, `Closest: ${tuPrenda(P(d.id))}.`))).join('')}${C.r.faltan.map(x => fila(null, mayus(prendaFoto(x)))).join('')}</ul>` : ''}
+        <div class="at-cm-bts">${v.aviso ? '' : `<button class="at-btn${puesto ? ' hecho' : ''}" data-rc="pongo"${puesto ? ' aria-disabled="true"' : ''}>${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button>`}
+          <button class="at-btn${v.aviso ? '' : ' at-btn-2'}${guardado ? ' hecho' : ''}" data-rc="guardar"${guardado ? ' aria-disabled="true"' : ''}>${guardado ? t('Guardado en Mis looks', 'Saved to My looks') : t('Guardar', 'Save')}</button>
+          ${n > 1 ? `<button class="at-enlace" data-rc="otra">${t('Otra versión', 'Another version')}</button>` : ''}${foto(t('Probar con otra foto', 'Try another photo'), 'at-enlace')}</div>`;
+    }
+    cap.querySelectorAll('[data-rcfoto]').forEach(inp => inp.onchange = async e => {
+      const file = e.target.files?.[0]; e.target.value = ''; if (!file) return;
+      if (C.url) URL.revokeObjectURL(C.url); Object.assign(C, { fase: 'leyendo', error: null, url: URL.createObjectURL(file), r: null, i: 0, puesto: -1, guardado: {}, aprendido: 0 }); abrirRecrear(); cap.scrollTop = 0;
+      const lec = await leerInspo(file); let err = null;
+      if (lec.sinRopa) err = t('No veo ropa en esa foto. Prueba con otra en la que se vea el look entero.', 'I can’t see clothes in that photo. Try one that shows the whole look.');
+      else if (lec.error) err = ['tope', 'tope-ia'].includes(lec.error) ? t('Hoy ya no puedo leer más fotos. Prueba mañana.', 'I can’t read more photos today. Try tomorrow.') : t('No he podido leer la foto. Prueba otra vez.', 'I couldn’t read the photo. Try again.');
+      else try {
+        const r = Motor.recrear({ lectura: lec, prendas: activas().filter(p => !p.sucia), tiempo: E.tiempo, perfil: E.perfil, hoy: hoyISO(), hex: HEX });
+        if (r.pocas) err = t('En esa foto no veo un look entero. Prueba con otra en la que se vea de arriba abajo.', 'I can’t see a whole look in that photo. Try one that shows it top to bottom.');
+        else if (!r.versiones.length) err = t('Con tu ropa aún no me sale una versión que funcione. Prueba con otra foto.', 'I can’t make a version that works with your clothes yet. Try another photo.');
+        else Object.assign(C, { lec, r, fase: 'listo' });
+      } catch (x) { err = t('No he podido armarlo. Prueba otra vez.', 'I couldn’t put it together. Try again.'); }
+      if (err) Object.assign(C, { fase: 'foto', error: err });
+      if (cap.isConnected) { abrirRecrear(); cap.scrollTop = 0; }
+    });
+    cap.onclick = async e => {
+      const b = e.target.closest('.x,[data-rc]'); if (!b) return;
+      if (b.classList.contains('x')) { if (C.url) URL.revokeObjectURL(C.url); E.recrear = null; return cap.remove(); }
+      const v = C.r?.versiones[C.i]; if (!v || b.getAttribute('aria-disabled')) return;
+      if (b.dataset.rc === 'otra') C.i = (C.i + 1) % C.r.versiones.length;
+      else if (b.dataset.rc === 'pongo') { aprenderRc(C, null); await ponerse(v.ids, null); C.puesto = C.i; E.propuestas = []; }
+      else {
+        const k = claveLook(v.ids); let cj = E.conjuntos.find(c => claveLook(c.ids) === k);
+        if (!cj) { cj = { id: uid(), nombre: t('Recreado de una foto', 'Recreated from a photo'), ocasion: v.ocasion || 'Diario', ids: [...v.ids], creada: hoyISO(), usos: [], deFoto: 1, zspec: v.zspec, como: v.como }; E.conjuntos.unshift(cj); anotarGusto(v.ids, 'si'); }
+        aprenderRc(C, cj.id); C.guardado[C.i] = 1; E.propuestas = []; E.generados = [];
+        await guardar(); programarNube(); toast(t('Guardado en Mis looks', 'Saved to My looks'));
+      }
+      const y = cap.scrollTop; abrirRecrear(); cap.scrollTop = y;
+      cap.querySelector(`[data-rc="${b.dataset.rc}"]`)?.focus({ preventScroll: true });
     };
   }
 

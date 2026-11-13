@@ -617,6 +617,88 @@ const Motor = (() => {
     l.como = o.como || comoDe(o.formula, l);
     return evaluar(l, ctx, pf, hoy);
   }
+  /* ---------- 13/11 RECREAR UN LOOK (Sheila, mensaje 2139: «subir una captura de un look que le gusta en otra persona y que la app le haga uno del mismo estilo
+     con su ropa»). De lo que la IA leyó en la foto (cada prenda en texto, con su color y su estampado) salen, para cada prenda, las del clóset más parecidas
+     (misma categoría; subtipo, color cercano, estampado, largo, tacón y tejido). Las combinaciones van de más a menos parecidas por el juez: vale la primera
+     sin vetos y, si a la más parecida solo la frena el tiempo de hoy, se dice. Lo que la foto no enseña y hace falta (lo de abajo, el calzado) lo pone el
+     juez con tu ropa. Hasta 4 versiones que cambian algo que se ve (lo de arriba, lo de abajo, el vestido o la capa) ---------- */
+  const RC_TIPO = [['Calzado', /zapat|bota|botin|sandal|mocas|deportiv|tenis|bailarin|salon|tacon|alpargat|zueco|chancl|mule|sneaker|loafer|stiletto/], ['Bolsos', /bolso|cartera|mochila|clutch|bandolera|rinonera|shopper|bolsa/],
+    ['Accesorios', /cintur|gafas|collar|pendient|panuelo|bufanda|gorr|sombrer|reloj|pulsera|bandana|diadema|boina|foulard/], ['Vestidos', /vestido|\bmono\b|pichi|jumpsuit/],
+    ['Abrigo', /abrigo|chaqueta|cazadora|blazer|americana|gabardina|trench|parka|plumifero|plumas|chaqueton|sobrecamisa|bomber|cardigan|rebeca/], ['Abajo', /pantal|vaquer|jean|falda|short|bermuda|legging|malla|jogger|cargo|culotte|palazzo/],
+    ['Arriba', /camis|blusa|jersey|sudadera|top|camiseta|polo|chaleco|body|sueter|hoodie|punto|corse|bustier|crop|tank/]];
+  const RC_TIEMPO = new Set(['V07', 'V08', 'V09', 'V10', 'V11', 'V12', 'V13', 'V14', 'V15', 'V16', 'V25', 'V34', 'V35', 'V40']), RC_FRIO = new Set(['V07', 'V08', 'V11', 'V13', 'V25']);
+  const RC_HUECOS = ['capa', 'arriba', 'base_interior', 'abajo', 'vestido', 'calzado', 'bolso', 'accesorio'], RC_VISTA = ['capa', 'arriba', 'abajo', 'vestido'];
+  // familias de prenda: una camiseta blanca se parece más a otra de color claro que a una blusa; una falda, a otra falda antes que a un pantalón del mismo color
+  const RC_FAM = [['basico', /^(camiseta|top|body|polo|tirantes|crop)/], ['camisa', /^(camisa|blusa)/], ['punto', /^(jersey|sudadera|cardigan|rebeca|sueter|chaleco_punto)/], ['falda', /^falda/], ['short', /^(short|bermuda)/],
+    ['pantalon', /^(pantalon|vaquero|jogger|cargo|chino|culotte|palazzo|legging|malla)/], ['abrigo', /^(abrigo|gabardina|trench|parka|plumifero|chaqueton)/], ['capa', /^(americana|blazer|chaqueta|cazadora|sobrecamisa|bomber|chaleco)/],
+    ['bota', /^(bota|botin)/], ['zapatilla', /^(zapatilla|deportiva|sneaker)/], ['tacon', /^(tacon|salon|sandalias_tacon|stiletto|cuna)/], ['plano', /^(mocasin|bailarina|alpargata|sandalias_planas|merceditas|oxford|zueco)/]];
+  const famDe = s => (RC_FAM.find(([, r]) => r.test(s || '')) || [String(s || '').split('_')[0]])[0];
+  const labDe = h => { if (!/^#?[0-9a-f]{6}$/i.test(h || '')) return null; const n = parseInt(h.replace('#', ''), 16), f = v => { v /= 255; return v > .04045 ? ((v + .055) / 1.055) ** 2.4 : v / 12.92; };
+    const [r, g, b] = [n >> 16 & 255, n >> 8 & 255, n & 255].map(f), k = v => v > .008856 ? Math.cbrt(v) : 7.787 * v + 16 / 116, x = k((r * .4124 + g * .3576 + b * .1805) / .95047), y = k(r * .2126 + g * .7152 + b * .0722), z = k((r * .0193 + g * .1192 + b * .9505) / 1.08883);
+    return [116 * y - 16, 500 * (x - y), 200 * (y - z)]; };
+  function recrear(o) {
+    const pf = perfilMotor(o.perfil, o), hex = o.hex || {}, lec = o.lectura || {}, plan = ['Diario', 'Oficina', 'Noche', 'Deporte', 'Evento', 'Viaje'].includes(lec.ocasion) ? lec.ocasion : 'Diario';
+    const ents = (o.prendas || []).map(p => ({ id: p.id, p, _f: ficha(p, pf) })), lab = c => labDe(hex[c]), dist = (a, b) => { const x = lab(a), y = lab(b); return x && y ? Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) : 60; };
+    // 1. cada prenda de la foto, a su hueco (la primera de cada uno: en una foto con dos personas, la segunda sobra; una segunda de arriba va debajo)
+    const huecos = {}, faltan = [];
+    (lec.prendas || []).forEach((x, i) => {
+      const tp = (RC_TIPO.find(([, r]) => r.test(norm(x.tipo))) || [])[0]; if (!tp) return; // medias, calcetines…: no son prendas del clóset
+      const est = x.estampado && !['liso', 'otro'].includes(x.estampado) ? x.estampado : '', fq = ficha({ id: '__foto' + i, nombre: x.tipo + (est ? ' de ' + est : ''), tipo: tp, color: x.color || '' }, pf);
+      let h = fq.cat === 'joya' ? null : fq.cat; if (!RC_HUECOS.includes(h)) return;
+      if (h === 'arriba' && huecos.arriba && !huecos.base_interior) h = 'base_interior';
+      if (huecos[h] || (h === 'vestido' && (huecos.arriba || huecos.abajo)) || (['arriba', 'abajo', 'base_interior'].includes(h) && huecos.vestido)) return;
+      huecos[h] = { x, fq };
+    });
+    if (!huecos.arriba && !huecos.abajo && !huecos.vestido) return { versiones: [], faltan, pocas: true };
+    // 2. lo más parecido de tu clóset para cada una
+    const parecido = (x, fq, e) => {
+      const fc = e._f, mismo = !!fq.subtipo && fq.subtipo === fc.subtipo, fam = mismo || famDe(fq.subtipo) === famDe(fc.subtipo), vaq = fq.tejido === 'denim' && fc.tejido === 'denim' && /azul/i.test(x.color || '') && /azul/i.test(fc.color || ''), d = vaq ? 5 : x.color ? dist(x.color, fc.color) : 30; // un vaquero azul y uno azul oscuro son el mismo vaquero
+      const ex = x.estampado || 'liso', ec = String(fc.estampado || 'liso').replace('rayas_finas', 'rayas');
+      let s = (fam ? 2.5 : 0) + (mismo ? 1.5 : 0) + 4.5 * Math.max(0, 1 - d / 45) - .4 * Math.abs((fq.form ?? 2) - (fc.form ?? 2));
+      if (ex !== 'otro') s += ex === ec ? (ex === 'liso' ? .5 : 1.5) : ex === 'liso' ? -1.5 : -.5;
+      if (fq.cat === 'abajo' && fq.largo_pierna && fc.largo_pierna) s += fq.largo_pierna === fc.largo_pierna ? 1 : 0;
+      if (fq.cat === 'calzado') s += 1 - .8 * Math.abs((fq.tacon_num ?? 0) - (fc.tacon_num ?? 0));
+      if (fq.conf?.tejido && fq.tejido === fc.tejido) s += .5;
+      return { e, s, fam, nivel: fam && d < 15 ? 'igual' : fam || d < 15 ? 'parecido' : 'distinto' };
+    };
+    const cats = h => h === 'base_interior' ? 'arriba' : h, listas = {}, hora = o.hora ?? (plan === 'Noche' || plan === 'Evento' ? 20 : 12), tref = contexto(o.tiempo, plan, { hora }).t_ref;
+    const apta = e => e._f.tmin == null || (tref >= e._f.tmin - 2 && tref <= (e._f.tmax ?? 99) + 2);
+    for (const [h, { x, fq }] of Object.entries(huecos)) {
+      const l = ents.filter(e => e._f.cat === cats(h)).map(e => parecido(x, fq, e)).sort((a, b) => b.s - a.s);
+      const vale = h === 'accesorio' ? l.filter(c => c.fam) : ['bolso', 'base_interior'].includes(h) ? l.filter(c => c.nivel !== 'distinto') : l; // un complemento que no se parece no se pone (una gorra no es un cinturón)
+      if (!vale.length) { faltan.push({ ...x, hueco: h }); if (h === 'vestido') delete huecos.vestido; continue; }
+      // las 4 más parecidas y las 2 siguientes que valen para el tiempo de hoy (unos shorts en noviembre: tus vaqueros)
+      const n = h === 'bolso' || h === 'accesorio' ? 2 : 4, top = vale.slice(0, n);
+      listas[h] = [...top, ...vale.slice(n).filter(c => apta(c.e)).slice(0, 2)];
+    }
+    // 3. lo que hace falta y la foto no enseña (o no tienes): lo elige el juez entre tu ropa, con lo más parecido de lo demás
+    const base = () => Object.fromEntries(Object.entries(listas).map(([h, l]) => [h, l[0].e.p]));
+    const juez = ps => { const q = { perfil: o.perfil, tiempo: o.tiempo, plan, hora, hoy: o.hoy, ...ps };
+      if (q.capa && !q.arriba && !q.vestido) { q.arriba = q.capa; delete q.capa; } return juzgar(q); };
+    const rellenar = h => { const l = ents.filter(e => e._f.cat === h).map(e => { const j = juez({ ...base(), [h]: e.p }); return { e, s: 0, nivel: 'tuya', j: (j.veto.duros.length ? -100 : 0) + j.nota }; }).sort((a, b) => b.j - a.j); if (l.length) listas[h] = l.slice(0, 3); };
+    if (!listas.vestido) { if (!listas.arriba) rellenar('arriba'); if (!listas.abajo) rellenar('abajo'); }
+    if (!listas.calzado) rellenar('calzado');
+    // 4. las combinaciones, de más a menos parecidas, por el juez
+    const hs = RC_HUECOS.filter(h => listas[h]); let combos = [[]];
+    if (o.depurar) for (const h of hs) o.depurar.push(h + ': ' + listas[h].map(c => `${c.e.p.nombre} ${c.s.toFixed(1)}${apta(c.e) ? '' : '*'}`).join(' · '));
+    for (const h of hs) combos = combos.flatMap(c => listas[h].map((x, i) => [...c, i]));
+    const total = c => c.reduce((s, i, k) => s + listas[hs[k]][i].s - i * .01, 0);
+    combos = combos.map(c => ({ c, t: total(c) })).sort((a, b) => b.t - a.t).slice(0, o.max || 300);
+    const versiones = [], deTiempo = [], vistas = new Set(); let primera = null;
+    for (const { c } of combos) {
+      if (versiones.length >= 4) break;
+      const ps = Object.fromEntries(c.map((i, k) => [hs[k], listas[hs[k]][i].e.p])), clave = RC_VISTA.map(h => ps[h]?.id || '').join();
+      if (vistas.has(clave)) continue;
+      const j = juez(ps), duros = j.veto.duros.map(v => v.id), capa = !ps.capa && duros.length && duros.every(v => v === 'V11'), tiempo = duros.length && duros.every(v => RC_TIEMPO.has(v));
+      if (primera == null) primera = duros.length ? (tiempo ? 'tiempo' : 'no') : 'si';
+      if (o.depurar && o.depurar.length < 12) o.depurar.push(hs.map(h => ps[h].nombre).join(' + ') + ' → ' + (duros.join(',') || 'ok'));
+      if (duros.length && !capa && !tiempo) continue;
+      const v = { ...aPropuesta(j), ocasion: plan, faltaCapa: !!capa, detalle: c.map((i, k) => ({ hueco: hs[k], foto: huecos[hs[k]]?.x || null, id: listas[hs[k]][i].e.id, nivel: listas[hs[k]][i].nivel, fam: !!listas[hs[k]][i].fam })) };
+      if (duros.length && !capa) { if (deTiempo.length < 2) deTiempo.push({ ...v, aviso: duros.some(x => RC_FRIO.has(x)) ? 'frio' : duros.includes('V14') ? 'lluvia' : duros.includes('V34') ? 'estacion' : 'calor' }); continue; }
+      vistas.add(clave); versiones.push({ ...v, adaptado: !versiones.length && primera === 'tiempo' });
+    }
+    return { versiones: versiones.length ? versiones : deTiempo, faltan, ocasion: plan };
+  }
   const capaQueFalta = l => { const tr = l.ctx.tramo; if (String(tr.capa).startsWith('obligatoria')) return tr.id === 'T4' ? 'chaqueta' : 'abrigo'; return l.hueco_faltante ? nombreTipo(tiposDe(l.hueco_faltante.h)[0]) : 'abrigo'; };
   const zapatoDe = l => { const c = l.calzado; if (!c || !c.muestra) return null; const f = c._f; return { muestra: c.muestra, tipo: f.subtipo, color: f.color.toLowerCase(), tacon: f.tacon }; };
   // la propuesta tal y como la pinta la app: los ids de las prendas reales, el zapato de muestra si hace falta y cómo se lleva la de arriba
@@ -658,7 +740,7 @@ const Motor = (() => {
     return { pct: posibles.length ? Math.round(100 * conEl.length / posibles.length) : null, con: conEl.map(x => x.id), posibles: posibles.length, nLooks: vistos.size,
       ocasiones: ocs.filter(x => enOc.has(x)), temps, looks: lista.map(aPropuesta), parecidas, tipos: CON_TIPO[p.tipo] || [] };
   }
-  return { iniciar, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, aPropuesta, faltas, claveLook, utilidad, get R() { return R; }, get F() { return F; } };
+  return { iniciar, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, recrear, aPropuesta, faltas, claveLook, utilidad, get R() { return R; }, get F() { return F; } };
 })();
 if (typeof module !== 'undefined') module.exports = Motor;
 else if (typeof MOTOR_DATOS !== 'undefined') Motor.iniciar(MOTOR_DATOS.R, MOTOR_DATOS.F, MOTOR_DATOS.S);

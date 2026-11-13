@@ -676,3 +676,20 @@ html.at .at-desc svg { width: 20px; height: 20px; }
 /* 12/11 (Gabriela: «el tiempo que esperas para ver la prenda con el fondo quitado sea el que esperes para verla ya estilizada»): mientras se estiliza, el recorte apagado y «Estilizando…» */
 html.at .at-cel.est-pend img { opacity: .3; }
 html.at .at-cel.est-pend i { color: var(--tinta); }
+
+/* 13/11 · Recrear un look (Sheila, 2139): la foto y tu versión, una al lado de la otra; debajo, lo que se parece y lo que te faltaría */
+html.at .at-rc-par { display: flex; justify-content: center; align-items: flex-start; gap: 12px; margin: 14px 0 0; }
+html.at .at-rc-par figure { margin: 0; }
+html.at .at-rc-f { display: flex; flex-direction: column; align-items: center; }
+html.at .at-rc-f img { display: block; max-width: none; object-fit: contain; background: var(--baldosa); }
+html.at .at-rc-f figcaption { margin-top: 8px; font-size: 12.5px; color: var(--sec); }
+html.at .at-rc-nota { margin-top: 14px; }
+html.at .at-rc-l { list-style: none; max-width: 360px; margin: 0 auto; padding: 0; text-align: left; }
+html.at .at-rc-l li { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--raya); }
+html.at .at-rc-l li:first-child { border-top: 0; }
+html.at .at-rc-l img, html.at .at-rc-hueco { flex: none; display: block; width: 44px; height: 55px; object-fit: contain; background: var(--baldosa); }
+html.at .at-rc-l b { display: block; font-weight: 400; font-size: 15px; line-height: 1.3; color: var(--tinta); }
+html.at .at-rc-l small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.4; color: var(--sec); }
+html.at .at-btn.at-btn-2 { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+html.at .at-btn.at-btn-2.hecho { box-shadow: none; color: var(--sec); }
+html.at .at-rc .at-cm-bts > .at-btn { width: 240px; max-width: 100%; }
