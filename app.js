@@ -400,14 +400,11 @@ const FOTOS_DIAG = ['selfie', 'cuerpo', 'avatar'];
    cuenta, y en el servidor (POST /api/permiso; el del avatar lo mira el servidor antes de llamar a Google). Con un permiso retirado no puede quedar nada de lo que
    salió de él, aquí ni en los otros móviles de la cuenta (aplicarRetiradas, al arrancar y al bajar de la cuenta: sin el permiso no se pueden añadir fotos ni medidas,
    así que lo que aparezca es viejo). Lo que ya salió de las fotos antes de que existiera el permiso queda aparte (diagEspera) hasta que lo den. */
-const PERMISO_V = 'privacidad-2026-11-10b'; // 10/11 tarde (Gabriela: «hay un texto grandísimo… eso se quita; a la vez que se sube una foto de cara y del cuerpo se tiene que entender ambas cosas»): un solo permiso corto
+const PERMISO_V = 'privacidad-2026-11-13'; // 13/11 (Gabriela: «el texto sobre el uso de las fotos para aceptar es muy largo… no des detalles, sé específico y corto»): una línea; el detalle, en la ayuda. 10/11 tarde (Gabriela: «hay un texto grandísimo… eso se quita; a la vez que se sube una foto de cara y del cuerpo se tiene que entender ambas cosas»): un solo permiso corto
 const PERMISOS = {
-  diag: ['Acepto que TuCloset use mis fotos y mis medidas para sacar mis colores y mi silueta, crear mi avatar en el Pro (con Google, que puede tratarlas fuera de la UE) y guardarlas, privadas, en mi cuenta. Puedo retirarlo cuando quiera.',
-    'I agree that TuCloset uses my photos and measurements to work out my colours and figure, create my avatar on Pro (with Google, which may process them outside the EU) and keep them, private, in my account. I can withdraw this at any time.'],
-  avatar: ['Acepto que mis fotos se envíen a Google (puede tratarlas fuera de la UE) para crear mi avatar y probarme los looks.',
-    'I agree that my photos are sent to Google (it may process them outside the EU) to create my avatar and try on looks.'],
-  fotos: ['Guardar mis fotos en mi cuenta, privadas, para verlas en otros móviles. Si no la marco, se quedan solo en este móvil.',
-    'Keep my photos in my account, private, to see them on other phones. If I leave it unticked, they stay only on this phone.']
+  diag: ['Acepto que TuCloset use mis fotos y medidas para mi diagnóstico y mi avatar.', 'I agree that TuCloset uses my photos and measurements for my analysis and avatar.'],
+  avatar: ['Acepto enviar mis fotos a Google para crear mi avatar.', 'I agree to send my photos to Google to create my avatar.'],
+  fotos: ['Guardar mis fotos en mi cuenta, privadas.', 'Keep my photos in my account, private.']
 };
 const permiso = k => E.perfil?.permisos?.[k]?.si === true;
 const casillaPermiso = (k, id) => `<label class="pm-cas"><input type="checkbox" ${id ? `id="${id}"` : `data-permiso="${k}"`} ${permiso(k) ? 'checked' : ''}><span>${t(...PERMISOS[k])}</span></label>`;
@@ -2015,7 +2012,7 @@ const frDe = h => !h ? 'Mañana' : h < '14:00' ? 'Mañana' : h < '20:00' ? 'Tard
 const OC_POR_NOMBRE = [[/gym|gimnas|pilates|yoga|correr|running|p[aá]del|tenis|deporte|entren|crossfit|spinning|nata|piscina|baile/i, 'Deporte'], [/oficina|trabaj|reuni|clase|universidad|facultad|cliente|curro|cole/i, 'Oficina'], [/cena|copas|fiesta|discoteca|concierto|teatro|cine|noche/i, 'Noche'], [/boda|bautiz|comuni|graduaci|gala|evento|cumple/i, 'Evento'], [/viaje|vuelo|avi[oó]n|tren|escapada|aeropuerto/i, 'Viaje']];
 function eventosDe(d) {
   const a = E.agenda[d] || {}, dow = new Date(d + 'T12:00').getDay(), sin = a.sin || [];
-  const fijos = (E.perfil?.fijos || []).filter(f => f.dias.includes(dow) && !sin.includes(f.id) && (!f.desde || d >= f.desde)).map(f => ({ id: f.id, nombre: f.nombre, oc: f.oc, hora: f.hora || '', fijo: true, url: f.url, desc: f.desc, lugar: f.lugar, ref: f }));
+  const fijos = (E.perfil?.fijos || []).filter(f => f.dias.includes(dow) && !sin.includes(f.id) && (!f.desde || d >= f.desde) && (!f.hasta || d <= f.hasta)).map(f => ({ id: f.id, nombre: f.nombre, oc: f.oc, hora: f.hora || '', fijo: true, url: f.url, desc: f.desc, lugar: f.lugar, ref: f }));
   const sueltos = (a.planes || []).map((p, i) => ({ id: p.id || 'p' + i, i, nombre: p.nombre || '', oc: p.oc, hora: p.hora || HORA_FR[p.fr] || '', deHoy: p.deHoy, url: p.url, desc: p.desc, lugar: p.lugar, ref: p }));
   return [...fijos, ...sueltos].sort((x, y) => (x.hora || '99').localeCompare(y.hora || '99'));
 }
@@ -2032,7 +2029,9 @@ function diasTxt(ds) {
   return o.map(x => (en ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'])[x]).join(', ');
 }
 // el formulario, como el de Google Calendar: título, hora, ocasión (se deduce del título) y si se repite
-const REPITE = [['una', 'No se repite', 'Does not repeat'], ['semana', 'Cada semana', 'Weekly'], ['laborables', 'De lunes a viernes', 'Weekdays'], ['diario', 'Todos los días', 'Every day'], ['dias', 'Elegir días', 'Pick days']];
+const REPITE = [['una', 'No se repite', 'Does not repeat'], ['semana', 'Cada semana', 'Weekly'], ['laborables', 'De lunes a viernes', 'Weekdays'], ['diario', 'Todos los días', 'Every day'], ['dias', 'Elegir días', 'Pick days'], ['varios', 'Varios días seguidos', 'Several days in a row']];
+const diaMas = (d, n) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() + n); return diaISO(x); };
+const rangoEv = f => { const o = { day: 'numeric', month: 'short' }, L = idioma() === 'en' ? 'en-GB' : 'es-ES', fd = d => new Date(d + 'T12:00').toLocaleDateString(L, o); return `${fd(f.desde)} – ${fd(f.hasta)}`; };
 const escH = x => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 function formEvento() {
   const f = E.cal.form, en = idioma() === 'en', L = en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -2042,12 +2041,13 @@ function formEvento() {
     <textarea id="ag-desc" class="ag-desc" rows="2" maxlength="240" placeholder="${t('Cuéntame el plan: qué haréis, si es dentro o fuera, si hay que ir arreglada…', 'Tell me the plan: what you’ll do, indoors or out, dressy or not…')}">${escH(f.desc || '')}</textarea>
     <div class="cal-ops">${OCASIONES.map(o => `<button class="${o === f.oc ? 'on' : ''}" data-agoc="${o}">${ocNombre(o)}</button>`).join('')}</div>
     ${f.edita ? '' : `<div class="cal-ops ag-rep">${REPITE.map(([k, es, i]) => `<button class="${k === f.rep ? 'on' : ''}" data-agrep="${k}">${k === 'semana' ? (en ? `Every ${new Date(f.dia + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long' })}` : `Cada ${new Date(f.dia + 'T12:00').toLocaleDateString('es-ES', { weekday: 'long' })}`) : en ? i : es}</button>`).join('')}</div>`}
+    ${f.rep === 'varios' ? `<label class="ag-hora">${t('Hasta el', 'Until')}<input id="ag-hasta" type="date" min="${diaMas(f.dia, 1)}" max="${diaMas(f.dia, 30)}" value="${f.hasta || ''}"></label>` : ''}
     ${f.rep === 'dias' ? `<div class="ag-dias">${[1, 2, 3, 4, 5, 6, 0].map((x, i) => `<button class="${f.dias.includes(x) ? 'on' : ''}" data-agdow="${x}" aria-label="${diasTxt([x])}">${L[i]}</button>`).join('')}</div>` : ''}
     <div class="cal-bts"><button class="hz-bt" data-agguarda>${f.edita ? t('Guardar los cambios', 'Save changes') : t('Guardar', 'Save')}</button><button class="txt sub-l" data-agcancela>${t('Cancelar', 'Cancel')}</button></div></div>`;
 }
 function panelEvento(d, ev, hoy) {
   const lk = lookDe(d, ev), fut = d >= hoy;
-  if (lk && !E.cal.cambia) return `<div class="ag-panel"><div class="lk-fig">${figLook({ ids: lk }, true)}</div><div class="cal-bts">${fut ? `<button class="txt sub-l" data-agcambia>${t('Cambiar el look', 'Change the look')}</button>` : ''}<button class="txt sub-l" data-agquitalook>${t('Quitar el look', 'Remove the look')}</button>${quitarEv(ev)}</div></div>`;
+  if (lk && !E.cal.cambia) return `<div class="ag-panel"><div class="lk-fig">${figLook({ ids: lk }, true)}</div><div class="cal-bts">${planearEv(ev, fut)}${fut ? `<button class="txt sub-l" data-agcambia>${t('Cambiar el look', 'Change the look')}</button>` : ''}<button class="txt sub-l" data-agquitalook>${t('Quitar el look', 'Remove the look')}</button>${quitarEv(ev)}</div></div>`;
   if (!fut) return `<div class="ag-panel"><div class="cal-bts">${quitarEv(ev)}</div></div>`;
   let ideas, falta = false, info = '';
   if (typeof looksEvento === 'function') {
@@ -2059,7 +2059,7 @@ function panelEvento(d, ev, hoy) {
   if (g) { const k = `${d}|${ev.id}|${E.cal.idea}`; if (E.cal.reg !== k) { E.cal.reg = k; registrar('propuesta', { dia: d, ev: ev.id, oc: ev.oc, idea: E.cal.idea, ids: g.ids, info }); } }
   const mios = E.cal.mios && E.conjuntos.length ? `<div class="cal-mios">${E.conjuntos.slice(0, 12).map(c => `<button data-agmio="${c.id}"><div class="lk-fig">${figLook(c, true)}</div></button>`).join('')}</div>` : '';
   return `<div class="ag-panel">${datosPlan(ev, info)}${falta ? avisoFalta(ev.oc, false) : ''}${g ? `<div class="lk-fig">${figLook(g, true)}</div>${pieLook(conZapato(g.ids.map(P).filter(Boolean), g.zspec))}` : ''}
-    <div class="cal-bts">${g ? `<button class="hz-bt" data-agpon="${g.ids.join(',')}">${t('Guardar para este evento', 'Save for this event')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button>` : ''}${E.conjuntos.length ? `<button class="txt sub-l" data-agmios>${t('Elegir de mis looks', 'Pick from my looks')}</button>` : ''}${editarEv}${quitarEv(ev)}</div>${mios}</div>`;
+    <div class="cal-bts">${planearEv(ev, true)}${g ? `<button class="hz-bt" data-agpon="${g.ids.join(',')}">${t('Guardar para este evento', 'Save for this event')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button>` : ''}${E.conjuntos.length ? `<button class="txt sub-l" data-agmios>${t('Elegir de mis looks', 'Pick from my looks')}</button>` : ''}${editarEv}${quitarEv(ev)}</div>${mios}</div>`;
 }
 const editarEv = `<button class="txt sub-l" data-agedita>${t('Editar el plan', 'Edit the plan')}</button>`;
 // el sitio (con su enlace), la descripción y el tiempo de ese día a esa hora
@@ -2078,7 +2078,8 @@ async function leerEnlace(obj, d) {
 // 06/11 (Gabriela: «todo esto son experimentos que tienes que ir registrando para analizar y establecer patrones de comportamiento de la app»):
 // cada plan, look propuesto, elegido u «otra idea» se apunta en el servidor (solo de las cuentas de las socias, mientras no haya política de privacidad)
 function registrar(tipo, d) { if (!cuenta() || window.top !== window) return; api('/api/registro', { method: 'POST', json: { tipo, d }, tiempo: 15000 }).catch(() => { }); }
-const quitarEv = ev => `<button class="txt sub-l ag-quita" data-agquita>${ev.fijo ? t('Borrar solo este día', 'Delete this day only') : t('Borrar el evento', 'Delete the event')}</button>${ev.fijo ? `<button class="txt sub-l ag-quita" data-agbfijo="${ev.id}">${t('Borrar en todas las semanas', 'Delete from every week')}</button>` : ''}`;
+const quitarEv = ev => `<button class="txt sub-l ag-quita" data-agquita>${ev.fijo ? t('Borrar solo este día', 'Delete this day only') : t('Borrar el evento', 'Delete the event')}</button>${ev.fijo ? `<button class="txt sub-l ag-quita" data-agbfijo="${ev.id}">${ev.ref?.hasta ? t('Borrar todos los días', 'Delete every day') : t('Borrar en todas las semanas', 'Delete from every week')}</button>` : ''}`;
+const planearEv = (ev, fut) => ev.fijo && fut && typeof planearVarios === 'function' ? `<button class="txt sub-l" data-agplan>${ev.ref?.hasta ? t('Planear un look para cada día', 'Plan a look for each day') : t('Planear los looks de la semana', 'Plan the week’s looks')}</button>` : '';
 // 0.111 (Gabriela, 28/10, al ver la agenda por semanas: «quizás el calendario debe ser más pequeño, abarca mucho espacio, con la opción de
 // poner eventos en algún día como lo hace Google Calendar»): un mes pequeño arriba (un punto en los días con eventos) y, debajo, los eventos
 // del día elegido con su look; «Añadir evento» en ese día, con la opción de repetirlo
@@ -2095,7 +2096,7 @@ function pintarAgenda(raiz) {
   const sem = (en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D']).map(x => `<span>${x}</span>`).join('');
   const evs = eventosDe(d), fijos = E.perfil?.fijos || [];
   const filas = evs.map(ev => { const k = `${d}|${ev.id}`, lk = lookDe(d, ev), ab = E.cal.ev === k;
-    return `<div class="ag-ev${ab ? ' ab' : ''}"><button class="ag-fila" data-agev="${k}"><span class="ag-h">${ev.hora || ''}</span><span class="ag-txt"><b>${nomEv(ev)}</b><small>${[ev.nombre && ev.nombre.toLowerCase() !== ocNombre(ev.oc).toLowerCase() ? ocNombre(ev.oc) : '', ev.fijo ? diasTxt((fijos.find(x => x.id === ev.id) || {}).dias || []) : '', ev.lugar?.nombre || ''].filter(Boolean).join(' · ')}</small></span>${lk ? `<span class="ag-mini"><span class="lk-fig">${figLook({ ids: lk }, true)}</span></span>` : d >= hoy ? `<span class="ag-elegir">${t('Elegir look', 'Pick a look')}</span>` : ''}</button>${ab ? panelEvento(d, ev, hoy) : ''}</div>`; }).join('');
+    return `<div class="ag-ev${ab ? ' ab' : ''}"><button class="ag-fila" data-agev="${k}"><span class="ag-h">${ev.hora || ''}</span><span class="ag-txt"><b>${nomEv(ev)}</b><small>${[ev.nombre && ev.nombre.toLowerCase() !== ocNombre(ev.oc).toLowerCase() ? ocNombre(ev.oc) : '', ev.fijo ? ((f0 => f0.hasta ? rangoEv(f0) : diasTxt(f0.dias || []))(fijos.find(x => x.id === ev.id) || {})) : '', ev.lugar?.nombre || ''].filter(Boolean).join(' · ')}</small></span>${lk ? `<span class="ag-mini"><span class="lk-fig">${figLook({ ids: lk }, true)}</span></span>` : d >= hoy ? `<span class="ag-elegir">${t('Elegir look', 'Pick a look')}</span>` : ''}</button>${ab ? panelEvento(d, ev, hoy) : ''}</div>`; }).join('');
   const puesto = E.prendas.filter(p => (p.usos || []).includes(d));
   raiz.innerHTML = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
     ${lkTabs('cal')}
@@ -2103,19 +2104,21 @@ function pintarAgenda(raiz) {
     <div class="ag-sem7">${sem}</div><div class="ag-rej">${celdas}</div>
     <section class="ag-dia"><h3>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>
       ${filas || (f ? '' : `<p class="cal-vacio">${d >= hoy ? t('Nada apuntado este día.', 'Nothing planned this day.') : t('Sin eventos.', 'No events.')}</p>`)}
-      ${f ? formEvento() : d >= hoy ? `<button class="ag-mas" data-agnuevo><svg viewBox="0 0 12 12"><path d="M6 1v10M1 6h10"/></svg>${t('Añadir evento', 'Add event')}</button>` : ''}
+      ${f ? formEvento() : d >= hoy ? `<button class="ag-mas" data-agnuevo><svg viewBox="0 0 12 12"><path d="M6 1v10M1 6h10"/></svg>${t('Añadir evento', 'Add event')}</button><button class="ag-mas" data-agvarios><svg viewBox="0 0 12 12"><path d="M6 1v10M1 6h10"/></svg>${t('Planear varios días', 'Plan several days')}</button>` : ''}
       ${puesto.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(puesto, true)}</div></div>` : ''}</section></div>`;
   const nom = $('ag-nom'); if (nom) { nom.oninput = () => { f.nombre = nom.value; const o = OC_POR_NOMBRE.find(([r]) => r.test(nom.value)); if (o && !f.ocTocada && o[1] !== f.oc) { f.oc = o[1]; raiz.querySelectorAll('[data-agoc]').forEach(b => b.classList.toggle('on', b.dataset.agoc === f.oc)); } }; if (!f.nombre) nom.focus(); }
   const hr = $('ag-hora'); if (hr) hr.onchange = () => { f.hora = hr.value; };
   raiz.onclick = async e => {
-    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agoc],[data-agrep],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agedita],[data-agquitalook],[data-agquita],[data-agbfijo]'); if (!b) return;
-    const q = b.dataset, [dia, evId] = (E.cal.ev || '|').split('|'), ag = k => (E.agenda[k] = E.agenda[k] || { planes: [] });
+    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agoc],[data-agrep],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agedita],[data-agquitalook],[data-agquita],[data-agbfijo],[data-agvarios],[data-agplan]'); if (!b) return;
+    const q = b.dataset, [dia, evId] = (E.cal.ev || '|').split('|'), ag = k => (E.agenda[k] = E.agenda[k] || { planes: [] }); let planear = null;
     if (q.lktab) { E.lkTab = q.lktab; E.lkTocado = true; E.lkI = 0; return pintarLooks(); }
     if (q.agmes) E.cal.mes = new Date(m.getFullYear(), m.getMonth() + +q.agmes, 1);
     else if (q.agdia) { E.cal.dia = q.agdia; E.cal.ev = null; E.cal.form = null; E.cal.idea = 0; }
     else if (q.agnuevo !== undefined) { E.cal.form = { dia: d, oc: 'Diario', hora: '', rep: 'una', dias: [sel.getDay()], nombre: '' }; E.cal.ev = null; }
+    else if (q.agvarios !== undefined) { E.cal.form = { dia: d, oc: 'Oficina', hora: '', rep: 'varios', hasta: diaMas(d, 4), dias: [sel.getDay()], nombre: '' }; E.cal.ev = null; }
+    else if (q.agplan !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) planear = [ev, dia]; }
     else if (q.agoc) { f.oc = q.agoc; f.ocTocada = true; raiz.querySelectorAll('[data-agoc]').forEach(x => x.classList.toggle('on', x.dataset.agoc === f.oc)); return; }
-    else if (q.agrep) { f.nombre = $('ag-nom')?.value || f.nombre; f.hora = $('ag-hora')?.value || f.hora; f.url = $('ag-url')?.value ?? f.url; f.desc = $('ag-desc')?.value ?? f.desc; f.rep = q.agrep; } // el enlace y la descripción tampoco se pierden al elegir cómo se repite
+    else if (q.agrep) { f.nombre = $('ag-nom')?.value || f.nombre; f.hora = $('ag-hora')?.value || f.hora; f.url = $('ag-url')?.value ?? f.url; f.desc = $('ag-desc')?.value ?? f.desc; f.hasta = $('ag-hasta')?.value || f.hasta || diaMas(d, 4); f.rep = q.agrep; } // el enlace y la descripción tampoco se pierden al elegir cómo se repite
     else if (q.agdow) { const x = +q.agdow; f.dias = f.dias.includes(x) ? f.dias.filter(y => y !== x) : [...f.dias, x]; b.classList.toggle('on'); return; }
     else if (q.agcancela !== undefined) E.cal.form = null;
     else if (q.agguarda !== undefined) {
@@ -2126,14 +2129,17 @@ function pintarAgenda(raiz) {
       const nombre = ($('ag-nom')?.value || '').trim(), hora = $('ag-hora')?.value || '', desc0 = ($('ag-desc')?.value || '').trim();
       const desc = sitioTxt && !desc0.toLowerCase().includes(sitioTxt.toLowerCase()) ? [sitioTxt, desc0].filter(Boolean).join(' · ') : desc0;
       if (!f.ocTocada && !OC_POR_NOMBRE.some(([r]) => r.test(nombre))) { const o = OC_POR_NOMBRE.find(([r]) => r.test(desc)); if (o) f.oc = o[1]; }
-      const extra = { url: url || undefined, desc: desc || undefined }, dias = f.edita ? null : { semana: [sel.getDay()], laborables: [1, 2, 3, 4, 5], diario: [0, 1, 2, 3, 4, 5, 6], dias: f.dias }[f.rep];
+      const extra = { url: url || undefined, desc: desc || undefined }, dias = f.edita ? null : { semana: [sel.getDay()], laborables: [1, 2, 3, 4, 5], diario: [0, 1, 2, 3, 4, 5, 6], dias: f.dias, varios: [0, 1, 2, 3, 4, 5, 6] }[f.rep];
+      const hasta = f.rep === 'varios' && !f.edita ? $('ag-hasta')?.value || '' : '';
+      if (f.rep === 'varios' && !f.edita && !(hasta > d)) { toast(t('Elige hasta qué día dura', 'Pick the last day')); return; }
       let obj;
       if (f.edita) { obj = f.edita; if (obj.url !== extra.url) delete obj.lugar; Object.assign(obj, { nombre, oc: f.oc, hora, ...extra }); if (!obj.dias) obj.fr = frDe(hora); }
-      else if (dias) { if (!dias.length) { toast(t('Marca los días en que se repite', 'Pick the days it repeats')); return; } obj = { id: uid(), nombre, oc: f.oc, hora, dias: [...dias].sort(), desde: d, ...extra }; E.perfil.fijos = [...(E.perfil.fijos || []), obj]; }
+      else if (dias) { if (!dias.length) { toast(t('Marca los días en que se repite', 'Pick the days it repeats')); return; } obj = { id: uid(), nombre, oc: f.oc, hora, dias: [...dias].sort(), desde: d, ...(hasta ? { hasta } : {}), ...extra }; E.perfil.fijos = [...(E.perfil.fijos || []), obj]; }
       else { obj = { id: uid(), nombre, oc: f.oc, hora, fr: frDe(hora), ...extra }; ag(d).planes.push(obj); }
-      E.cal.form = null; await guardar(); E.propuestas = []; toast(f.edita ? t('Cambios guardados', 'Changes saved') : dias ? t('Evento guardado: se repite ', 'Event saved: repeats ') + diasTxt(dias) : t('Evento guardado', 'Event saved'));
-      registrar('plan', { dia: d, hora, oc: f.oc, nombre, desc, url, repite: dias ? diasTxt(dias) : '' });
+      E.cal.form = null; await guardar(); E.propuestas = []; toast(f.edita ? t('Cambios guardados', 'Changes saved') : hasta ? t('Evento guardado: ', 'Event saved: ') + rangoEv(obj) : dias ? t('Evento guardado: se repite ', 'Event saved: repeats ') + diasTxt(dias) : t('Evento guardado', 'Event saved'));
+      registrar('plan', { dia: d, hora, oc: f.oc, nombre, desc, url, repite: hasta ? rangoEv(obj) : dias ? diasTxt(dias) : '' });
       if (url && !obj.lugar) leerEnlace(obj, d);
+      if (hasta) planear = [eventosDe(d).find(x => x.id === obj.id), d]; // recién apuntado, sale ya un look para cada día
     }
     else if (q.agev) { E.cal.ev = E.cal.ev === q.agev ? null : q.agev; E.cal.idea = 0; E.cal.mios = false; E.cal.cambia = false; E.cal.form = null; }
     else if (q.agpon) { const a = ag(dia); a.looks = { ...(a.looks || {}), [evId]: q.agpon.split(',') }; registrar('elegido', { dia, ev: evId, ids: q.agpon.split(','), idea: E.cal.idea }); E.cal.cambia = false; await guardar(); E.propuestas = []; toast(t('Look guardado para este evento', 'Look saved for this event')); }
@@ -2146,6 +2152,7 @@ function pintarAgenda(raiz) {
     else if (q.agquita !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) { const a = ag(dia); if (ev.fijo) a.sin = [...(a.sin || []), ev.id]; else a.planes.splice(ev.i, 1); if (a.looks) delete a.looks[ev.id]; E.cal.ev = null; await guardar(); E.propuestas = []; toast(ev.fijo ? t('Quitado de este día', 'Removed from this day') : t('Evento borrado', 'Event deleted')); } }
     else if (q.agbfijo) { E.perfil.fijos = (E.perfil.fijos || []).filter(x => x.id !== q.agbfijo); E.cal.ev = null; await guardar(); E.propuestas = []; toast(t('Borrado en todas las semanas', 'Deleted from every week')); }
     pintarAgenda(raiz);
+    if (planear?.[0] && typeof planearVarios === 'function') planearVarios(...planear);
   };
 }
 function pintarCalendario(raiz) { return pintarAgenda(raiz); } // la vista de mes (0.40–0.110) se quitó el 06/11: desde la 0.111 el calendario es la agenda
@@ -3352,6 +3359,7 @@ const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no
   ['Hoy y looks', 'Quiero otro look', 'Usa las flechas a los lados del look para ver más propuestas. Con el corazón lo guardas en tus favoritos.'],
   ['Hoy y looks', 'Para qué sirve «Me lo pongo»', 'Apunta que hoy llevas ese look: cuenta un uso de cada prenda y lo guarda en el calendario.'],
   ['Hoy y looks', 'Cómo le digo a dónde voy', 'En Hoy, toca la ocasión bajo la fecha y elige otra. Para otro día, en Looks → Calendario, elige el día y toca «Añadir evento»: pon el plan, la hora y, si quieres, el enlace del sitio y una descripción. La app te propone looks con el tiempo de ese día.'],
+  ['Hoy y looks', 'Cómo planeo los looks de varios días', 'En Looks → Calendario, toca «Planear varios días»: pon el plan (trabajo, un congreso, un viaje corto…), la ocasión y hasta qué día dura. Te propongo un look para cada día con su tiempo; cambia el que quieras con «Otro» y toca «Guardar los looks». Cada día, su look sale el primero en Hoy.'],
   ['Hoy y looks', 'Me dice que me falta ropa para una ocasión', 'Si tu clóset no da para un plan (noche, evento, oficina, deporte), la app te lo dice y te propone qué tipo de prenda te vendría bien.'],
   ['Hoy y looks', 'Cómo creo y guardo un look', 'En Looks → Mis looks, toca + y elige las prendas. Los looks que te gustan de Hoy e Ideas se guardan con el corazón.'],
   ['Hoy y looks', 'Quiero un look con una prenda concreta', 'En Hoy, toca «Con una prenda» junto a la ocasión. Todos los looks que te propone la llevan.'],
@@ -3365,6 +3373,7 @@ const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no
   ['Mi estilo', 'Cómo funciona mi diagnóstico', 'En Yo → Tus medidas y fotos: apunta tus medidas con la cinta (el contorno de pecho, cintura y cadera) y sube una foto de cara y una de cuerpo entero. La app calcula tu silueta y tus colores. En el Pro, los looks los tienen en cuenta.'],
   ['Mi estilo', 'Cómo me veo los looks puestos', 'En el Pro, Yo → Tu avatar: con tu foto de cara y la de cuerpo entero la app crea tu avatar. Después, en Hoy, toca la figura junto a «Me lo pongo». Lo último que te pruebas se queda en Yo, en todos los sitios donde entres con tu cuenta.'],
   ['Mi cuenta y datos', 'Dónde se guarda mi ropa', 'Con cuenta, tu ropa y tus looks se guardan en tu cuenta y los ves en cualquier móvil en el que entres. Tus fotos de cara y de cuerpo se quedan en tu móvil, salvo que elijas guardarlas en tu cuenta (privadas).'],
+  ['Mi cuenta y datos', 'Qué se hace con mis fotos', 'Con tu permiso, TuCloset usa tus fotos y medidas para sacar tus colores y tu silueta y, en el Pro, para crear tu avatar con Google, que puede tratarlas fuera de la UE. Solo tú las ves. Puedes retirar el permiso cuando quieras en Ajustes → Tus datos y permisos, y se borra todo lo que salió de ellas.'],
   ['Mi cuenta y datos', 'Dónde están los ajustes', 'En Yo, en el engranaje de arriba a la derecha: tu cuenta, tu plan, la ciudad del tiempo, el modo oscuro, el idioma, tus datos y la ayuda.'],
   ['Mi cuenta y datos', 'Cómo paso mi clóset a otro móvil', 'Entra con tu correo y tu contraseña en el otro móvil: tu clóset aparece solo. Sin cuenta, en Ajustes → Tus datos y permisos, «Descargar una copia» y, en el otro móvil, «Recuperar una copia».'],
   ['Mi cuenta y datos', 'Qué incluye cada plan', 'Gratis: 7 días con hasta 10 prendas. Básico (1,99 €/mes o 14,99 €/año): tu clóset sin tope, el look de cada día, los looks de la estilista, Mi cápsula, el calendario y los cuidados. Pro (4,99 €/mes o 39,99 €/año): todo lo del Básico y además tu diagnóstico de colores y silueta aplicado a tus looks, «Inspírate en…», Planear un viaje e ideas con cada prenda.'],

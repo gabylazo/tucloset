@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.249'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.250'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -667,12 +667,12 @@ if (AT) (() => {
     const fav = E.lkTab === 'fav', lista = E.conjuntos.filter(c => !fav || c.fav || esFav(c.ids));
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     // 09/11 (decisión 36, pedida por Gabriela): «Crear un look» y «Mi cápsula» en una fila corta. 13/11 (Gabriela: «salen cosas repetidas en ideas y en mis looks… quita lo que sobre»):
-    // «Crear un look» y «Recrear un look» van solo en Ideas, que es donde se abre Looks; aquí quedan «Mi cápsula» y «Mi semana», como las acciones de Ideas, y los looks guardados justo debajo
-    const acc = fav ? '' : `<div class="at-iconos at-ideas-acc at-mios-acc" role="group" aria-label="${t('Tu cápsula y tu semana', 'Your capsule and week')}"><button class="at-ib" data-capsula><span class="at-ib-c">${I.percha}</span><span class="at-ib-t">${t('Mi cápsula', 'My capsule')}</span></button><button class="at-ib" data-semana><span class="at-ib-c">${I.cal}</span><span class="at-ib-t">${t('Mi semana', 'My week')}</span></button></div>`;
+    // «Crear un look» y «Recrear un look» van solo en Ideas, que es donde se abre Looks; aquí queda «Mi cápsula» y los looks guardados justo debajo; «Mi semana» pasó al Calendario como «Planear varios días» (Gabriela, 13/11)
+    const acc = fav ? '' : `<div class="at-iconos at-ideas-acc at-mios-acc" role="group" aria-label="${t('Tu cápsula', 'Your capsule')}"><button class="at-ib" data-capsula><span class="at-ib-c">${I.percha}</span><span class="at-ib-t">${t('Mi cápsula', 'My capsule')}</span></button></div>`;
     const t1 = c => `<figure class="at-t">${baldosa(psDe(c), TW, TH, ` data-look="${c.id}" aria-label="${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}"`)}<figcaption>${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</figcaption></figure>`;
     raiz.innerHTML = filaLooks(E.lkTab) + acc + (lista.length ? `<div class="at-rej2">${lista.map(t1).join('')}</div>` : !fav ? `<div class="at-vacio"><p>${t('Aún no has guardado ningún look. Crea uno o guárdalo desde Hoy.', 'You have not saved any looks yet. Create one or save it from Today.')}</p></div>`
       : `<div class="at-vacio"><p>${t('Aún no tienes favoritos. Abre un look y toca el corazón.', 'No favourites yet. Open a look and tap the heart.')}</p></div>`);
-    raiz.onclick = e => { if (e.target.closest('[data-capsula]')) return abrirCapsula(); if (e.target.closest('[data-semana]')) { E.semana = null; abrirSemana(); return $('at-sem-t')?.focus({ preventScroll: true }); } const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
+    raiz.onclick = e => { if (e.target.closest('[data-capsula]')) return abrirCapsula(); const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
   };
   // el calendario de siempre, con la cabecera de Looks
   const pintarAgendaVieja = pintarAgenda;
@@ -797,7 +797,8 @@ if (AT) (() => {
     // del calendario»): el look elegido para un plan de hoy que aún no ha pasado sale siempre el primero, aunque la ocasión elegida en Hoy sea otra (antes solo miraba
     // el plan «que toca», y la ocasión puesta en Hoy, sin look, tapaba el paseo de las 14:00 con su look)
     const hoyD = diaISO(new Date()), n = new Date(), ya = `${String(Math.max(0, n.getHours() - 1)).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
-    const evA0 = eventoAhora(), evA = evA0 && lookDe(hoyD, evA0) ? evA0 : eventosDe(hoyD).find(e => (!e.hora || e.hora >= ya) && lookDe(hoyD, e)) || evA0;
+    // 13/11 (Gabriela: «todo lo que se elija para cualquier día, ese día sale de primero en Hoy»): si ya pasó la hora de todos los planes con look, sale el del último
+    const evA0 = eventoAhora(), evA = evA0 && lookDe(hoyD, evA0) ? evA0 : eventosDe(hoyD).find(e => (!e.hora || e.hora >= ya) && lookDe(hoyD, e)) || eventosDe(hoyD).filter(e => lookDe(hoyD, e)).at(-1) || evA0;
     const props = [], dia = E.agenda[hoyD], lkA = evA ? lookDe(hoyD, evA) : null, clave = claveLook, g = E.perfil?.gustos;
     // 11/11 (Gabriela: «los looks que se seleccionan desde cualquier sitio, como "me lo pongo hoy", deben salir los primeros en Hoy y después los otros»)
     // y si te has puesto dos, los dos, el último primero
@@ -1290,14 +1291,13 @@ if (AT) (() => {
   }
   document.addEventListener('click', e => { if (e.target.closest('[data-gusto]')) window.abrirGusto(); });
 
-  /* ---------- MI SEMANA (Sheila, 11/11: «tengo una amiga que suele planificar su ropa semanalmente… debería haber una opción de visualizar los 5 outfits
-     de la semana si por ejemplo tiene oficina»). Eliges para qué (trabajo o día a día), la semana (esta o la que viene) y los días, y sale un look por día
-     con la previsión de cada día: sin repetir la parte de arriba y sin el mismo pantalón más de dos días. «Otro» cambia solo ese día y «Guardar en mi
-     calendario» los apunta en el plan de ese día (el de esa ocasión si ya lo hay; si no, uno nuevo): Hoy enseña cada mañana el que toca. No gasta IA. ---------- */
-  const lunesDe = d => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return diaISO(x); };
-  const DOW = [[1, 'L', 'M'], [2, 'M', 'T'], [3, 'X', 'W'], [4, 'J', 'T'], [5, 'V', 'F'], [6, 'S', 'S'], [0, 'D', 'S']];
-  function diasSemana(F) { const l = F.cual === 'otra' ? masDias(lunesDe(diaISO(new Date())), 7) : lunesDe(diaISO(new Date())), hoy = diaISO(new Date());
-    return { l, dias: DOW.map(([dw], k) => [masDias(l, k), dw]).filter(([d, dw]) => F.dias.includes(dw) && d >= hoy).map(([d]) => d) }; }
+  /* ---------- PLANEAR VARIOS DÍAS (Sheila, 11/11: «tengo una amiga que suele planificar su ropa semanalmente… debería haber una opción de visualizar los 5 outfits
+     de la semana si por ejemplo tiene oficina»; 13/11, Gabriela: «el calendario de mi semana no se entiende… creo que la opción de mi semana debe estar en calendario,
+     y que deje planificar outfits de los 5 días si trabajas, por ejemplo… con un evento específico que dure 5 días»). Vive en el Calendario: un evento que dura varios
+     días (o uno que se repite, como el trabajo) planea un look por día con la previsión de cada día, sin repetir la parte de arriba y sin el mismo pantalón más de
+     dos días. Se ve en lista, un día por fila; «Otro» cambia solo ese día y «Guardar los looks» los apunta en ese evento, día a día, y Hoy enseña el de cada día el
+     primero. Los looks que ella ya eligió para algún día salen tal cual. No gasta IA. ---------- */
+  const difDias = (a, b) => Math.round((new Date(a + 'T12:00') - new Date(b + 'T12:00')) / 864e5);
   function lookDeSemana(w, oc, dia, usos, hechos, prev) {
     const r = Motor.looks({ prendas: activas(), tiempo: w, plan: oc, perfil: E.perfil, n: 16, hoy: dia, hora: oc === 'Oficina' ? 9 : 12, excluir: E.perfil?.gustos?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true });
     const todos = deVerdad(oc, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)), nuevos = todos.filter(x => !hechos.has(x.ids.slice().sort().join()));
@@ -1309,75 +1309,62 @@ if (AT) (() => {
     return mejor;
   }
   function contarUsos(plan, sin) { const u = new Map(), h = new Set(); plan.forEach((d, i) => { if (i === sin || !d.ids) return; d.ids.forEach(id => u.set(id, (u.get(id) || 0) + 1)); h.add(d.ids.slice().sort().join()); }); return [u, h]; }
-  async function hacerSemana(F) {
+  // los días del evento que quedan por delante: el de varios días, todos (hasta 14); el que se repite, los de los 7 días desde el que mira
+  function diasDeEvento(ev, desde) {
+    const hoy = diaISO(new Date()), f = ev.ref || {}, ini = [hoy, desde || hoy, f.hasta ? f.desde || hoy : hoy].sort().at(-1), r = [];
+    for (let k = 0; k < 14; k++) { const d = masDias(ini, k); if (f.hasta ? d > f.hasta : k >= 7) break; if (eventosDe(d).some(x => x.id === ev.id)) r.push(d); }
+    return r;
+  }
+  async function hacerSemana(ev, fechas) {
     if (!E.tiempo?.lat) await cargarTiempo(); const w0 = E.tiempo; if (!w0?.lat) throw new Error('tiempo');
-    const { l, dias } = diasSemana(F); if (!dias.length) throw new Error('dias');
-    const tv = await tiempoViaje(w0.lat, w0.lon, l, 7), plan = [];
-    for (const d of dias) { const w = tv.dias[Math.round((new Date(d + 'T12:00') - new Date(l + 'T12:00')) / 864e5)] || tv.dias[0], [u, h] = contarUsos(plan);
-      const x = lookDeSemana(w, F.oc, d, u, h, plan.at(-1)?.formula);
+    const l = fechas[0], tv = await tiempoViaje(w0.lat, w0.lon, l, difDias(fechas.at(-1), l) + 1), plan = [];
+    for (const d of fechas) { const w = tv.dias[difDias(d, l)] || tv.dias[0], suyo = !E.agenda[d]?.sem?.[ev.id] && lookDe(d, ev);
+      if (suyo) { plan.push({ fecha: d, w, ids: [...suyo], suyo: 1 }); continue; }
+      const [u, h] = contarUsos(plan), x = lookDeSemana(w, ev.oc, d, u, h, plan.at(-1)?.formula);
       plan.push({ fecha: d, w, ...(x ? { ids: x.ids, zspec: x.zspec, como: x.como, formula: x.formula, faltaCapa: x.faltaCapa, capaFalta: x.capaFalta } : {}) }); }
-    return { oc: F.oc, l, previsto: tv.previsto, plan, lugar: w0.nombre || '' };
+    return { ev: ev.id, nombre: nomEv(ev), oc: ev.oc, previsto: tv.previsto, plan, lugar: w0.nombre || '' };
   }
   function guardarSemana(s) {
-    let puestos = 0, conLook = 0;
-    for (const d of s.plan) { if (!d.ids) continue; const a = E.agenda[d.fecha] = E.agenda[d.fecha] || { planes: [] }; a.sem = a.sem || {};
-      let ev = eventosDe(d.fecha).find(x => x.oc === s.oc);
-      if (ev && lookDe(d.fecha, ev) && !a.sem[ev.id]) { conLook++; continue; } // un look que ella eligió para ese plan no se pisa
-      if (!ev) { const p = { id: uid(), nombre: s.oc === 'Oficina' ? t('Trabajo', 'Work') : '', oc: s.oc, hora: s.oc === 'Oficina' ? '09:00' : '', fr: 'Mañana' }; a.planes.push(p); ev = p; }
-      a.looks = { ...(a.looks || {}), [ev.id]: [...d.ids] }; a.sem[ev.id] = 1; puestos++; }
-    registrar('semana', { oc: s.oc, dias: puestos });
-    return { puestos, conLook };
+    let n = 0;
+    for (const d of s.plan) { if (!d.ids) continue; const a = E.agenda[d.fecha] = E.agenda[d.fecha] || { planes: [] };
+      a.looks = { ...(a.looks || {}), [s.ev]: [...d.ids] }; a.sem = { ...(a.sem || {}) }; if (d.suyo) delete a.sem[s.ev]; else a.sem[s.ev] = 1; n++; }
+    registrar('semana', { oc: s.oc, dias: n });
+    return n;
   }
+  async function planearVarios(ev, desde) {
+    const fechas = diasDeEvento(ev, desde); if (!fechas.length) return toast(t('Ese evento ya ha pasado', 'That event is over'));
+    E.semana = { cargando: 1, nombre: nomEv(ev) }; abrirSemana(); $('at-sem-t')?.focus({ preventScroll: true });
+    try { const s = await hacerSemana(ev, fechas); if (!$('at-semana')) return; E.semana = s; }
+    catch (x) { E.semana = null; $('at-semana')?.remove(); return toast(x.message === 'tiempo' ? t('No consigo el tiempo de tu ciudad. Ponla en Ajustes y prueba otra vez.', 'I can’t get your city’s weather. Set it in Settings and try again.') : t('No he podido planear esos días. Prueba otra vez en un momento.', 'I couldn’t plan those days. Try again in a moment.')); }
+    abrirSemana(); $('at-sem-t')?.focus({ preventScroll: true });
+  }
+  window.planearVarios = planearVarios;
   function abrirSemana() {
     let cap = $('at-semana'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-semana'; cap.className = 'ay-capa at-vj at-sem'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'at-sem-t'); document.body.append(cap); }
-    const cerrar = () => { cap.remove(); if (E.pantalla === 'looks') pintarLooks(); };
+    const s = E.semana, cerrar = () => { cap.remove(); E.semana = null; };
     const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>`;
-    const F = E.semF = E.semF || (() => { const f = { oc: 'Oficina', cual: 'esta', dias: [1, 2, 3, 4, 5] }; if (!diasSemana(f).dias.length) f.cual = 'otra'; return f; })();
-    const s = E.semana;
-    if (!s) {
-      const opc = (k, v, txt, on) => `<button class="${on ? 'on' : ''}" data-sem${k}="${v}" aria-pressed="${on}">${txt}${DOS}</button>`;
-      cap.innerHTML = `${X}<h1 id="at-sem-t" tabindex="-1">${t('Tu semana', 'Your week')}</h1><p class="at-vj-sub">${t('Un look para cada día, con el tiempo que va a hacer.', 'A look for each day, with the weather forecast.')}</p>
-        <form class="at-vj-form" novalidate>
-          <p class="at-vj-et">${t('Para', 'For')}</p><div class="at-fila at-vj-ops">${opc('oc', 'Oficina', t('Trabajo', 'Work'), F.oc === 'Oficina')}${opc('oc', 'Diario', t('Día a día', 'Everyday'), F.oc === 'Diario')}</div>
-          <p class="at-vj-et">${t('Semana', 'Week')}</p><div class="at-fila at-vj-ops">${opc('cual', 'esta', t('Esta', 'This one'), F.cual === 'esta')}${opc('cual', 'otra', t('La que viene', 'Next one'), F.cual === 'otra')}</div>
-          <p class="at-vj-et">${t('Días', 'Days')}</p><div class="at-sem-dias" role="group" aria-label="${t('Días', 'Days')}">${DOW.map(([dw, es, ing]) => { const on = F.dias.includes(dw), nom = new Date(2026, 10, 15 + (dw || 7)).toLocaleDateString(loc(), { weekday: 'long' });
-            return `<button type="button" class="${on ? 'on' : ''}" data-semdia="${dw}" aria-pressed="${on}" aria-label="${nom}">${en() ? ing : es}</button>`; }).join('')}</div>
-          <p class="at-vj-error" role="alert"></p>
-          <button class="at-btn" type="submit">${t('Preparar la semana', 'Plan my week')}</button>
-        </form>`;
-      cap.onclick = e => { const b = e.target.closest('.x,[data-semoc],[data-semcual],[data-semdia]'); if (!b) return; e.preventDefault();
-        if (b.classList.contains('x')) return cerrar();
-        if (b.dataset.semoc) F.oc = b.dataset.semoc; else if (b.dataset.semcual) F.cual = b.dataset.semcual; else { const x = +b.dataset.semdia; F.dias = F.dias.includes(x) ? F.dias.filter(y => y !== x) : [...F.dias, x]; }
-        abrirSemana(); cap.querySelector(b.dataset.semdia != null ? `[data-semdia="${b.dataset.semdia}"]` : b.dataset.semoc ? `[data-semoc="${b.dataset.semoc}"]` : `[data-semcual="${b.dataset.semcual}"]`)?.focus({ preventScroll: true }); };
-      cap.querySelector('form').onsubmit = async e => {
-        e.preventDefault(); const err = cap.querySelector('.at-vj-error'), bt = cap.querySelector('[type=submit]');
-        if (!diasSemana(F).dias.length) { err.textContent = F.dias.length ? t('Esos días de esta semana ya han pasado: elige «La que viene».', 'Those days have passed: choose «Next one».') : t('Marca al menos un día.', 'Pick at least one day.'); return; }
-        bt.disabled = true; bt.textContent = t('Preparando…', 'Planning…'); err.textContent = '';
-        try { E.semana = await hacerSemana(F); abrirSemana(); $('at-sem-t')?.focus({ preventScroll: true }); }
-        catch (x) { bt.disabled = false; bt.textContent = t('Preparar la semana', 'Plan my week'); err.textContent = x.message === 'tiempo' ? t('No consigo el tiempo de tu ciudad. Ponla en Ajustes y prueba otra vez.', 'I can’t get your city’s weather. Set it in Settings and try again.') : t('No he podido preparar la semana. Prueba otra vez en un momento.', 'I couldn’t plan the week. Try again in a moment.'); }
-      };
-      return;
-    }
-    const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25), m = Math.round(TW * .17), mh = Math.round(TH * .12);
+    if (!s) return cerrar();
+    if (s.cargando) { cap.innerHTML = `${X}<h1 id="at-sem-t" tabindex="-1">${esc(s.nombre)}</h1><p class="at-vj-sub" role="status">${t('Preparando un look para cada día…', 'Planning a look for each day…')}</p>`; cap.onclick = e => { if (e.target.closest('.x')) cerrar(); }; return; }
+    const [ancho] = caja(), TW = Math.min(170, Math.floor((ancho - 40) * .46)), TH = Math.round(TW * 1.25), m = Math.round(TW * .17), mh = Math.round(TH * .12);
     const dl = d => fDia(d, { weekday: 'long', day: 'numeric' }), r0 = s.plan[0]?.fecha, r1 = s.plan.at(-1)?.fecha, mm = { day: 'numeric', month: 'short' };
     const rangoTxt = r0 === r1 ? fDia(r0, mm) : `${fDia(r0, { day: 'numeric' })}–${fDia(r1, mm)}`, hay = s.plan.filter(d => d.ids).length;
-    cap.innerHTML = `${X}<h1 id="at-sem-t" tabindex="-1">${t('Tu semana', 'Your week')}</h1><p class="at-vj-datos">${s.oc === 'Oficina' ? t('Para trabajar', 'For work') : t('Día a día', 'Everyday')} · ${rangoTxt}${s.lugar ? ' · ' + esc(s.lugar) : ''}</p>${s.previsto ? '' : `<p class="at-vj-nota">${t('Aún no hay previsión para todos los días: es el tiempo de esos días el año pasado.', 'No forecast yet for every day: this is last year’s weather.')}</p>`}
-      <div class="at-rej2 at-vj-dias at-sem-l">${s.plan.map((d, i) => `<figure class="at-t">${d.ids ? `<div class="at-bal" style="width:${TW}px;height:${TH}px" role="img" aria-label="${esc(d.ids.map(id => P(id)?.nombre).filter(Boolean).join(', '))}">${figura(psDe(d), TW - 2 * m, TH - 2 * mh)}</div>` : `<div class="at-bal at-sem-vacio" style="width:${TW}px;height:${TH}px"><p>${t('Con tu ropa no sale un look para ese tiempo', 'Your clothes don’t make a look for that weather')}</p></div>`}
-        <figcaption>${dl(d.fecha)}${ICO_T[d.w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(d.w.clave) ? 'nube' : d.w.clave] || ''}${d.w.max}°${d.w.lluvia >= 50 ? ` · ${t('lluvia', 'rain')}` : ''}</figcaption>
-        ${d.faltaCapa ? `<p class="at-sem-capa">${t('Con tu chaqueta encima', 'With your jacket on top')}</p>` : ''}${d.ids ? `<button class="at-enlace at-sem-otro" data-semotro="${i}" aria-label="${t('Otro look para el', 'Another look for')} ${dl(d.fecha)}">${t('Otro', 'Another')}</button>` : ''}</figure>`).join('')}</div>
-      <div class="at-gu-pie">${hay ? `<button class="at-btn" data-semguarda>${t('Guardar en mi calendario', 'Save to my calendar')}</button>` : ''}<button class="at-enlace" data-semcambia>${t('Cambiar los días', 'Change the days')}</button></div>`;
+    const ico = w => ICO_T[w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(w.clave) ? 'nube' : w.clave] || '';
+    cap.innerHTML = `${X}<h1 id="at-sem-t" tabindex="-1">${esc(s.nombre)}</h1><p class="at-vj-datos">${rangoTxt}${s.lugar ? ' · ' + esc(s.lugar) : ''}</p>${s.previsto ? '' : `<p class="at-vj-nota">${t('Aún no hay previsión para todos los días: es el tiempo de esos días el año pasado.', 'No forecast yet for every day: this is last year’s weather.')}</p>`}
+      <ol class="at-sem-lista">${s.plan.map((d, i) => `<li class="at-sem-f"><div class="at-sem-d"><b>${mayus(fDia(d.fecha, { weekday: 'long' }))}</b><span>${fDia(d.fecha, { day: 'numeric', month: 'long' })}</span><span class="at-sem-w">${ico(d.w)}${d.w.max}°${d.w.lluvia >= 50 ? ` · ${t('lluvia', 'rain')}` : ''}</span>
+        ${d.faltaCapa ? `<span>${t('Con tu chaqueta encima', 'With your jacket on top')}</span>` : ''}${d.ids ? `<button class="at-enlace at-sem-otro" data-semotro="${i}" aria-label="${t('Otro look para el', 'Another look for')} ${dl(d.fecha)}">${t('Otro', 'Another')}</button>` : ''}</div>
+        ${d.ids ? `<div class="at-bal" style="width:${TW}px;height:${TH}px" role="img" aria-label="${esc(d.ids.map(id => P(id)?.nombre).filter(Boolean).join(', '))}">${figura(psDe(d), TW - 2 * m, TH - 2 * mh)}</div>` : `<div class="at-bal at-sem-vacio" style="width:${TW}px;height:${TH}px"><p>${t('Con tu ropa no sale un look para ese tiempo', 'Your clothes don’t make a look for that weather')}</p></div>`}</li>`).join('')}</ol>
+      <div class="at-gu-pie">${hay ? `<button class="at-btn" data-semguarda>${t('Guardar los looks', 'Save the looks')}</button>` : ''}</div>`;
     cap.scrollTop = 0;
     cap.onclick = async e => {
-      const b = e.target.closest('.x,[data-semotro],[data-semguarda],[data-semcambia]'); if (!b) return;
+      const b = e.target.closest('.x,[data-semotro],[data-semguarda]'); if (!b) return;
       if (b.classList.contains('x')) return cerrar();
-      if (b.dataset.semcambia != null) { E.semana = null; abrirSemana(); return $('at-sem-t')?.focus({ preventScroll: true }); }
       if (b.dataset.semotro != null) { const i = +b.dataset.semotro, d = s.plan[i], [u, h] = contarUsos(s.plan, i); h.add(d.ids.slice().sort().join()); (d.otros = d.otros || []).push(d.ids.slice().sort().join()); d.otros.forEach(k => h.add(k));
         const x = lookDeSemana(d.w, s.oc, d.fecha, u, h, s.plan[i - 1]?.formula);
         if (!x || x.ids.slice().sort().join() === d.ids.slice().sort().join()) { d.otros = []; return toast(t('No hay otro look distinto para ese día', 'No other look for that day')); }
-        Object.assign(d, { ids: x.ids, zspec: x.zspec, como: x.como, formula: x.formula, faltaCapa: x.faltaCapa, capaFalta: x.capaFalta }); abrirSemana(); return cap.querySelector(`[data-semotro="${i}"]`)?.focus({ preventScroll: true }); }
-      if (b.dataset.semguarda != null) { const r = guardarSemana(s); await guardar(); E.propuestas = []; E.semana = null; cap.remove();
-        toast(r.puestos ? t(`Guardado: ${r.puestos} ${r.puestos === 1 ? 'día' : 'días'} en tu calendario${r.conLook ? `; ${r.conLook} ya tenía${r.conLook === 1 ? '' : 'n'} su look y no los he cambiado` : ''}`, `Saved: ${r.puestos} ${r.puestos === 1 ? 'day' : 'days'} in your calendar`) : t('Esos días ya tenían su look: no he cambiado nada', 'Those days already had a look: nothing changed'));
-        E.lkTab = 'cal'; E.lkTocado = true; if (E.pantalla === 'looks') pintarLooks(); else ir('looks'); }
+        Object.assign(d, { ids: x.ids, zspec: x.zspec, como: x.como, formula: x.formula, faltaCapa: x.faltaCapa, capaFalta: x.capaFalta, suyo: 0 }); abrirSemana(); return cap.querySelector(`[data-semotro="${i}"]`)?.focus({ preventScroll: true }); }
+      if (b.dataset.semguarda != null) { const n = guardarSemana(s); await guardar(); programarNube(); E.propuestas = []; cerrar();
+        toast(t(`Looks guardados para ${n} ${n === 1 ? 'día' : 'días'}. Cada día sale el primero en Hoy.`, `Looks saved for ${n} ${n === 1 ? 'day' : 'days'}. Each one comes first in Today on its day.`));
+        if (E.pantalla === 'looks') pintarLooks(); }
     };
   }
 

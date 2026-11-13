@@ -1124,10 +1124,12 @@ html.at.oscuro .at-gu-si{background:var(--tinta);color:var(--accion-t)}
 html.at.oscuro .at-gu-res{color:var(--sec)}
 html.at.oscuro .at-gu-res b{color:var(--tinta)}
 html.at.oscuro .at-gu-nota{color:var(--sec)}
-html.at.oscuro .at-sem-dias button{border:0;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 1px rgba(241,233,222, .45);color:var(--tinta)}
-html.at.oscuro .at-sem-dias button.on{background:var(--tinta);box-shadow:none;color:var(--accion-t)}
+html.at.oscuro .at-sem-f{border-top:1px solid var(--raya)}
+html.at.oscuro .at-sem-f:first-child{border-top:0}
+html.at.oscuro .at-sem-d b{color:var(--tinta)}
+html.at.oscuro .at-sem-d span{color:var(--sec)}
+html.at.oscuro .at-sem-w svg{fill:none;stroke:currentColor}
 html.at.oscuro .at-sem-vacio p{color:var(--sec)}
-html.at.oscuro .at-sem-capa{color:var(--sec)}
 html.at.oscuro .at-cam-actual img{background:var(--baldosa)}
 html.at.oscuro .at-cam-actual p{color:var(--tinta)}
 html.at.oscuro .at-cam-sub{color:var(--sec)}

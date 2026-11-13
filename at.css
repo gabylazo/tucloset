@@ -650,14 +650,20 @@ html.at .at-gu-res { margin: 14px auto 0; font-size: 14px; color: var(--sec); }
 html.at .at-gu-res b { display: block; margin-top: 2px; font-family: 'Bellefair', serif; font-weight: 400; font-size: 22px; color: var(--tinta); }
 html.at .at-gu-pie { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 22px 0 8px; }
 html.at .at-gu-nota { margin: 10px 0 0; font-size: 12.5px; color: var(--sec); }
-html.at .at-sem-dias { display: flex; justify-content: center; gap: 4px; margin: 0 -4px; }
-html.at .at-sem-dias button { width: 42px; height: 42px; padding: 0; border: 0; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1px rgba(74, 53, 38, .45); color: var(--tinta); font: inherit; font-size: 14px; cursor: pointer; }
-html.at .at-sem-dias button.on { background: var(--tinta); box-shadow: none; color: #fff; }
-html.at .at-sem-l { margin-top: 8px; }
+/* 13/11: Planear varios días, un día por fila: el día, la fecha y el tiempo a la izquierda y el look a la derecha */
+html.at .at-sem-lista { list-style: none; margin: 14px 0 0; padding: 0; text-align: left; }
+html.at .at-sem-f { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid var(--raya); }
+html.at .at-sem-f:first-child { border-top: 0; padding-top: 4px; }
+html.at .at-sem-d { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+html.at .at-sem-d b { font-family: 'Bellefair', serif; font-weight: 400; font-size: 22px; line-height: 1.1; color: var(--tinta); }
+html.at .at-sem-d span { font-size: 13.5px; line-height: 1.4; color: var(--sec); }
+html.at .at-sem-w { display: inline-flex; align-items: center; gap: 5px; }
+html.at .at-sem-w svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+html.at .at-sem-f > .at-bal { flex: 0 0 auto; }
 html.at .at-sem-vacio { display: flex; align-items: center; justify-content: center; }
-html.at .at-sem-vacio p { margin: 0; padding: 0 16px; font-size: 12.5px; line-height: 1.45; color: var(--sec); }
-html.at .at-sem-capa { margin: 0; font-size: 12px; color: var(--sec); }
-html.at .at-sem-otro { min-height: 40px; margin: 0 auto; }
+html.at .at-sem-vacio p { margin: 0; padding: 0 12px; font-size: 12.5px; line-height: 1.45; color: var(--sec); text-align: center; }
+html.at .at-sem-otro { min-height: 44px; margin: 2px 0 0; padding: 0; }
+html.at .ag-mas + .ag-mas { margin-left: 22px; }
 #p-estilo .es-gusto { margin-top: 28px; }
 
 /* 12/11 (Sheila, 2084): cambiar una prenda del look de Hoy */
