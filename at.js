@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.250'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.252'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -334,12 +334,6 @@ if (AT) (() => {
   };
   window.atPrueba.looksConPrenda = looksConPrenda;
   Object.assign(window.atPrueba, { abrirConPrenda: () => abrirConPrenda(), abrirCompra: () => abrirCompra() });
-  function elegirPrendaHoy() {
-    const ps = activas().filter(p => urlCat(p) && !sinFoto(p));
-    abrirPanel(t('¿Qué quieres ponerte?', 'What do you want to wear?'), `<p class="at-con-txt">${t('Elige la prenda y te propongo looks con ella.', 'Pick a garment and I’ll suggest looks with it.')}</p>` + rejillaPrendas(ps, 'data-con', E.hoyCon),
-      cap => { deslizable(cap.querySelector('.at-elegir .at-cats'));
-        cap.addEventListener('click', e => { const b = e.target.closest('[data-con]'); if (!b) return; cap.remove(); E.hoyCon = b.dataset.con; E.propuestas = []; E.hoyIdx = 0; E.hzPreg = false; pintarHoy(); }); });
-  }
 
   /* ---------- 12/11 (Sheila, mensaje 2084: «tocar una prenda e intercambiarla por una del mismo grupo… me voy a poner esto de noche y me gusta pero usaría tacones,
      entonces toco en los zapatos y los intercambio por tacones… así como interactivo»): al tocar una prenda del look de Hoy salen las de su mismo tipo, primero las que
@@ -387,9 +381,6 @@ if (AT) (() => {
     if (!E.perfil?.ropa && E.perfil?.alta) setTimeout(preguntarRopa, 400);
     setTimeout(preguntarGusto, 1500); // 11/11: «¿Me enseñas tu gusto?», una vez
     const pant = $('p-hoy'), w = E.tiempo, planHoy = eventoAhora()?.oc;
-    let pc = E.hoyCon ? P(E.hoyCon) : null; if (E.hoyCon && (!pc || !activas().includes(pc))) { E.hoyCon = null; pc = null; }
-    if (pc && !E.propuestas.length) { E.propuestas = looksConPrenda(pc, planHoy || (E.plan && E.plan !== 'Todos' ? E.plan : 'Diario'));
-      if (!E.propuestas.length) { toast(t(`Con tu ropa aún no sale un look con ${pc.nombre.toLowerCase()}.`, `Your clothes don’t make a look with this garment yet.`)); E.hoyCon = null; pc = null; } }
     if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy && hayOcasion(planHoy) ? planHoy : E.hoyDiario && hayOcasion('Diario') ? 'Diario' : 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); E.propuestas = masCercanos(E.hoyFalta, E.propuestas); } }
     const lista = E.propuestas; if ((E.hoyIdx || 0) >= lista.length) E.hoyIdx = 0; const pr = lista[E.hoyIdx || 0];
     const dia = new Date().toLocaleDateString(loc(), { weekday: 'long', day: 'numeric' }).replace(',', '');
@@ -403,11 +394,10 @@ if (AT) (() => {
     // Gabriela, 03/11: «este texto debe aparecer en la pestaña donde no haya ropa para esa ocasión, por ejemplo de deporte, no en diario»: si la ocasión de hoy no tiene
     // ropa, se dice ahí, sin inventar un look, y se ofrece uno de diario (que ya no lleva el aviso)
     if (E.hoyDiarioDe !== planHoy) E.hoyDiario = false;
-    if (planHoy && !pc && !hayOcasion(planHoy) && !E.hoyDiario) {
+    if (planHoy && !hayOcasion(planHoy) && !E.hoyDiario) {
       const f = faltaPara(planHoy), o = ocNombre(planHoy).toLowerCase(), y = f.length < 2 ? f.join('') : f.slice(0, -1).join(', ') + t(' y ', ' and ') + f[f.length - 1];
-      pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', `<div class="at-cab-fila">${ocBoton(planHoy)}<button class="at-conp" data-hzcon>${I.percha}${t('Con una prenda', 'With a garment')}</button></div></header>`)}${ocsDe(planHoy)}<div class="at-vacio at-sinropa"><p>${planHoy === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte.', 'No sportswear yet.')) : t(`Con tu ropa aún no sale un look para ${o}.`, `Your clothes don’t make a look for ${o} yet.`)} ${t('Cuando la subas, tu look saldrá aquí.', 'Once you add it, your look will appear here.')}</p>${y ? `<p class="at-falta-que">${t('Te vendría bien', 'What would help')}: ${esc(y.charAt(0).toLowerCase() + y.slice(1))}.</p>` : ''}<button class="at-enlace" id="at-diario">${t('Ver un look de diario', 'See an everyday look')}</button></div></div>`;
+      pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', `<div class="at-cab-fila">${ocBoton(planHoy)}</div></header>`)}${ocsDe(planHoy)}<div class="at-vacio at-sinropa"><p>${planHoy === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte.', 'No sportswear yet.')) : t(`Con tu ropa aún no sale un look para ${o}.`, `Your clothes don’t make a look for ${o} yet.`)} ${t('Cuando la subas, tu look saldrá aquí.', 'Once you add it, your look will appear here.')}</p>${y ? `<p class="at-falta-que">${t('Te vendría bien', 'What would help')}: ${esc(y.charAt(0).toLowerCase() + y.slice(1))}.</p>` : ''}<button class="at-enlace" id="at-diario">${t('Ver un look de diario', 'See an everyday look')}</button></div></div>`;
       $('at-diario').onclick = () => { E.hoyDiario = true; E.hoyDiarioDe = planHoy; E.propuestas = []; pintarHoy(); };
-      pant.querySelector('[data-hzcon]').onclick = elegirPrendaHoy;
       return;
     }
     if (!pr) {
@@ -425,10 +415,8 @@ if (AT) (() => {
     // 03/11, tarde (Gabriela: «la página de inicio me da la sensación de apretado… y desorden»; «no me gusta eso de no me gusta»): la ocasión pasa a la cabecera, bajo la
     // fecha; debajo del look, si hace falta, la nota; y abajo, juntos y centrados, el corazón y «Me lo pongo»
     const nota = pr.tipo === 'con' && pr.conT != null ? `<p class="at-nota">${t(`Para un día de unos ${pr.conT}° (hoy no le va)`, `For a day of about ${pr.conT}° (not today’s weather)`)}</p>` : pr.tipo === 'agenda' && pr.ev ? `<p class="at-nota at-nota-plan">${esc(pr.ev.nombre || ocNombre(pr.ev.oc))}${pr.ev.hora ? ' · ' + pr.ev.hora : ''}</p>` : pr.puesto ? `<p class="at-nota at-nota-plan">${t('Lo llevas hoy', 'You’re wearing it today')}</p>` : E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'Goes with a coat on top: add yours and it will show in the look' : `Va con ${pr.capaFalta || 'abrigo'} encima: si ${/a$/.test(pr.capaFalta || '') ? 'la' : 'lo'} subes, sale en el look`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : '';
-    // junto a la ocasión, «Con una prenda»; elegida, su foto pequeña y su nombre (tocarla cambia de prenda) y la equis para volver a los looks de siempre
-    const conB = pc ? `<span class="at-conp on"><button class="at-conp-n" data-hzcon aria-label="${t('Con', 'With')} ${esc(pc.nombre)}: ${t('cambiar la prenda', 'change the garment')}"><img src="${urlCat(pc)}" alt=""><span class="at-conp-t">${esc(pc.nombre)}</span></button><button class="at-conp-x" data-hzconx aria-label="${t('Quitar la prenda', 'Remove the garment')}">${I.cerrar}</button></span>`
-      : `<button class="at-conp" data-hzcon>${I.percha}${t('Con una prenda', 'With a garment')}</button>`;
-    const ocB = `<div class="at-cab-fila">${ocBoton(oc)}${conB}</div>`;
+    // 13/11 (Gabriela: «el look con una prenda, esa función, debería estar en Looks → Ideas por lógica»): en Hoy queda solo la ocasión
+    const ocB = `<div class="at-cab-fila">${ocBoton(oc)}</div>`;
     pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocB + '</header>')}${ocs}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}${nota}<button class="at-desc" id="at-desc" aria-label="${t('Descartar este look: no volverá a salir', 'Discard this look: it won’t come back')}">${I.cerrar}</button></div>
       <div class="at-pie"><button class="at-fav${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button>${botonPuesto(ps)}</div></div>`;
     // el look ocupa el hueco que de verdad queda entre la cabecera y el botón (en cada móvil es distinto)
@@ -439,8 +427,6 @@ if (AT) (() => {
     const mover = d => { E.hoyIdx = ((E.hoyIdx || 0) + d + lista.length) % lista.length; E.hzPreg = false; pintarHoy(); };
     pant.querySelectorAll('[data-atmov]').forEach(b => b.onclick = () => mover(+b.dataset.atmov));
     const bp = pant.querySelector('[data-puesto]'); if (bp) { bp.onclick = () => verPuesto(bp, z, ps, pr.como); if (LS.get('tc_ver_avatar')) requestAnimationFrame(() => requestAnimationFrame(() => verPuesto(bp, z, ps, pr.como, false, true))); }
-    pant.querySelector('[data-hzcon]').onclick = elegirPrendaHoy;
-    const cx = pant.querySelector('[data-hzconx]'); if (cx) cx.onclick = () => { E.hoyCon = null; E.propuestas = []; E.hoyIdx = 0; pintarHoy(); };
     // 12/11 (Sheila, mensajes 2072, 2111 y 2119: «dónde está la opción para rechazar look»): una ✕ en la esquina del look, sin el texto «No me gusta»
     // que Gabriela quitó el 03/11. Una propuesta descartada no vuelve; un look guardado o del calendario solo se aparta por hoy. Con «Deshacer».
     $('at-desc').onclick = async () => {
@@ -823,14 +809,15 @@ if (AT) (() => {
     // 13/11 (Gabriela, en el panel: «a mí no me sale crear un look ni recrear»; «con una prenda sale dos veces, en el inicio (hoy) y en looks, quítalo de una»): «Con una prenda»
     // se queda solo en Hoy y aquí, en Ideas, que es donde se abre Looks, van «Crear un look» y «Recrear un look»
     const ibI = (attr, ic, w, pro) => `<button class="at-ib" ${attr}><span class="at-ib-c">${ic}</span><span class="at-ib-t">${w}${pro ? '<span class="dg-pro">Pro</span>' : ''}</span></button>`;
-    const insp = oc === 'Todos' ? `<div class="at-iconos at-ideas-acc" role="group" aria-label="${t('Más formas de buscar looks', 'More ways to find looks')}">${ibI('data-ir="nuevo-look"', I.mas, t('Crear un look', 'Create a look'))}${ibI('data-recrear', I.recrear, t('Recrear un look', 'Recreate a look'))}${ibI('data-compra', I.bolsa, t('Antes de comprar', 'Before you buy'))}${ibI('data-inspira', I.chispa, t('Inspírate en…', 'Get inspired by…'), planDemo() !== 'pro')}${NUBE ? ibI('data-pareja', I.pareja, t('En pareja', 'As a couple')) : ''}</div>` : '';
+    const insp = oc === 'Todos' ? `<div class="at-iconos at-ideas-acc" role="group" aria-label="${t('Más formas de buscar looks', 'More ways to find looks')}">${ibI('data-ir="nuevo-look"', I.mas, t('Crear un look', 'Create a look'))}${ibI('data-recrear', I.recrear, t('Recrear un look', 'Recreate a look'))}${ibI('data-conprenda', I.percha, t('Con una prenda', 'With one garment'))}${ibI('data-compra', I.bolsa, t('Antes de comprar', 'Before you buy'))}${ibI('data-inspira', I.chispa, t('Inspírate en…', 'Get inspired by…'), planDemo() !== 'pro')}${NUBE ? ibI('data-pareja', I.pareja, t('En pareja', 'As a couple')) : ''}</div>` : '';
     const vj = oc === 'Viaje' ? `<div class="at-vj-entrada"><button class="at-enlace" data-viaje>${t('Planear un viaje', 'Plan a trip')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button>${viajes().map(v => `<button class="at-enlace" data-viaje="${v.id}">${esc(v.destino)} · ${rango(v)}</button>`).join('')}</div>` : '';
     raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${insp}${vj}${w && !vj ? `<p class="at-para">${t('Para hoy', 'For today')}, ${Math.round(w.t)}°</p>` : ''}`
       + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio">${activas().length ? `<p>${oc === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte. Cuando la subas, tus looks saldrán aquí.', 'No sportswear yet. Once you add some, your looks will appear here.')) : t('Con lo que tienes aún no sale un look completo para esta ocasión. Cuando subas más, saldrá aquí.', 'What you have doesn’t make a complete look for this occasion yet.')}</p>` : `<p>${t('Sube tu ropa y aquí saldrán tus ideas.', 'Add your clothes and your ideas will appear here.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>`}</div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
     deslizable(raiz.querySelector('.at-ocs-ideas'));
     raiz.onclick = async e => {
-      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje],[data-inspira],[data-recrear],[data-compra],[data-pareja]'); if (!b) return;
+      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje],[data-inspira],[data-recrear],[data-conprenda],[data-compra],[data-pareja]'); if (!b) return;
       if (b.dataset.recrear != null) return abrirRecrear();
+      if (b.dataset.conprenda != null) return abrirConPrenda();
       if (b.dataset.pareja != null) return abrirPareja();
       if (b.dataset.viaje != null) return abrirViaje(b.dataset.viaje);
       if (b.dataset.compra != null) return abrirCompra();
@@ -997,8 +984,8 @@ if (AT) (() => {
     caja.querySelectorAll('.at-con-rej .at-cel').forEach(x => { x.hidden = c !== 'Todo' && x.dataset.cat !== c; }); });
 
   /* ---------- CON UNA PRENDA, en Looks → Ideas (08/11, Gabriela: «que selecciones una pieza que sí o sí quieras usar, por ejemplo un jean, y que la app te
-     proponga outfits en función del estilo que quieres»): eliges la prenda y, si quieres, un estilo; salen hasta seis looks con ella. En Hoy está la versión
-     corta (sin estilo), junto a la ocasión ---------- */
+     proponga outfits en función del estilo que quieres»): eliges la prenda y, si quieres, un estilo; salen hasta seis looks con ella. Desde el 13/11 solo aquí
+     (Gabriela: «debería estar en Looks → Ideas por lógica»); en Hoy ya no está ---------- */
   function abrirConPrenda() {
     const cap = capaDe('at-conprenda', 'at-cp', t('Con una prenda', 'With one garment')), S = E.conP = E.conP || { id: null, estilo: '' };
     const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button>`;

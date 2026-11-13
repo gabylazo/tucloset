@@ -2033,16 +2033,22 @@ const REPITE = [['una', 'No se repite', 'Does not repeat'], ['semana', 'Cada sem
 const diaMas = (d, n) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() + n); return diaISO(x); };
 const rangoEv = f => { const o = { day: 'numeric', month: 'short' }, L = idioma() === 'en' ? 'en-GB' : 'es-ES', fd = d => new Date(d + 'T12:00').toLocaleDateString(L, o); return `${fd(f.desde)} – ${fd(f.hasta)}`; };
 const escH = x => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+// 13/11 (Gabriela: «cuando despliegas Añadir evento, mejorar un poco la distribución, hay mucho texto, y no parece profesional», «y lo mismo para la semana»):
+// cada campo con su rótulo corto, hora y repetición en una fila, la repetición en un desplegable, y el sitio y los detalles solo si se piden
 function formEvento() {
   const f = E.cal.form, en = idioma() === 'en', L = en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-  return `<div class="ag-form"><input id="ag-nom" type="text" maxlength="40" placeholder="${t('Añade un título: oficina, pilates, cena…', 'Add a title: office, pilates, dinner…')}" value="${(f.nombre || '').replace(/"/g, '&quot;')}" autocomplete="off">
-    <label class="ag-hora">${t('Hora', 'Time')}<input id="ag-hora" type="time" value="${f.hora || ''}"></label>
-    <input id="ag-url" class="ag-url" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="${t('Enlace del sitio: Google Maps, su web o Instagram', 'Link to the place: Google Maps, website or Instagram')}" value="${escH(f.url || '')}">
-    <textarea id="ag-desc" class="ag-desc" rows="2" maxlength="240" placeholder="${t('Cuéntame el plan: qué haréis, si es dentro o fuera, si hay que ir arreglada…', 'Tell me the plan: what you’ll do, indoors or out, dressy or not…')}">${escH(f.desc || '')}</textarea>
-    <div class="cal-ops">${OCASIONES.map(o => `<button class="${o === f.oc ? 'on' : ''}" data-agoc="${o}">${ocNombre(o)}</button>`).join('')}</div>
-    ${f.edita ? '' : `<div class="cal-ops ag-rep">${REPITE.map(([k, es, i]) => `<button class="${k === f.rep ? 'on' : ''}" data-agrep="${k}">${k === 'semana' ? (en ? `Every ${new Date(f.dia + 'T12:00').toLocaleDateString('en-GB', { weekday: 'long' })}` : `Cada ${new Date(f.dia + 'T12:00').toLocaleDateString('es-ES', { weekday: 'long' })}`) : en ? i : es}</button>`).join('')}</div>`}
-    ${f.rep === 'varios' ? `<label class="ag-hora">${t('Hasta el', 'Until')}<input id="ag-hasta" type="date" min="${diaMas(f.dia, 1)}" max="${diaMas(f.dia, 30)}" value="${f.hasta || ''}"></label>` : ''}
-    ${f.rep === 'dias' ? `<div class="ag-dias">${[1, 2, 3, 4, 5, 6, 0].map((x, i) => `<button class="${f.dias.includes(x) ? 'on' : ''}" data-agdow="${x}" aria-label="${diasTxt([x])}">${L[i]}</button>`).join('')}</div>` : ''}
+  const dia = new Date(f.dia + 'T12:00').toLocaleDateString(en ? 'en-GB' : 'es-ES', { weekday: 'long' }), datos = f.masDatos || f.url || f.desc;
+  const repTxt = ([k, es, i]) => k === 'semana' ? (en ? `Every ${dia}` : `Cada ${dia}`) : en ? i : es;
+  return `<div class="ag-form">
+    <label class="ag-campo"><span>${t('Qué es', 'What')}</span><input id="ag-nom" type="text" maxlength="40" placeholder="${f.rep === 'varios' ? t('Trabajo, congreso, viaje…', 'Work, conference, trip…') : t('Oficina, cena, pilates…', 'Office, dinner, pilates…')}" value="${(f.nombre || '').replace(/"/g, '&quot;')}" autocomplete="off"></label>
+    <div class="ag-par"><label class="ag-campo"><span>${t('Hora', 'Time')}</span><input id="ag-hora" type="time" value="${f.hora || ''}"></label>
+      ${f.edita ? '' : `<label class="ag-campo"><span>${t('Se repite', 'Repeats')}</span><select id="ag-rep">${REPITE.map(r => `<option value="${r[0]}"${r[0] === f.rep ? ' selected' : ''}>${repTxt(r)}</option>`).join('')}</select></label>`}</div>
+    ${f.rep === 'varios' ? `<label class="ag-campo"><span>${t('Hasta el', 'Until')}</span><input id="ag-hasta" type="date" min="${diaMas(f.dia, 1)}" max="${diaMas(f.dia, 30)}" value="${f.hasta || ''}"></label>` : ''}
+    ${f.rep === 'dias' ? `<div class="ag-dias" role="group" aria-label="${t('Días', 'Days')}">${[1, 2, 3, 4, 5, 6, 0].map((x, i) => `<button class="${f.dias.includes(x) ? 'on' : ''}" data-agdow="${x}" aria-pressed="${f.dias.includes(x)}" aria-label="${diasTxt([x])}">${L[i]}</button>`).join('')}</div>` : ''}
+    <div class="ag-campo"><span id="ag-oc-t">${t('Ocasión', 'Occasion')}</span><div class="cal-ops" role="group" aria-labelledby="ag-oc-t">${OCASIONES.map(o => `<button class="${o === f.oc ? 'on' : ''}" data-agoc="${o}" aria-pressed="${o === f.oc}">${ocNombre(o)}</button>`).join('')}</div></div>
+    ${datos ? `<label class="ag-campo"><span>${t('Sitio', 'Place')}</span><input id="ag-url" class="ag-url" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="${t('Enlace de Google Maps o su web', 'Google Maps or website link')}" value="${escH(f.url || '')}"></label>
+    <label class="ag-campo"><span>${t('Detalles', 'Details')}</span><textarea id="ag-desc" class="ag-desc" rows="2" maxlength="240" placeholder="${t('Dentro o fuera, si hay que ir arreglada…', 'Indoors or out, dressy or not…')}">${escH(f.desc || '')}</textarea></label>`
+      : `<button class="ag-mas-datos" data-agdatos>${t('Añadir sitio y detalles', 'Add place and details')}</button>`}
     <div class="cal-bts"><button class="hz-bt" data-agguarda>${f.edita ? t('Guardar los cambios', 'Save changes') : t('Guardar', 'Save')}</button><button class="txt sub-l" data-agcancela>${t('Cancelar', 'Cancel')}</button></div></div>`;
 }
 function panelEvento(d, ev, hoy) {
@@ -2108,8 +2114,11 @@ function pintarAgenda(raiz) {
       ${puesto.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(puesto, true)}</div></div>` : ''}</section></div>`;
   const nom = $('ag-nom'); if (nom) { nom.oninput = () => { f.nombre = nom.value; const o = OC_POR_NOMBRE.find(([r]) => r.test(nom.value)); if (o && !f.ocTocada && o[1] !== f.oc) { f.oc = o[1]; raiz.querySelectorAll('[data-agoc]').forEach(b => b.classList.toggle('on', b.dataset.agoc === f.oc)); } }; if (!f.nombre) nom.focus(); }
   const hr = $('ag-hora'); if (hr) hr.onchange = () => { f.hora = hr.value; };
+  // lo escrito no se pierde al cambiar cómo se repite ni al abrir el sitio y los detalles
+  const recogerForm = () => { f.nombre = $('ag-nom')?.value ?? f.nombre; f.hora = $('ag-hora')?.value ?? f.hora; f.url = $('ag-url')?.value ?? f.url; f.desc = $('ag-desc')?.value ?? f.desc; f.hasta = $('ag-hasta')?.value || f.hasta || diaMas(d, 4); };
+  const rp = $('ag-rep'); if (rp) rp.onchange = () => { recogerForm(); f.rep = rp.value; pintarAgenda(raiz); $('ag-rep')?.focus({ preventScroll: true }); };
   raiz.onclick = async e => {
-    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agoc],[data-agrep],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agedita],[data-agquitalook],[data-agquita],[data-agbfijo],[data-agvarios],[data-agplan]'); if (!b) return;
+    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agoc],[data-agdatos],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agedita],[data-agquitalook],[data-agquita],[data-agbfijo],[data-agvarios],[data-agplan]'); if (!b) return;
     const q = b.dataset, [dia, evId] = (E.cal.ev || '|').split('|'), ag = k => (E.agenda[k] = E.agenda[k] || { planes: [] }); let planear = null;
     if (q.lktab) { E.lkTab = q.lktab; E.lkTocado = true; E.lkI = 0; return pintarLooks(); }
     if (q.agmes) E.cal.mes = new Date(m.getFullYear(), m.getMonth() + +q.agmes, 1);
@@ -2117,9 +2126,9 @@ function pintarAgenda(raiz) {
     else if (q.agnuevo !== undefined) { E.cal.form = { dia: d, oc: 'Diario', hora: '', rep: 'una', dias: [sel.getDay()], nombre: '' }; E.cal.ev = null; }
     else if (q.agvarios !== undefined) { E.cal.form = { dia: d, oc: 'Oficina', hora: '', rep: 'varios', hasta: diaMas(d, 4), dias: [sel.getDay()], nombre: '' }; E.cal.ev = null; }
     else if (q.agplan !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) planear = [ev, dia]; }
-    else if (q.agoc) { f.oc = q.agoc; f.ocTocada = true; raiz.querySelectorAll('[data-agoc]').forEach(x => x.classList.toggle('on', x.dataset.agoc === f.oc)); return; }
-    else if (q.agrep) { f.nombre = $('ag-nom')?.value || f.nombre; f.hora = $('ag-hora')?.value || f.hora; f.url = $('ag-url')?.value ?? f.url; f.desc = $('ag-desc')?.value ?? f.desc; f.hasta = $('ag-hasta')?.value || f.hasta || diaMas(d, 4); f.rep = q.agrep; } // el enlace y la descripción tampoco se pierden al elegir cómo se repite
-    else if (q.agdow) { const x = +q.agdow; f.dias = f.dias.includes(x) ? f.dias.filter(y => y !== x) : [...f.dias, x]; b.classList.toggle('on'); return; }
+    else if (q.agoc) { f.oc = q.agoc; f.ocTocada = true; raiz.querySelectorAll('[data-agoc]').forEach(x => { x.classList.toggle('on', x.dataset.agoc === f.oc); x.setAttribute('aria-pressed', x.dataset.agoc === f.oc); }); return; }
+    else if (q.agdatos !== undefined) { recogerForm(); f.masDatos = true; }
+    else if (q.agdow) { const x = +q.agdow; f.dias = f.dias.includes(x) ? f.dias.filter(y => y !== x) : [...f.dias, x]; b.classList.toggle('on'); b.setAttribute('aria-pressed', b.classList.contains('on')); return; }
     else if (q.agcancela !== undefined) E.cal.form = null;
     else if (q.agguarda !== undefined) {
       // 07/11 (Gabriela: «no me deja guardar, el botón no funciona»): al compartir desde Google Maps, el iPhone pega el nombre del sitio y después el enlace,
@@ -3362,7 +3371,7 @@ const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no
   ['Hoy y looks', 'Cómo planeo los looks de varios días', 'En Looks → Calendario, toca «Planear varios días»: pon el plan (trabajo, un congreso, un viaje corto…), la ocasión y hasta qué día dura. Te propongo un look para cada día con su tiempo; cambia el que quieras con «Otro» y toca «Guardar los looks». Cada día, su look sale el primero en Hoy.'],
   ['Hoy y looks', 'Me dice que me falta ropa para una ocasión', 'Si tu clóset no da para un plan (noche, evento, oficina, deporte), la app te lo dice y te propone qué tipo de prenda te vendría bien.'],
   ['Hoy y looks', 'Cómo creo y guardo un look', 'En Looks → Mis looks, toca + y elige las prendas. Los looks que te gustan de Hoy e Ideas se guardan con el corazón.'],
-  ['Hoy y looks', 'Quiero un look con una prenda concreta', 'En Hoy, toca «Con una prenda» junto a la ocasión. Todos los looks que te propone la llevan.'],
+  ['Hoy y looks', 'Quiero un look con una prenda concreta', 'En Looks → Ideas, toca «Con una prenda»: elige la prenda y, si quieres, un estilo. Todos los looks que te propongo la llevan.'],
   ['Hoy y looks', 'Quiero copiar un look que he visto', 'En Looks, toca «Recrear un look» y sube la foto: te lo armo con tu ropa y te digo qué se parece y qué te faltaría. La foto no se guarda.'],
   ['Hoy y looks', 'Para qué sirve «Antes de comprar»', 'En Looks → Ideas: hazle una foto a una prenda en la tienda y la app te dice qué parte de tu clóset combina con ella, qué looks saldrían y si ya tienes algo parecido. No entra en tu clóset hasta que tocas «La he comprado».'],
   ['Hoy y looks', 'Qué es «Mi cápsula»', 'En Looks → Mis looks: elige el plan y cuántas prendas quieres llevar, y la app busca las que más looks dan entre sí.'],

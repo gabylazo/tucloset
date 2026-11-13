@@ -703,3 +703,24 @@ html.at .at-rc .at-cm-bts > .at-btn { width: 240px; max-width: 100%; }
 html.at .at-ideas-acc:has(> .at-ib:nth-child(5)) { flex-wrap: wrap; justify-content: center; row-gap: 18px; }
 html.at .at-ideas-acc:has(> .at-ib:nth-child(5)) .at-ib { flex: 0 0 33.333%; }
 html.at .at-ideas-acc:has(> .at-ib:nth-child(5)) .at-ib-t { padding: 0 4px; }
+
+/* 13/11 (Gabriela: «quita los rectángulos de atrás de las ropas de Inspírate en…»): en claro, el blanco de la foto de catálogo se funde con la baldosa,
+   en todas las rejillas de looks (Ideas, Inspírate, Mis looks, varios días). En oscuro siguen como tarjetas, a propósito */
+html.at:not(.oscuro) .at-bal .at-lz img.at-p { mix-blend-mode: multiply; }
+
+/* 13/11 (Gabriela: «cuando despliegas Añadir evento, mejorar un poco la distribución, hay mucho texto, y no parece profesional»): cada campo con su
+   rótulo, alineado a la izquierda; hora y repetición en una fila */
+html.at .ag-form { max-width: 360px; gap: 20px; text-align: left; margin-top: 16px; }
+html.at .ag-campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+html.at .ag-campo > span { font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--sec); }
+html.at .ag-campo input, html.at .ag-campo textarea, html.at .ag-campo select { width: 100%; box-sizing: border-box; min-height: 40px; margin: 0; padding: 8px 0; font: inherit; font-size: 16px; font-weight: 300; color: var(--tinta); text-align: left; border: 0; border-bottom: 1px solid var(--raya); border-radius: 0; background: none; resize: none; }
+html.at .ag-campo input:focus, html.at .ag-campo textarea:focus, html.at .ag-campo select:focus { outline: 0; border-bottom-color: var(--tinta); }
+html.at .ag-campo input::placeholder, html.at .ag-campo textarea::placeholder { color: var(--sec); }
+html.at .ag-campo select { -webkit-appearance: none; appearance: none; padding-right: 22px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237D6E63' stroke-width='1.6'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right center / 16px no-repeat; }
+html.at .ag-par { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
+html.at .ag-form .cal-ops { justify-content: flex-start; gap: 4px 16px; }
+html.at .ag-form .cal-ops button { min-height: 36px; }
+html.at .ag-form .ag-dias { justify-content: flex-start; margin-top: -8px; }
+html.at .ag-form .ag-dias button { width: 40px; height: 40px; }
+html.at .ag-mas-datos { justify-self: start; min-height: 40px; padding: 0; font: inherit; font-size: 14px; color: var(--tinta); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--raya); background: none; border: 0; cursor: pointer; }
+html.at .ag-form .cal-bts { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 4px; }
