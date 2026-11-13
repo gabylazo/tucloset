@@ -970,9 +970,18 @@ function avisoEst() {
 // que esperas para ver la prenda con el fondo quitado sea el que esperes para verla ya estilizada»): la foto de catálogo se pide en cuanto la prenda tiene el fondo
 // quitado, ya en la subida, y 4 a la vez (antes, de una en una y después de guardar: 8 prendas, casi 2 minutos). Si falla, dos intentos más (el último con el otro
 // modelo); si aun así falla, al día siguiente otra vez. Con el tope de Google, se vuelve a probar sola cada 10 minutos. Mientras, la subida y el Clóset dicen «Estilizando…»
-const EST_A_LA_VEZ = 4; let estLibres = EST_A_LA_VEZ, catReintento = 0; const estCola = [], CAT_PEND = new Map();
-const turnoEst = () => estLibres > 0 ? (estLibres--, Promise.resolve()) : new Promise(r => estCola.push(r));
-const soltarEst = () => { const r = estCola.shift(); if (r) r(); else estLibres++; };
+const EST_A_LA_VEZ = 4; let estTope = EST_A_LA_VEZ, estUso = 0, catReintento = 0; const estCola = [], CAT_PEND = new Map();
+const turnoEst = () => estUso < estTope ? (estUso++, Promise.resolve()) : new Promise(r => estCola.push(r));
+const soltarEst = () => { estUso--; while (estUso < estTope && estCola.length) { estUso++; estCola.shift()(); } };
+// 13/11: la cuenta de Google de TuCloset empieza en el nivel 1 de frecuencia. Si Google dice «ocupado» (demasiadas a la vez), se espera de 15 a 30 s y se
+// vuelve a pedir, sin contarlo como fallo ni parar; con 3 «ocupado» en 2 minutos, 10 min de 2 en 2 en vez de 4. El tope de gasto («pausa») sigue parando 10 min
+let ocupados = [], estBajo = 0;
+async function siOcupado(r) {
+  if (r.status !== 503) return false; const j = await r.clone().json().catch(() => ({})); if (j.error !== 'ocupado') return false;
+  const ahora = Date.now(); ocupados = [...ocupados.filter(t => ahora - t < 120e3), ahora];
+  if (ocupados.length >= 3 && estTope > 2) { estTope = 2; clearTimeout(estBajo); estBajo = setTimeout(() => { estTope = EST_A_LA_VEZ; while (estUso < estTope && estCola.length) { estUso++; estCola.shift()(); } }, 10 * 60e3); }
+  await new Promise(ok => setTimeout(ok, (window.TC_OCUPADO_MS ?? 15000) * (1 + Math.random()))); return true;
+}
 const estPend = p => !!(estilizando || CAT_PEND.has(p.id)) && porEstilizar(p) && !(p.catProp instanceof Blob);
 async function catalogoConReintento(p) {
   for (let i = 0; i < 3; i++) {
@@ -1022,7 +1031,7 @@ async function pedirCatalogo(p, otra, fuente = p.foto, pista) {
     // que el recorte pierde (tirantes finos, lazos, cinturones, puntas); el recorte sigue mandando en forma y color
     let cuerpo = b, cab = { 'Content-Type': 'image/jpeg' };
     if (p.original instanceof Blob && fuente !== p.cat) { const o = await jpegBlanco(p.original, 1024).catch(() => null); if (o) { cuerpo = new FormData(); cuerpo.append('foto', b, 'foto.jpg'); cuerpo.append('orig', o, 'orig.jpg'); cab = {}; } }
-    const r = await api('/api/catalogo?' + q, { method: 'POST', body: cuerpo, headers: cab, tiempo: 90000 });
+    let r; for (let k = 0; k < 6; k++) { r = await api('/api/catalogo?' + q, { method: 'POST', body: cuerpo, headers: cab, tiempo: 90000 }); if (!await siOcupado(r)) break; }
     if (r.status === 429 || r.status === 503) { catParado = true; clearTimeout(catReintento); catReintento = setTimeout(() => { catParado = false; estilizarNuevas(); }, 10 * 60e3); return 'parar'; } // tope del día o del mes, o sin clave: se vuelve a probar al abrir la app otro día
     if (r.status === 401) return 'parar';
     if (!r.ok) { p.catFallos = (p.catFallos || 0) + 1; return null; }
@@ -2666,7 +2675,7 @@ async function clasificarIA(fuente) {
     const im = await cargaImg(u), e = Math.min(1, 1024 / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.round(im.naturalWidth * e), h = Math.round(im.naturalHeight * e);
     const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(im, 0, 0, w, h);
     const b = await new Promise(r => c.toBlob(r, 'image/jpeg', .88)); if (!b) return null;
-    const r = await api('/api/clasificar', { method: 'POST', body: b, headers: { 'Content-Type': 'image/jpeg' }, tiempo: 30000 });
+    let r; for (let k = 0; k < 6; k++) { r = await api('/api/clasificar', { method: 'POST', body: b, headers: { 'Content-Type': 'image/jpeg' }, tiempo: 30000 }); if (!await siOcupado(r)) break; }
     if (r.status === 429 || r.status === 503 || r.status === 401) { clasParado = true; return null; } // tope del día o sin clave: otra vez en la próxima apertura
     if (!r.ok) return null;
     const o = await r.json(); return o && typeof o.nombre === 'string' && o.nombre && TIPO_DE_CAT[o.categoria] ? o : null;
@@ -3732,7 +3741,7 @@ const errorAvatar = (st, e, puesto) => e === 'permiso' ? t('Falta tu permiso: m�
   : st === 401 ? t('Entra en tu cuenta', 'Sign in') : t('No ha salido bien. Prueba otra vez', 'It didn’t work. Try again');
 // 10/11: si el servidor aún no tiene apuntado el permiso del avatar (se dio sin conexión), se le manda y se prueba una vez más
 async function apiAvatar(ruta, fd) {
-  let r = await api(ruta, { method: 'POST', body: fd, tiempo: 150000 });
+  let r; for (let k = 0; k < 4; k++) { r = await api(ruta, { method: 'POST', body: fd, tiempo: 150000 }); if (!await siOcupado(r)) break; } // 13/11: Google ocupado, se espera y se vuelve a pedir
   if (r.status === 403 && (await r.clone().json().catch(() => ({}))).error === 'permiso' && permiso('avatar') && await permisoAlServidor('avatar')) r = await api(ruta, { method: 'POST', body: fd, tiempo: 150000 });
   return r;
 }
