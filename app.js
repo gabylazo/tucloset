@@ -2051,23 +2051,34 @@ function formEvento() {
       : `<button class="ag-mas-datos" data-agdatos>${t('Añadir sitio y detalles', 'Add place and details')}</button>`}
     <div class="cal-bts"><button class="hz-bt" data-agguarda>${f.edita ? t('Guardar los cambios', 'Save changes') : t('Guardar', 'Save')}</button><button class="txt sub-l" data-agcancela>${t('Cancelar', 'Cancel')}</button></div></div>`;
 }
+// 13/11 (Gabriela: «me sigue sin gustar lo del calendario»; eligió la maqueta «Mes, más limpio»): el plan abierto enseña el look en grande y, debajo,
+// sus acciones en una fila de iconos con rótulo, en vez de la lista de textos; borrar un plan que se repite pregunta antes si solo ese día o todos
+const AG_IC = { mas: '<path d="M12 5v14M5 12h14"/>', lapiz: '<path d="M4.5 19.5l1-4.5L15.8 4.7a1.8 1.8 0 0 1 2.5 0l1 1a1.8 1.8 0 0 1 0 2.5L9 18.5z"/><path d="M13.8 6.7l3.5 3.5"/>',
+  papelera: '<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7M10.5 10.5v6M13.5 10.5v6"/>', girar: '<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/>',
+  cal: '<rect x="4" y="5.5" width="16" height="14" rx="1"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>', cerrar: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+  percha: '<path d="M12 7.5a2 2 0 1 1 2-2c0 1-2 1.3-2 2.6V9M12 9l8.5 6.5c.6.5.3 1.5-.5 1.5H4c-.8 0-1.1-1-.5-1.5Z"/>' };
+const agIc = n => `<svg class="ag-ic" viewBox="0 0 24 24" aria-hidden="true">${AG_IC[n]}</svg>`;
+const agAc = (attr, ic, txt, largo) => `<button class="ag-ac" ${attr}${largo ? ` aria-label="${largo}"` : ''}>${agIc(ic)}<span>${txt}</span></button>`;
+function accionesEv(ev, fut, antes = '') {
+  if (E.cal.borra && ev.fijo) return `<div class="ag-borra" role="group" aria-label="${t('Borrar el plan', 'Delete the plan')}"><p>${t('¿Qué borro?', 'Delete what?')}</p><div><button data-agquita>${t('Solo este día', 'This day only')}</button><button data-agbfijo="${ev.id}">${ev.ref?.hasta ? t('Todos los días', 'Every day') : t('Todas las semanas', 'Every week')}</button><button class="ag-no" data-agborra>${t('Cancelar', 'Cancel')}</button></div></div>`;
+  return `<div class="ag-acc">${antes}${ev.fijo && fut && typeof planearVarios === 'function' ? agAc('data-agplan', 'cal', t('Planear', 'Plan'), ev.ref?.hasta ? t('Planear un look para cada día', 'Plan a look for each day') : t('Planear los looks de la semana', 'Plan the week’s looks')) : ''}${fut ? agAc('data-agedita', 'lapiz', t('Editar', 'Edit'), t('Editar el plan', 'Edit the plan')) : ''}${agAc(ev.fijo ? 'data-agborra' : 'data-agquita', 'papelera', t('Borrar', 'Delete'), t('Borrar el plan', 'Delete the plan'))}</div>`;
+}
 function panelEvento(d, ev, hoy) {
   const lk = lookDe(d, ev), fut = d >= hoy;
-  if (lk && !E.cal.cambia) return `<div class="ag-panel"><div class="lk-fig">${figLook({ ids: lk }, true)}</div><div class="cal-bts">${planearEv(ev, fut)}${fut ? `<button class="txt sub-l" data-agcambia>${t('Cambiar el look', 'Change the look')}</button>` : ''}<button class="txt sub-l" data-agquitalook>${t('Quitar el look', 'Remove the look')}</button>${quitarEv(ev)}</div></div>`;
-  if (!fut) return `<div class="ag-panel"><div class="cal-bts">${quitarEv(ev)}</div></div>`;
+  if (lk && !E.cal.cambia) return `<div class="ag-panel"><div class="lk-fig">${figLook({ ids: lk }, true)}</div>${accionesEv(ev, fut, (fut ? agAc('data-agcambia', 'girar', t('Cambiar', 'Change'), t('Cambiar el look', 'Change the look')) : '') + agAc('data-agquitalook', 'cerrar', t('Quitar', 'Remove'), t('Quitar el look', 'Remove the look')))}</div>`;
+  if (!fut) return `<div class="ag-panel">${accionesEv(ev, false)}</div>`;
   let ideas, falta = false, info = '';
   if (typeof looksEvento === 'function') {
-    const r = looksEvento(d, ev); if (!r) return `<div class="ag-panel">${datosPlan(ev)}<p class="cal-vacio">${t('Mirando el tiempo de ese día en ese sitio…', 'Checking the weather there that day…')}</p><div class="cal-bts">${editarEv}${quitarEv(ev)}</div></div>`;
+    const r = looksEvento(d, ev); if (!r) return `<div class="ag-panel">${datosPlan(ev)}<p class="cal-vacio">${t('Mirando el tiempo de ese día en ese sitio…', 'Checking the weather there that day…')}</p>${accionesEv(ev, true)}</div>`;
     ideas = r.ideas; info = r.info;
   } else ideas = generarLooks(6, ev.oc);
   if (!ideas.length) { falta = true; ideas = masCercanos(ev.oc, generarLooks(12, 'Todos')).slice(0, 6); }
   const g = ideas[E.cal.idea % Math.max(1, ideas.length)];
   if (g) { const k = `${d}|${ev.id}|${E.cal.idea}`; if (E.cal.reg !== k) { E.cal.reg = k; registrar('propuesta', { dia: d, ev: ev.id, oc: ev.oc, idea: E.cal.idea, ids: g.ids, info }); } }
   const mios = E.cal.mios && E.conjuntos.length ? `<div class="cal-mios">${E.conjuntos.slice(0, 12).map(c => `<button data-agmio="${c.id}"><div class="lk-fig">${figLook(c, true)}</div></button>`).join('')}</div>` : '';
-  return `<div class="ag-panel">${datosPlan(ev, info)}${falta ? avisoFalta(ev.oc, false) : ''}${g ? `<div class="lk-fig">${figLook(g, true)}</div>${pieLook(conZapato(g.ids.map(P).filter(Boolean), g.zspec))}` : ''}
-    <div class="cal-bts">${planearEv(ev, true)}${g ? `<button class="hz-bt" data-agpon="${g.ids.join(',')}">${t('Guardar para este evento', 'Save for this event')}</button><button class="txt sub-l" data-cotra>${t('Otra idea', 'Another idea')}</button>` : ''}${E.conjuntos.length ? `<button class="txt sub-l" data-agmios>${t('Elegir de mis looks', 'Pick from my looks')}</button>` : ''}${editarEv}${quitarEv(ev)}</div>${mios}</div>`;
+  return `<div class="ag-panel">${datosPlan(ev, info)}${falta ? avisoFalta(ev.oc, false) : ''}${g ? `<div class="lk-fig">${figLook(g, true)}</div>${pieLook(conZapato(g.ids.map(P).filter(Boolean), g.zspec))}<button class="hz-bt" data-agpon="${g.ids.join(',')}">${t('Guardar para este evento', 'Save for this event')}</button>` : ''}
+    ${accionesEv(ev, true, (g ? agAc('data-cotra', 'girar', t('Otra idea', 'Another idea')) : '') + (E.conjuntos.length ? `<button class="ag-ac" data-agmios aria-expanded="${!!E.cal.mios}">${agIc('percha')}<span>${t('Mis looks', 'My looks')}</span></button>` : ''))}${mios}</div>`;
 }
-const editarEv = `<button class="txt sub-l" data-agedita>${t('Editar el plan', 'Edit the plan')}</button>`;
 // el sitio (con su enlace), la descripción y el tiempo de ese día a esa hora
 function datosPlan(ev, info) {
   const sitio = ev.lugar?.nombre || (ev.url ? t('el sitio', 'the place') : ''), url = ev.lugar?.url || ev.url;
@@ -2084,11 +2095,10 @@ async function leerEnlace(obj, d) {
 // 06/11 (Gabriela: «todo esto son experimentos que tienes que ir registrando para analizar y establecer patrones de comportamiento de la app»):
 // cada plan, look propuesto, elegido u «otra idea» se apunta en el servidor (solo de las cuentas de las socias, mientras no haya política de privacidad)
 function registrar(tipo, d) { if (!cuenta() || window.top !== window) return; api('/api/registro', { method: 'POST', json: { tipo, d }, tiempo: 15000 }).catch(() => { }); }
-const quitarEv = ev => `<button class="txt sub-l ag-quita" data-agquita>${ev.fijo ? t('Borrar solo este día', 'Delete this day only') : t('Borrar el evento', 'Delete the event')}</button>${ev.fijo ? `<button class="txt sub-l ag-quita" data-agbfijo="${ev.id}">${ev.ref?.hasta ? t('Borrar todos los días', 'Delete every day') : t('Borrar en todas las semanas', 'Delete from every week')}</button>` : ''}`;
-const planearEv = (ev, fut) => ev.fijo && fut && typeof planearVarios === 'function' ? `<button class="txt sub-l" data-agplan>${ev.ref?.hasta ? t('Planear un look para cada día', 'Plan a look for each day') : t('Planear los looks de la semana', 'Plan the week’s looks')}</button>` : '';
 // 0.111 (Gabriela, 28/10, al ver la agenda por semanas: «quizás el calendario debe ser más pequeño, abarca mucho espacio, con la opción de
 // poner eventos en algún día como lo hace Google Calendar»): un mes pequeño arriba (un punto en los días con eventos) y, debajo, los eventos
-// del día elegido con su look; «Añadir evento» en ese día, con la opción de repetirlo
+// del día elegido con su look; «Añadir evento» en ese día, con la opción de repetirlo.
+// 13/11 («Mes, más limpio»): los planes del día, como tarjetas con su look; un solo «+» junto al día (Añadir evento o Planear varios días)
 function pintarAgenda(raiz) {
   const en = idioma() === 'en', loc = en ? 'en-GB' : 'es-ES', hoy = diaISO(new Date());
   if (!E.cal.dia) E.cal.dia = hoy;
@@ -2102,15 +2112,15 @@ function pintarAgenda(raiz) {
   const sem = (en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D']).map(x => `<span>${x}</span>`).join('');
   const evs = eventosDe(d), fijos = E.perfil?.fijos || [];
   const filas = evs.map(ev => { const k = `${d}|${ev.id}`, lk = lookDe(d, ev), ab = E.cal.ev === k;
-    return `<div class="ag-ev${ab ? ' ab' : ''}"><button class="ag-fila" data-agev="${k}"><span class="ag-h">${ev.hora || ''}</span><span class="ag-txt"><b>${nomEv(ev)}</b><small>${[ev.nombre && ev.nombre.toLowerCase() !== ocNombre(ev.oc).toLowerCase() ? ocNombre(ev.oc) : '', ev.fijo ? ((f0 => f0.hasta ? rangoEv(f0) : diasTxt(f0.dias || []))(fijos.find(x => x.id === ev.id) || {})) : '', ev.lugar?.nombre || ''].filter(Boolean).join(' · ')}</small></span>${lk ? `<span class="ag-mini"><span class="lk-fig">${figLook({ ids: lk }, true)}</span></span>` : d >= hoy ? `<span class="ag-elegir">${t('Elegir look', 'Pick a look')}</span>` : ''}</button>${ab ? panelEvento(d, ev, hoy) : ''}</div>`; }).join('');
+    return `<div class="ag-ev${ab ? ' ab' : ''}"><button class="ag-fila" data-agev="${k}" aria-expanded="${ab}">${lk ? `<span class="ag-mini"><span class="lk-fig">${figLook({ ids: lk }, true)}</span></span>` : d >= hoy ? `<span class="ag-mini vacio">${agIc('mas')}</span>` : ''}<span class="ag-txt"><b>${escH(nomEv(ev))}${ev.hora ? `<i>${ev.hora}</i>` : ''}</b><small>${escH([ev.nombre && ev.nombre.toLowerCase() !== ocNombre(ev.oc).toLowerCase() ? ocNombre(ev.oc) : '', ev.fijo ? ((f0 => f0.hasta ? rangoEv(f0) : diasTxt(f0.dias || []))(fijos.find(x => x.id === ev.id) || {})) : '', ev.lugar?.nombre || ''].filter(Boolean).join(' · '))}</small>${!lk && d >= hoy ? `<em class="ag-elegir">${t('Elegir look', 'Pick a look')}</em>` : ''}</span></button>${ab ? panelEvento(d, ev, hoy) : ''}</div>`; }).join('');
   const puesto = E.prendas.filter(p => (p.usos || []).includes(d));
   raiz.innerHTML = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
     ${lkTabs('cal')}
-    <div class="cal ag"><div class="ag-mes"><button data-agmes="-1" aria-label="${t('Mes anterior', 'Previous month')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h2>${cap(m.toLocaleDateString(loc, { month: 'long', year: 'numeric' }))}</h2><button data-agmes="1" aria-label="${t('Mes siguiente', 'Next month')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
-    <div class="ag-sem7">${sem}</div><div class="ag-rej">${celdas}</div>
-    <section class="ag-dia"><h3>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>
-      ${filas || (f ? '' : `<p class="cal-vacio">${d >= hoy ? t('Nada apuntado este día.', 'Nothing planned this day.') : t('Sin eventos.', 'No events.')}</p>`)}
-      ${f ? formEvento() : d >= hoy ? `<button class="ag-mas" data-agnuevo><svg viewBox="0 0 12 12"><path d="M6 1v10M1 6h10"/></svg>${t('Añadir evento', 'Add event')}</button><button class="ag-mas" data-agvarios><svg viewBox="0 0 12 12"><path d="M6 1v10M1 6h10"/></svg>${t('Planear varios días', 'Plan several days')}</button>` : ''}
+    <div class="cal ag${f ? ' con-form' : ''}">${f ? '' : `<div class="ag-mes"><button data-agmes="-1" aria-label="${t('Mes anterior', 'Previous month')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h2>${cap(m.toLocaleDateString(loc, { month: 'long', year: 'numeric' }))}</h2><button data-agmes="1" aria-label="${t('Mes siguiente', 'Next month')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
+    <div class="ag-sem7">${sem}</div><div class="ag-rej">${celdas}</div>`}
+    <section class="ag-dia"><div class="ag-dia-cab"><h3>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>${!f && d >= hoy ? `<button class="ag-mas" data-agmenu aria-expanded="${!!E.cal.menu}" aria-label="${t('Añadir', 'Add')}">${agIc('mas')}</button>` : ''}</div>
+      ${E.cal.menu && !f && d >= hoy ? `<div class="ag-menu"><button data-agnuevo>${t('Añadir evento', 'Add event')}</button><button data-agvarios>${t('Planear varios días', 'Plan several days')}</button></div>` : ''}
+      ${f ? formEvento() : filas || `<p class="cal-vacio">${d >= hoy ? t('Nada apuntado. Toca + para añadir un plan.', 'Nothing planned. Tap + to add a plan.') : t('Sin eventos.', 'No events.')}</p>`}
       ${puesto.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(puesto, true)}</div></div>` : ''}</section></div>`;
   const nom = $('ag-nom'); if (nom) { nom.oninput = () => { f.nombre = nom.value; const o = OC_POR_NOMBRE.find(([r]) => r.test(nom.value)); if (o && !f.ocTocada && o[1] !== f.oc) { f.oc = o[1]; raiz.querySelectorAll('[data-agoc]').forEach(b => b.classList.toggle('on', b.dataset.agoc === f.oc)); } }; if (!f.nombre) nom.focus(); }
   const hr = $('ag-hora'); if (hr) hr.onchange = () => { f.hora = hr.value; };
@@ -2118,10 +2128,13 @@ function pintarAgenda(raiz) {
   const recogerForm = () => { f.nombre = $('ag-nom')?.value ?? f.nombre; f.hora = $('ag-hora')?.value ?? f.hora; f.url = $('ag-url')?.value ?? f.url; f.desc = $('ag-desc')?.value ?? f.desc; f.hasta = $('ag-hasta')?.value || f.hasta || diaMas(d, 4); };
   const rp = $('ag-rep'); if (rp) rp.onchange = () => { recogerForm(); f.rep = rp.value; pintarAgenda(raiz); $('ag-rep')?.focus({ preventScroll: true }); };
   raiz.onclick = async e => {
-    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agoc],[data-agdatos],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agedita],[data-agquitalook],[data-agquita],[data-agbfijo],[data-agvarios],[data-agplan]'); if (!b) return;
+    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agoc],[data-agdatos],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agedita],[data-agquitalook],[data-agquita],[data-agbfijo],[data-agvarios],[data-agplan],[data-agmenu],[data-agborra]'); if (!b) { if (E.cal.menu) { E.cal.menu = false; pintarAgenda(raiz); } return; }
+    const menuAb = E.cal.menu, borraAb = E.cal.borra; E.cal.menu = E.cal.borra = false;
     const q = b.dataset, [dia, evId] = (E.cal.ev || '|').split('|'), ag = k => (E.agenda[k] = E.agenda[k] || { planes: [] }); let planear = null;
     if (q.lktab) { E.lkTab = q.lktab; E.lkTocado = true; E.lkI = 0; return pintarLooks(); }
-    if (q.agmes) E.cal.mes = new Date(m.getFullYear(), m.getMonth() + +q.agmes, 1);
+    if (q.agmenu !== undefined) E.cal.menu = !menuAb;
+    else if (q.agborra !== undefined) E.cal.borra = !borraAb;
+    else if (q.agmes) E.cal.mes = new Date(m.getFullYear(), m.getMonth() + +q.agmes, 1);
     else if (q.agdia) { E.cal.dia = q.agdia; E.cal.ev = null; E.cal.form = null; E.cal.idea = 0; }
     else if (q.agnuevo !== undefined) { E.cal.form = { dia: d, oc: 'Diario', hora: '', rep: 'una', dias: [sel.getDay()], nombre: '' }; E.cal.ev = null; }
     else if (q.agvarios !== undefined) { E.cal.form = { dia: d, oc: 'Oficina', hora: '', rep: 'varios', hasta: diaMas(d, 4), dias: [sel.getDay()], nombre: '' }; E.cal.ev = null; }
@@ -2159,8 +2172,9 @@ function pintarAgenda(raiz) {
     else if (q.agedita !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) { E.cal.form = { dia, oc: ev.oc, hora: ev.hora, rep: 'una', dias: [], nombre: ev.nombre, url: ev.url, desc: ev.desc, edita: ev.ref, ocTocada: true }; E.cal.ev = null; } }
     else if (q.agquitalook !== undefined) { const a = ag(dia); if (a.looks) delete a.looks[evId]; if (a.look && eventosDe(dia)[0]?.id === evId) delete a.look; await guardar(); E.propuestas = []; }
     else if (q.agquita !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) { const a = ag(dia); if (ev.fijo) a.sin = [...(a.sin || []), ev.id]; else a.planes.splice(ev.i, 1); if (a.looks) delete a.looks[ev.id]; E.cal.ev = null; await guardar(); E.propuestas = []; toast(ev.fijo ? t('Quitado de este día', 'Removed from this day') : t('Evento borrado', 'Event deleted')); } }
-    else if (q.agbfijo) { E.perfil.fijos = (E.perfil.fijos || []).filter(x => x.id !== q.agbfijo); E.cal.ev = null; await guardar(); E.propuestas = []; toast(t('Borrado en todas las semanas', 'Deleted from every week')); }
+    else if (q.agbfijo) { const fj = (E.perfil.fijos || []).find(x => x.id === q.agbfijo); E.perfil.fijos = (E.perfil.fijos || []).filter(x => x.id !== q.agbfijo); E.cal.ev = null; await guardar(); E.propuestas = []; toast(fj?.hasta ? t('Borrado en todos sus días', 'Deleted from every day') : t('Borrado en todas las semanas', 'Deleted from every week')); }
     pintarAgenda(raiz);
+    (E.cal.menu ? raiz.querySelector('.ag-menu button') : E.cal.borra ? raiz.querySelector('.ag-borra button') : null)?.focus({ preventScroll: true });
     if (planear?.[0] && typeof planearVarios === 'function') planearVarios(...planear);
   };
 }
@@ -3367,8 +3381,8 @@ const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no
   ['Hoy y looks', 'Cómo elige la app el look de hoy', 'Mira el tiempo de tu ciudad, tu plan del día, tus estilos y lo que menos te has puesto, y combina tus prendas con reglas de estilistas: ocasión, temperatura, colores y proporciones.'],
   ['Hoy y looks', 'Quiero otro look', 'Usa las flechas a los lados del look para ver más propuestas. Con el corazón lo guardas en tus favoritos.'],
   ['Hoy y looks', 'Para qué sirve «Me lo pongo»', 'Apunta que hoy llevas ese look: cuenta un uso de cada prenda y lo guarda en el calendario.'],
-  ['Hoy y looks', 'Cómo le digo a dónde voy', 'En Hoy, toca la ocasión bajo la fecha y elige otra. Para otro día, en Looks → Calendario, elige el día y toca «Añadir evento»: pon el plan, la hora y, si quieres, el enlace del sitio y una descripción. La app te propone looks con el tiempo de ese día.'],
-  ['Hoy y looks', 'Cómo planeo los looks de varios días', 'En Looks → Calendario, toca «Planear varios días»: pon el plan (trabajo, un congreso, un viaje corto…), la ocasión y hasta qué día dura. Te propongo un look para cada día con su tiempo; cambia el que quieras con «Otro» y toca «Guardar los looks». Cada día, su look sale el primero en Hoy.'],
+  ['Hoy y looks', 'Cómo le digo a dónde voy', 'En Hoy, toca la ocasión bajo la fecha y elige otra. Para otro día, en Looks → Calendario, elige el día, toca + y «Añadir evento»: pon el plan, la hora y, si quieres, el enlace del sitio y una descripción. La app te propone looks con el tiempo de ese día.'],
+  ['Hoy y looks', 'Cómo planeo los looks de varios días', 'En Looks → Calendario, toca + y «Planear varios días»: pon el plan (trabajo, un congreso, un viaje corto…), la ocasión y hasta qué día dura. Te propongo un look para cada día con su tiempo; cambia el que quieras con «Otro» y toca «Guardar los looks». Cada día, su look sale el primero en Hoy.'],
   ['Hoy y looks', 'Me dice que me falta ropa para una ocasión', 'Si tu clóset no da para un plan (noche, evento, oficina, deporte), la app te lo dice y te propone qué tipo de prenda te vendría bien.'],
   ['Hoy y looks', 'Cómo creo y guardo un look', 'En Looks → Mis looks, toca + y elige las prendas. Los looks que te gustan de Hoy e Ideas se guardan con el corazón.'],
   ['Hoy y looks', 'Quiero un look con una prenda concreta', 'En Looks → Ideas, toca «Con una prenda»: elige la prenda y, si quieres, un estilo. Todos los looks que te propongo la llevan.'],

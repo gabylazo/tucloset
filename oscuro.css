@@ -563,21 +563,10 @@ html.oscuro .ag-fijos{border-bottom:1px solid var(--linea)}
 html.oscuro .ag-fijos>.mini-et{color:var(--sec)}
 html.oscuro .ag-fijos li{border-bottom:1px solid var(--linea)}
 html.oscuro .ag-fijos li button svg{fill:none;stroke:var(--sec)}
-html.oscuro .ag-h{color:var(--sec)}
-html.oscuro .ag-txt b{color:var(--tinta)}
-html.oscuro .ag-txt small{color:var(--sec)}
-html.oscuro .ag-mas{color:var(--tinta)}
-html.oscuro .ag-mas svg{fill:none;stroke:var(--oro)}
 html.oscuro .ag-dia{border-bottom:1px solid var(--linea)}
 html.oscuro .ag-dia h3{color:var(--tinta)}
 html.oscuro .ag-dia h3 small{color:var(--oro-t)}
 html.oscuro .ag-dia.pasado h3{color:var(--sec)}
-html.oscuro .ag-mini{background:var(--gris)}
-html.oscuro .ag-mini .lk-fig{background:none}
-html.oscuro .ag-elegir{color:var(--oro-t);text-decoration:underline}
-html.oscuro .ag-ev.ab .ag-fila{border-bottom:0}
-html.oscuro .ag-panel>.lk-fig{background:none}
-html.oscuro .ag-quita{color:var(--sec)}
 html.oscuro .ag-form>.mini-et{color:var(--sec)}
 html.oscuro .ag-form input[type=text]{color:var(--tinta);border:0;border-bottom:1px solid var(--linea2);background:none;border-radius:0}
 html.oscuro .ag-form input[type=text]:focus{outline:0;border-bottom-color:var(--tinta)}
@@ -602,6 +591,26 @@ html.oscuro .ag-rej .on b{border-color:var(--tinta)}
 html.oscuro .ag-rej em{border-radius:50%;border:1px solid var(--oro)}
 html.oscuro .ag-rej em.lleno{background:var(--oro)}
 html.oscuro .ag .ag-dia{border-top:1px solid var(--linea);border-bottom:0}
+html.oscuro .ag.con-form .ag-dia{border-top:0}
+html.oscuro .ag-ic{fill:none;stroke:currentColor}
+html.oscuro .ag-mas{color:var(--tinta)}
+html.oscuro .ag-menu{border:1px solid var(--linea2);background:var(--o-fondo)}
+html.oscuro .ag-menu button{color:var(--tinta)}
+html.oscuro .ag-menu button+button{border-top:1px solid var(--linea)}
+html.oscuro .ag-ev+.ag-ev{border-top:1px solid var(--linea)}
+html.oscuro .ag-mini{background:var(--baldosa,var(--gris))}
+html.oscuro .ag-mini .lk-fig{background:none}
+html.oscuro .ag-mini.vacio{background:none;border:1px solid var(--linea2);color:var(--sec)}
+html.oscuro .ag-txt b{color:var(--tinta)}
+html.oscuro .ag-txt b i{color:var(--sec)}
+html.oscuro .ag-txt small{color:var(--sec)}
+html.oscuro .ag-elegir{color:var(--tinta);text-decoration:underline;text-decoration-color:var(--linea2)}
+html.oscuro .ag-panel>.lk-fig{background:none}
+html.oscuro .ag-ac{color:var(--tinta)}
+html.oscuro .ag-ac[aria-expanded=true] span{text-decoration:underline}
+html.oscuro .ag-borra p{color:var(--sec)}
+html.oscuro .ag-borra button{border:1px solid var(--linea2);color:var(--tinta)}
+html.oscuro .ag-borra .ag-no{border-color:transparent;color:var(--sec)}
 html.oscuro .tabs button{color:var(--ter)}
 html.oscuro .tabs button.activo{color:var(--tinta)}
 html.oscuro .tabs button.activo::before{background:var(--oro)}
