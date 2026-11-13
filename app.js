@@ -311,7 +311,7 @@ async function subirNube(reintento) {
   try { await nubeEnCurso; } finally { nubeEnCurso = null; }
 }
 // trae lo del servidor y lo junta con lo de este móvil: lo del servidor manda; lo que solo está aquí se queda (y se subirá)
-/* ---------- 04/11 · encuesta de las pruebas: 8 preguntas de tocar, al séptimo día desde que se creó la cuenta (solo cuentas de las pruebas, desde el 10/11) ---------- */
+/* ---------- 04/11 · encuesta de las pruebas: 10 preguntas de tocar (8 hasta el 13/11) y un comentario opcional, al séptimo día desde que se creó la cuenta (solo cuentas de las pruebas, desde el 10/11) ---------- */
 const ENCUESTA = [
   ['¿Cuántos días la has abierto?', 'How many days did you open it?', [['1–2', '1–2'], ['3–4', '3–4'], ['5 o más', '5 or more']]],
   ['¿Te has puesto algún look de la app?', 'Did you wear any look from the app?', [['Ninguno', 'None'], ['1–2', '1–2'], ['3 o más', '3 or more']]],
@@ -320,7 +320,10 @@ const ENCUESTA = [
   ['¿Qué te ha servido más?', 'What helped you most?', [['Hoy', 'Today'], ['El clóset', 'The closet'], ['Ideas y cápsula', 'Ideas and capsule'], ['Nada todavía', 'Nothing yet']]],
   ['¿Ha fallado algo?', 'Did anything fail?', [['Nada', 'Nothing'], ['Alguna vez', 'Once or twice'], ['Bastante', 'Quite a lot']]],
   ['¿Seguirías usándola?', 'Would you keep using it?', [['Sí', 'Yes'], ['Puede', 'Maybe'], ['No', 'No']]],
-  ['¿Pagarías 1,99 € al mes por ella?', 'Would you pay €1.99 a month for it?', [['Sí', 'Yes'], ['Con algo más', 'With something more'], ['No', 'No']]]];
+  ['¿Pagarías 1,99 € al mes por ella?', 'Would you pay €1.99 a month for it?', [['Sí', 'Yes'], ['Con algo más', 'With something more'], ['No', 'No']]],
+  // 13/11 (Gabriela: «las preguntas que sean de marcar, nada de desarrollar, solo opcional»): las dos que faltaban, también de tocar; escribir, solo si quiere, al final
+  ['¿Qué has echado en falta?', 'What did you miss?', [['Nada', 'Nothing'], ['Looks más a mi estilo', 'Looks more my style'], ['Subir la ropa más rápido', 'Faster to add clothes'], ['Otra cosa', 'Something else']]],
+  ['¿Se la recomendarías a una amiga?', 'Would you recommend it to a friend?', [['Sí', 'Yes'], ['Puede', 'Maybe'], ['No', 'No']]]];
 async function preguntarEncuesta(forzar) {
   try {
     if (!forzar) {
@@ -335,8 +338,9 @@ async function preguntarEncuesta(forzar) {
 }
 function abrirEncuesta(previa) { // previa (?encuesta=1): para que la vean las socias; no envía nada
   const es = idioma() === 'en' ? 1 : 0, res = {};
-  const html = `<p class="pn-lema">${t('Ocho preguntas, solo tocar. Menos de un minuto.', 'Eight questions, just tap. Under a minute.')}</p>
+  const html = `<p class="pn-lema">${t('Diez preguntas, solo tocar. Un minuto.', 'Ten questions, just tap. One minute.')}</p>
     ${ENCUESTA.map((q, i) => `<fieldset class="en-q"><legend>${q[es]}</legend><div class="at-fila at-vj-ops">${q[2].map((o, j) => `<button type="button" data-enq="${i}" data-eno="${j}" aria-pressed="false">${o[es]}<span class="at-dos" aria-hidden="true"></span></button>`).join('')}</div></fieldset>`).join('')}
+    <label class="campo en-com"><span>${t('¿Algo más? Si quieres', 'Anything else? Optional')}</span><textarea id="en-com" rows="3" maxlength="500"></textarea></label>
     <button class="boton" id="en-enviar" disabled>${t('Enviar', 'Send')}</button>
     <button class="boton linea" id="en-luego">${t('Ahora no', 'Not now')}</button>
     <p class="pn-nota">${t('Solo se guardan tus respuestas, con tu cuenta. Nos sirven para mejorar la app.', 'Only your answers are saved, with your account. They help us improve the app.')}</p>`;
@@ -348,7 +352,7 @@ function abrirEncuesta(previa) { // previa (?encuesta=1): para que la vean las s
       if (e.target.closest('#en-enviar')) {
         if (previa) { cap.remove(); toast(t('Vista previa: no se ha enviado nada.', 'Preview: nothing was sent.')); return; }
         const env = $('en-enviar'); env.disabled = true;
-        const r = Object.fromEntries(ENCUESTA.map((q, i) => [q[0], q[2][res[i]][0]]));
+        const r = Object.fromEntries(ENCUESTA.map((q, i) => [q[0], q[2][res[i]][0]])), com = ($('en-com')?.value || '').trim().slice(0, 500); if (com) r['¿Algo más?'] = com;
         try { const x = await api('/api/encuesta', { method: 'POST', json: { r }, tiempo: 15000 }); if (!x.ok) throw new Error('http ' + x.status); LS.set('tc_encuesta_hecha', '1'); cap.remove(); toast(t('Gracias. Lo leemos todo.', 'Thank you. We read every answer.')); }
         catch (er) { env.disabled = false; toast(cuenta() ? t('No se ha podido enviar. Prueba otra vez.', 'Could not send. Try again.') : t('Entra en tu cuenta para enviarla.', 'Sign in to send it.')); }
       }

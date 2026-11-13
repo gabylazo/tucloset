@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.248'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.249'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -666,12 +666,13 @@ if (AT) (() => {
     if (E.lkTab === 'ideas') return pintarIdeas(raiz);
     const fav = E.lkTab === 'fav', lista = E.conjuntos.filter(c => !fav || c.fav || esFav(c.ids));
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
-    // 09/11 (decisión 36, pedida por Gabriela): «Crear un look» y «Mi cápsula» en una fila corta (13/11: y «Recrear un look», pedido por Sheila), como las acciones de Ideas, y los looks guardados justo debajo
-    const acc = fav ? '' : `<div class="at-iconos at-ideas-acc at-mios-acc" role="group" aria-label="${t('Crear looks', 'Create looks')}"><button class="at-ib" data-ir="nuevo-look"><span class="at-ib-c">${I.mas}</span><span class="at-ib-t">${t('Crear un look', 'Create a look')}</span></button><button class="at-ib" data-recrear><span class="at-ib-c">${I.recrear}</span><span class="at-ib-t">${t('Recrear un look', 'Recreate a look')}</span></button><button class="at-ib" data-capsula><span class="at-ib-c">${I.percha}</span><span class="at-ib-t">${t('Mi cápsula', 'My capsule')}</span></button><button class="at-ib" data-semana><span class="at-ib-c">${I.cal}</span><span class="at-ib-t">${t('Mi semana', 'My week')}</span></button></div>`;
+    // 09/11 (decisión 36, pedida por Gabriela): «Crear un look» y «Mi cápsula» en una fila corta. 13/11 (Gabriela: «salen cosas repetidas en ideas y en mis looks… quita lo que sobre»):
+    // «Crear un look» y «Recrear un look» van solo en Ideas, que es donde se abre Looks; aquí quedan «Mi cápsula» y «Mi semana», como las acciones de Ideas, y los looks guardados justo debajo
+    const acc = fav ? '' : `<div class="at-iconos at-ideas-acc at-mios-acc" role="group" aria-label="${t('Tu cápsula y tu semana', 'Your capsule and week')}"><button class="at-ib" data-capsula><span class="at-ib-c">${I.percha}</span><span class="at-ib-t">${t('Mi cápsula', 'My capsule')}</span></button><button class="at-ib" data-semana><span class="at-ib-c">${I.cal}</span><span class="at-ib-t">${t('Mi semana', 'My week')}</span></button></div>`;
     const t1 = c => `<figure class="at-t">${baldosa(psDe(c), TW, TH, ` data-look="${c.id}" aria-label="${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}"`)}<figcaption>${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</figcaption></figure>`;
     raiz.innerHTML = filaLooks(E.lkTab) + acc + (lista.length ? `<div class="at-rej2">${lista.map(t1).join('')}</div>` : !fav ? `<div class="at-vacio"><p>${t('Aún no has guardado ningún look. Crea uno o guárdalo desde Hoy.', 'You have not saved any looks yet. Create one or save it from Today.')}</p></div>`
       : `<div class="at-vacio"><p>${t('Aún no tienes favoritos. Abre un look y toca el corazón.', 'No favourites yet. Open a look and tap the heart.')}</p></div>`);
-    raiz.onclick = e => { if (e.target.closest('[data-recrear]')) return abrirRecrear(); if (e.target.closest('[data-capsula]')) return abrirCapsula(); if (e.target.closest('[data-semana]')) { E.semana = null; abrirSemana(); return $('at-sem-t')?.focus({ preventScroll: true }); } const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
+    raiz.onclick = e => { if (e.target.closest('[data-capsula]')) return abrirCapsula(); if (e.target.closest('[data-semana]')) { E.semana = null; abrirSemana(); return $('at-sem-t')?.focus({ preventScroll: true }); } const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
   };
   // el calendario de siempre, con la cabecera de Looks
   const pintarAgendaVieja = pintarAgenda;

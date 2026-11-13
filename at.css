@@ -693,3 +693,7 @@ html.at .at-rc-l small { display: block; margin-top: 2px; font-size: 13px; line-
 html.at .at-btn.at-btn-2 { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
 html.at .at-btn.at-btn-2.hecho { box-shadow: none; color: var(--sec); }
 html.at .at-rc .at-cm-bts > .at-btn { width: 240px; max-width: 100%; }
+/* 13/11 (Gabriela: «los iconos ya se están superponiendo»): con cinco o más acciones en Ideas, de tres en tres en vez de apretadas en una fila */
+html.at .at-ideas-acc:has(> .at-ib:nth-child(5)) { flex-wrap: wrap; justify-content: center; row-gap: 18px; }
+html.at .at-ideas-acc:has(> .at-ib:nth-child(5)) .at-ib { flex: 0 0 33.333%; }
+html.at .at-ideas-acc:has(> .at-ib:nth-child(5)) .at-ib-t { padding: 0 4px; }
