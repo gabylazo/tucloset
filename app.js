@@ -2033,27 +2033,30 @@ const REPITE = [['una', 'No se repite', 'Does not repeat'], ['semana', 'Cada sem
 const diaMas = (d, n) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() + n); return diaISO(x); };
 const rangoEv = f => { const o = { day: 'numeric', month: 'short' }, L = idioma() === 'en' ? 'en-GB' : 'es-ES', fd = d => new Date(d + 'T12:00').toLocaleDateString(L, o); return `${fd(f.desde)} – ${fd(f.hasta)}`; };
 const escH = x => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-// 13/11 (Gabriela: «cuando despliegas Añadir evento, mejorar un poco la distribución, hay mucho texto, y no parece profesional», «y lo mismo para la semana»):
-// cada campo con su rótulo corto, hora y repetición en una fila, la repetición en un desplegable, y el sitio y los detalles solo si se piden
+// 13/11 (Gabriela: «cuando despliegas Añadir evento, mejorar un poco la distribución, hay mucho texto, y no parece profesional», «y lo mismo para la semana»;
+// y por la noche: «me sigue sin gustar… el despliegue de los datos a añadir del plan»): el formulario va en filas, como la agenda del iPhone. Arriba, el
+// título; debajo, cada dato en una línea, con su nombre a la izquierda y su valor a la derecha. El valor lo pinta la app y el control del sistema (la hora,
+// la fecha, la lista) va encima, transparente: al tocar la fila sale su rueda o su lista. El sitio y los detalles, a la vista, para escribir si se quiere
+const fechaCorta = d => cap(new Date(d + 'T12:00').toLocaleDateString(idioma() === 'en' ? 'en-GB' : 'es-ES', { weekday: 'short', day: 'numeric', month: 'short' }));
 function formEvento() {
   const f = E.cal.form, en = idioma() === 'en', L = en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-  const dia = new Date(f.dia + 'T12:00').toLocaleDateString(en ? 'en-GB' : 'es-ES', { weekday: 'long' }), datos = f.masDatos || f.url || f.desc;
+  const dia = new Date(f.dia + 'T12:00').toLocaleDateString(en ? 'en-GB' : 'es-ES', { weekday: 'long' });
   const repTxt = ([k, es, i]) => k === 'semana' ? (en ? `Every ${dia}` : `Cada ${dia}`) : en ? i : es;
+  const fila = (rot, valor, control) => `<label class="ag-f"><span class="ag-l">${rot}</span><span class="ag-v" aria-hidden="true">${valor}</span>${control}</label>`;
   return `<div class="ag-form">
-    <label class="ag-campo"><span>${t('Qué es', 'What')}</span><input id="ag-nom" type="text" maxlength="40" placeholder="${f.rep === 'varios' ? t('Trabajo, congreso, viaje…', 'Work, conference, trip…') : t('Oficina, cena, pilates…', 'Office, dinner, pilates…')}" value="${(f.nombre || '').replace(/"/g, '&quot;')}" autocomplete="off"></label>
-    <div class="ag-par"><label class="ag-campo"><span>${t('Hora', 'Time')}</span><input id="ag-hora" type="time" value="${f.hora || ''}"></label>
-      ${f.edita ? '' : `<label class="ag-campo"><span>${t('Se repite', 'Repeats')}</span><select id="ag-rep">${REPITE.map(r => `<option value="${r[0]}"${r[0] === f.rep ? ' selected' : ''}>${repTxt(r)}</option>`).join('')}</select></label>`}</div>
-    ${f.rep === 'varios' ? `<label class="ag-campo"><span>${t('Hasta el', 'Until')}</span><input id="ag-hasta" type="date" min="${diaMas(f.dia, 1)}" max="${diaMas(f.dia, 30)}" value="${f.hasta || ''}"></label>` : ''}
+    <input id="ag-nom" class="ag-tit" type="text" maxlength="40" aria-label="${t('Qué es', 'What')}" placeholder="${f.rep === 'varios' ? t('Trabajo, congreso, viaje…', 'Work, conference, trip…') : t('Cena, oficina, pilates…', 'Dinner, office, pilates…')}" value="${escH(f.nombre || '')}" autocomplete="off">
+    ${fila(t('Hora', 'Time'), `<span id="ag-hora-v"${f.hora ? '' : ' class="no"'}>${f.hora || t('Sin hora', 'No time')}</span>`, `<input id="ag-hora" class="ag-nat" type="time" value="${f.hora || ''}">`)}
+    ${f.edita ? '' : fila(t('Repetir', 'Repeat'), `<span>${repTxt(REPITE.find(r => r[0] === f.rep) || REPITE[0])}</span>${agIc('abajo')}`, `<select id="ag-rep" class="ag-nat">${REPITE.map(r => `<option value="${r[0]}"${r[0] === f.rep ? ' selected' : ''}>${repTxt(r)}</option>`).join('')}</select>`)}
     ${f.rep === 'dias' ? `<div class="ag-dias" role="group" aria-label="${t('Días', 'Days')}">${[1, 2, 3, 4, 5, 6, 0].map((x, i) => `<button class="${f.dias.includes(x) ? 'on' : ''}" data-agdow="${x}" aria-pressed="${f.dias.includes(x)}" aria-label="${diasTxt([x])}">${L[i]}</button>`).join('')}</div>` : ''}
-    <div class="ag-campo"><span id="ag-oc-t">${t('Ocasión', 'Occasion')}</span><div class="cal-ops" role="group" aria-labelledby="ag-oc-t">${OCASIONES.map(o => `<button class="${o === f.oc ? 'on' : ''}" data-agoc="${o}" aria-pressed="${o === f.oc}">${ocNombre(o)}</button>`).join('')}</div></div>
-    ${datos ? `<label class="ag-campo"><span>${t('Sitio', 'Place')}</span><input id="ag-url" class="ag-url" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="${t('Enlace de Google Maps o su web', 'Google Maps or website link')}" value="${escH(f.url || '')}"></label>
-    <label class="ag-campo"><span>${t('Detalles', 'Details')}</span><textarea id="ag-desc" class="ag-desc" rows="2" maxlength="240" placeholder="${t('Dentro o fuera, si hay que ir arreglada…', 'Indoors or out, dressy or not…')}">${escH(f.desc || '')}</textarea></label>`
-      : `<button class="ag-mas-datos" data-agdatos>${t('Añadir sitio y detalles', 'Add place and details')}</button>`}
-    <div class="cal-bts"><button class="hz-bt" data-agguarda>${f.edita ? t('Guardar los cambios', 'Save changes') : t('Guardar', 'Save')}</button><button class="txt sub-l" data-agcancela>${t('Cancelar', 'Cancel')}</button></div></div>`;
+    ${f.rep === 'varios' ? fila(t('Hasta el', 'Until'), `<span id="ag-hasta-v">${fechaCorta(f.hasta || diaMas(f.dia, 4))}</span>`, `<input id="ag-hasta" class="ag-nat" type="date" min="${diaMas(f.dia, 1)}" max="${diaMas(f.dia, 30)}" value="${f.hasta || ''}">`) : ''}
+    ${fila(t('Ocasión', 'Occasion'), `<span id="ag-oc-v">${ocNombre(f.oc)}</span>${agIc('abajo')}`, `<select id="ag-oc" class="ag-nat">${OCASIONES.map(o => `<option value="${o}"${o === f.oc ? ' selected' : ''}>${ocNombre(o)}</option>`).join('')}</select>`)}
+    <input id="ag-url" class="ag-esc ag-url" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" aria-label="${t('Sitio', 'Place')}" placeholder="${t('Sitio o enlace de Maps', 'Place or Maps link')}" value="${escH(f.url || '')}">
+    <textarea id="ag-desc" class="ag-esc ag-desc" rows="1" maxlength="240" aria-label="${t('Detalles', 'Details')}" placeholder="${t('Detalles', 'Details')}">${escH(f.desc || '')}</textarea>
+    <div class="cal-bts"><button class="hz-bt" data-agguarda>${t('Guardar', 'Save')}</button></div></div>`;
 }
 // 13/11 (Gabriela: «me sigue sin gustar lo del calendario»; eligió la maqueta «Mes, más limpio»): el plan abierto enseña el look en grande y, debajo,
 // sus acciones en una fila de iconos con rótulo, en vez de la lista de textos; borrar un plan que se repite pregunta antes si solo ese día o todos
-const AG_IC = { mas: '<path d="M12 5v14M5 12h14"/>', lapiz: '<path d="M4.5 19.5l1-4.5L15.8 4.7a1.8 1.8 0 0 1 2.5 0l1 1a1.8 1.8 0 0 1 0 2.5L9 18.5z"/><path d="M13.8 6.7l3.5 3.5"/>',
+const AG_IC = { mas: '<path d="M12 5v14M5 12h14"/>', abajo: '<path d="m7 10 5 5 5-5"/>', der: '<path d="m10 6.5 5.5 5.5-5.5 5.5"/>', lapiz: '<path d="M4.5 19.5l1-4.5L15.8 4.7a1.8 1.8 0 0 1 2.5 0l1 1a1.8 1.8 0 0 1 0 2.5L9 18.5z"/><path d="M13.8 6.7l3.5 3.5"/>',
   papelera: '<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7M10.5 10.5v6M13.5 10.5v6"/>', girar: '<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/>',
   cal: '<rect x="4" y="5.5" width="16" height="14" rx="1"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>', cerrar: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
   percha: '<path d="M12 7.5a2 2 0 1 1 2-2c0 1-2 1.3-2 2.6V9M12 9l8.5 6.5c.6.5.3 1.5-.5 1.5H4c-.8 0-1.1-1-.5-1.5Z"/>' };
@@ -2118,17 +2121,20 @@ function pintarAgenda(raiz) {
     ${lkTabs('cal')}
     <div class="cal ag${f ? ' con-form' : ''}">${f ? '' : `<div class="ag-mes"><button data-agmes="-1" aria-label="${t('Mes anterior', 'Previous month')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h2>${cap(m.toLocaleDateString(loc, { month: 'long', year: 'numeric' }))}</h2><button data-agmes="1" aria-label="${t('Mes siguiente', 'Next month')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
     <div class="ag-sem7">${sem}</div><div class="ag-rej">${celdas}</div>`}
-    <section class="ag-dia"><div class="ag-dia-cab"><h3>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>${!f && d >= hoy ? `<button class="ag-mas" data-agmenu aria-expanded="${!!E.cal.menu}" aria-label="${t('Añadir', 'Add')}">${agIc('mas')}</button>` : ''}</div>
-      ${E.cal.menu && !f && d >= hoy ? `<div class="ag-menu"><button data-agnuevo>${t('Añadir evento', 'Add event')}</button><button data-agvarios>${t('Planear varios días', 'Plan several days')}</button></div>` : ''}
-      ${f ? formEvento() : filas || `<p class="cal-vacio">${d >= hoy ? t('Nada apuntado. Toca + para añadir un plan.', 'Nothing planned. Tap + to add a plan.') : t('Sin eventos.', 'No events.')}</p>`}
+    <section class="ag-dia"><div class="ag-dia-cab"><h3${f ? ' role="heading" aria-level="2"' : ''}>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>${f ? `<button class="ag-mas" data-agcancela aria-label="${t('Cancelar', 'Cancel')}">${agIc('cerrar')}</button>` : d >= hoy ? `<button class="ag-mas" data-agmenu aria-expanded="${!!E.cal.menu}" aria-label="${t('Añadir', 'Add')}">${agIc('mas')}</button>` : ''}</div>
+      ${E.cal.menu && !f && d >= hoy ? `<div class="ag-menu"><button data-agnuevo><span>${t('Añadir evento', 'Add event')}</span>${agIc('der')}</button><button data-agvarios><span>${t('Planear varios días', 'Plan several days')}</span>${agIc('der')}</button></div>` : ''}
+      ${f ? formEvento() : filas || (d >= hoy ? '' : `<p class="cal-vacio">${t('Sin eventos.', 'No events.')}</p>`)}
       ${puesto.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(puesto, true)}</div></div>` : ''}</section></div>`;
-  const nom = $('ag-nom'); if (nom) { nom.oninput = () => { f.nombre = nom.value; const o = OC_POR_NOMBRE.find(([r]) => r.test(nom.value)); if (o && !f.ocTocada && o[1] !== f.oc) { f.oc = o[1]; raiz.querySelectorAll('[data-agoc]').forEach(b => b.classList.toggle('on', b.dataset.agoc === f.oc)); } }; if (!f.nombre) nom.focus(); }
-  const hr = $('ag-hora'); if (hr) hr.onchange = () => { f.hora = hr.value; };
-  // lo escrito no se pierde al cambiar cómo se repite ni al abrir el sitio y los detalles
+  const nom = $('ag-nom'); if (nom) { nom.oninput = () => { f.nombre = nom.value; const o = OC_POR_NOMBRE.find(([r]) => r.test(nom.value)); if (o && !f.ocTocada && o[1] !== f.oc) { f.oc = o[1]; if ($('ag-oc')) $('ag-oc').value = f.oc; if ($('ag-oc-v')) $('ag-oc-v').textContent = ocNombre(f.oc); } }; if (!f.nombre) nom.focus(); }
+  const hr = $('ag-hora'); if (hr) hr.oninput = hr.onchange = () => { f.hora = hr.value; const v = $('ag-hora-v'); v.textContent = hr.value || t('Sin hora', 'No time'); v.classList.toggle('no', !hr.value); };
+  const so = $('ag-oc'); if (so) so.onchange = () => { f.oc = so.value; f.ocTocada = true; $('ag-oc-v').textContent = ocNombre(f.oc); };
+  const ha = $('ag-hasta'); if (ha) ha.oninput = ha.onchange = () => { if (ha.value) { f.hasta = ha.value; $('ag-hasta-v').textContent = fechaCorta(ha.value); } };
+  const de = $('ag-desc'); if (de) { const alto = () => { de.style.height = 'auto'; de.style.height = de.scrollHeight + 'px'; }; de.oninput = alto; alto(); }
+  // lo escrito no se pierde al cambiar cómo se repite
   const recogerForm = () => { f.nombre = $('ag-nom')?.value ?? f.nombre; f.hora = $('ag-hora')?.value ?? f.hora; f.url = $('ag-url')?.value ?? f.url; f.desc = $('ag-desc')?.value ?? f.desc; f.hasta = $('ag-hasta')?.value || f.hasta || diaMas(d, 4); };
   const rp = $('ag-rep'); if (rp) rp.onchange = () => { recogerForm(); f.rep = rp.value; pintarAgenda(raiz); $('ag-rep')?.focus({ preventScroll: true }); };
   raiz.onclick = async e => {
-    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agoc],[data-agdatos],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agedita],[data-agquitalook],[data-agquita],[data-agbfijo],[data-agvarios],[data-agplan],[data-agmenu],[data-agborra]'); if (!b) { if (E.cal.menu) { E.cal.menu = false; pintarAgenda(raiz); } return; }
+    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agedita],[data-agquitalook],[data-agquita],[data-agbfijo],[data-agvarios],[data-agplan],[data-agmenu],[data-agborra]'); if (!b) { if (E.cal.menu) { E.cal.menu = false; pintarAgenda(raiz); } return; }
     const menuAb = E.cal.menu, borraAb = E.cal.borra; E.cal.menu = E.cal.borra = false;
     const q = b.dataset, [dia, evId] = (E.cal.ev || '|').split('|'), ag = k => (E.agenda[k] = E.agenda[k] || { planes: [] }); let planear = null;
     if (q.lktab) { E.lkTab = q.lktab; E.lkTocado = true; E.lkI = 0; return pintarLooks(); }
@@ -2139,8 +2145,6 @@ function pintarAgenda(raiz) {
     else if (q.agnuevo !== undefined) { E.cal.form = { dia: d, oc: 'Diario', hora: '', rep: 'una', dias: [sel.getDay()], nombre: '' }; E.cal.ev = null; }
     else if (q.agvarios !== undefined) { E.cal.form = { dia: d, oc: 'Oficina', hora: '', rep: 'varios', hasta: diaMas(d, 4), dias: [sel.getDay()], nombre: '' }; E.cal.ev = null; }
     else if (q.agplan !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) planear = [ev, dia]; }
-    else if (q.agoc) { f.oc = q.agoc; f.ocTocada = true; raiz.querySelectorAll('[data-agoc]').forEach(x => { x.classList.toggle('on', x.dataset.agoc === f.oc); x.setAttribute('aria-pressed', x.dataset.agoc === f.oc); }); return; }
-    else if (q.agdatos !== undefined) { recogerForm(); f.masDatos = true; }
     else if (q.agdow) { const x = +q.agdow; f.dias = f.dias.includes(x) ? f.dias.filter(y => y !== x) : [...f.dias, x]; b.classList.toggle('on'); b.setAttribute('aria-pressed', b.classList.contains('on')); return; }
     else if (q.agcancela !== undefined) E.cal.form = null;
     else if (q.agguarda !== undefined) {

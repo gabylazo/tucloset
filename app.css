@@ -1281,14 +1281,6 @@ img{-webkit-user-drag:none}
 .ag-dia h3 small{font-family:var(--f);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--oro-t)}
 .ag-dia.pasado h3{color:var(--sec)}
 .ag-panel .cal-mios{margin-top:12px}
-.ag-form{margin:12px auto 4px;max-width:340px;display:grid;gap:14px;text-align:center}
-.ag-form>.mini-et{color:var(--sec)}
-.ag-form input[type=text]{font:inherit;font-size:16px;font-weight:300;color:var(--tinta);text-align:center;border:0;border-bottom:1px solid var(--linea2);padding:8px 4px;background:none;border-radius:0}
-.ag-form input[type=text]:focus{outline:0;border-bottom-color:var(--tinta)}
-/* 06/11: el plan con el enlace del sitio y su descripción */
-.ag-form input[type=url],.ag-form textarea{font:inherit;font-size:16px;font-weight:300;color:var(--tinta);text-align:center;border:0;border-bottom:1px solid var(--linea2);padding:8px 4px;background:none;border-radius:0;width:100%;box-sizing:border-box;resize:none}
-.ag-form input[type=url]:focus,.ag-form textarea:focus{outline:0;border-bottom-color:var(--tinta)}
-.ag-form input::placeholder,.ag-form textarea::placeholder{color:var(--sec)}
 .ag-plan{margin:4px auto 14px;max-width:340px;text-align:center;display:grid;gap:4px}
 .ag-sitio{margin:0;font-size:15px}.ag-sitio a{color:var(--tinta);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}.ag-sitio small{display:block;font-size:12px;color:var(--sec)}
 .ag-desc-t{margin:0;font-size:13px;color:var(--sec);font-weight:300;line-height:1.45}
@@ -1323,9 +1315,29 @@ img{-webkit-user-drag:none}
 .ag-mas{flex:none;width:44px;height:44px;margin-right:-10px;display:grid;place-items:center;color:var(--tinta)}
 .ag-mas .ag-ic{transition:transform .18s}
 .ag-mas[aria-expanded=true] .ag-ic{transform:rotate(45deg)}
-.ag-menu{width:max-content;margin:0 0 10px auto;display:grid;border:1px solid var(--linea2);background:var(--fondo)}
-.ag-menu button{min-height:46px;padding:0 18px;font-size:14.5px;font-weight:300;color:var(--tinta);text-align:left}
-.ag-menu button+button{border-top:1px solid var(--linea)}
+/* 13/11, noche (Gabriela: «lo de abajo de la fecha sobra y mejora el diseño de eso, y luego el despliegue de los datos a añadir del plan»): el «+» abre
+   dos filas a todo el ancho, sin recuadro; sin planes, debajo de la fecha no hay texto; y el formulario va en filas, como la agenda del iPhone: el título
+   arriba y cada dato en una línea (nombre a la izquierda, valor a la derecha), con el control del sistema encima, transparente */
+.ag-menu{margin:4px 0 10px;display:grid;border-top:1px solid var(--linea)}
+.ag-menu button{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:0;border-bottom:1px solid var(--linea);font-size:16px;font-weight:300;color:var(--tinta);text-align:left}
+.ag-menu button .ag-ic{flex:none;width:18px;height:18px;color:var(--sec)}
+.ag-form{margin:4px 0;text-align:left}
+.ag-form .ag-tit{display:block;width:100%;box-sizing:border-box;margin:0;padding:10px 0 13px;border:0;border-bottom:1px solid var(--linea2);border-radius:0;background:none;font:300 21px/1.25 var(--f);color:var(--tinta);text-align:left}
+.ag-form .ag-tit:focus,.ag-form .ag-esc:focus{outline:0;border-bottom-color:var(--tinta)}
+.ag-form .ag-tit::placeholder,.ag-form .ag-esc::placeholder{color:var(--sec);opacity:1}
+.ag-f{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:52px;border-bottom:1px solid var(--linea);font-size:16px;cursor:pointer}
+.ag-f:focus-within{border-bottom-color:var(--tinta)}
+.ag-f:has(.ag-nat:focus-visible){outline:2px solid var(--tinta);outline-offset:2px}
+.ag-l{flex:none;font-weight:300;color:var(--sec)}
+.ag-v{display:flex;align-items:center;gap:6px;min-width:0;color:var(--tinta);text-align:right}
+.ag-v .no{font-weight:300;color:var(--sec)}
+.ag-v .ag-ic{flex:none;width:16px;height:16px;color:var(--sec)}
+.ag-nat{position:absolute;left:0;top:0;width:100%;height:100%;box-sizing:border-box;margin:0;padding:0;border:0;opacity:0;font:inherit;font-size:16px;cursor:pointer;-webkit-appearance:none;appearance:none}
+.ag-nat::-webkit-calendar-picker-indicator{position:absolute;left:0;top:0;width:100%;height:100%;margin:0;padding:0;cursor:pointer}
+.ag-form .ag-esc{display:block;width:100%;box-sizing:border-box;min-height:52px;margin:0;padding:15px 0 14px;border:0;border-bottom:1px solid var(--linea);border-radius:0;background:none;font:300 16px/1.4 var(--f);color:var(--tinta);text-align:left;resize:none;overflow:hidden}
+.ag-form .ag-dias{justify-content:space-between;gap:4px;padding:10px 0;border-bottom:1px solid var(--linea)}
+.ag-form .ag-dias button{width:40px;height:40px}
+.ag-form .cal-bts{margin-top:28px}
 .ag .ag-dia>.cal-vacio{margin:6px 0 4px}
 .ag-ev{text-align:left}
 .ag-ev+.ag-ev{border-top:1px solid var(--linea)}
