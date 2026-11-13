@@ -1593,6 +1593,12 @@ function anotarGusto(ids, clave) {
   if (!E.perfil) return; const g = E.perfil.gustos = E.perfil.gustos || { si: {}, no: {} }; g[clave] = g[clave] || {};
   parejas(ids.map(P).filter(Boolean)).forEach(k => { g[clave][k] = (g[clave][k] || 0) + 1; });
 }
+// 13/11 (Gabriela, 12/11: «la app debe aprender… de las piezas que cambia del outfit»): cada cambio de prenda en Hoy se apunta (la que quita, la que pone y
+// el resto del look) para el motor; los 200 últimos
+function anotarCambio(quita, pone, resto) {
+  if (!E.perfil || !pone) return; const g = E.perfil.gustos = E.perfil.gustos || { si: {}, no: {} };
+  g.cam = [...(g.cam || []), { d: hoyISO(), quita: quita || null, pone, resto: resto.filter(x => x !== quita && x !== pone) }].slice(-200);
+}
 function mejorAcompanante(lista, base, extra) { // calzado o bolso que mejor puntúa con la base
   let mejor = null, mp = -Infinity;
   for (const x of lista) { const v = puntuar([...base, x]) + (extra ? extra(x) : 0) - Math.random() * .6; if (v > mp) { mp = v; mejor = x; } }

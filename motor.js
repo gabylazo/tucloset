@@ -91,6 +91,9 @@ const Motor = (() => {
     for (const c of COLOR_FINO) if (I.color.palabras_en_el_nombre[c]?.some(r => r.test(nom))) { col = c; break; }
     conColor(f, col || 'Estampado');
     if (f.color === 'Estampado' && f.estampado === 'liso') f.estampado = 'otro';
+    // 13/11 (Moda, equipo/moda/estudio/salidas/ciencia-looks-2026-11-13.md): un vestido corto de manga larga abriga más que uno de tirantes; el motor los trataba
+    // igual (mínimo 18 °C) y los de entretiempo no salían nunca en noviembre. Ahora: 4 °C menos de mínimo y +0,08 de clo (estimación de Moda, a calibrar)
+    if (f.subtipo === 'vestido_corto' && f.manga === 'larga') { f.tmin -= 4; f.clo += .08; }
     // la estación de la ficha solo recorta el rango de temperatura (nunca lo amplía)
     const e = I.estacion_a_rango[p.estacion]; if (e) { f.tmin = Math.max(f.tmin, e.tmin); f.tmax = Math.min(f.tmax, e.tmax); }
     f.estacion = p.estacion;
@@ -470,11 +473,60 @@ const Motor = (() => {
     if (m === 'estrenar') return { p: USO_P * media(p => !(p.usos || []).length ? 1 : p.creada && diasDesde(p.creada, hoy) <= 21 ? .6 : -.2), ayer: true };
     return { p: USO_P * media(p => { const d = dias(p); return d == null ? .6 : d <= 3 ? -1 : d <= 7 ? -.4 : d <= 14 ? .2 : .6; }), ayer: true };
   }
+  /* 13/11 (Gabriela, 12/11: «la app debe aprender de primero los looks favoritos, de las piezas que cambia del outfit, y poco a poco va conociendo a la persona»):
+     lo aprendido de cada persona se queda en el motor, sin pantalla («no quiero cargar más la app»). Parejas de prendas: las de un favorito suman más que las de
+     «Me lo pongo»; al cambiar una prenda del look, la que pone suma con el resto y la que quita resta poco. Gustos por rasgo (color, tipo, estampado) con un peso
+     que crece con los datos (datos / (datos + k)) y con tope. Solo ordena looks que ya pasan los vetos: elegir() quita antes los vetados, así que el gusto
+     nunca saca algo que la estilista prohíbe. Números de Moda (AP_MODA, equipo/moda/estudio/salidas/ciencia-looks-2026-11-13.md). */
+  // Pesos de Moda (13/11), ya en puntos de nota: favorito 0,25 del grupo «perfil» (×0,12 = 0,03) por pareja y como mucho 2 parejas; «Me lo pongo» y la prenda
+  // que entra al cambiar, 0,10 (0,012); la que sale, −0,012 como mucho; confianza n/(n+10); rasgos solo con 10 señales o más y a la mitad del peso de una pareja;
+  // olvido: la mitad cada 90 días; tope ±0,072. Un gusto a favor vale 0 si el look es flojo (nota < 0,12) o tiene un veto blando de −0,30 o peor.
+  const AP = { fav: .03, favPares: 2, puesto: .012, cambioSi: .012, cambioNo: .012, k: 10, rasgosDesde: 10, tope: .072, olvido: 90 };
+  const RASGOS = f => ['color:' + f.color, 'sub:' + f.subtipo, 'est:' + f.estampado];
+  let apCache = { g: null, n: -1, v: null };
+  function aprendido(g, ents, hoy) {
+    if (!g || (!g.fav?.length && !Object.keys(g.si || {}).length && !g.cam?.length)) return null;
+    if (apCache.g === g && apCache.n === ents.length && apCache.hoy === hoy) return apCache.v;
+    const f = new Map(ents.map(x => [x.id, x._f])), par = {}, fav = {}, ras = {}, kp = (a, b) => [a, b].sort().join('|'); let datos = 0;
+    const sumaRas = (id, w) => { const x = f.get(id); if (x) for (const r of RASGOS(x)) ras[r] = (ras[r] || 0) + w; };
+    for (const k of g.fav || []) { const ids = k.split(',').filter(id => f.has(id)); for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) fav[kp(ids[i], ids[j])] = 1; ids.forEach(id => sumaRas(id, 1)); datos += 2; }
+    for (const [k, n0] of Object.entries(g.si || {})) { const [a, b] = k.split('|'); if (!f.has(a) || !f.has(b)) continue; par[k] = (par[k] || 0) + AP.puesto; sumaRas(a, .5); sumaRas(b, .5); datos += .5 * Math.min(2, n0); }
+    const vistos = {};
+    for (const c of g.cam || []) { if (!f.has(c.pone)) continue; const w = c.d && hoy ? Math.pow(.5, Math.max(0, diasDesde(c.d, hoy)) / AP.olvido) : 1, rep = vistos[c.quita + '>' + c.pone] = (vistos[c.quita + '>' + c.pone] || 0) + 1;
+      for (const r of c.resto || []) { const k = kp(c.pone, r); par[k] = Math.min((par[k] || 0) + AP.cambioSi * w * (rep > 1 ? .5 : 1), AP.cambioSi * 1.5 + AP.puesto * 2); if (c.quita) { const kq = kp(c.quita, r); par[kq] = Math.max((par[kq] || 0) - AP.cambioNo * w / 2, -AP.cambioNo); } }
+      sumaRas(c.pone, w); if (c.quita) sumaRas(c.quita, -.5 * w); datos += w; }
+    const m = Math.max(1, ...Object.values(ras).map(Math.abs)); for (const r in ras) ras[r] /= m;
+    const v = { par, fav, ras, conf: datos / (datos + AP.k), datos }; apCache = { g, n: ents.length, hoy, v }; return v;
+  }
+  function gustoLook(l, ap, nota0, veto) {
+    const ps = PIEZAS.map(k => l[k]).filter(p => p && !p.muestra); let s = 0, nf = 0;
+    for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) { const k = [ps[i].id, ps[j].id].sort().join('|'); s += ap.conf * (ap.par[k] || 0); if (ap.fav[k] && nf < AP.favPares) { s += ap.conf * AP.fav; nf++; } }
+    if (ap.datos >= AP.rasgosDesde) s += ap.conf * (AP.puesto / 2) * ps.reduce((a, p) => a + RASGOS(p._f).reduce((b, k) => b + (ap.ras[k] || 0), 0) / 3, 0) / (ps.length || 1) * 3;
+    if (s > 0 && (nota0 < R.puntos.umbrales.pasable || veto.blandos.some(v => (v.p || 0) <= -.3))) s = 0;
+    return Math.max(-AP.tope, Math.min(AP.tope, s));
+  }
+  /* 13/11 (Moda, ciencia-looks, punto b: «la variedad solo desempata»): una prenda que lleva tiempo sin salir sube un poco (7–13 días +0,01, 14–27 +0,02, 28 o más,
+     o 14 días en el clóset sin estrenar, +0,03; a la mitad con 5–9 usos y nada con 10 o más; +0,01 si otra prenda también lleva 14 días; tope +0,04), solo en looks
+     buenos (nota ≥ 0,30) y sin prendas fuera de rango. Y lo que se repite en los 10 últimos días puestos baja (arriba, abajo y vestido: 3 → −0,01, 4 → −0,02,
+     5 o más → −0,04; calzado, capa y bolso: 4 → −0,01 … 7 o más → −0,04), solo si hay otra pieza de ese hueco para elegir. Neto, de −0,06 a +0,04. */
+  const ROT_ROPA = [0, 0, 0, -.01, -.02, -.04], ROT_COMPL = [0, 0, 0, 0, -.01, -.02, -.03, -.04];
+  function variedadModa(l, c, pf, hoy, nota0) {
+    const ult = pf.ult10, alt = pf.alt || {}; let bono = 0, otro = 0, rot = 0;
+    for (const k of ['arriba', 'abajo', 'vestido', 'capa']) { const x = l[k]; if (!x?.p || x.muestra) continue; const us = x.p.usos || [];
+      let d = null; for (const u of us) { const q = diasDesde(u, hoy); if (q >= 0 && (d == null || q < d)) d = q; }
+      const nuevo = d == null && (!x.p.creada || diasDesde(x.p.creada, hoy) >= 14), b = (nuevo || d >= 28 ? .03 : d >= 14 ? .02 : d >= 7 ? .01 : 0) * (us.length >= 10 ? 0 : us.length >= 5 ? .5 : 1);
+      if (b > bono) { if (bono >= .02) otro = 1; bono = b; } else if (b >= .02) otro = 1; }
+    bono = nota0 >= .3 && !c.prendas_fuera_de_rango ? Math.min(.04, bono + (otro ? .01 : 0)) : 0;
+    if (ult?.size) for (const k of PIEZAS) { const x = l[k]; if (!x?.p || x.muestra) continue; const n = (x.p.usos || []).filter(u => ult.has(u)).length, compl = ['calzado', 'capa', 'bolso'].includes(k);
+      if ((alt[x._f.cat] || 0) < 2) continue; rot += (compl ? ROT_COMPL : ROT_ROPA)[Math.min(n, compl ? 7 : 5)]; }
+    return Math.max(-.06, Math.min(.04, bono + Math.max(-.06, rot)));
+  }
   function evaluar(l, ctx, pf, hoy) {
     const c = camposLook(l, ctx, pf, hoy), e = entorno(l, c, ctx, pf), veto = vetar(e), pts = puntuar(l, c, e), uso = ajusteUso(l, pts, pf, hoy);
     // un look puesto ayer no es la primera idea: el peso del grupo «variedad» solo no lo baja lo bastante
     const ayer = uso.ayer && (c.dias_desde_ultimo_uso === 1 || c.dias_desde_ultimo_uso === 0) ? (c.es_favorito ? .05 : .15) : 0;
-    return { ...l, ctx, campos: c, veto, pts, nota: pts.total + uso.p + veto.p / 2 - ayer + huella(hoy + claveRopa(l)) * .04 + AF.nota * (PIEZAS.reduce((s, k) => s + afin(l[k]), 0) / Math.max(1, PIEZAS.filter(k => l[k]).length)), casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
+    const nota0 = pts.total + veto.p / 2, gusto = pf.ap ? gustoLook(l, pf.ap, nota0, veto) : 0, vm = pf.uso ? 0 : variedadModa(l, c, pf, hoy, nota0); // con «Cómo usas tu ropa» elegido, manda ajusteUso
+    return { ...l, ctx, campos: c, veto, pts, gusto, variedad: vm, nota: pts.total + uso.p + gusto + vm + veto.p / 2 - ayer + huella(hoy + claveRopa(l)) * .04 + AF.nota * (PIEZAS.reduce((s, k) => s + afin(l[k]), 0) / Math.max(1, PIEZAS.filter(k => l[k]).length)), casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
   }
   function elegir(cs, n, excluir) {
     const ok = cs.filter(l => !l.veto.duros.length && !l.casi && !excluir.has(claveLook(l))).sort((a, b) => b.nota - a.nota), sel = [], usoA = new Map(), usoB = new Map(), usoF = new Map(), usoZ = new Map(), vistos = new Set(), gemelos = new Set();
@@ -530,7 +582,9 @@ const Motor = (() => {
     const t0 = Date.now(), hoy = o.hoy || new Date().toISOString().slice(0, 10), plan = o.plan || 'Todos', n = o.n || 6, pf = perfilMotor(o.perfil, o), excluir = new Set(o.excluir || []);
     const ctx0 = contexto(o.tiempo, plan, { hora: o.hora, t_ref: o.t_ref, evento: o.evento, lugar: o.lugar });
     const ents = (o.prendas || []).filter(p => !p.noMeGusta).map(p => ({ id: p.id, p, _f: ficha(p, pf) }));
-    COMPL = !!o.complementos; MAXPAR = o.parejas || 12;
+    COMPL = !!o.complementos; MAXPAR = o.parejas || 12; pf.ap = aprendido(pf.gustos, ents, hoy);
+    { const fechas = [...new Set(ents.flatMap(x => x.p.usos || []).filter(u => u <= hoy))].sort().slice(-10); pf.ult10 = new Set(fechas); pf.alt = {}; // los 10 últimos días con algo puesto; cuántas piezas hay de cada clase
+      for (const x of ents) if (!(x._f.tmin != null && ctx0.t_ref < x._f.tmin - 3) && !(x._f.tmax != null && ctx0.t_ref > x._f.tmax + 3) && !x._f.deportiva) pf.alt[x._f.cat] = (pf.alt[x._f.cat] || 0) + 1; }
     if (o.afin) for (const x of ents) x._af = typeof o.afin === 'function' ? o.afin(x._f, txtAfin(x.p)) : afinEstilo(x._f, txtAfin(x.p), o.afin);
     else if (pf.inspo) { // 06/11: sin «Inspírate en», los looks que le encantan tiran (a menos de la mitad de fuerza) de los estilos que más se repiten en ellos y de sus colores
       const top = Object.entries(pf.inspo.estilos).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0]);

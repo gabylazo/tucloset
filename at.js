@@ -373,6 +373,7 @@ if (AT) (() => {
       cap.querySelector('[data-camficha]').onclick = () => { cap.remove(); abrirFicha(id); };
       cap.addEventListener('click', e => { const b = e.target.closest('[data-otrapz]'); if (!b) return; cap.remove();
         const q = P(b.dataset.otrapz), ids = pr.ids.includes(id) ? pr.ids.map(x => x === id ? q.id : x) : [...pr.ids, q.id];
+        anotarCambio(pr.ids.includes(id) ? id : null, q.id, pr.ids); guardar();
         const nuevo = { ...pr, ids, cambiada: 1 }; if (nuevo.tipo === 'conjunto') { delete nuevo.tipo; delete nuevo.c; }
         const i = E.propuestas.indexOf(pr); if (i >= 0) E.propuestas[i] = nuevo; else { E.propuestas.unshift(nuevo); E.hoyIdx = 0; }
         const x = cands.find(c => c.q.id === q.id); // si pega menos, se cambia igual y se dice por qué (el mensaje del veto del motor)
