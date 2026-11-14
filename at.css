@@ -506,6 +506,16 @@ html.at .av-ico.av-aviso::after { content: ''; position: absolute; top: 8px; rig
 html.at .at-puesto .at-como { flex-wrap: nowrap; gap: 0 4px; }
 html.at .at-puesto-otra.av-ico { flex: none; }
 html.at .pr-pal { width: 100%; margin: 0 0 18px; border: 1px solid var(--linea2, rgba(74,53,38,.3)); padding: 10px 12px; font-size: 15px; }
+/* 14/11: «No me parezco» recuerda lo que ya dijiste con tus palabras (se puede quitar); y en «Tus medidas y tus fotos», el aviso de la foto que no vale */
+html.at .pr-ya { margin: -6px 0 18px; text-align: left; }
+html.at .pr-ya p { margin: 0 0 2px; font-size: 13px; color: var(--sec); }
+html.at .pr-nota { display: flex; align-items: center; gap: 8px; min-height: 44px; border-bottom: 1px solid var(--linea); }
+html.at .pr-nota span { flex: 1; min-width: 0; padding: 8px 0; font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; }
+html.at .pr-nota button { flex: none; width: 44px; height: 44px; margin-right: -12px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; background: none; color: var(--tinta); cursor: pointer; }
+html.at .pr-nota svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+html.at .dx-rev { margin: 14px 0 0; font-size: 15px; line-height: 1.45; }
+html.at .dx-rev:empty { display: none; }
+html.at .dx-rev .dg-mal { margin: 0 0 4px; }
 @media (prefers-reduced-motion: reduce) { html.at .av-flecha { transition: none; } }
 
 /* 07/11: en Hoy, «Con una prenda» junto a la ocasión (Gabriela: «elegir una prenda que quieras ponerte sí o sí»); elegida, su foto pequeña, su nombre y la equis */

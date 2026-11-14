@@ -1095,6 +1095,10 @@ html.at.oscuro .av-ico{border:0;background:none;color:var(--tinta)}
 html.at.oscuro .av-ico svg{fill:none;stroke:currentColor}
 html.at.oscuro .av-ico.av-aviso::after{border-radius:50%;background:var(--oro)}
 html.at.oscuro .pr-pal{border:1px solid var(--linea2, rgba(241,233,222,.3))}
+html.at.oscuro .pr-ya p{color:var(--sec)}
+html.at.oscuro .pr-nota{border-bottom:1px solid var(--linea)}
+html.at.oscuro .pr-nota button{border:0;background:none;color:var(--tinta)}
+html.at.oscuro .pr-nota svg{fill:none;stroke:currentColor}
 html.at.oscuro .at-conp{color:var(--sec)}
 html.at.oscuro .at-conp-n{color:var(--tinta)}
 html.at.oscuro .at-conp-n img{background:var(--baldosa)}
@@ -1210,7 +1214,7 @@ html.at.oscuro[data-fondo="4"] .at-hoy .at-look { background: radial-gradient(el
 html.at.oscuro[data-fondo="4"] :is(.at-lz .pz, .at-lz img, .at-bal img, .at-cel:not(.sin-cat) img, .at-foto:not(.sin-cat) img, #nl-prendas img, .at-cap-p img, .dx-closet img, .at-puesto img, .av-img img) { filter: drop-shadow(0 0 1px rgba(241, 233, 222, .4)) drop-shadow(0 10px 16px rgba(0, 0, 0, .65)); }
 
 /* 08/11: los rojos de borrar y de error, claros sobre la noche (#8E3B2E daba 2,4:1 y #B3261E, 3:1; #E8776B da 6,3:1) */
-html.oscuro .pn-f.rojo, html.oscuro .pn-f.rojo .pn-t, html.oscuro #p-cuenta .item.rojo, html.oscuro #p-yo #yo-borrar, html.oscuro .dx-in input[aria-invalid=true], html.oscuro .dx-error { color: #E8776B; }
+html.oscuro .pn-f.rojo, html.oscuro .pn-f.rojo .pn-t, html.oscuro #p-cuenta .item.rojo, html.oscuro #p-yo #yo-borrar, html.oscuro .dx-in input[aria-invalid=true], html.oscuro .dx-error, html.oscuro .dg-mal, html.at.oscuro .at-vj-error { color: #E8776B; }
 html.oscuro .pn-f.rojo .pn-ic { stroke: #E8776B; }
 html.oscuro .dg-campo input[aria-invalid=true] { border-bottom-color: #E8776B; }
 html.at.oscuro .at-vj-campo input::-webkit-calendar-picker-indicator { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F1E9DE' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5'/%3E%3Cpath d='M3.5 9.5h17M8 3v4M16 3v4'/%3E%3C/svg%3E"); }

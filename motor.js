@@ -11,7 +11,7 @@ const Motor = (() => {
   const re = w => { const q = norm(w), entera = q.endsWith('$'), t = entera ? q.slice(0, -1) : q; return new RegExp('(^|[^a-z0-9])' + esc(t) + (entera ? '($|[^a-z0-9])' : '')); };
   // ropa de deporte (Gabriela, 06/11: «hay minifaldas que son de deporte»): por el nombre o por el detalle «Deporte» de la subida
   const TOP_ESP = /lencer|peplum|halter|cruzad|volant|babydoll|encaje|saten|seda|vuelo|asimetric|un hombro|abullon/;
-  const DEPORTE_RE = /(^|[^a-z0-9])(deporte|deportiv|tenis|padel|running|yoga|pilates|gimnasio|gym|fitness|entreno|entrenamiento)/;
+  const DEPORTE_RE = /(^|[^a-z0-9])(deporte|deportiv|tenis|padel|running|correr|trail|yoga|pilates|gimnasio|gym|fitness|crossfit|entreno|entrenamiento|futbol|baloncesto|senderismo|trekking|ciclismo|atletismo)/; // 14/11 (clóset de hombre de prueba): «zapatillas de correr» no contaban y el look de deporte salía sin calzado
   const A_DEPORTE = { falda_mini: 'falda_deportiva', falda_midi: 'falda_deportiva', falda_plisada: 'falda_deportiva', falda_generica: 'falda_deportiva', camiseta: 'camiseta_tecnica', camiseta_tirantes: 'top_deportivo', top: 'top_deportivo', top_corto: 'top_deportivo', chaqueta: 'chaqueta_deportiva', pantalon_generico: 'jogger' };
   const SUB_EST = { pantalon_de_vestir: 'pantalon_vestir', camiseta_sin_mangas: 'camiseta_tirantes' }; // el vocabulario de la ficha de la estilista (28/10)
   const COLOR_FINO = ['Mostaza', 'Burdeos', 'Terracota', 'Camel', 'Crema', 'Caqui', 'Verde menta', 'Verde salvia', 'Verde oliva', 'Verde botella', 'Azul marino', 'Azul petróleo', 'Azul eléctrico', 'Turquesa', 'Fucsia', 'Coral', 'Chocolate', 'Antracita', 'Nude', 'Melocotón', 'Mantequilla']; // 11/11: más colores (sin Dorado ni Plateado: «bolso con cadena dorada» sigue siendo del color del bolso) // si el nombre lo dice, manda sobre el color general de la app («body mostaza» guardado como Amarillo)
@@ -562,13 +562,15 @@ const Motor = (() => {
   }
   const NOMBRES = { mocasines: 'mocasines', botines: 'botines', zapatillas: 'zapatillas', sandalias_planas: 'sandalias planas', sandalias_tacon: 'sandalias de tacón', bailarinas: 'bailarinas', tacones: 'tacones', zapato_cordones: 'zapatos de cordones', botas_altas: 'botas altas', botas_agua: 'botas de agua', botas_montana: 'botas de montaña', alpargatas: 'alpargatas', abrigo_lana: 'abrigo de lana', plumifero: 'plumífero', pantalon_vestir: 'pantalón de vestir', pantalon_fluido: 'pantalón fluido', pantalon_lino: 'pantalón de lino', cardigan: 'cárdigan', jersey_cuello_alto: 'jersey de cuello alto', vestido_midi: 'vestido midi', falda_midi: 'falda midi' };
   const nombreTipo = id => NOMBRES[id] || R.inferencia.subtipos.find(s => s.id === id)?.palabras?.[0] || id.replace(/_/g, ' ');
+  const SOLO_MUJER = /^(falda|vestido|blusa|body$|top|malla$|mono$|kimono$|bailarinas$|sandalias_tacon$|tacones$|clutch$|bolso_mano$)/;
   function faltas(ctx, plan, ents, zapatosPropios, pf) {
     const ps = formulasPosibles(ctx, pf, plan, 1), cuenta = {};
     for (const f of ps) {
       const sin = f.huecos.filter(h => !h.opcional && !cands(h, h.rol === 'calzado' ? zapatosPropios : ents).length);
       if (sin.length !== 1) continue;
       const h = sin[0], abrigo = h.rol === 'capa' && tiposDe(h).some(t => R.grupos['@abrigo_frio'].includes(t)), g = abrigo ? 'abrigo' : h.rol === 'base_interior' ? 'arriba' : h.rol;
-      const c = cuenta[g] = cuenta[g] || { n: 0, tipos: {}, todos: new Set() }; c.n++; const t0 = tiposDe(h)[0]; c.tipos[t0] = (c.tipos[t0] || 0) + 1; for (const t of tiposDe(h)) c.todos.add(t);
+      const ts = pf.publico === 'masculino' ? tiposDe(h).filter(t => !SOLO_MUJER.test(t)) : tiposDe(h); if (!ts.length) continue; // 14/11: con ropa de hombre no se le dice que le falta una falda ni una malla
+      const c = cuenta[g] = cuenta[g] || { n: 0, tipos: {}, todos: new Set() }; c.n++; const t0 = ts[0]; c.tipos[t0] = (c.tipos[t0] || 0) + 1; for (const t of ts) c.todos.add(t);
     }
     if (String(ctx.tramo.capa).startsWith('obligatoria') && !ents.some(p => p._f.cat === 'capa' && p._f.subtipo !== 'chaleco_traje')) {
       const t0 = ctx.tramo.id === 'T4' ? 'gabardina' : ctx.tramo.id === 'T5' ? 'abrigo_lana' : 'plumifero', g = ctx.tramo.id === 'T4' ? 'capa' : 'abrigo', c = cuenta[g] = cuenta[g] || { n: 0, tipos: {} };

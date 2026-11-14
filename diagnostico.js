@@ -109,7 +109,7 @@ async function caraSin(blob) {
   const xs = lm.map(p => p.x * W), ys = lm.map(p => p.y * H), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), fw = x1 - x0;
   if (fw / W < .16 && fw < 140) fatal('cara_lejos');
   const ojoI = P(33), ojoD = P(263), nariz = P(1), dOjos = Math.hypot(ojoD[0] - ojoI[0], ojoD[1] - ojoI[1]);
-  if (Math.abs(nariz[0] - (ojoI[0] + ojoD[0]) / 2) / dOjos > .16) aviso('cara_de_lado');
+  const giro = Math.abs(nariz[0] - (ojoI[0] + ojoD[0]) / 2) / dOjos; if (giro > .16) prob.push({ k: 'cara_de_lado', fatal: false, v: +giro.toFixed(2) }); // 14/11: «v», cuánto: el avatar pide otra foto solo si es mucho
   if (Math.abs(Math.atan2(ojoD[1] - ojoI[1], ojoD[0] - ojoI[0])) > .25) aviso('inclinada');
   // partes: 0 fondo, 1 pelo, 2 piel del cuerpo, 3 piel de la cara, 4 ropa, 5 otros (gafas, accesorios)
   const seg = T.partes.segment(c), cm = seg.categoryMask, mW = cm.width, mH = cm.height, m = cm.getAsUint8Array().slice(); cm.close?.(); seg.close?.();

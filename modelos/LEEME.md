@@ -13,3 +13,10 @@
 - Comparativa con fotos de Sheila (abrigo, camiseta, pantalón): u2netp (el de la app) deja halos de sábana; IS-Net (179 MB) algo mejor pero deja zonas; BiRefNet-lite fp16 en CPU, roto y lento (47–147 s); **Vision de Apple, el mejor** (no está en el navegador).
 - En la app: la máscara se queda con la pieza más grande (más 2 px de borde) y las fotos que ya llegan sin fondo (PNG con transparencia, p. ej. «Levantar el sujeto» del iPhone) se usan tal cual, sin modelo.
 - Para un recorte perfecto queda «Perfeccionar» (Gemini Pro + Vision en servidor), pendiente de decisión.
+
+## Ropa de baño (0.256, 14/11/2026)
+- `ropa-textos.json` lleva una descripción más, «a bikini» (categoría `Baño`), calculada con el mismo codificador (`textos-generar.mjs`) y añadida al final sin tocar las otras 63.
+- «Baño» solo gana si saca **0,015** a la mejor descripción de cualquier otra categoría (`reconocerPrenda` en `app.js`): un bikini se parece mucho a un top o a un body. Medido: una foto real de un bikini (las dos piezas juntas) saca +0,021 con el recorte y +0,016 con la original; de 186 fotos de prendas de prueba, la que más se acerca es un top de triángulo, a +0,011, y las 186 dan la misma categoría que antes.
+- Probado y descartado: nueve descripciones de baño (bikini top, bikini bottom, swim trunks, a swimsuit…): 7 de las 186 pasaban a «Baño» (tops, bodies y shorts).
+- El bañador no lo adivina el móvil: lo pone el clasificador del servidor (categoría «Baño») o se elige a mano en Editar («Ropa de baño» → «Bañador»).
+- Para medirlo sin navegador: `herramientas/pruebas/lector-movil.mjs` (`--banco` repasa las fotos de prueba).

@@ -428,7 +428,7 @@ function borrarDe(k) { // lo que salió de cada permiso: las fotos, las medidas 
     ['tc_diag_medidas', 'tc_diag_caras'].forEach(x => { try { localStorage.removeItem(x); } catch (e) { } });
   }
   if (pf.avatarSub) api('/api/foto/diag-avatar', { method: 'DELETE' }).catch(() => { });
-  ['avatar', 'avatarAR', 'avatarDe', 'avatarF', 'avatarSub'].forEach(x => delete pf[x]); LS.set('tc_bajada_avatar', null);
+  ['avatar', 'avatarAR', 'avatarDe', 'avatarF', 'avatarSub', 'avatarNotas'].forEach(x => delete pf[x]); LS.set('tc_bajada_avatar', null);
   vaciarProbados();
   E.propuestas = []; E.generados = [];
 }
@@ -3824,7 +3824,7 @@ function siluetaTxt() {
   return x.join('; ');
 }
 const errorAvatar = (st, e, puesto) => e === 'permiso' ? t('Falta tu permiso: márcalo en Yo → Tu avatar', 'Your permission is needed: tick it in Me → Your avatar') : st === 403 ? t('El avatar aún está en pruebas', 'The avatar is still being tested')
-  : e === 'tope' ? (puesto ? t('Por hoy ya no quedan más. Vuelve mañana', 'No more for today. Come back tomorrow') : t('Por hoy ya has creado tres avatares. Vuelve mañana', 'You’ve created three avatars today. Come back tomorrow'))
+  : e === 'tope' ? (puesto ? t('Por hoy ya no quedan más. Vuelve mañana', 'No more for today. Come back tomorrow') : t('Por hoy ya no puedes crear más avatares. Vuelve mañana', 'No more avatars for today. Come back tomorrow'))
   : e === 'tope-mes' ? t('Este mes ya no quedan. Vuelve el mes que viene', 'None left this month. Come back next month')
   : e === 'pausa' ? t('Ahora mismo no se puede. Prueba más tarde', 'Not available right now. Try again later')
   : st === 401 ? t('Entra en tu cuenta', 'Sign in') : t('No ha salido bien. Prueba otra vez', 'It didn’t work. Try again');
@@ -3841,16 +3841,43 @@ function avatarTrasFoto() {
   clearTimeout(avatarEspera);
   avatarEspera = setTimeout(() => { const pf = E.perfil || {};
     if (tieneAvatar() && planDemo() === 'pro' && pf.selfie instanceof Blob && pf.cuerpo instanceof Blob && pf.avatarDe !== firmaAvatar() && !avatarEnCurso) {
-      avatarAbierto = true; toast(t('Rehaciendo tu avatar con tu foto nueva', 'Redoing your avatar with your new photo')); crearAvatar(); } }, 15000);
+      fotosMalAvatar().then(mal => { if (mal.length || avatarEnCurso) return; avatarAbierto = true; toast(t('Rehaciendo tu avatar con tu foto nueva', 'Redoing your avatar with your new photo')); crearAvatar(undefined, undefined, true); }); } }, 15000); // 14/11: si la foto nueva no vale para el avatar, no se gasta el intento: el aviso está debajo de la foto
 }
-async function crearAvatar(nota, palabras) {
-  const pf = E.perfil || {}; if (avatarEnCurso) return;
+// 14/11 (Gabriela, 12/11: «que se perfeccione los avatar»): antes de gastar un intento, las dos fotos se miran en el móvil con las mismas medidas del análisis
+// (MediaPipe, diagnostico.js). Si con una de ellas el avatar no se va a parecer (no se ve la cara, sale lejos o muy de lado, hay más gente, poca luz, el cuerpo
+// no está entero o de frente), se dice cuál y por qué y se ofrece cambiarla; la persona puede crearlo de todos modos. Si el móvil no puede mirarlas, no estorba
+const AV_REPETIR = { selfie: ['sin_color', 'sin_cara', 'varias_caras', 'cara_lejos', 'sin_piel', 'poca_luz'], cuerpo: ['sin_cuerpo', 'varias_personas', 'sin_tronco', 'cuerpo_lejos', 'cuerpo_de_lado'] };
+const fotoRev = {}, titFoto = k => k === 'selfie' ? t('Tu cara', 'Your face') : t('Cuerpo entero', 'Full body');
+const fotoMirada = k => { const b = E.perfil?.[k]; return b instanceof Blob && fotoRev[k]?.de === b.size; };
+async function revisarFoto(k) {
+  const b = E.perfil?.[k]; if (!(b instanceof Blob)) return [];
+  if (fotoMirada(k)) return fotoRev[k].mal;
+  try { const { D } = await diagMod(), r = await (k === 'selfie' ? D.analizarCara(b) : D.analizarCuerpo(b));
+    const mal = (r.prob || []).filter(p => AV_REPETIR[k].includes(p.k) || (p.k === 'cara_de_lado' && p.v > .25)).map(p => p.k);
+    fotoRev[k] = { de: b.size, mal }; return mal;
+  } catch (e) { return []; }
+}
+async function fotosMalAvatar(ks = ['selfie', 'cuerpo']) { try { const R = (await diagMod()).R, x = []; for (const k of ks) for (const p of await revisarFoto(k)) x.push([k, textoProb(R, p)]); return x; } catch (e) { return []; } }
+// «Corregir» con palabras: lo que la persona escribe en «No me parezco» se guarda con su avatar (hasta 6 notas) y va en todos los intentos siguientes,
+// para que el parecido se sume en vez de empezar de cero cada vez; se borra con el avatar
+function recordarNota(txt) { txt = String(txt || '').replace(/\s+/g, ' ').trim().slice(0, 200); if (!txt) return; const pf = E.perfil = E.perfil || {}; pf.avatarNotas = [...(pf.avatarNotas || []).filter(x => x !== txt), txt].slice(-6); }
+let avatarMirando = false;
+async function crearAvatar(nota, palabras, aunque) {
+  const pf = E.perfil || {}; if (avatarEnCurso || avatarMirando) return;
   if (!cuenta()) return toast(t('Entra en tu cuenta para crear tu avatar', 'Sign in to create your avatar'));
   if (!(pf.selfie instanceof Blob) || !(pf.cuerpo instanceof Blob)) return panelDiagFotos();
   if (!permiso('avatar')) return toast(errorAvatar(403, 'permiso'));
+  if (palabras) { recordarNota(palabras); guardar().catch(() => { }); }
+  if (!aunque) { // 14/11: antes de gastar un intento
+    avatarMirando = true; let mal = [];
+    try { if (!fotoMirada('selfie') || !fotoMirada('cuerpo')) toast(t('Mirando tus fotos…', 'Checking your photos…')); mal = await fotosMalAvatar(); } finally { avatarMirando = false; }
+    if (mal.length && await confirmar(t('Antes de crear tu avatar', 'Before creating your avatar'), mal.map(([k, x]) => `${titFoto(k)}: ${x}`).join(' ') + ' ' + t('Con otra foto se parecerá más a ti.', 'With another photo it will look more like you.'), t('Cambiar la foto', 'Change the photo'), t('Crearlo así', 'Create it anyway'))) return panelDiagFotos();
+    if (avatarEnCurso) return;
+  }
   avatarEnCurso = true; if (E.pantalla === 'yo') pintarYo();
   try {
     const fd = new FormData(); fd.append('cara', await jpegBlanco(pf.selfie), 'cara.jpg'); fd.append('cuerpo', await jpegBlanco(pf.cuerpo), 'cuerpo.jpg');
+    if (pf.avatarNotas?.length) fd.append('corr', JSON.stringify(pf.avatarNotas)); if (pf.ropa === 'hombre') fd.append('ropa', 'hombre');
     const sil = siluetaTxt(); if (sil) fd.append('silueta', sil);
     if ((nota?.length || palabras) && pf.avatar instanceof Blob) { fd.append('nota', (nota || []).join(',')); if (palabras) fd.append('palabras', palabras.slice(0, 200)); fd.append('previo', await jpegBlanco(pf.avatar, 768), 'previo.jpg'); } // 09/11: «No me parezco»
     try { const fr = await (await diagMod()).D.caraDeFrente?.([pf.selfie, pf.cuerpo]); if (fr) fd.append('frente', fr, 'frente.jpg'); } catch (e) { } // 11/11: la cara más de frente
@@ -3866,15 +3893,19 @@ async function crearAvatar(nota, palabras) {
 // con el anterior delante para que corrija eso y deje lo demás
 // 12/11 (Gabriela: «¿cómo puedo cambiar que no me parezco de la cara, de la nariz para abajo?»): partes de la cara y, además, decirlo con sus palabras
 const PARECIDO = [['forma', 'La forma de la cara', 'The face shape'], ['ojos', 'Los ojos', 'The eyes'], ['nariz', 'La nariz', 'The nose'], ['boca', 'La boca', 'The mouth'], ['barbilla', 'Barbilla y mandíbula', 'Chin and jaw'], ['cara', 'La cara entera', 'The whole face'], ['pelo', 'El pelo', 'The hair'], ['cuerpo', 'El cuerpo', 'The body'], ['piel', 'El tono de piel', 'The skin tone'], ['altura', 'Las proporciones', 'The proportions'], ['edad', 'La edad', 'The age']];
+// 14/11: lo que ya dijo con sus palabras se ve aquí y se puede quitar (si se cortó el pelo, por ejemplo); va en cada avatar nuevo
+const notasAvatarHtml = () => { const n = E.perfil?.avatarNotas || []; return n.length ? `<div class="pr-ya" role="group" aria-label="${t('Lo que ya me has dicho', 'What you already told me')}"><p>${t('Ya me has dicho', 'You already told me')}</p>${n.map((x, i) => `<div class="pr-nota"><span>${escH(x)}</span><button type="button" data-prq="${i}" aria-label="${t('Quitar', 'Remove')}: ${escH(x)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('')}</div>` : ''; };
 function panelParecido() {
   const pf = E.perfil || {}; if (!(pf.selfie instanceof Blob) || !(pf.cuerpo instanceof Blob)) return panelDiagFotos();
   abrirPanel(t('No me parezco', 'Not like me'), `<p class="pn-lema">${t('¿Qué no se parece?', 'What does not look like you?')}</p>
     <div class="an-deta pr-op" role="group" aria-label="${t('Lo que falla', 'What is wrong')}">${PARECIDO.map(([k, es, en]) => `<button type="button" data-par="${k}" aria-pressed="false">${t(es, en)}</button>`).join('')}</div>
-    <textarea id="pr-pal" class="ag-desc pr-pal" rows="2" maxlength="200" aria-label="${t('Dímelo con tus palabras', 'Tell me in your own words')}" placeholder="${t('O dímelo: de la nariz para abajo no me parezco', 'Or tell me: from the nose down it is not me')}"></textarea>
+    <textarea id="pr-pal" class="ag-desc pr-pal" rows="2" maxlength="200" aria-label="${t('Dímelo con tus palabras', 'Tell me in your own words')}" placeholder="${t('O dímelo: mi cara es más cuadrada, el pelo me llega a la cintura', 'Or tell me: my face is squarer, my hair reaches my waist')}"></textarea>
+    <div id="pr-ya">${notasAvatarHtml()}</div>
     <button class="boton" id="pr-ok" disabled>${t('Rehacer mi avatar', 'Redo my avatar')}</button>`, cap => {
     const listo = () => { cap.querySelector('#pr-ok').disabled = !cap.querySelector('[data-par][aria-pressed="true"]') && !cap.querySelector('#pr-pal').value.trim(); };
     cap.querySelector('#pr-pal').addEventListener('input', listo);
-    cap.addEventListener('click', e => { const b = e.target.closest('[data-par]');
+    cap.addEventListener('click', e => { const b = e.target.closest('[data-par]'), q = e.target.closest('[data-prq]');
+      if (q) { E.perfil.avatarNotas = (E.perfil.avatarNotas || []).filter((x, i) => i !== +q.dataset.prq); guardar().catch(() => { }); cap.querySelector('#pr-ya').innerHTML = notasAvatarHtml(); cap.querySelector('#pr-pal').focus(); return; }
       if (b) { const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); b.classList.toggle('on', on); listo(); return; }
       if (e.target.closest('#pr-ok')) { const nota = [...cap.querySelectorAll('[data-par][aria-pressed="true"]')].map(x => x.dataset.par), pal = cap.querySelector('#pr-pal').value.trim(); cap.remove(); avatarAbierto = true; crearAvatar(nota, pal); } });
   });
@@ -3910,7 +3941,7 @@ async function puestoEnMi(ps, como, otra, soloGuardado, elegido) {
   if (enCuenta && !otra) { try { const rb = await api('/api/foto/' + enCuenta.f, { tiempo: 20000 }); if (rb.ok) { const b = await rb.blob(); if (b.size > 1000) { E.puestos[k] = b; const fl = fLocales(); fl[k] = enCuenta.f; ponerFLocales(fl); BD.set('puestos', E.puestos).catch(() => { }); if (!soloGuardado) fijarPuesto(k); return { blob: b, k }; } } } catch (e) { } }
   if (soloGuardado) return { nada: true };
   try {
-    const fd = new FormData(); fd.append('avatar', await jpegBlanco(pf.avatar), 'avatar.jpg');
+    const fd = new FormData(); fd.append('avatar', await jpegBlanco(pf.avatar), 'avatar.jpg'); if (pf.ropa === 'hombre') fd.append('ropa', 'hombre');
     for (const [i, p] of sel.entries()) fd.append('p' + i, await jpegBlanco(p.cat instanceof Blob ? p.cat : p.foto, 768), `p${i}.jpg`);
     fd.append('nombres', JSON.stringify(sel.map(p => p.nombre || ''))); const cmo = cm || como || (sel.some(p => p.tipo === 'Arriba') && sel.some(p => p.tipo === 'Abajo') ? 'suelta' : ''); if (cmo) fd.append('como', cmo); // 12/11 (Sheila, 2095): siempre se dice la manera; sin ella la IA hacía lo que quería y debajo se marcaba «Por fuera»
     // 11/11 (Gabriela: «sigo teniendo dos avatares en mi cuenta»): ya no va la selfie. Con dos caras de referencia (el avatar y la selfie, que había cambiado
@@ -3975,8 +4006,9 @@ function panelDiagFotos() {
   const foto = (k, tit, ic) => pf[k]
     ? `<div class="dx-foto"><button type="button" class="dx-ver" data-ampliar-diag="${k}" aria-label="${t('Ver en grande', 'View larger')}: ${tit}"><img src="${URL.createObjectURL(pf[k])}" alt=""><span class="dx-lupa" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></svg></span></button><b>${tit}</b><label class="dx-acc"><svg aria-hidden="true"><use href="#ic-camara"/></svg>${t('Cambiar', 'Change')}<input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label></div>`
     : `<label class="dx-foto dx-sin"><span class="dx-caja"><svg aria-hidden="true"><use href="#${ic}"/></svg><b>${tit}</b><small>${t('Opcional', 'Optional')}</small></span><span class="dx-acc">${t('Añadir', 'Add')}</span><input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label>`;
-  const consejos = [[t('Tu cara', 'Your face'), [t('De frente', 'Facing the camera'), t('Con luz de día', 'In daylight'), t('Sin filtros ni gafas', 'No filters or glasses'), t('El pelo suelto', 'Hair down')]],
-    [t('Cuerpo entero', 'Full body'), [t('De pie y de frente', 'Standing, facing the camera'), t('Con ropa ajustada', 'In fitted clothes'), t('Los brazos un poco separados', 'Arms slightly away from your body'), t('Si salen los pies, mido también tus piernas', 'If your feet show, I also measure your legs')]]];
+  // 14/11: la guía se ve antes de hacer las fotos (abierta mientras falte una) y dice lo que más pesa en el parecido del avatar
+  const consejos = [[t('Tu cara', 'Your face'), [t('De frente y de cerca', 'Facing the camera, close up'), t('Con luz de día', 'In daylight'), t('Sin filtros ni gafas', 'No filters or glasses'), t('Solo tú, con el pelo suelto', 'Just you, hair down')]],
+    [t('Cuerpo entero', 'Full body'), [t('De pie y de frente', 'Standing, facing the camera'), t('De la cabeza a los pies', 'From head to toe'), t('Con ropa ajustada', 'In fitted clothes'), t('Los brazos un poco separados', 'Arms slightly away from your body')]]];
   const pd = permiso('diag');
   abrirPanel(t('Tus medidas y tus fotos', 'Your measurements and photos'), `<div class="dx">
     <section class="dx-sec dx-perm">${casillaPermiso('diag', 'pm-diag')}</section>
@@ -3988,12 +4020,15 @@ function panelDiagFotos() {
       <p class="dx-nota">${t('Rodea el cuerpo con la cinta: el pecho por lo más saliente, la cintura por lo más estrecho y la cadera por lo más ancho.', 'Wrap the tape around your body: bust at the fullest point, waist at the narrowest, hips at the widest.')}</p></section>
     <section class="dx-sec"><h2 class="dx-h">${t('Tus fotos', 'Your photos')}</h2>
       <div class="dx-fotos">${foto('selfie', t('Tu cara', 'Your face'), 'ic-camara')}${foto('cuerpo', t('Cuerpo entero', 'Full body'), 'ic-cuerpo')}</div>
-      <details class="dx-mas"><summary>${t('Cómo hacer las fotos', 'How to take the photos')}</summary><div class="dx-cons">${consejos.map(([h, l]) => `<div><h3>${h}</h3><ul>${l.map(x => `<li>${IC_BIEN}${x}</li>`).join('')}</ul></div>`).join('')}</div></details></section>
+      <div class="dx-rev" id="dx-rev" aria-live="polite"></div>
+      <details class="dx-mas" ${pf.selfie && pf.cuerpo ? '' : 'open'}><summary>${t('Cómo hacer las fotos', 'How to take the photos')}</summary><div class="dx-cons">${consejos.map(([h, l]) => `<div><h3>${h}</h3><ul>${l.map(x => `<li>${IC_BIEN}${x}</li>`).join('')}</ul></div>`).join('')}</div></details></section>
     <div class="dg-estado" id="dg-estado" aria-live="polite"></div>
     <button class="boton dx-boton" id="dg-analizar" ${pd && (pf.selfie || pf.cuerpo || firmaMed()) ? '' : 'disabled'}>${t('Analizar', 'Analyse')}</button></fieldset>
     ${cuenta() ? `<label class="pm-cas dx-cuenta-cas"><input type="checkbox" id="dg-cuenta" ${pf.fotosCuenta ? 'checked' : ''}><span>${t(...PERMISOS.fotos)}</span></label>` : ''}
     <p class="dx-priv" id="dg-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer') : t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`, cap => {
     setTimeout(preguntarFotosCuenta, 600);
+    // 14/11: cada foto se mira al ponerla; si con ella el avatar o el análisis no van a salir bien, se dice aquí, debajo de las fotos, antes de gastar nada
+    if (pd && (pf.selfie instanceof Blob || pf.cuerpo instanceof Blob)) fotosMalAvatar(['selfie', 'cuerpo'].filter(k => pf[k] instanceof Blob)).then(mal => { const z = cap.querySelector('#dx-rev'); if (z && cap.isConnected) z.innerHTML = mal.map(([k, x]) => `<p class="dg-mal">${titFoto(k)}: ${x}</p>`).join(''); });
     cap.querySelector('#pm-diag').onchange = async e => { const ck = e.target; if (await cambiarPermisoDiag(ck)) { panelDiagFotos(); if (E.pantalla === 'yo') pintarYo(); } };
     const ck = cap.querySelector('#dg-cuenta'); if (ck) ck.onchange = async () => { await fotosEnCuenta(ck.checked); cap.querySelector('#dg-priv').innerHTML = IC_CANDADO + (ck.checked ? t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer') : t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')); };
     const LIM = { altura: [120, 220], peso: [30, 250], pecho: [60, 170], cintura: [45, 170], cadera: [60, 180] }; let medT = 0;
