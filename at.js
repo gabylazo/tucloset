@@ -676,8 +676,16 @@ if (AT) (() => {
     const firma = JSON.stringify([plan, n, hoy, ins?.firma, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), pr.map(p => [p.nombre, p.tipo, p.color, p.estacion, p.catM, p.detalles, p.est?.sub].join('·')).join('|'), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
     if (ultima[plan + n]?.firma === firma) return ultima[plan + n].r;
     const r = Motor.looks({ prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true });
-    ultima[plan + n] = { firma, r }; return r;
+    ultima[plan + n] = { firma, r }; apuntarVistos(r.looks, hoy); return r;
   };
+  // 14/11 (Gabriela, 2293: «Diario, salen siempre las mismas combinaciones»): lo que la app enseña cada día se apunta en el perfil (hoy y los 3 días de antes;
+  // la ropa de cada look y, aparte, su calzado y su bolso) para que mañana el motor lo deje descansar. Solo en el móvil; sube a la nube con el siguiente guardado.
+  function apuntarVistos(ls, hoy) {
+    const pf = E.perfil; if (!pf || !ls.length || !Motor.claveRopa) return;
+    const v = (pf.vistos || []).filter(x => x.d <= hoy).slice(-4); let h = v.find(x => x.d === hoy), nuevo = false; if (!h) { h = { d: hoy, k: [], c: [] }; v.push(h); }
+    for (const l of ls) { const k = Motor.claveRopa(l); if (!k || h.k.includes(k)) continue; h.k.push(k); nuevo = true; for (const x of [l.calzado, l.bolso]) if (x && !x.muestra) h.c.push(x.id); }
+    if (!nuevo) return; h.k = h.k.slice(-30); h.c = h.c.slice(-60); pf.vistos = v.slice(-4); BD.set('perfil', pf).catch(() => { });
+  }
   // 06/11 (Gabriela: «mañana tengo un plan y el domingo otro, me gustaría ponerlo con el link de los lugares y una pequeña descripción para que planifique los outfits»):
   // los looks de un plan de la agenda salen con el tiempo de ese sitio a esa hora (Open-Meteo, hasta 16 días) y con lo que dicen el título, la descripción y el tipo
   // de sitio: arreglado o informal, mucho caminar, playa, campo, iglesia o boda (estas dos ya las sabe el motor). Lo leído pesa en cada prenda como la afinidad de «Inspírate en».

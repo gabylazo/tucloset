@@ -204,7 +204,12 @@ const Motor = (() => {
     let bases = (l.arriba && l.arriba._f.rol === 'base') ? 1 : 0;
     if (l.base_interior && l.base_interior._f.rol === 'base' && !(l.arriba && (R.grupos['@punto'].includes(l.arriba._f.subtipo) || ['cardigan', 'sudadera', 'chaleco_punto', 'chaleco_traje'].includes(l.arriba._f.subtipo)))) bases++;
     const ids = ropaP.map(p => p.id), parK = []; for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) if (!ps[i].muestra && !ps[j].muestra) parK.push([ps[i].id, ps[j].id].sort().join('|'));
-    const g = pf.gustos, si = parK.filter(k => g.si?.[k]).length, no = parK.filter(k => g.no?.[k]);
+    // 14/11 (Gabriela, 2293: «Diario, salen siempre las mismas combinaciones, no veo cosas diferentes»): un look descartado apunta TODAS sus parejas, también
+    // las del bolso y el calzado, y con tres descartes la pareja quedaba vetada para siempre: su bolso marrón o la camisa blanca dejaban fuera 1.662 de 1.697 looks.
+    // Ahora cuenta lo neto (descartes menos «Me lo pongo»), las parejas con bolso o accesorio no cuentan (el bolso lo pone la app al final), el veto es solo
+    // entre dos prendas de ropa con 3 o más, y la rebaja de U08 pide 2 o más (un solo descarte ya aparta ese look exacto, `fuera`).
+    const g = pf.gustos, si = parK.filter(k => g.si?.[k]).length, ropaIds = new Set(ropaP.map(p => p.id)), conCompl = new Set(ps.filter(p => ['bolso', 'accesorio'].includes(p._f.cat)).map(p => p.id));
+    const neto = k => (g.no?.[k] || 0) - (g.si?.[k] || 0), no = parK.filter(k => neto(k) >= 2 && !k.split('|').some(x => conCompl.has(x))), no3 = no.some(k => neto(k) >= 3 && k.split('|').every(x => ropaIds.has(x)));
     const ids2 = PIEZAS.map(k => l[k]).filter(p => p && !p.muestra).map(p => p.id).sort().join();
     const claves = [prA, l.abajo].filter(Boolean); let dias; for (const p of claves) for (const u of p.p?.usos || []) { const d = diasDesde(u, hoy); if (d >= 0 && (dias == null || d < dias)) dias = d; }
     const usos = ropaP.reduce((s, p) => s + (p.p?.usos?.length || 0), 0) / (ropaP.length || 1);
@@ -224,7 +229,7 @@ const Motor = (() => {
       cintura_al_aire: !!(A && B && l.como !== 'por_dentro' && ((A.largo === 'crop' && A.subtipo !== 'body' && (B.tiro === 'bajo' || (B.tiro === 'medio' && pf.cintura === 'no') || (B.tiro === 'medio' && pf.cintura == null))) || (A.largo === 'cintura' && B.tiro === 'bajo'))),
       cintura_marcada: !!(A && B && B.tiro === 'alto' && (['crop', 'cintura'].includes(A.largo) || l.como === 'por_dentro')),
       como: l.como || 'suelta', n_abajos, dos_denim_distintos: denim.length >= 2 && new Set(denim.map(f => f.color)).size > 1, usa_color_vetado: ropa.some(f => pf.evitarColores.includes(f.color)),
-      pareja_rechazada_3: no.some(k => g.no[k] >= 3), parejas_gustadas: si, parejas_rechazadas: no.length, es_favorito: (g.fav || []).includes(ids2),
+      pareja_rechazada_3: no3, parejas_gustadas: si, parejas_rechazadas: no.length, es_favorito: (g.fav || []).includes(ids2),
       n_focos: ropa.filter(f => ['acento', 'vivo', 'suave'].includes(f.color_clase) || !['liso', 'rayas_finas'].includes(f.estampado) || ['brillo', 'cuero', 'volantes'].includes(f.tejido) || f.foco).length,
       texturas_distintas: texturas.size, estilos_en_comun: Object.values(cuenta).filter(n => n >= 2).length, estilos_perfil_coinciden: pf.estilos.filter(e => estilos.has(e)).length, estilo_contrario: contrario,
       puntos_diag: Math.max(-.4, Math.min(.4, diag)), dias_desde_ultimo_uso: dias, usos_medios: usos, prenda_nueva_14d: ropaP.some(p => p.p?.creada && diasDesde(p.p.creada, hoy) <= 14),
@@ -294,6 +299,7 @@ const Motor = (() => {
   // y de la formalidad del look; y un cinturón solo donde se ve y suma: pantalón o falda de tiro alto con la prenda por dentro o corta, a juego con el calzado o el bolso
   const NO_CINTURON = new Set(['jogger', 'malla', 'falda_deportiva', 'shorts']);
   let MAXPAR = 12; // 08/11: parejas que se convierten en looks por fórmula; «¿Me lo compro?» mira más (o.parejas) para saber con cuántas prendas combina
+  let VIS = null; // 14/11: lo enseñado los 3 días anteriores (looks()), para que el bolso también descanse
   let COMPL = false; // con o.complementos: las ideas de la ficha de un bolso o un cinturón y, desde el 11/11 (Gabriela lo pidió), Hoy, Ideas, el calendario y la semana
   /* 11/11 (Gabriela: «no quiero que lo que te dije que no pone se agregue ahora a la fuerza, sino que tengan sentido los outfits… teniendo en cuenta todos
      los elementos que tienes a tu alcance»). Un complemento entra solo si le aporta algo al look; si ninguno casa, el look va sin él. Se mira todo: la ocasión,
@@ -326,7 +332,7 @@ const Motor = (() => {
       .filter(x => x[0] >= min && nivel(x[1]._f) <= 1.2).sort((a, b) => b[0] - a[0])[0]?.[1] || null;
     if (tipo === 'bolso') {
       const ok = grupo(['Noche', 'Evento'].includes(ctx.ocasion) ? '@bolso_noche' : '@bolso_dia');
-      return elegir(ents.filter(p => p._f.cat === 'bolso' && ok.includes(p._f.subtipo) && !(p._f.subtipo === 'mochila' && (media >= 3 || ctx.ocasion === 'Oficina'))));
+      return elegir(ents.filter(p => p._f.cat === 'bolso' && ok.includes(p._f.subtipo) && !(p._f.subtipo === 'mochila' && (media >= 3 || ctx.ocasion === 'Oficina'))), p => -Math.min(.15, (VIS?.compl.get(p.id) || 0) * .01));
     }
     if (tipo === 'panuelo') {
       if (ctx.ocasion === 'Evento' || media >= 4 || ropa.some(f => f.foco)) return null;
@@ -526,21 +532,35 @@ const Motor = (() => {
       if ((alt[x._f.cat] || 0) < 2) continue; rot += (compl ? ROT_COMPL : ROT_ROPA)[Math.min(n, compl ? 7 : 5)]; }
     return Math.max(-.06, Math.min(.04, bono + Math.max(-.06, rot)));
   }
+  /* 14/11 (Gabriela, 2293: «Diario, salen siempre las mismas combinaciones, no veo cosas diferentes»): la app recuerda los looks que enseñó los 3 días anteriores
+     (perfil.vistos, lo apunta at.js) y los deja descansar: enseñado ayer −0,10, hace 2 días −0,07, hace 3 −0,04 (un favorito, la mitad); y cada prenda de
+     arriba, de abajo o capa que salió en esos días baja 0,008 por vez, hasta −0,04; el calzado, 0,004 por vez hasta −0,02, y el bolso descansa en complemento()
+     (si salió en todos los looks, otro que también va con el look le toma el relevo). Lo de hoy no cuenta, para que la lista del día no cambie al abrirla otra vez.
+     No es azar: solo cambia el orden entre looks que ya pasan los vetos, y un look bueno con descanso sigue por encima de uno flojo. */
+  const DESC = [0, .10, .07, .04];
+  function descanso(l, pf, fav) {
+    const v = pf.vis; if (!v) return 0;
+    let s = DESC[v.looks.get(claveRopa(l))] || 0, pz = 0;
+    for (const k of ['arriba', 'vestido', 'abajo', 'capa']) { const x = l[k]; if (x && !x.muestra) pz += v.prendas.get(x.id) || 0; }
+    const z = l.calzado && !l.calzado.muestra ? v.compl.get(l.calzado.id) || 0 : 0;
+    return (fav ? s / 2 : s) + Math.min(.04, pz * .008) + Math.min(.02, z * .004);
+  }
   function evaluar(l, ctx, pf, hoy) {
     const c = camposLook(l, ctx, pf, hoy), e = entorno(l, c, ctx, pf), veto = vetar(e), pts = puntuar(l, c, e), uso = ajusteUso(l, pts, pf, hoy);
     // un look puesto ayer no es la primera idea: el peso del grupo «variedad» solo no lo baja lo bastante
     const ayer = uso.ayer && (c.dias_desde_ultimo_uso === 1 || c.dias_desde_ultimo_uso === 0) ? (c.es_favorito ? .05 : .15) : 0;
     const nota0 = pts.total + veto.p / 2, gusto = pf.ap ? gustoLook(l, pf.ap, nota0, veto) : 0, vm = pf.uso ? 0 : variedadModa(l, c, pf, hoy, nota0); // con «Cómo usas tu ropa» elegido, manda ajusteUso
-    return { ...l, ctx, campos: c, veto, pts, gusto, variedad: vm, nota: pts.total + uso.p + gusto + vm + veto.p / 2 - ayer + huella(hoy + claveRopa(l)) * .04 + AF.nota * (PIEZAS.reduce((s, k) => s + afin(l[k]), 0) / Math.max(1, PIEZAS.filter(k => l[k]).length)), casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
+    const desc = descanso(l, pf, c.es_favorito);
+    return { ...l, ctx, campos: c, veto, pts, gusto, variedad: vm, descanso: desc, nota: pts.total + uso.p + gusto + vm + veto.p / 2 - ayer - desc + huella(hoy + claveRopa(l)) * .04 + AF.nota * (PIEZAS.reduce((s, k) => s + afin(l[k]), 0) / Math.max(1, PIEZAS.filter(k => l[k]).length)), casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
   }
   function elegir(cs, n, excluir) {
-    const ok = cs.filter(l => !l.veto.duros.length && !l.casi && !excluir.has(claveLook(l))).sort((a, b) => b.nota - a.nota), sel = [], usoA = new Map(), usoB = new Map(), usoF = new Map(), usoZ = new Map(), vistos = new Set(), gemelos = new Set();
+    const ok = cs.filter(l => !l.veto.duros.length && !l.casi && !excluir.has(claveLook(l))).sort((a, b) => b.nota - a.nota), sel = [], usoA = new Map(), usoB = new Map(), usoF = new Map(), usoZ = new Map(), usoC = new Map(), vistos = new Set(), gemelos = new Set();
     for (const tope of [1, 2]) for (const l of ok) {
       if (sel.length >= n) break; if (l.nota < R.puntos.umbrales.mostrar_minimo && sel.length) break;
       const a = (l.arriba || l.vestido).id, b = l.abajo?.id, k = claveRopa(l), fA = (l.arriba || l.vestido)._f, fB = l.abajo?._f, gem = [fB?.color, fB?.corte, fA.color, fA.estampado, fA.manga].join('|');
       if (tope === 1 && gemelos.has(gem)) continue; // una de abajo y una de arriba que se ven casi iguales: solo si no hay otra cosa
-      if (vistos.has(k) || (usoA.get(a) || 0) >= tope || (b && tope === 1 && (usoB.get(b) || 0) >= 2) || (b && (usoB.get(b) || 0) >= Math.max(3, Math.ceil(n / 2))) || (usoF.get(l.formula.id) || 0) >= 2 || (tope === 1 && l.calzado && (usoZ.get(l.calzado.id) || 0) >= Math.max(2, Math.ceil(n / 3)))) continue; // ningún zapato en más de un tercio, si hay otro
-      vistos.add(k); gemelos.add(gem); sel.push(l); usoA.set(a, (usoA.get(a) || 0) + 1); if (b) usoB.set(b, (usoB.get(b) || 0) + 1); usoF.set(l.formula.id, (usoF.get(l.formula.id) || 0) + 1); if (l.calzado) usoZ.set(l.calzado.id, (usoZ.get(l.calzado.id) || 0) + 1);
+      if (vistos.has(k) || (usoA.get(a) || 0) >= tope || (b && tope === 1 && (usoB.get(b) || 0) >= 2) || (b && (usoB.get(b) || 0) >= Math.max(3, Math.ceil(n / 2))) || (usoF.get(l.formula.id) || 0) >= 2 || (tope === 1 && l.calzado && (usoZ.get(l.calzado.id) || 0) >= Math.max(2, Math.ceil(n / 3))) || (tope === 1 && l.capa && (usoC.get(l.capa.id) || 0) >= Math.max(2, Math.ceil(n / 3)))) continue; // ningún zapato ni ninguna chaqueta en más de un tercio, si hay otro (la capa, 14/11)
+      vistos.add(k); gemelos.add(gem); sel.push(l); usoA.set(a, (usoA.get(a) || 0) + 1); if (b) usoB.set(b, (usoB.get(b) || 0) + 1); usoF.set(l.formula.id, (usoF.get(l.formula.id) || 0) + 1); if (l.calzado) usoZ.set(l.calzado.id, (usoZ.get(l.calzado.id) || 0) + 1); if (l.capa) usoC.set(l.capa.id, (usoC.get(l.capa.id) || 0) + 1);
     }
     // sin dos seguidos con la misma prenda de arriba
     const out = [], resto = [...sel];
@@ -590,6 +610,11 @@ const Motor = (() => {
     const ctx0 = contexto(o.tiempo, plan, { hora: o.hora, t_ref: o.t_ref, evento: o.evento, lugar: o.lugar });
     const ents = (o.prendas || []).filter(p => !p.noMeGusta).map(p => ({ id: p.id, p, _f: ficha(p, pf) }));
     COMPL = !!o.complementos; MAXPAR = o.parejas || 12; pf.ap = aprendido(pf.gustos, ents, hoy);
+    pf.vis = null; for (const x of o.perfil?.vistos || []) { const d = diasDesde(x.d, hoy); if (!(d >= 1 && d <= 3)) continue; // los 3 días anteriores a hoy
+      const v = pf.vis = pf.vis || { looks: new Map(), prendas: new Map(), compl: new Map() };
+      for (const k of x.k || []) { if (!v.looks.has(k) || v.looks.get(k) > d) v.looks.set(k, d); for (const id of k.split(',')) v.prendas.set(id, (v.prendas.get(id) || 0) + 1); }
+      for (const id of x.c || []) v.compl.set(id, (v.compl.get(id) || 0) + 1); }
+    VIS = pf.vis;
     { const fechas = [...new Set(ents.flatMap(x => x.p.usos || []).filter(u => u <= hoy))].sort().slice(-10); pf.ult10 = new Set(fechas); pf.alt = {}; // los 10 últimos días con algo puesto; cuántas piezas hay de cada clase
       for (const x of ents) if (!(x._f.tmin != null && ctx0.t_ref < x._f.tmin - 3) && !(x._f.tmax != null && ctx0.t_ref > x._f.tmax + 3) && !x._f.deportiva) pf.alt[x._f.cat] = (pf.alt[x._f.cat] || 0) + 1; }
     if (o.afin) for (const x of ents) x._af = typeof o.afin === 'function' ? o.afin(x._f, txtAfin(x.p)) : afinEstilo(x._f, txtAfin(x.p), o.afin);
@@ -748,7 +773,7 @@ const Motor = (() => {
     return { pct: posibles.length ? Math.round(100 * conEl.length / posibles.length) : null, con: conEl.map(x => x.id), posibles: posibles.length, nLooks: vistos.size,
       ocasiones: ocs.filter(x => enOc.has(x)), temps, looks: lista.map(aPropuesta), parecidas, tipos: CON_TIPO[p.tipo] || [] };
   }
-  return { iniciar, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, recrear, aPropuesta, faltas, claveLook, utilidad, get R() { return R; }, get F() { return F; } };
+  return { iniciar, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, recrear, aPropuesta, faltas, claveLook, claveRopa, utilidad, get R() { return R; }, get F() { return F; } };
 })();
 if (typeof module !== 'undefined') module.exports = Motor;
 else if (typeof MOTOR_DATOS !== 'undefined') Motor.iniciar(MOTOR_DATOS.R, MOTOR_DATOS.F, MOTOR_DATOS.S);
