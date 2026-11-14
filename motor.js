@@ -57,6 +57,11 @@ const Motor = (() => {
     let conSub = !!sub;
     const dicho = est.sub && I.subtipos.find(s => s.id === (SUB_EST[est.sub] || est.sub));
     if (dicho && !(sub && (sub.id.startsWith(dicho.id) || (dicho.id === 'camiseta' && sub.id === 'henley')))) { sub = dicho; conSub = true; }
+    // 14/11 (Sheila, mensaje 2240: «subí un bikini y no me lo reconoce… debe ponerlo solo como bikini»): la ropa de baño (bikini, bañador) es una pieza con su sitio en
+    // el clóset y ninguna fórmula la admite: no entra en los looks de diario. Manda la categoría que ella elija a mano: lo que pone en «Ropa de baño» lo es, se llame
+    // como se llame, y un bikini que pasa a otra categoría (lo lleva de top) deja de serlo
+    if (p.catM === 'Baño' && sub?.cat !== 'bano') { sub = I.subtipos.find(s => s.id === (/swimsuit/.test(p.x || '') ? 'banador' : 'bikini')) || sub; conSub = true; }
+    else if (sub?.cat === 'bano' && p.catM && p.catM !== 'Baño') { sub = null; conSub = false; }
     if (!sub) sub = I.por_defecto_si_nada_coincide[p.tipo] || I.por_defecto_si_nada_coincide.Arriba;
     const det = (p.detalles || []).join(' '), dep = det.includes('Deporte') || DEPORTE_RE.test(norm(p.nombre || ''));
     if (dep && A_DEPORTE[sub.id]) sub = I.subtipos.find(s => s.id === A_DEPORTE[sub.id]) || sub;
@@ -111,7 +116,7 @@ const Motor = (() => {
   }
   const CACHE = new WeakMap();
   function ficha(p, perfil) {
-    const sig = [p.nombre, p.tipo, p.color, p.estacion, p.x, JSON.stringify(p.est || 0), (p.detalles || []).join(), p.manga || '', perfil.usoSolo?.has?.(p.id) ? 1 : 0].join('|'), c = CACHE.get(p);
+    const sig = [p.nombre, p.tipo, p.color, p.estacion, p.x, JSON.stringify(p.est || 0), (p.detalles || []).join(), p.manga || '', perfil.usoSolo?.has?.(p.id) ? 1 : 0, p.catM || ''].join('|'), c = CACHE.get(p);
     if (c && c.sig === sig) return c.f;
     const f = inferir(p, perfil); CACHE.set(p, { sig, f }); return f;
   }
@@ -715,6 +720,7 @@ const Motor = (() => {
     const p = o.prenda, f = ficha(p, {}), lo = Math.max(f.tmin ?? 5, 0), hi = Math.min(f.tmax ?? 28, 32), min = R.puntos.umbrales.pasable;
     const temps = hi - lo >= 12 ? [lo + 4, hi - 4] : [Math.round((lo + hi) / 2)], tiempos = temps.map(t => ({ t, max: t + 3, min: t - 6 }));
     const resto = (o.prendas || []).filter(x => x.id !== p.id && !x.noMeGusta), dep = soloDeporte(f), ent = { p, _f: f };
+    if (f.cat === 'bano') return { bano: true, pct: null, con: [], posibles: 0, nLooks: 0, ocasiones: [], temps, looks: [], tipos: [], parecidas: resto.filter(x => { const g = ficha(x, {}); return g.subtipo === f.subtipo && g.color === f.color; }).map(x => x.id) };
     const ocs = dep ? ['Deporte'] : ['Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', ...(aptoDeporte(ent) ? ['Deporte'] : [])];
     const pool = [p, ...resto.filter(x => ficha(x, {}).cat !== f.cat)], vistos = new Map(), socios = new Set(), enOc = new Set();
     for (const tiempo of tiempos) for (const plan of ocs) {

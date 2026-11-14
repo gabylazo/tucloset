@@ -813,13 +813,14 @@ const MEDIDA = { Arriba: [60, 58], Abrigo: [72, 88], Abajo: [58, 100], Vestidos:
 const LARGO = { 'a t-shirt': 66, 'a blouse': 64, 'a shirt': 72, 'a polo shirt': 66, 'a crop top': 42, 'a tank top': 58, 'a sleeveless top': 58, 'a halter bodysuit': 62, 'a peplum top': 60, 'a sweater': 64, 'a hoodie': 68, 'a cardigan': 66, 'a knitted vest': 56,
   trousers: 102, jeans: 102, 'wide leg pants': 104, shorts: 38, leggings: 92,
   'a skirt': 62, 'a mini skirt': 40, 'a midi skirt': 78, 'a long skirt': 95, 'a pleated skirt': 70, 'a flared skirt': 62, 'a lace skirt': 62,
+  'a bikini': 62, 'a swimsuit': 68,
   'a dress': 95, 'a mini dress': 80, 'a midi dress': 112, 'a long dress': 140, 'a wrap dress': 105, 'a jumpsuit': 140,
   'a coat': 100, 'a trench coat': 105, 'a puffer jacket': 68, 'a parka': 85, 'a jacket': 68, 'a denim jacket': 60, 'a bomber jacket': 60, 'a blazer': 72,
   'a pair of shoes': 26, 'a pair of sneakers': 28, 'a pair of boots': 32, 'a pair of knee high boots': 46, 'a pair of ankle boots': 27, 'a pair of high heels': 25, 'a pair of sandals': 25, 'a pair of ballet flats': 24, 'a pair of loafers': 26,
   'a handbag': 28, 'a shoulder bag': 30, 'a crossbody bag': 24, 'a tote bag': 42, 'a clutch bag': 25, 'a backpack': 42,
   'a belt': 30, 'a scarf': 40, 'a hat': 36, 'a cap': 26, 'a sunglasses': 15, sunglasses: 15, 'a necklace': 22, earrings: 9, 'a bracelet': 10, 'a watch': 10, gloves: 22 };
 // 10/11 (Sheila: «el top es súper grande con respecto a la falda»): manda el nombre; lo reconocido en la foto (p.x) solo afina cuando el nombre es genérico («Falda corta deportiva» con «a skirt» medía 62 cm, y «Vestido midi» caía en el largo de las faldas midi)
-const LARGO_NOMBRE = [[/vestido largo|maxivestido|mono/, 140], [/vestido midi/, 112], [/vestido corto|minivestido|vestido mini/, 85], [/minifalda|falda corta|falda mini/, 40], [/falda (larga|maxi)|maxifalda/, 95], [/falda midi/, 78], [/short|bermuda/, 38], [/malla|legging/, 92],
+const LARGO_NOMBRE = [[/bikini|biquini|trikini/, 62], [/ba[ñn]ador/, 68], [/vestido largo|maxivestido|mono/, 140], [/vestido midi/, 112], [/vestido corto|minivestido|vestido mini/, 85], [/minifalda|falda corta|falda mini/, 40], [/falda (larga|maxi)|maxifalda/, 95], [/falda midi/, 78], [/short|bermuda/, 38], [/malla|legging/, 92],
   [/abrigo|gabardina|trench/, 102], [/parka/, 85], [/americana|blazer/, 72], [/chaqueta|cazadora|plumas/, 66], [/top corto|crop/, 42], [/bota alta|mosquetera/, 46], [/bot[ií]n/, 27], [/tote|shopper|mochila/, 42], [/cartera|clutch|de mano/, 25], [/bandolera/, 24]];
 const LARGO_GENERICO = [[/vestido/, 100], [/falda/, 62], [/pantal|vaquer|jean|jogger/, 102], [/camisa/, 72], [/sudadera/, 68], [/bota/, 32]];
 const LARGO_TIPO = { Arriba: 62, Abrigo: 72, Abajo: 100, Vestidos: 100, Calzado: 26, Bolsos: 30, Accesorios: 20 };
@@ -2190,11 +2191,14 @@ function pintarCalendario(raiz) { return pintarAgenda(raiz); } // la vista de me
 /* ---------- CLÓSET ---------- */
 // 0.8 · categorías de tienda: lo de abajo se separa en pantalones y faldas por el nombre
 let catArriba = () => 'Tops'; // el diseño nuevo (at.js) separa las prendas de arriba
-let catPor = () => null; // y desde el 03/11 clasifica todo como las tiendas (Sheila: «estudia en Zara, Lefties, H&M, Pull and Bear las clasificaciones»)
-const CAT_ES = {}; // los nombres en español que cambia el diseño nuevo (Tops → Tops y bodies…)
+// 14/11 (Sheila, 2240: «subí un bikini y no me lo reconoce… debe ponerlo solo como bikini»): la ropa de baño tiene su categoría, «Ropa de baño», y el motor
+// no la mete en los looks (motor.js, inferir). Es de baño lo que el motor entiende como tal: por el nombre, por lo leído en la foto o porque ella la puso ahí
+const esBano = p => !!p && typeof Motor !== 'undefined' && Motor.ficha(p).cat === 'bano';
+let catPor = p => esBano(p) ? 'Baño' : null; // y desde el 03/11 clasifica todo como las tiendas (Sheila: «estudia en Zara, Lefties, H&M, Pull and Bear las clasificaciones»)
+const CAT_ES = { 'Baño': 'Ropa de baño' }; // los nombres en español que cambia el diseño nuevo (Tops → Tops y bodies…)
 const catDe = p => catPor(p) || (p.tipo === 'Abajo' ? (/falda|skirt/i.test(p.nombre) ? 'Faldas' : 'Pantalones') : p.tipo === 'Arriba' ? catArriba(p) : ({ Abrigo: 'Abrigos', Vestidos: 'Vestidos', Calzado: 'Zapatos', Bolsos: 'Bolsos', Accesorios: 'Accesorios' }[p.tipo] || p.tipo));
-const CATS_ORDEN = ['Tops', 'Pantalones', 'Faldas', 'Vestidos', 'Abrigos', 'Zapatos', 'Bolsos', 'Accesorios'];
-const catTxt = c => idioma() === 'en' ? ({ Todo: 'All', Tops: 'Tops', Camisetas: 'T-shirts', 'Camisas y blusas': 'Shirts & blouses', Punto: 'Knitwear', Pantalones: 'Trousers', Faldas: 'Skirts', Vestidos: 'Dresses', Abrigos: 'Outerwear', Zapatos: 'Shoes', Bolsos: 'Bags', Accesorios: 'Accessories', Sudaderas: 'Sweatshirts', Vaqueros: 'Jeans', Shorts: 'Shorts' }[c] || c) : (CAT_ES[c] || c);
+const CATS_ORDEN = ['Tops', 'Pantalones', 'Faldas', 'Vestidos', 'Baño', 'Abrigos', 'Zapatos', 'Bolsos', 'Accesorios'];
+const catTxt = c => idioma() === 'en' ? ({ Todo: 'All', Tops: 'Tops', Camisetas: 'T-shirts', 'Camisas y blusas': 'Shirts & blouses', Punto: 'Knitwear', Pantalones: 'Trousers', Faldas: 'Skirts', Vestidos: 'Dresses', Abrigos: 'Outerwear', 'Baño': 'Swimwear', Zapatos: 'Shoes', Bolsos: 'Bags', Accesorios: 'Accessories', Sudaderas: 'Sweatshirts', Vaqueros: 'Jeans', Shorts: 'Shorts' }[c] || c) : (CAT_ES[c] || c);
 E.f = { ocasion: [], estacion: [], color: [], uso: [], estado: [] };
 const FILTROS = () => [
   ['ocasion', t('Ocasión', 'Occasion'), OCASIONES.map(o => [o, ocNombre(o)])],
@@ -2366,6 +2370,10 @@ async function reconocerPrenda(cv) {
   const pc = {}, px = {}, todos = []; for (const p of TXT_ROPA.prompts) { let s = 0; for (let i = 0; i < p.e.length; i++) s += p.e[i] * v[i]; s /= n; todos.push([p.cat, p.x, s]); if (!(s <= pc[p.cat])) { pc[p.cat] = s; px[p.cat] = p.x; } }
   // 0.37 (Sheila, 22/10: una captura de Vinted entró como top): «NoPrenda» son 13 descripciones de lo que no es ropa (capturas, textos, caras, paisajes…)
   const no = pc.NoPrenda ?? -1; delete pc.NoPrenda;
+  // 14/11 (Sheila, 2240: su bikini salió como «Body»): el lector conoce «a bikini», pero un top de triángulo se le parece mucho. Solo gana si saca 0,015 a la mejor
+  // descripción de otra prenda: el bikini de Sheila saca 0,021; de 186 fotos de prendas de las dos socias y del clóset de demostración, la que más se acerca se queda
+  // en 0,011. El bañador no lo adivina el móvil (se confunde con shorts y bodies): lo pone la clasificación del servidor o se elige a mano
+  if (pc['Baño'] != null) { const otra = Math.max(...Object.entries(pc).filter(([c]) => c !== 'Baño').map(([, v]) => v)); if (pc['Baño'] < otra + .015) delete pc['Baño']; }
   const [cat, sc] = Object.entries(pc).sort((a, b) => b[1] - a[1])[0]; return { cat, x: px[cat], sc, noPrenda: no > sc - .005, todos };
 }
 // 0.30 (Sheila, 21/10: su falda salía como top y una sandalia como pantalón): las prendas subidas antes del reconocimiento se revisan solas una vez;
@@ -2568,11 +2576,12 @@ function nombreAuto(tipo, color) {
   const c = tipo === 'Calzado' ? (PLURAL_COLOR[color] || color.toLowerCase()) : color.toLowerCase();
   return `${n} ${c}`;
 }
-const TIPO_DE_CAT = { Tops: 'Arriba', Pantalones: 'Abajo', Faldas: 'Abajo', Vestidos: 'Vestidos', Abrigos: 'Abrigo', Zapatos: 'Calzado', Bolsos: 'Bolsos', Accesorios: 'Accesorios' };
+const TIPO_DE_CAT = { Tops: 'Arriba', Pantalones: 'Abajo', Faldas: 'Abajo', Vestidos: 'Vestidos', 'Baño': 'Vestidos' /* una sola pieza, como un vestido; el motor la deja fuera de los looks */, Abrigos: 'Abrigo', Zapatos: 'Calzado', Bolsos: 'Bolsos', Accesorios: 'Accesorios' };
 // 0.31: nombre concreto según lo reconocido («Zapatillas blancas», «Blusa rosa», «Vaqueros»); de él salen también el estilo y la ocasión
 const NOM_X = { 'a t-shirt': ['Camiseta', 'T-shirt', 'f'], 'a blouse': ['Blusa', 'Blouse', 'f'], 'a crop top': ['Top corto', 'Crop top', 'm'], 'a shirt': ['Camisa', 'Shirt', 'f'], 'a knitted vest': ['Top de punto sin mangas', 'Sleeveless knit top', 'm'] /* 0.89: «he subido tops y los ha clasificado como chalecos» */, 'a sweater': ['Jersey', 'Sweater', 'm'], 'a halter bodysuit': ['Body', 'Bodysuit', 'm'], 'a tank top': ['Top', 'Tank top', 'm'], 'a cardigan': ['Chaqueta de punto', 'Cardigan', 'f'], 'a peplum top': ['Top peplum', 'Peplum top', 'm'], 'a sleeveless top': ['Top sin mangas', 'Sleeveless top', 'm'],
   trousers: ['Pantalón', 'Trousers', 'm'], jeans: ['Vaqueros', 'Jeans', 'm', 1], 'wide leg pants': ['Pantalón ancho', 'Wide-leg trousers', 'm'], shorts: ['Shorts', 'Shorts', 'm', 1], leggings: ['Mallas', 'Leggings', 'f', 1],
   'a skirt': ['Falda', 'Skirt', 'f'], 'a mini skirt': ['Minifalda', 'Mini skirt', 'f'], 'a long skirt': ['Falda larga', 'Long skirt', 'f'], 'a pleated skirt': ['Falda plisada', 'Pleated skirt', 'f'], 'a lace skirt': ['Falda de encaje', 'Lace skirt', 'f'], 'a flared skirt': ['Falda de vuelo', 'Flared skirt', 'f'],
+  'a bikini': ['Bikini', 'Bikini', 'm'], 'a swimsuit': ['Bañador', 'Swimsuit', 'm'], // 14/11 (Sheila, 2240): ropa de baño
   'a dress': ['Vestido', 'Dress', 'm'], 'a wrap dress': ['Vestido cruzado', 'Wrap dress', 'm'], 'a long dress': ['Vestido largo', 'Long dress', 'm'],
   'a coat': ['Abrigo', 'Coat', 'm'], 'a jacket': ['Chaqueta', 'Jacket', 'f'], 'a blazer': ['Americana', 'Blazer', 'f'], 'a trench coat': ['Gabardina', 'Trench coat', 'f'], 'a puffer jacket': ['Plumífero', 'Puffer jacket', 'm'],
   'a pair of shoes': ['Zapatos', 'Shoes', 'm', 1], 'a pair of sneakers': ['Zapatillas', 'Sneakers', 'f', 1], 'a pair of high heels': ['Tacones', 'Heels', 'm', 1], 'a pair of boots': ['Botas', 'Boots', 'f', 1], 'a pair of sandals': ['Sandalias', 'Sandals', 'f', 1], 'a pair of ballet flats': ['Bailarinas', 'Flats', 'f', 1], 'a pair of stiletto heels': ['Tacones', 'Heels', 'm', 1], 'a pair of pointed toe pumps': ['Tacones', 'Heels', 'm', 1],
@@ -2588,6 +2597,7 @@ const SUBCATS = {
   Pantalones: ['trousers', 'jeans', 'wide leg pants', 'shorts', 'leggings'],
   Faldas: ['a skirt', 'a mini skirt', 'a midi skirt', 'a long skirt', 'a pleated skirt', 'a flared skirt', 'a lace skirt'],
   Vestidos: ['a dress', 'a mini dress', 'a midi dress', 'a long dress', 'a wrap dress', 'a jumpsuit'],
+  'Baño': ['a bikini', 'a swimsuit'],
   Abrigos: ['a coat', 'a trench coat', 'a puffer jacket', 'a parka', 'a jacket', 'a denim jacket', 'a bomber jacket', 'a blazer'],
   Zapatos: ['a pair of shoes', 'a pair of sneakers', 'a pair of boots', 'a pair of knee high boots', 'a pair of ankle boots', 'a pair of high heels', 'a pair of sandals', 'a pair of ballet flats', 'a pair of loafers'],
   Bolsos: ['a handbag', 'a shoulder bag', 'a crossbody bag', 'a tote bag', 'a clutch bag', 'a backpack'],
@@ -2825,6 +2835,25 @@ function clasificarViejas() {
     return n;
   })();
   return clasificando;
+}
+// 14/11 (Sheila, mensaje 2240: subió un bikini y quedó como «Body burdeos»): los «Body» que nombró el lector del móvil antes de conocer el bikini se miran una vez
+// más, solos, con el lector nuevo; solo cambia el que ahora sale como bikini con claridad. Lo que ya clasificó el servidor (clas), lo que revisó la estilista y lo
+// que ella nombró a mano no se toca. Con saldo en el servidor no hace falta: clasificarViejas ya las ha puesto al día antes
+async function bikinisViejos() {
+  if (window.top !== window) return 0;
+  const pend = E.prendas.filter(p => p.x === 'a halter bodysuit' && !p.clas && !p.banoV && !p.ejemplo && !p.src && !p.est?.sub && !p.catM && p.foto instanceof Blob && !p.fotoRota && nombreDeMaquina(p)); if (!pend.length) return 0;
+  let n = 0;
+  for (const p of pend) {
+    await new Promise(r => (window.requestIdleCallback || setTimeout)(r, { timeout: 800 }));
+    try {
+      const im = await cargaImg(urlFoto(p)), c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0);
+      const { cat, x } = await reconocerPrenda(c);
+      if (cat === 'Baño') { p.tipo = TIPO_DE_CAT[cat]; p.x = x; p.nombre = nombreReconocido(x, p.color); if (p.estAuto || !p.estacion) p.estacion = estacionPorPrenda(p); n++; }
+      p.banoV = 1;
+    } catch (e) { break; } // sin red o sin modelo: otra vez en la próxima apertura
+  }
+  await guardar(); if (n) { programarNube(); E.propuestas = []; E.generados = []; cuandoQuieto(() => { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'hoy') pintarHoy(); }); }
+  return n;
 }
 // 12/11 (Sheila, mensaje 2061: «continuamos con la desproporción», un top crop de manga larga diminuto junto a un pantalón ancho): la app solo sabía la manga si
 // el nombre la decía; sin ella, el collage medía ese top como uno sin mangas (33 × 42 cm en vez de 45 × 58) y el motor lo trataba como de verano. Una vez por prenda,
@@ -4422,7 +4451,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
-  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
+  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente

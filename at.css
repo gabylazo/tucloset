@@ -350,6 +350,15 @@ html.at .at-vj-et { margin: 6px 0 -10px; font-size: 12px; letter-spacing: .1em; 
 html.at .at-vj-ops { justify-content: center; gap: 18px; padding: 0; overflow: visible; flex-wrap: wrap; }
 html.at .at-vj-error { min-height: 1em; margin: 0; font-size: 13.5px; color: #8B2E1F; text-align: center; }
 html.at .at-vj-form .at-btn { align-self: center; }
+/* 14/11: «Tu viaje» va en filas con icono, como el evento del calendario (propuesta A, elegida por Gabriela el 13/11); las filas son las de .ag-form (app.css) */
+html.at .at-vj-f2 { width: 100%; max-width: 360px; margin: 18px auto 0; text-align: left; }
+html.at .at-vj-f2 .at-vj-error { margin: 14px 0 0; }
+html.at .at-vj-f2 .at-btn { margin: 14px auto 0; }
+html.at .at-vj-ex { cursor: default; }
+html.at .at-vj-exb { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0; }
+html.at .at-vj-exb button { min-height: 40px; padding: 0 14px; border: 1px solid var(--linea2, rgba(74,53,38,.28)); background: none; font: 300 14px/1 var(--f); color: var(--sec); }
+html.at .at-vj-exb button.on { border-color: var(--tinta); background: var(--tinta); color: #fff; }
+html.at .at-vj-exb button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 html.at .at-vj-dias { padding: 18px 0 8px; }
 html.at .at-vj-dias figcaption { display: flex; align-items: center; justify-content: center; gap: 4px; text-transform: capitalize; }
 html.at .at-vj-dias figcaption svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
