@@ -836,6 +836,10 @@ html.oscuro .yo-fm{background:none;border:0;border-top:1px solid var(--linea);bo
 html.oscuro .yo-fm .dg-mini{background:var(--baldosa,var(--o-fondo))}
 html.oscuro .yo-fm .dg-mini svg{fill:none;stroke:var(--sec)}
 html.oscuro .yo-fm-txt small{color:var(--sec)}
+html.oscuro .yo-falta-l{border-top:1px solid var(--linea)}
+html.oscuro .yo-falta-l li{border-bottom:1px solid var(--linea)}
+html.oscuro .yo-falta-l small{color:var(--sec)}
+html.oscuro .yo-falta-n{color:var(--sec)}
 html.oscuro .yo-fm-fl{fill:none;stroke:var(--sec)}
 html.oscuro .pn-v .pn-ic{stroke:var(--oro-t)}
 html.oscuro .pn-fl{stroke:var(--oro-t)}

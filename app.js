@@ -4206,6 +4206,37 @@ function bloqueInspoYo() {
 }
 document.addEventListener('click', e => { if (!e.target.closest('[data-yo-inspo]')) return; ir('estilo');
   setTimeout(() => document.getElementById('es-inspo-t')?.scrollIntoView({ block: 'start' }), 80); });
+// 14/11 (Gabriela, nota de voz 2292: «que la app hiciera un diagnóstico de tu clóset… te recomiendo piezas que deberías incorporar»; y en el panel: «no veo lo de
+// sugerirte qué comprar… debe sugerirte lo que le falta o lo que le vendría bien a tu clóset»): en Yo, debajo de los colores de su clóset, las 3 piezas que más
+// looks nuevos le abrirían esta temporada. El motor prueba las cuatro ocasiones de cada día con el tiempo de hoy y 5° arriba y abajo, y cuenta qué tipo de prenda
+// le falta en más de ellas. Solo el tipo de prenda, nunca una tienda ni un enlace (N13); primero lo que ya tiene: se recuerda «Antes de comprar». Va aparte del
+// pintado, a trozos para no frenar la pantalla (8 vueltas del motor: el tiempo de hoy y el de la temporada que viene), y se guarda mientras no cambien la ropa,
+// el día ni el tiempo.
+const FALTA_OC = { Diario: ['el día a día', 'every day'], Oficina: ['la oficina', 'the office'], Noche: ['salir de noche', 'nights out'], Evento: ['eventos', 'events'] };
+let FALTAS_C = null;
+async function faltasCloset() {
+  const ps = activas(); if (typeof Motor === 'undefined' || !Motor.nombreTipo || ps.length < 6) return [];
+  const t0 = Math.round(E.tiempo?.t ?? 15), k = `${hoyISO()}|${t0}|${E.perfil?.publico || ''}|${ps.map(p => p.id + (p.tipo || '') + (p.subtipo || '')).join()}`;
+  if (FALTAS_C?.k === k) return FALTAS_C.v;
+  const cuenta = {};
+  const mes = new Date().getMonth(), luego = mes >= 7 || mes === 0 ? t0 - 5 : t0 + 5;   // de agosto a enero viene el frío; de febrero a julio, el calor
+  for (const t of [t0, luego]) for (const oc of Object.keys(FALTA_OC)) {
+    await new Promise(r => setTimeout(r, 0)); let r; try { r = Motor.looks({ prendas: ps, tiempo: { t, max: t + 3, min: t - 6 }, plan: oc, perfil: E.perfil || {}, n: 4, hoy: hoyISO(), hora: oc === 'Noche' ? 20 : 12, pro: true }); } catch (x) { continue; }
+    for (const f of r.falta || []) { const c = cuenta[f.tipo] = cuenta[f.tipo] || { tipo: f.tipo, n: 0, ocs: new Set() }; c.n += f.n; c.ocs.add(oc); }
+  }
+  const v = Object.values(cuenta).sort((a, b) => b.ocs.size - a.ocs.size || b.n - a.n).slice(0, 3);
+  FALTAS_C = { k, v }; return v;
+}
+async function pintarFaltasYo() {
+  const sec = $('yo-falta'); if (!sec) return;
+  const v = await faltasCloset(), en = idioma() === 'en'; if (E.pantalla !== 'yo') return;
+  if (!v.length) { sec.innerHTML = ''; return; }
+  const lista = l => l.length > 1 ? l.slice(0, -1).join(', ') + (en ? ' and ' : ' y ') + l[l.length - 1] : l[0];
+  sec.innerHTML = `<h2 class="es-tit">${t('Qué le falta a tu clóset', 'What your closet is missing')}</h2><ul class="yo-falta-l">${v.map(f => {
+    const nom = Motor.nombreTipo(f.tipo), ocs = Object.keys(FALTA_OC).filter(o => f.ocs.has(o)).map(o => FALTA_OC[o][en ? 1 : 0]);
+    return `<li><b>${escH(nom.charAt(0).toUpperCase() + nom.slice(1))}</b><small>${t('Te abriría looks para', 'Would open up looks for')} ${lista(ocs)}</small></li>`; }).join('')}</ul>
+    <p class="yo-falta-n">${t('Antes de comprar, mira si ya tienes algo parecido: Looks → Antes de comprar.', 'Before buying, check whether you already have something similar: Looks → Before you buy.')}</p>`;
+}
 function pintarYo() {
   const pf = E.perfil || {}, es = idioma() === 'en' ? 1 : 0;
   const fila = (attr, tit, val, oro, flecha = true) => `<button class="item" ${attr}>${tit}<span class="valor${oro ? ' oro' : ''}">${val}${flecha ? '<svg><use href="#ic-flecha"/></svg>' : ''}</span></button>`;
@@ -4229,7 +4260,8 @@ function pintarYo() {
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? (ests.length > 2 ? ests.slice(0, 2).map(min).join(', ') + ` +${ests.length - 2}` : ests.map(min).join(t(' y ', ' and '))) : t('elígelo', 'choose it'))
     + ent(dg?.color || pf.selfie ? 'data-diag="ver-color"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
   $('yo-lista').setAttribute('aria-label', t('Tu perfil', 'Your profile')); $('yo-ajustes-t').textContent = t('Ajustes', 'Settings');
-  let fm = $('yo-fm'); if (!fm) { fm = document.createElement('div'); fm.id = 'yo-fm'; $('yo-lista').after(fm); } fm.innerHTML = bloqueFotosYo() + bloqueInspoYo() + bloqueGastosYo();
+  let fa = $('yo-falta'); if (!fa) { fa = document.createElement('section'); fa.id = 'yo-falta'; fa.className = 'yo-fm-sec'; $('yo-lista').after(fa); } setTimeout(() => { if (E.pantalla === 'yo') pintarFaltasYo(); }, 0);
+  let fm = $('yo-fm'); if (!fm) { fm = document.createElement('div'); fm.id = 'yo-fm'; fa.after(fm); } fm.innerHTML = bloqueFotosYo() + bloqueInspoYo() + bloqueGastosYo();
   let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; fm.after(td); } td.innerHTML = tarjetaDiag() + tarjetaAvatar();
   pintarPanelYo();
   if (pend && !diagCorriendo) diagHastaAlDia().then(() => { if (E.pantalla === 'yo') pintarYo(); });

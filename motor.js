@@ -581,7 +581,7 @@ const Motor = (() => {
     return F.formulas.filter(f => f.ocasiones.some(o => ocs.includes(o)) && ctx.t_ref >= f.tmin - margen && ctx.t_ref <= f.tmax + margen && (!ctx.lluvia || f.lluvia) && (!f.requiere_estilo || pf.estilos.some(e => f.requiere_estilo.includes(e))) && !(pf.publico === 'masculino' && f.publico === 'femenino'));
   }
   const NOMBRES = { mocasines: 'mocasines', botines: 'botines', zapatillas: 'zapatillas', sandalias_planas: 'sandalias planas', sandalias_tacon: 'sandalias de tacón', bailarinas: 'bailarinas', tacones: 'tacones', zapato_cordones: 'zapatos de cordones', botas_altas: 'botas altas', botas_agua: 'botas de agua', botas_montana: 'botas de montaña', alpargatas: 'alpargatas', abrigo_lana: 'abrigo de lana', plumifero: 'plumífero', pantalon_vestir: 'pantalón de vestir', pantalon_fluido: 'pantalón fluido', pantalon_lino: 'pantalón de lino', cardigan: 'cárdigan', jersey_cuello_alto: 'jersey de cuello alto', vestido_midi: 'vestido midi', falda_midi: 'falda midi' };
-  const nombreTipo = id => NOMBRES[id] || R.inferencia.subtipos.find(s => s.id === id)?.palabras?.[0] || id.replace(/_/g, ' ');
+  const nombreTipo = x => { const id = String(x).replace(/[\^$]/g, ''); return String(NOMBRES[id] || R.inferencia.subtipos.find(s => s.id === id)?.palabras?.[0] || id.replace(/_/g, ' ')).replace(/[\^$\\]/g, ''); }; // 14/11: sin «mono$» (las palabras del lector son patrones)
   const SOLO_MUJER = /^(falda|vestido|blusa|body$|top|malla$|mono$|kimono$|bailarinas$|sandalias_tacon$|tacones$|clutch$|bolso_mano$)/;
   function faltas(ctx, plan, ents, zapatosPropios, pf) {
     const ps = formulasPosibles(ctx, pf, plan, 1), cuenta = {};
@@ -601,7 +601,8 @@ const Motor = (() => {
     return Object.entries(cuenta).sort((a, b) => b[1].n - a[1].n || orden.indexOf(a[0]) - orden.indexOf(b[0])).slice(0, 3).map(([g, c]) => {
       const pref = g === 'calzado' && (ctx.tramo.calzado?.preferir || []).find(t => c.todos?.has(t)); // el zapato que nombra el aviso es el del tiempo que hace
       const t0 = pref || Object.entries(c.tipos).sort((a, b) => b[1] - a[1])[0][0];
-      return { grupo: g, tipo: t0, n: c.n, frase: R.faltas.frases[g].replace('{tipo}', nombreTipo(t0)) };
+      const fr = plan === 'Deporte' && g === 'abajo' ? 'Para hacer deporte te falta una prenda de abajo ({tipo}).' : g === 'vestido' && /^mono/.test(t0) ? 'Un {tipo} te daría varias ideas más.' : R.faltas.frases[g]; // 14/11: ni «más ligera o más arreglada (jogger)» ni «un vestido (mono)»
+      return { grupo: g, tipo: String(t0).replace(/[\^$]/g, ''), n: c.n, frase: fr.replace('{tipo}', nombreTipo(t0)) };
     });
   }
   /* Entrada: { prendas, tiempo, plan, perfil, n, hoy, hora, excluir, pro, colorEstacion }. Salida: { looks, casi, falta, ctx }. */
@@ -773,7 +774,7 @@ const Motor = (() => {
     return { pct: posibles.length ? Math.round(100 * conEl.length / posibles.length) : null, con: conEl.map(x => x.id), posibles: posibles.length, nLooks: vistos.size,
       ocasiones: ocs.filter(x => enOc.has(x)), temps, looks: lista.map(aPropuesta), parecidas, tipos: CON_TIPO[p.tipo] || [] };
   }
-  return { iniciar, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, recrear, aPropuesta, faltas, claveLook, claveRopa, utilidad, get R() { return R; }, get F() { return F; } };
+  return { iniciar, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, recrear, aPropuesta, faltas, nombreTipo, claveLook, claveRopa, utilidad, get R() { return R; }, get F() { return F; } };
 })();
 if (typeof module !== 'undefined') module.exports = Motor;
 else if (typeof MOTOR_DATOS !== 'undefined') Motor.iniciar(MOTOR_DATOS.R, MOTOR_DATOS.F, MOTOR_DATOS.S);

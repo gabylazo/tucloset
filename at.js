@@ -812,7 +812,9 @@ if (AT) (() => {
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     const fila = ['Todos', 'Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].map(o => `<button class="${o === oc ? 'on' : ''}" data-ideaoc="${o}"${o === oc ? ' aria-current="true"' : ''}>${o === 'Todos' ? t('Todas', 'All') : ocNombre(o)}${DOS}</button>`).join('');
     const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button></figure>`; };
-    const vendria = r.falta?.length && !en() && activas().length ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';
+    // 14/11 (Gabriela: «la función sigue apareciendo donde mismo, debe sugerirte lo que le falta o lo que le vendría bien a tu clóset»): sale de aquí; ahora es
+    // «Qué le falta a tu clóset» en Yo, debajo de los colores de su clóset (faltasCloset en app.js)
+    const vendria = false && r.falta?.length && !en() && activas().length ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';
     // 08/11 (Gabriela, mensaje 1909: «no le gusta cómo están distribuidos así en una columna en el centro»): las tres, en una fila de iconos como las acciones de la ficha
     // 13/11 (Gabriela, en el panel: «a mí no me sale crear un look ni recrear»; «con una prenda sale dos veces, en el inicio (hoy) y en looks, quítalo de una»): «Con una prenda»
     // se queda solo en Hoy y aquí, en Ideas, que es donde se abre Looks, van «Crear un look» y «Recrear un look»
