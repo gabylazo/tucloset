@@ -1915,3 +1915,18 @@ html.oscuro .pn-error{color:#E8776B}
 .est-sub{align-items:center;margin:14px auto 4px;text-align:left}
 .est-sub small{margin-top:0;font-size:13px}
 @media (prefers-reduced-motion:reduce){.est-arm .est-pi,.est-arm .est-pd,.est-arm .est-dentro{animation:none}.est-arm .est-dentro{opacity:1}.est-arm .est-pi,.est-arm .est-pd{transform:scaleX(-.6)}.est-rot>span{animation:none}.est-rot>span:first-child{opacity:1}}
+/* 14/11 (Sheila, 2277, hablado con Gabriela): mientras algo carga, el mismo armario pequeño en el centro de lo que carga (cargaIco en app.js).
+   tc-carga-c va encima de una foto, que se vela; tc-carga-g es el grande (avatar, «Vistiéndote…»); tc-carga-i va en línea con un texto. Con «reducir movimiento», quieto y abierto. */
+.tc-carga{display:block;width:30px;height:30px;margin:0 auto 10px;pointer-events:none}
+.tc-carga .est-arm{width:100%;height:100%}
+.tc-carga-c{position:absolute;left:50%;top:50%;margin:-15px 0 0 -15px;z-index:1}
+.tc-carga-g{width:44px;height:44px;margin-bottom:12px}
+.tc-carga-i{display:inline-block;width:22px;height:22px;margin:0 8px 0 0;vertical-align:-6px}
+.pn-par-carga{text-align:center}
+.at-foto .tc-carga-c{display:none}
+.at-foto:has(+ .est-ficha:not([hidden])) .tc-carga-c{display:block}
+.at-foto:has(+ .est-ficha:not([hidden])) img,.tc-leyendo img,#s-raiz .rej .s-carga img{opacity:.3}
+.tc-leyendo{position:relative}
+.tc-leyendo .tc-carga-c{top:112px}
+#s-raiz .rej .tc-carga-c{top:42%}
+#s-raiz .rej .est-p .s-est{top:calc(42% + 24px)}

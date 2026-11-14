@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.260'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.261'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -292,7 +292,7 @@ if (AT) (() => {
     else LS.set('tc_ver_avatar', '1');
     const alto = fig.offsetHeight || capa?.offsetHeight || 320;
     if (!capa) { capa = document.createElement('div'); capa.className = 'at-puesto'; fig.after(capa); }
-    capa.style.height = alto + 'px'; if (!r) capa.innerHTML = `<p class="at-puesto-esp" role="status">${t('Vistiéndote…', 'Dressing you…')}</p>`; fig.style.display = 'none';
+    capa.style.height = alto + 'px'; if (!r) capa.innerHTML = `<p class="at-puesto-esp" role="status">${cargaIco('tc-carga-g')}${t('Vistiéndote…', 'Dressing you…')}</p>`; fig.style.display = 'none';
     b.setAttribute('aria-pressed', 'true');
     if (!r) { b.classList.add('cargando'); r = await puestoEnMi(ps, como, otra, false, el); b.classList.remove('cargando'); }
     if (!capa.isConnected) return;
@@ -490,7 +490,7 @@ if (AT) (() => {
     const q = E.busca.trim().toLowerCase();
     const lista = todas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && pasaFiltros(p) && (!q || [p.nombre, p.color, catDe(p), p.notas].join(' ').toLowerCase().includes(q)));
     const nf = Object.values(E.f).reduce((s, v) => s + v.length, 0); $('mc-nf').textContent = nf || '';
-    $('pared').innerHTML = lista.map(p => `<button class="at-cel${conCat(p) ? '' : ' sin-cat'}${estPend(p) ? ' est-pend' : ''}" data-ficha="${p.id}" aria-label="${esc(p.nombre)}"><img src="${urlCat(p)}" alt="" loading="lazy">${sinFoto(p) ? `<i>${t('Sin foto', 'No photo')}</i>` : estPend(p) ? `<i>${t('Estilizando…', 'Styling…')}</i>` : p.estado ? `<i>${estadoTxt(p.estado)}</i>` : ''}</button>`).join('');
+    $('pared').innerHTML = lista.map(p => `<button class="at-cel${conCat(p) ? '' : ' sin-cat'}${estPend(p) ? ' est-pend' : ''}" data-ficha="${p.id}" aria-label="${esc(p.nombre)}"><img src="${urlCat(p)}" alt="" loading="lazy">${sinFoto(p) ? `<i>${t('Sin foto', 'No photo')}</i>` : estPend(p) ? `${cargaIco('tc-carga-c')}<i>${t('Estilizando…', 'Styling…')}</i>` : p.estado ? `<i>${estadoTxt(p.estado)}</i>` : ''}</button>`).join('');
     $('closet-vacio').innerHTML = todas.length ? (lista.length ? '' : `<div class="at-vacio"><p>${t('Nada con ese filtro.', 'Nothing matches.')}</p></div>`)
       : `<div class="at-vacio"><p>${t('Haz una foto a cada prenda sobre un fondo liso. Con tres ya hay look de hoy.', 'Photograph each garment on a plain background. With three there is already a look for today.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>${PUBLICA ? '' : `<button class="at-enlace" id="at-cl-ejemplo">${t('Cargar un clóset de ejemplo', 'Load a sample closet')}</button>`}</div>`;
     if (enGratis() && E.prendas.length > TOPE_GRATIS) $('closet-vacio').insertAdjacentHTML('beforeend', `<p class="at-gratis">${t(`En la versión gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`)}</p>`);
@@ -586,7 +586,7 @@ if (AT) (() => {
     const on = k => k === p.estado || (k === 'cuidar' && cuidarAbierta === id), MARCA = ['cuidar', 'lavar', 'guardada', 'donar'];
     const nombre = (w, l) => l.toLowerCase().includes(w.toLowerCase()) ? l : `${w}. ${l}`; // el nombre que se lee contiene la palabra que se ve
     r.innerHTML = `<div class="at-barra-sup"><button class="at-volver" data-ir="closet" aria-label="${t('Volver', 'Back')}">${I.iz}</button><span class="at-der2"><button class="at-ico" data-atfacc="editar" aria-label="${t('Editar', 'Edit')}">${I.lapiz}</button><button class="at-ico" data-atfacc="borrar" aria-label="${t('Borrar la prenda', 'Delete the garment')}">${I.papelera}</button></span></div>
-      <div class="at-foto${conCat(p) ? '' : ' sin-cat'}"><img src="${urlCat(p)}" alt="${esc(p.nombre)}"><button type="button" class="at-ampliar" data-ampliar="${p.id}" aria-label="${t('Ampliar la foto', 'Enlarge the photo')}"></button></div><p class="est-av est-ficha" id="est-ficha" role="status"${E.estil?.id === p.id ? '' : ' hidden'}><span class="est-gira" aria-hidden="true"></span><span>${t('Estilizando esta foto: unos 15 segundos', 'Styling this photo: about 15 seconds')}</span></p>${p.catProp && !p.cat ? `<button class="at-rep-av" data-catver>${t('Foto de catálogo lista · Ver', 'Catalogue photo ready · View')}</button>` : ''}${sinFoto(p) ? `<p class="at-sin-foto">${t('La foto de esta prenda se ha perdido en este móvil. Toca el lápiz y vuelve a hacerla.', 'This garment’s photo was lost on this phone. Tap the pencil and take it again.')}</p>` : ''}
+      <div class="at-foto${conCat(p) ? '' : ' sin-cat'}"><img src="${urlCat(p)}" alt="${esc(p.nombre)}">${cargaIco('tc-carga-c')}<button type="button" class="at-ampliar" data-ampliar="${p.id}" aria-label="${t('Ampliar la foto', 'Enlarge the photo')}"></button></div><p class="est-av est-ficha" id="est-ficha" role="status"${E.estil?.id === p.id ? '' : ' hidden'}><span>${t('Estilizando esta foto: unos 15 segundos', 'Styling this photo: about 15 seconds')}</span></p>${p.catProp && !p.cat ? `<button class="at-rep-av" data-catver>${t('Foto de catálogo lista · Ver', 'Catalogue photo ready · View')}</button>` : ''}${sinFoto(p) ? `<p class="at-sin-foto">${t('La foto de esta prenda se ha perdido en este móvil. Toca el lápiz y vuelve a hacerla.', 'This garment’s photo was lost on this phone. Tap the pencil and take it again.')}</p>` : ''}
       ${p.estado ? `<p class="at-estado">${estadoTxt(p.estado)}</p>` : ''}<h1 class="at-h1">${esc(p.nombre)}</h1>${datos ? `<p class="at-datos">${datos}</p>` : ''}<ul class="at-chips">${chips}</ul>
       ${looks.length ? `<div class="at-minis${looks.length > 2 ? ' muchos' : ''}">${looks.map(x => baldosa(x.ps, MW, MH, x.attr)).join('')}</div>` : ''}
       <div class="at-iconos" role="group" aria-label="${t('Acciones de la prenda', 'Garment actions')}">${ACC.map(([k, ic, w, l]) => `<button class="at-ib${on(k) ? ' on' : ''}" data-atfacc="${k}" aria-label="${esc(nombre(w, l || largo(k)))}"${MARCA.includes(k) ? ` aria-pressed="${on(k)}"` : ''}><span class="at-ib-c">${ic}</span><span class="at-ib-t" aria-hidden="true">${esc(w)}</span></button>`).join('')}</div>
@@ -1100,7 +1100,7 @@ if (AT) (() => {
       if (b.dataset.parlook) { const x = E.parLooks[+b.dataset.parlook]; cap.remove(); return abrirIdea(x); }
     };
     if (!cuenta()) { cap.innerHTML = enlazar(t('Entra en tu cuenta y enlázala con la de tu pareja: aquí verás a la vez un look para ti y otro para tu pareja que combinan.', 'Sign in and link your account with your partner’s: here you’ll see a look for you and one for your partner that go together.')); return; }
-    if (!cap.querySelector('.at-par-pares')) cap.innerHTML = `${cab}<p class="at-vj-sub">${t('Un momento…', 'One moment…')}</p>`;
+    if (!cap.querySelector('.at-par-pares')) cap.innerHTML = `${cab}<p class="at-vj-sub">${cargaIco()}${t('Un momento…', 'One moment…')}</p>`;
     let d; try { d = await parejaDatos(); } catch (e) { cap.innerHTML = `${cab}<p class="at-vj-sub">${t('Sin conexión. Prueba otra vez en un momento.', 'No connection. Try again in a moment.')}</p><button class="boton linea at-par-enl" data-parotra>${t('Probar otra vez', 'Try again')}</button>`; return; }
     if (!cap.isConnected) return;
     if (!d) { cap.innerHTML = enlazar(t('Enlaza tu clóset con el de tu pareja y aquí verás a la vez un look para ti y otro para tu pareja que combinan. Cada una sigue con su cuenta y su ropa.', 'Link your closet with your partner’s and here you’ll see a look for you and one for your partner that go together. Each keeps their own account and clothes.')); return; }
@@ -1508,7 +1508,7 @@ if (AT) (() => {
       <div class="at-cm-guia" aria-hidden="true">${I.recrear}</div>${C.error ? `<p class="at-cm-error" role="alert">${esc(C.error)}</p>` : ''}
       ${!cuenta()?.token ? `<button class="at-btn" data-ir="entrar">${t('Entra en tu cuenta para usarlo', 'Sign in to use it')}</button>` : activas().length < 3 ? `<p class="at-vj-sub">${t('Primero sube tu ropa: con tres prendas ya puedo empezar.', 'Add your clothes first: three garments are enough to start.')}</p>` : foto(t('Elegir una foto', 'Choose a photo'))}
       <p class="at-cm-pie">${t('Una captura, una foto de revista o de una amiga. Leo la ropa y la foto no se guarda.', 'A screenshot, a magazine photo or a friend’s. I read the clothes and the photo isn’t kept.')}</p>`;
-    else if (C.fase === 'leyendo') cap.innerHTML = `${X}${h1}<div class="at-rc-par"><figure class="at-rc-f"><img src="${C.url}" alt="${t('Tu foto', 'Your photo')}" style="width:180px;height:225px"></figure></div><p class="at-vj-sub" role="status">${t('Leyendo el look y buscando en tu clóset…', 'Reading the look and searching your closet…')}</p>`;
+    else if (C.fase === 'leyendo') cap.innerHTML = `${X}${h1}<div class="at-rc-par"><figure class="at-rc-f tc-leyendo"><img src="${C.url}" alt="${t('Tu foto', 'Your photo')}" style="width:180px;height:225px">${cargaIco('tc-carga-c')}</figure></div><p class="at-vj-sub" role="status">${t('Leyendo el look y buscando en tu clóset…', 'Reading the look and searching your closet…')}</p>`;
     else {
       const v = C.r.versiones[C.i], n = C.r.versiones.length, [ancho] = caja(), TW = Math.floor((Math.min(ancho, 480) - 40 - 12) / 2), TH = Math.round(TW * 1.25);
       const det = v.detalle.filter(d => d.foto && P(d.id)), se = det.filter(d => d.nivel === 'igual'), falta = det.filter(d => !se.includes(d));

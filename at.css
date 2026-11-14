@@ -732,3 +732,11 @@ html.at:not(.oscuro) .ag-mini img.at-p { mix-blend-mode: multiply; } /* 13/11: l
 html.at:not(.oscuro) { --baldosa: #FFFFFF; }
 html.at:not(.oscuro) #p-closet #pared, html.at:not(.oscuro) .at-con-rej { gap: 0; }
 html.at:not(.oscuro) :is(.at-bal, .at-cel, .at-foto, .at-cap-p, .at-conp-n img, .av-t, .at-cp-elegida img, .at-cm-guia, .at-cm-prenda, .at-cm-parb img, .at-cam-actual img, .at-rc-f img, .at-rc-l img, .at-rc-hueco, .ag-mini, .dg-mini, .gs-f, #nl-prendas button):not(:focus-visible) { outline: 1px solid var(--raya); outline-offset: -.5px; }
+
+/* 14/11 (Sheila, 2277): el armario de carga (cargaIco) en el sitio del avatar mientras se crea y en «Vistiéndote…»; ya no late el bloque entero, se mueven las puertas */
+html.at .av-vacio .tc-carga svg { width: 100%; height: 100%; stroke: var(--oro-t); stroke-width: 1.2; }
+html.at .av-tarjeta.creando .av-img, html.at .at-puesto-esp:has(.tc-carga) { animation: none; }
+/* la rejilla de Subir, también en cuadros blancos con línea fina (como el resto desde el 14/11) */
+html.at:not(.oscuro) #s-raiz .rej { gap: 0; }
+html.at:not(.oscuro) #s-raiz .rej > * { background: #FFFFFF; }
+html.at:not(.oscuro) #s-raiz .rej > :not(:focus-visible) { outline: 1px solid var(--raya); outline-offset: -.5px; }
