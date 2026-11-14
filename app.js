@@ -3826,7 +3826,8 @@ function siluetaTxt() {
   else if (b?.ratios?.hombros_cadera) x.push(`shoulders to hips width ${(+b.ratios.hombros_cadera).toFixed(2)}, waist to hips width ${(+(b.ratios.cintura_cadera || .7)).toFixed(2)}`);
   return x.join('; ');
 }
-const errorAvatar = (st, e, puesto) => e === 'permiso' ? t('Falta tu permiso: márcalo en Yo → Tu avatar', 'Your permission is needed: tick it in Me → Your avatar') : st === 403 ? t('El avatar aún está en pruebas', 'The avatar is still being tested')
+// 14/11 (Sheila, 2322, el bikini): si Google filtra la foto (IMAGE_SAFETY), se dice tal cual en vez de «Prueba otra vez», que no sirve de nada
+const errorAvatar = (st, e, puesto) => e === 'filtro' ? t('Google no deja hacer esta foto. Prueba con otro look', 'Google won’t make this photo. Try another look') : e === 'permiso' ? t('Falta tu permiso: márcalo en Yo → Tu avatar', 'Your permission is needed: tick it in Me → Your avatar') : st === 403 ? t('El avatar aún está en pruebas', 'The avatar is still being tested')
   : e === 'tope' ? (puesto ? t('Por hoy ya no quedan más. Vuelve mañana', 'No more for today. Come back tomorrow') : t('Por hoy ya no puedes crear más avatares. Vuelve mañana', 'No more avatars for today. Come back tomorrow'))
   : e === 'tope-mes' ? t('Este mes ya no quedan. Vuelve el mes que viene', 'None left this month. Come back next month')
   : e === 'pausa' ? t('Ahora mismo no se puede. Prueba más tarde', 'Not available right now. Try again later')
@@ -3936,6 +3937,7 @@ async function puestoEnMi(ps, como, otra, soloGuardado, elegido) {
   const pf = E.perfil || {}; if (!(pf.avatar instanceof Blob)) return { error: t('Primero crea tu avatar en Yo', 'First create your avatar in Me') };
   if (!permiso('avatar')) return { error: errorAvatar(403, 'permiso') };
   const sel = selLook(ps); if (!sel.length) return { error: t('Este look aún no tiene fotos', 'This look has no photos yet') };
+  if (ps.some(esBano)) return { error: t('La ropa de baño no se puede ver puesta: Google no deja vestir así a una persona real', 'Swimwear can’t be shown on you: Google doesn’t allow it on a real person') };
   const cm = elegido && elegido !== (como || 'suelta') ? elegido : '', k = clavePuesto(ps, cm);
   E.puestos = E.puestos || (await BD.get('puestos').catch(() => null)) || {};
   if (!otra && E.puestos[k] instanceof Blob) { if (!soloGuardado) fijarPuesto(k); return { blob: E.puestos[k], k }; }
@@ -3950,7 +3952,7 @@ async function puestoEnMi(ps, como, otra, soloGuardado, elegido) {
     // 11/11 (Gabriela: «sigo teniendo dos avatares en mi cuenta»): ya no va la selfie. Con dos caras de referencia (el avatar y la selfie, que había cambiado
     // después), la IA copiaba unas veces una y otras la otra, y salían dos personas. La cara sale solo del avatar; el parecido se arregla en el avatar («No me parezco»)
     const r = await apiAvatar('/api/avatar?que=puesto' + (otra ? '&otra=1' : ''), fd);
-    if (!r.ok) { const j = await r.json().catch(() => ({})); return { error: errorAvatar(r.status, j.error, true) }; }
+    if (!r.ok) { const j = await r.json().catch(() => ({})); return { error: errorAvatar(r.status, j.error === 'sin-imagen' && /SAFETY|PROHIBITED/.test(j.d || '') ? 'filtro' : j.error, true) }; }
     const fin = await afinarCat(await r.blob(), 1200); if (!fin) return { error: errorAvatar(502) };
     nuevoProbado(k, fin.blob); fijarPuesto(k); await BD.set('puestos', E.puestos).catch(() => { }); return { blob: fin.blob, k };
   } catch (e) { return { error: t('Sin conexión: prueba otra vez', 'No connection: try again') }; }
