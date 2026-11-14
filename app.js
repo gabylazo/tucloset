@@ -311,6 +311,7 @@ async function subirNube(reintento) {
   try { await nubeEnCurso; } finally { nubeEnCurso = null; }
 }
 // trae lo del servidor y lo junta con lo de este móvil: lo del servidor manda; lo que solo está aquí se queda (y se subirá)
+/* 14/11 (Gabriela: «en la encuesta… al final un apartado para que pongan consideraciones que quieran y nos puedan servir»): el comentario del final, más claro y más largo (1000; el servidor admite 2000 en total) */
 /* ---------- 04/11 · encuesta de las pruebas: 10 preguntas de tocar (8 hasta el 13/11) y un comentario opcional, al séptimo día desde que se creó la cuenta (solo cuentas de las pruebas, desde el 10/11) ---------- */
 const ENCUESTA = [
   ['¿Cuántos días la has abierto?', 'How many days did you open it?', [['1–2', '1–2'], ['3–4', '3–4'], ['5 o más', '5 or more']]],
@@ -340,7 +341,7 @@ function abrirEncuesta(previa) { // previa (?encuesta=1): para que la vean las s
   const es = idioma() === 'en' ? 1 : 0, res = {};
   const html = `<p class="pn-lema">${t('Diez preguntas, solo tocar. Un minuto.', 'Ten questions, just tap. One minute.')}</p>
     ${ENCUESTA.map((q, i) => `<fieldset class="en-q"><legend>${q[es]}</legend><div class="at-fila at-vj-ops">${q[2].map((o, j) => `<button type="button" data-enq="${i}" data-eno="${j}" aria-pressed="false">${o[es]}<span class="at-dos" aria-hidden="true"></span></button>`).join('')}</div></fieldset>`).join('')}
-    <label class="campo en-com"><span>${t('¿Algo más? Si quieres', 'Anything else? Optional')}</span><textarea id="en-com" rows="3" maxlength="500"></textarea></label>
+    <label class="campo en-com"><span>${t('Por último, cuéntanos lo que quieras: qué cambiarías, qué has echado en falta o qué te ha gustado. Todo nos sirve. Si quieres.', 'Last, tell us anything you like: what you would change, what you missed or what you liked. It all helps. Optional.')}</span><textarea id="en-com" rows="5" maxlength="1000"></textarea></label>
     <button class="boton" id="en-enviar" disabled>${t('Enviar', 'Send')}</button>
     <button class="boton linea" id="en-luego">${t('Ahora no', 'Not now')}</button>
     <p class="pn-nota">${t('Solo se guardan tus respuestas, con tu cuenta. Nos sirven para mejorar la app.', 'Only your answers are saved, with your account. They help us improve the app.')}</p>`;
@@ -352,7 +353,7 @@ function abrirEncuesta(previa) { // previa (?encuesta=1): para que la vean las s
       if (e.target.closest('#en-enviar')) {
         if (previa) { cap.remove(); toast(t('Vista previa: no se ha enviado nada.', 'Preview: nothing was sent.')); return; }
         const env = $('en-enviar'); env.disabled = true;
-        const r = Object.fromEntries(ENCUESTA.map((q, i) => [q[0], q[2][res[i]][0]])), com = ($('en-com')?.value || '').trim().slice(0, 500); if (com) r['¿Algo más?'] = com;
+        const r = Object.fromEntries(ENCUESTA.map((q, i) => [q[0], q[2][res[i]][0]])), com = ($('en-com')?.value || '').trim().slice(0, 1000); if (com) r['¿Algo más?'] = com;
         try { const x = await api('/api/encuesta', { method: 'POST', json: { r }, tiempo: 15000 }); if (!x.ok) throw new Error('http ' + x.status); LS.set('tc_encuesta_hecha', '1'); cap.remove(); toast(t('Gracias. Lo leemos todo.', 'Thank you. We read every answer.')); }
         catch (er) { env.disabled = false; toast(cuenta() ? t('No se ha podido enviar. Prueba otra vez.', 'Could not send. Try again.') : t('Entra en tu cuenta para enviarla.', 'Sign in to send it.')); }
       }

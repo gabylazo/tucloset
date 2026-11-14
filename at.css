@@ -726,3 +726,9 @@ html.at .at-ideas-acc:has(> .at-ib:nth-child(5)) .at-ib-t { padding: 0 4px; }
 html.at:not(.oscuro) .at-bal .at-lz img.at-p { mix-blend-mode: multiply; }
 html.at:not(.oscuro) .ag-mini img.at-p { mix-blend-mode: multiply; } /* 13/11: la miniatura del plan en el calendario va sobre baldosa, como los looks */
 
+/* 14/11 (Gabriela: «sí» a cambiar en toda la app el cuadrito gris de detrás de cada prenda por cuadros blancos con línea fina, como se decidió al cerrar la marca el 18/10;
+   ella, al ver los vídeos: «no hay imágenes limpias… un rectángulo gris»): en claro, fondo blanco y una línea fina; las rejillas, sin hueco, para que la línea sea una sola.
+   En oscuro no cambia nada. Con el foco del teclado manda el aro dorado de siempre. */
+html.at:not(.oscuro) { --baldosa: #FFFFFF; }
+html.at:not(.oscuro) #p-closet #pared, html.at:not(.oscuro) .at-con-rej { gap: 0; }
+html.at:not(.oscuro) :is(.at-bal, .at-cel, .at-foto, .at-cap-p, .at-conp-n img, .av-t, .at-cp-elegida img, .at-cm-guia, .at-cm-prenda, .at-cm-parb img, .at-cam-actual img, .at-rc-f img, .at-rc-l img, .at-rc-hueco, .ag-mini, .dg-mini, .gs-f, #nl-prendas button):not(:focus-visible) { outline: 1px solid var(--raya); outline-offset: -.5px; }
