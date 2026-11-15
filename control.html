@@ -410,8 +410,10 @@ a.trow { min-height: 48px; }
   const fijosTot = (P.fijos || []).reduce((s, [, v]) => s + v, 0);
   const PAG = (P.gastos || []).map(g => ({ ...g, e: +(g.euros_aprox || (g.moneda === 'EUR' ? g.importe : 0)) || 0 }));
   const pagosEur = PAG.reduce((s, g) => s + g.e, 0);
-  const iaTotUsd = suma(G, () => true) + Object.values(DIR).reduce((s, v) => s + v, 0), cambio = P.usdEur?.v || null;
-  const gastado = pagosEur + (cambio ? iaTotUsd * cambio : 0), tope = P.tope?.eur || 0;
+  // 15/11 (Gabriela, nota de voz 2378: «en la parte de dineros, una cuenta de inversiones que saque todo lo que se ha invertido hasta ahora en la app… si se ponen 30 más»): cada pago con lo que llevamos
+  const INV = (() => { let acc = 0; return PAG.slice().sort((a, b) => String(a.fecha).localeCompare(String(b.fecha))).map(g => ({ g, acc: acc += g.e })); })();
+  const cambio = P.usdEur?.v || null;
+  const tope = P.tope?.eur || 0;
   const aE = v => v * (cambio || .86), usd = v => eur2(aE(v)); // 11/11 (Coordinación): una sola moneda en todo el panel, el euro
   const CM = d.catalogoMes || null;
   const nomCada = { unico: 'una vez', 'único': 'una vez', mensual: 'al mes', anual: 'al año' };
@@ -547,18 +549,18 @@ a.trow { min-height: 48px; }
     <div class="card grande"><span class="label">IA en ${nomMes(mesAhora).toLowerCase()}</span><b>${dec(aE(iaMes(mesAhora)))}<small>€</small></b>
       ${topeServ ? `${meter(iaServ, topeServ)}<div class="medida"><span>App: ${usd(iaServ)} de ${eur(Math.round(aE(topeServ)))}</span><span>${pct(iaServ, topeServ)} %</span></div>` : ''}</div>
     <div class="kpis">
-      ${kpi('dinero', eur2(gastado), 'gastado en total')}
+      ${kpi('dinero', eur2(pagosEur), 'invertido hasta hoy')}
       ${kpi('dinero', '0 €', 'ingresado')}
       ${kpi('cifras', eur(fijosTot), 'fijos previstos al mes')}
       ${kpi('user', act(30, true) ? usd(iaMes(mesAhora, true) / act(30, true)) : '—', 'IA por usuaria, sin vosotras')}
     </div>
     <div class="dash">
+      ${card('Cuenta de inversiones', PAG.length ? `<div class="rows">${INV.slice().reverse().map(({ g, acc }) => `<div class="trow"><b>${esc(g.concepto)}</b><small>${fecha(g.fecha)} · ${g.moneda === 'EUR' ? eur2(+g.importe) : esc(g.importe + ' ' + g.moneda)}<br>Llevamos ${eur2(acc)}</small></div>`).join('')}</div><p class="vacio">Todo lo pagado por la app, con lo que llevamos invertido después de cada pago. Cada pago nuevo se suma aquí, también las recargas automáticas de Google (30 € cuando quedan menos de 5 €).</p>` : '<p class="vacio">Ningún pago todavía.</p>', { wide: true, extra: eur2(pagosEur) + ' en total' })}
       ${card('IA por mes', mesesG.some(m => iaMes(m) > 0) ? grafico('columnas', mesesG.map(m => Math.round(aE(iaMes(m)) * 100) / 100), mesesG.map(m => nomMes(m, true)), 'Gasto de IA por mes, en euros', dec, '€') : '<p class="vacio">Sin gasto de IA todavía.</p>', { extra: 'en euros' })}
       ${card(`${nomMes(mesAhora)}, por servicio`, (L => L.length ? barrasH(L, 'Gasto de IA de este mes por servicio') : '<p class="vacio">Nada este mes.</p>')([...Object.keys(SERV).map(s => ({ n: SERV[s], v: suma(G, g => g.mes === mesAhora && g.s === s), t: `${n0(suma(GN, g => g.mes === mesAhora && g.s === s))} · ${usd(suma(G, g => g.mes === mesAhora && g.s === s))}` })),
         ...(DIR[mesAhora] ? [{ n: 'La Dirección', v: DIR[mesAhora], t: usd(DIR[mesAhora]) }] : [])].filter(x => x.v > 0).sort((a, b) => b.v - a.v)))}
-      ${tope ? card('Antes de cobrar', `${meter(gastado, tope)}<div class="medida"><span>${eur2(gastado)} de ${eur(tope)} previstos</span><span>${pct(gastado, tope)} %</span></div>`) : ''}
+      ${tope ? card('Antes de cobrar', `${meter(pagosEur, tope)}<div class="medida"><span>${eur2(pagosEur)} de ${eur(tope)} previstos</span><span>${pct(pagosEur, tope)} %</span></div>`) : ''}
       ${card('Fijos previstos al mes', (P.fijos || []).length ? barrasH((P.fijos || []).map(([n, v]) => ({ n, v, t: eur(v) })).sort((a, b) => b.v - a.v), 'Fijos previstos al mes') : '<p class="vacio">Ninguno todavía.</p>', { extra: eur(fijosTot) })}
-      ${card('Pagos', PAG.length ? `<div class="rows">${PAG.slice().reverse().map(g => `<div class="trow"><b>${esc(g.concepto)}</b><small>${fecha(g.fecha)} · ${g.moneda === 'EUR' ? eur2(+g.importe) : esc(g.importe + ' ' + g.moneda)}</small></div>`).join('')}</div>` : '<p class="vacio">Ningún pago todavía.</p>', { count: PAG.length })}
       ${card('', `<p class="vacio">La IA se paga en dólares a Google; aquí va en euros${cambio ? `, a 1 $ = ${String(cambio).replace('.', ',')} € (BCE, ${fecha(P.usdEur.fecha)})` : ''}. Recortes y lecturas de looks, gratis.</p><div class="acc"><button class="btn-s" type="button" data-csv="dinero">Descargar contabilidad</button></div>`)}
     </div>
   </section>
