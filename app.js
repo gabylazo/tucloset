@@ -3506,7 +3506,8 @@ const IC_Y = {
   avatar: '<circle cx="12" cy="4.8" r="2.4"/><path d="M8.2 21.5 9 13.8 7.3 10.6c-.4-.9.2-2.1 1.2-2.4L12 7.4l3.5.8c1 .3 1.6 1.5 1.2 2.4L15 13.8l.8 7.7"/>',
   control: '<path d="M4 19.5h16M6.5 16.5V11M10.5 16.5V6.5M14.5 16.5v-4M18.5 16.5V9"/>',
   probar: '<path d="M5 7h9M18 7h1M5 17h3M12 17h7"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
-  ok: '<path d="m5 12.5 4.5 4.5L19 7.5"/>'
+  ok: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  aviso: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>'
 };
 const icY = k => `<svg class="pn-ic" viewBox="0 0 24 24" aria-hidden="true">${IC_Y[k] || ''}</svg>`;
 // 07/11 (Gabriela: «en Yo no me sale cambiar a modo oscuro»): el interruptor del modo oscuro en Yo → Ajustes; se guarda en este móvil (tc_modo) y se aplica al momento
@@ -3551,11 +3552,13 @@ function pintarPanelYo() {
     // (cuentas de ADMINS, que /api/yo marca como admin), al final de Ajustes. Las demás no ven «Ver la app como» ni el clóset de pruebas.
     + (socia() ? grupoP(t('Para probar', 'For testing'),
       filaP({ tag: 'a', attr: 'href="control.html"', ic: 'control', tit: t('Centro de control', 'Control centre') })
+      + filaP({ id: 'yo-avisos', ic: 'aviso', tit: t('Avisos', 'Notifications'), val: LS.get('tc_avisos') ? LS.get('tc_aviso_hora') || '08:30' : t('Apagados', 'Off') })
       + filaP({ id: 'yo-vercomo', ic: 'probar', tit: t('Ver la app como', 'View the app as'), val: nomPlan(planDemo()) })
       + filaP({ id: 'yo-closet', ic: 'probar', tit: t('Clóset', 'Closet'), val: CLOSET_ACT ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes'), flecha: false })
       + filaP({ id: 'yo-intercambio', ic: 'probar', tit: t('Intercambiar Mi ropa y Pruebas', 'Swap My clothes and Test'), flecha: false })
       + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))) : '');
   if ($('yo-pareja')) $('yo-pareja').onclick = panelPareja;
+  if ($('yo-avisos')) $('yo-avisos').onclick = panelAvisos;
   if ($('yo-vercomo')) $('yo-vercomo').onclick = panelVerComo; $('yo-modo').onclick = cambiarModo; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
   if ($('yo-closet')) $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
@@ -3622,6 +3625,55 @@ function panelVerComo() {
   const op = k => filaP({ attr: `data-vercomo="${k}"`, tit: nomPlan(k), val: planDemo() === k ? icY('ok') : '', flecha: false });
   abrirPanel(t('Ver la app como', 'View the app as'), grupoP('', VERSIONES.map(op).join(''), t('Tu ropa y tus looks no cambian: solo ves lo que ve cada plan.', 'Your clothes and looks stay the same: you only see what each plan sees.')),
     cap => cap.addEventListener('click', e => { if (e.target.closest('[data-vercomo]')) setTimeout(() => cap.remove(), 0); }));
+}
+/* 15/11, AVISOS (Gabriela, en el panel de Coordinación, 13/11: probar notificaciones en TuCloset): de momento solo para las socias, en Ajustes → Para probar.
+   «Activar avisos» pide el permiso (solo al pulsarlo), se suscribe con la clave pública del servidor y guarda la hora y la zona; cada mañana llega
+   «Tu look de hoy» (el servidor mira cada 15 minutos) y «Mandarme un aviso de prueba» manda uno al momento. En iPhone solo funciona con TuCloset en la pantalla de inicio. */
+const AV = { ok: () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
+  ios: () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
+  instalada: () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true };
+const deB64u = s => { s = String(s).replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(s + '='.repeat((4 - s.length % 4) % 4)), c => c.charCodeAt(0)); };
+function panelAvisos() { abrirPanel(t('Avisos', 'Notifications'), '<div id="pn-avisos"></div>', cap => pintarAvisos(cap)); }
+async function guardarAviso(sub, hora) {
+  const j = sub.toJSON(), r = await api('/api/push', { method: 'POST', json: { endpoint: j.endpoint, keys: j.keys, hora, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }, tiempo: 15000 });
+  if (!r.ok) throw new Error('push ' + r.status); LS.set('tc_avisos', '1'); LS.set('tc_aviso_hora', hora);
+}
+async function pintarAvisos(cap) {
+  const z = cap.querySelector('#pn-avisos'); if (!z) return;
+  const intro = `<p class="pn-par-intro">${t('Cada mañana, un aviso con «Tu look de hoy». De momento es una prueba, solo para vosotras.', 'Every morning, a notification with «Your look for today». For now it is a test, only for the two of you.')}</p>`;
+  if (!cuenta()) { z.innerHTML = intro + `<p class="pn-nota">${t('Entra en tu cuenta para activar los avisos.', 'Sign in to turn on notifications.')}</p>`; return; }
+  if (AV.ios() && !AV.instalada()) { z.innerHTML = intro + `<p class="pn-nota">${t('En iPhone, los avisos solo llegan si abres TuCloset desde la pantalla de inicio. En Safari, toca Compartir → «Añadir a pantalla de inicio», abre TuCloset desde ese icono y actívalos aquí.', 'On iPhone, notifications only arrive if you open TuCloset from the home screen. In Safari, tap Share → «Add to Home Screen», open TuCloset from that icon and turn them on here.')}</p>`; return; }
+  if (!AV.ok()) { z.innerHTML = intro + `<p class="pn-nota">${t('Este navegador no admite avisos.', 'This browser does not support notifications.')}</p>`; return; }
+  const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription(), hora = LS.get('tc_aviso_hora') || '08:30';
+  if (!sub && LS.get('tc_avisos')) LS.set('tc_avisos', null);
+  const bloq = Notification.permission === 'denied';
+  z.innerHTML = intro + (sub ? grupoP('', filaP({ tag: 'div', ic: 'aviso', tit: t('Avisos', 'Notifications'), val: t('Activados', 'On'), flecha: false })) : '')
+    + `<label class="pn-campo"><span>${t('Hora del aviso', 'Notification time')}</span><input id="pn-av-hora" type="time" min="06:00" max="22:00" step="900" value="${hora}"></label>`
+    + (bloq ? `<p class="pn-error" role="alert">${t('Los avisos de TuCloset están bloqueados en este navegador. Permítelos en los ajustes del navegador y vuelve aquí.', 'TuCloset notifications are blocked in this browser. Allow them in the browser settings and come back here.')}</p>`
+      : sub ? `<button class="boton" id="pn-av-prueba">${t('Mandarme un aviso de prueba', 'Send me a test notification')}</button><button class="boton linea" id="pn-av-quitar">${t('Desactivar avisos', 'Turn off notifications')}</button>`
+      : `<button class="boton" id="pn-av-on">${t('Activar avisos', 'Turn on notifications')}</button>`)
+    + `<p class="pn-nota">${t('La hora es aproximada: el aviso llega en los 15 minutos siguientes.', 'The time is approximate: the notification arrives within the next 15 minutes.')}</p>`;
+  const fallo = (e, txt) => { avisarFallo('avisos', e); toast(txt); };
+  z.querySelector('#pn-av-hora').onchange = async e => {
+    const v = e.target.value; if (!/^\d\d:\d\d$/.test(v)) return; LS.set('tc_aviso_hora', v);
+    if (sub) try { await guardarAviso(sub, v); toast(t(`Aviso a las ${v}`, `Notification at ${v}`)); pintarPanelYo(); } catch (x) { fallo(x, t('Sin conexión: no se ha cambiado la hora', 'No connection: the time was not changed')); }
+  };
+  if (z.querySelector('#pn-av-on')) z.querySelector('#pn-av-on').onclick = async () => {
+    try {
+      if (await Notification.requestPermission() !== 'granted') { toast(t('Sin permiso no te pueden llegar avisos', 'Without permission, notifications cannot arrive')); return pintarAvisos(cap); }
+      const r = await api('/api/push/clave', { tiempo: 15000 }); if (!r.ok) throw new Error('clave ' + r.status);
+      const s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: deB64u((await r.json()).clave) });
+      await guardarAviso(s, z.querySelector('#pn-av-hora').value || hora); toast(t('Avisos activados', 'Notifications on')); pintarAvisos(cap); pintarPanelYo();
+    } catch (x) { fallo(x, t('No se han podido activar. Prueba otra vez en un momento.', 'Could not turn them on. Try again in a moment.')); }
+  };
+  if (z.querySelector('#pn-av-prueba')) z.querySelector('#pn-av-prueba').onclick = async () => {
+    try { const r = await api('/api/push/prueba', { method: 'POST', tiempo: 20000 }); if (!r.ok || !(await r.json()).ok) throw new Error('prueba ' + r.status); toast(t('Enviado: te llegará en unos segundos', 'Sent: it will arrive in a few seconds')); }
+    catch (x) { fallo(x, t('No se ha podido mandar el aviso de prueba', 'The test notification could not be sent')); }
+  };
+  if (z.querySelector('#pn-av-quitar')) z.querySelector('#pn-av-quitar').onclick = async () => {
+    try { const ep = sub.endpoint; await sub.unsubscribe(); await api('/api/push', { method: 'DELETE', json: { endpoint: ep }, tiempo: 15000 }); LS.set('tc_avisos', null); toast(t('Avisos desactivados', 'Notifications off')); pintarAvisos(cap); pintarPanelYo(); }
+    catch (x) { fallo(x, t('No se han podido desactivar. Prueba otra vez en un momento.', 'Could not turn them off. Try again in a moment.')); }
+  };
 }
 /* 10/11, PAREJA (Gabriela, 08/11: «una opción de parejas»; eligió la 1: cada una con su cuenta y su clóset, enlazadas con un código): una crea el código en
    Ajustes → Pareja y se lo da; la otra lo escribe en su app. Enlazadas, en Looks → Ideas, «En pareja» propone a la vez un look tuyo y uno de tu pareja que
@@ -4571,6 +4623,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data?.ir === 'hoy') ir('hoy'); }); // 15/11: al tocar un aviso con la app abierta
 })();
 
 /* ---------- tipo de cuerpo (0.14): cinco siluetas, la elige ella; con la foto se le propondrá una (función 24). Siempre en positivo. ---------- */
