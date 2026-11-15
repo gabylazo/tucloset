@@ -740,3 +740,6 @@ html.at .av-tarjeta.creando .av-img, html.at .at-puesto-esp:has(.tc-carga) { ani
 html.at:not(.oscuro) #s-raiz .rej { gap: 0; }
 html.at:not(.oscuro) #s-raiz .rej > * { background: #FFFFFF; }
 html.at:not(.oscuro) #s-raiz .rej > :not(:focus-visible) { outline: 1px solid var(--raya); outline-offset: -.5px; }
+/* 15/11 (Sheila, 2135): la segunda fila de Hoy, los planes concretos de la ocasión (opcional); en minúscula y algo más pequeña que las ocasiones */
+html.at .at-fila.at-subs { gap: 18px; margin-top: -4px; }
+html.at .at-fila.at-subs button { min-height: 44px; font-size: 13px; letter-spacing: 0; text-transform: none; }

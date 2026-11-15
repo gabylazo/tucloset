@@ -1735,6 +1735,23 @@ html{touch-action:manipulation}
 .yo-fm-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;font-size:15px;line-height:1.3}
 .yo-fm-txt small{font-size:13px;color:var(--sec)}
 .yo-falta-l{list-style:none;margin:0;padding:0;border-top:1px solid var(--linea)}.yo-falta-l li{display:flex;flex-direction:column;gap:3px;padding:12px 0;border-bottom:1px solid var(--linea);font-size:15px;line-height:1.3}.yo-falta-l b{font-weight:500}.yo-falta-l small{font-size:13px;color:var(--sec)}.yo-falta-n{font-size:13px;line-height:1.4;color:var(--sec);margin:10px 0 0;text-align:center}
+/* 15/11: «Análisis de tu clóset», arriba en Yo y plegado (Gabriela, 2347) */
+#yo-falta{margin:4px 20px 0}#yo-falta:empty{display:none}
+.yo-an{border-top:1px solid var(--linea);border-bottom:1px solid var(--linea)}
+.yo-an summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:64px;padding:12px 0;cursor:pointer;color:var(--tinta)}
+.yo-an summary::-webkit-details-marker{display:none}
+.yo-an summary:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.yo-an-cab{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.yo-an-t{font-family:Bellefair,serif;font-size:20px;line-height:1.15;letter-spacing:.02em;color:var(--tinta)}
+.yo-an-cab small{font-size:13px;line-height:1.3;color:var(--sec)}
+.yo-an-fl{width:20px;height:20px;flex:none;fill:none;stroke:var(--sec);stroke-width:1.4;transition:transform .2s}
+.yo-an[open] .yo-an-fl{transform:rotate(180deg)}
+.yo-an-i{font-size:13px;line-height:1.45;color:var(--sec);margin:0 0 10px}
+.yo-an .yo-falta-l li{flex-direction:row;align-items:flex-start;gap:14px}
+.yo-an-n{flex:none;width:22px;font-family:Bellefair,serif;font-size:21px;line-height:1.05;color:var(--tinta)}
+.yo-an-x{display:flex;flex-direction:column;gap:3px;min-width:0}
+.yo-an .yo-falta-n{text-align:left;margin:10px 0 14px}
+@media (prefers-reduced-motion:reduce){.yo-an-fl{transition:none}}
 .yo-fm-fl{width:20px;height:20px;flex:none;fill:none;stroke:var(--sec);stroke-width:1.4}
 .yo-nw{white-space:nowrap}
 /* 08/11 · estudio de diseño (cambios 9 y 11): chevrones e iconos de valor en oro oscuro (el oro claro daba 2,4:1 sobre blanco); el modo oscuro, con interruptor cuadrado */

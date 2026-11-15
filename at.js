@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.261'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.263'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -389,8 +389,11 @@ if (AT) (() => {
     const cab = `<header class="at-cab"><span class="at-marca"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#i129"/></svg>Tu<span>Closet</span></span>
       <p class="at-fecha">${dia}${w ? `${ICO_T[cielo] || ICO_T.nube}${w.t}°${lluvia}` : ''}</p></header>`;
     // la ocasión, arriba bajo la fecha; al tocarla, todas para elegir
-    const ocBoton = o => `<button class="at-oc" data-hzpreg aria-expanded="${!!E.hzPreg}" aria-label="${ocNombre(o)}: ${t('cambiar la ocasión', 'change the occasion')}">${ocNombre(o)}${I.abajo}</button>`;
-    const ocsDe = o => E.hzPreg ? `<div class="at-fila at-ocs">${OCASIONES.map(x => `<button class="${x === o ? 'on' : ''}" data-hzoc="${x}">${ocNombre(x)}${DOS}</button>`).join('')}</div>` : '';
+    // 15/11 (Sheila, 2135): con la fila abierta, debajo de las ocasiones, los planes concretos de la elegida (opcional); el elegido sale junto a la ocasión
+    const subO = o => subHoy(o), ocTxt = o => ocNombre(o) + (subO(o) ? ' · ' + subNom(subO(o)) : '');
+    const ocBoton = o => `<button class="at-oc" data-hzpreg aria-expanded="${!!E.hzPreg}" aria-label="${ocTxt(o)}: ${t('cambiar la ocasión', 'change the occasion')}">${ocTxt(o)}${I.abajo}</button>`;
+    const subsDe = o => { const ss = Motor.subocasiones(o), s0 = subO(o); return ss.length ? `<div class="at-fila at-subs" role="group" aria-label="${t('Qué plan es', 'What kind of plan')} (${t('opcional', 'optional')})">${ss.map(x => `<button class="${x.id === s0 ? 'on' : ''}" data-hzsub="${x.id}" aria-pressed="${x.id === s0}">${t(x.nombre, x.en)}</button>`).join('')}</div>` : ''; };
+    const ocsDe = o => E.hzPreg ? `<div class="at-fila at-ocs">${OCASIONES.map(x => `<button class="${x === o ? 'on' : ''}" data-hzoc="${x}">${ocNombre(x)}${DOS}</button>`).join('')}</div>${OCASIONES.includes(o) ? subsDe(o) : ''}` : '';
     // Gabriela, 03/11: «este texto debe aparecer en la pestaña donde no haya ropa para esa ocasión, por ejemplo de deporte, no en diario»: si la ocasión de hoy no tiene
     // ropa, se dice ahí, sin inventar un look, y se ofrece uno de diario (que ya no lleva el aviso)
     if (E.hoyDiarioDe !== planHoy) E.hoyDiario = false;
@@ -414,7 +417,7 @@ if (AT) (() => {
     const fav = esFav(pr.ids), puesto = pr.ids.length > 0 && pr.ids.every(id => (P(id)?.usos || []).includes(hoyISO()));
     // 03/11, tarde (Gabriela: «la página de inicio me da la sensación de apretado… y desorden»; «no me gusta eso de no me gusta»): la ocasión pasa a la cabecera, bajo la
     // fecha; debajo del look, si hace falta, la nota; y abajo, juntos y centrados, el corazón y «Me lo pongo»
-    const nota = pr.tipo === 'con' && pr.conT != null ? `<p class="at-nota">${t(`Para un día de unos ${pr.conT}° (hoy no le va)`, `For a day of about ${pr.conT}° (not today’s weather)`)}</p>` : pr.tipo === 'agenda' && pr.ev ? `<p class="at-nota at-nota-plan">${esc(pr.ev.nombre || ocNombre(pr.ev.oc))}${pr.ev.hora ? ' · ' + pr.ev.hora : ''}</p>` : pr.puesto ? `<p class="at-nota at-nota-plan">${t('Lo llevas hoy', 'You’re wearing it today')}</p>` : E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'Goes with a coat on top: add yours and it will show in the look' : `Va con ${pr.capaFalta || 'abrigo'} encima: si ${/a$/.test(pr.capaFalta || '') ? 'la' : 'lo'} subes, sale en el look`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : '';
+    const nota = pr.tipo === 'con' && pr.conT != null ? `<p class="at-nota">${t(`Para un día de unos ${pr.conT}° (hoy no le va)`, `For a day of about ${pr.conT}° (not today’s weather)`)}</p>` : pr.tipo === 'agenda' && pr.ev ? `<p class="at-nota at-nota-plan">${esc(pr.ev.nombre || ocNombre(pr.ev.oc))}${pr.ev.hora ? ' · ' + pr.ev.hora : ''}</p>` : pr.puesto ? `<p class="at-nota at-nota-plan">${t('Lo llevas hoy', 'You’re wearing it today')}</p>` : pr.tipo === 'propuesta' && E.subCorto ? `<p class="at-nota">${t(`Para ${E.subCorto.nombre.toLowerCase()}, lo más arreglado de tu clóset`, `For ${E.subCorto.en.toLowerCase()}, the dressiest you have`)}</p>` : E.hoyFalta ? avisoFalta(E.hoyFalta, false) : pr.faltaCapa ? `<button class="at-nota" data-ir="subir">${(idioma() === 'en' ? 'Goes with a coat on top: add yours and it will show in the look' : `Va con ${pr.capaFalta || 'abrigo'} encima: si ${/a$/.test(pr.capaFalta || '') ? 'la' : 'lo'} subes, sale en el look`)}</button>` : muestra ? `<button class="at-nota" data-ir="subir">${t('Zapatos de muestra: sube los tuyos', 'Sample shoes: add yours')}</button>` : pr.zspec?.sub && ZAP_MUESTRA[pr.zspec.muestra] ? `<p class="at-nota">${t(`Lo ideal para este plan: ${ZAP_MUESTRA[pr.zspec.muestra][0].toLowerCase()}`, `Ideal for this plan: ${({ 'tacones-negros': 'black heels', 'zapato-cordones-negro': 'black lace-ups' })[pr.zspec.muestra] || 'dressier shoes'}`)}</p>` : ''; // 15/11: con un plan con matiz que ningún zapato suyo cumple, va el suyo más arreglado y aquí el ideal
     // 13/11 (Gabriela: «el look con una prenda, esa función, debería estar en Looks → Ideas por lógica»): en Hoy queda solo la ocasión
     const ocB = `<div class="at-cab-fila">${ocBoton(oc)}</div>`;
     pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocB + '</header>')}${ocs}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}${nota}<button class="at-desc" id="at-desc" aria-label="${t('Descartar este look: no volverá a salir', 'Discard this look: it won’t come back')}">${I.cerrar}</button></div>
@@ -671,12 +674,15 @@ if (AT) (() => {
   /* ---------- EL MOTOR DE LOOKS (motor.js): un look solo sale si encaja en una fórmula del oficio y pasa los vetos. Primero lo apuntado en el calendario,
      luego las ideas del motor y después los looks guardados que valgan para el tiempo de hoy ---------- */
   let ultima = {};
-  const pedirMotor = (plan, n) => {
-    const g = E.perfil?.gustos, hoy = hoyISO(), excluir = [...(g?.fuera || []), ...(g?.hoy?.d === hoy ? g.hoy.k : [])], ins = insHoy(plan), pr = quitarPor(ins, activas());
-    const firma = JSON.stringify([plan, n, hoy, ins?.firma, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), pr.map(p => [p.nombre, p.tipo, p.color, p.estacion, p.catM, p.detalles, p.est?.sub].join('·')).join('|'), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
-    if (ultima[plan + n]?.firma === firma) return ultima[plan + n].r;
-    const r = Motor.looks({ prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true });
-    ultima[plan + n] = { firma, r }; apuntarVistos(r.looks, hoy); return r;
+  // 15/11: el plan concreto de hoy en esa ocasión (el elegido en Hoy, el de su evento o el que dice su texto); solo lo usa Hoy (proponer), no Ideas
+  const subHoy = plan => { const ev = eventoAhora(); return ev && ev.oc === plan ? subPlan(ev) : null; };
+  const pedirMotor = (plan, n, sub) => {
+    const g = E.perfil?.gustos, hoy = hoyISO(), excluir = [...(g?.fuera || []), ...(g?.hoy?.d === hoy ? g.hoy.k : [])], ins = insHoy(plan), pr = quitarPor(ins, activas()), ev = sub ? eventoAhora() : null, hora = ev?.hora && !ev.deHoy ? parseInt(ev.hora) : undefined;
+    const firma = JSON.stringify([plan, n, sub, hora, hoy, ins?.firma, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), pr.map(p => [p.nombre, p.tipo, p.color, p.estacion, p.catM, p.detalles, p.est?.sub].join('·')).join('|'), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
+    const kc = plan + n + (sub || '');
+    if (ultima[kc]?.firma === firma) { if (sub) E.subCorto = ultima[kc].r.subCorto ? ultima[kc].r.sub : null; return ultima[kc].r; }
+    const r = Motor.looks({ prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true, ...(sub ? { sub, hora } : {}) });
+    ultima[kc] = { firma, r }; apuntarVistos(r.looks, hoy); if (sub) E.subCorto = r.subCorto ? r.sub : null; return r;
   };
   // 14/11 (Gabriela, 2293: «Diario, salen siempre las mismas combinaciones»): lo que la app enseña cada día se apunta en el perfil (hoy y los 3 días de antes;
   // la ropa de cada look y, aparte, su calzado y su bolso) para que mañana el motor lo deje descansar. Solo en el móvil; sube a la nube con el siguiente guardado.
@@ -757,14 +763,14 @@ if (AT) (() => {
     if (te.cargando) return null;
     const txt = [ev.nombre, ev.desc, lu?.nombre, lu?.tipo].join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), leidas = LEER_PLAN.filter(([re]) => re.test(txt)), reglas = leidas.flatMap(x => x[1]);
     const evento = /boda/.test(txt) ? 'boda' : null, lugar = /iglesia|misa|bautiz|comunion|catedral|ermita|templo|mezquita|sinagoga|place_of_worship/.test(txt) ? 'religioso' : undefined;
-    const ins = instrucciones([ev.nombre, ev.desc].join(' ')), tiempo = te.w || E.tiempo, plan = ev.oc || 'Diario', g = E.perfil?.gustos, pr = quitarPor(ins, activas());
-    const firma = JSON.stringify([k, plan, txt, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), E.perfil?.estilos, g?.fuera, planDemo()]);
+    const ins = instrucciones([ev.nombre, ev.desc].join(' ')), tiempo = te.w || E.tiempo, plan = ev.oc || 'Diario', g = E.perfil?.gustos, pr = quitarPor(ins, activas()), sub = subPlan({ ...ev, oc: plan }); // 15/11: el plan concreto
+    const firma = JSON.stringify([k, plan, sub, txt, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), E.perfil?.estilos, g?.fuera, planDemo()]);
     if (te.firma !== firma) {
-      const r = Motor.looks({ prendas: pr, tiempo, plan, perfil: E.perfil, n: 6, hoy: d, hora: hh, excluir: g?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true, evento, lugar,
+      const r = Motor.looks({ prendas: pr, tiempo, plan, perfil: E.perfil, n: 6, hoy: d, hora: hh, excluir: g?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true, evento, lugar, sub: sub || undefined,
         afin: reglas.length ? (f, tx) => Math.max(-1, Math.min(1, reglas.reduce((s, [tok, n]) => s + (Motor.rasgo(f, tx, tok) ? n : 0), 0))) : undefined });
       const ideas = cumplen(ins, deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)));
       const donde = lu?.nombre ? '' : tiempo?.nombre || '', tt = tiempo ? `${tiempo.t}° ${t('a las', 'at')} ${hora}${tiempo.lluvia >= 30 ? ` · ${t('lluvia', 'rain')} ${tiempo.lluvia} %` : ''}` : '';
-      const lee = [...leidas.map(x => x[2][en() ? 1 : 0]), evento && t('boda', 'wedding'), lugar && t('hombros y rodillas cubiertos', 'shoulders and knees covered')].filter(Boolean);
+      const lee = [sub && subNom(sub) + (r.subCorto ? t(' (lo más arreglado de tu clóset)', ' (the dressiest you have)') : ''), ...leidas.map(x => x[2][en() ? 1 : 0]), !sub && evento && t('boda', 'wedding'), lugar && t('hombros y rodillas cubiertos', 'shoulders and knees covered')].filter(Boolean);
       te.firma = firma; te.ideas = ideas;
       te.info = [donde && tt ? `${donde}: ${tt}` : tt, te.w ? '' : (ll ? t('aún no hay previsión para ese día: uso el tiempo de hoy', 'no forecast yet for that day: using today’s weather') : ''), lee.length ? t('Plan: ', 'Plan: ') + lee.join(', ') : '', ins ? t('Lo que pides: ', 'What you asked: ') + ins.dice.join(', ') : ''].filter(Boolean).join(' · ');
     }
@@ -774,7 +780,7 @@ if (AT) (() => {
   const DEPORTIVO = new Set(['malla', 'jogger', 'camiseta_tecnica', 'top_deportivo', 'chaqueta_deportiva', 'forro_polar', 'botas_montana', 'falda_deportiva']);
   const esDeporte = p => { const f = Motor.ficha(p); return DEPORTIVO.has(f.subtipo) || f.uso === 'deporte'; };
   const deVerdad = (plan, l) => plan !== 'Deporte' ? l : l.filter(x => x.ids.some(id => P(id) && esDeporte(P(id))));
-  const propuestasDe = (plan, n) => { const r = pedirMotor(plan, n); return cumplen(insHoy(plan), deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta))); };
+  const propuestasDe = (plan, n, sub) => { const r = pedirMotor(plan, n, sub); return cumplen(insHoy(plan), deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta))); };
   // una ocasión sale en los filtros solo si con tu ropa hay al menos un look para ella
   const hayOcasion = o => o === 'Todos' || propuestasDe(o, 4).length > 0;
   generarLooks = (n, plan) => propuestasDe(plan || 'Todos', n).map(x => ({ ...x, prin: x.ids[0] }));
@@ -799,7 +805,7 @@ if (AT) (() => {
     const pus = puestosDeHoy(), pu = pus[0] || null;
     for (const ids of pus) props.push({ tipo: 'agenda', ids, ocasion: E.conjuntos.find(c => clave(c.ids) === clave(ids))?.ocasion || ocasionDe(ids.map(P)), puesto: 1 });
     if (lkA && pus.some(x => clave(x) === clave(lkA))) { /* ya está */ } else if (lkA) props.push({ tipo: 'agenda', ids: lkA, ocasion: evA.oc, ev: evA }); else if (dia?.look?.length && dia.look.every(P) && !pus.some(x => clave(x) === clave(dia.look))) props.push({ tipo: 'agenda', ids: dia.look, ocasion: dia.planes?.[0]?.oc });
-    for (const x of propuestasDe(E.plan, 8)) if (!props.some(y => clave(y.ids) === clave(x.ids))) props.push({ tipo: 'propuesta', ...x });
+    E.subCorto = null; for (const x of propuestasDe(E.plan, 8, subHoy(E.plan))) if (!props.some(y => clave(y.ids) === clave(x.ids))) props.push({ tipo: 'propuesta', ...x });
     const guardados = E.conjuntos.filter(c => c.ids.every(id => P(id) && !['guardada', 'donar'].includes(P(id).estado)) && (E.plan === 'Todos' || (c.ocasion || 'Diario') === E.plan) && !props.some(y => clave(y.ids) === clave(c.ids)) && valeHoy(c)).sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));
     for (const c of guardados.slice(0, 4)) props.push({ tipo: 'conjunto', c, ids: c.ids, zspec: c.zspec, como: c.como });
     const fuera = x => x.tipo !== 'agenda' && (g?.fuera?.includes(clave(x.ids)) || (g?.hoy?.d === hoyISO() && g.hoy.k.includes(clave(x.ids))));

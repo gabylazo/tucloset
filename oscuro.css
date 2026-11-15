@@ -840,6 +840,14 @@ html.oscuro .yo-falta-l{border-top:1px solid var(--linea)}
 html.oscuro .yo-falta-l li{border-bottom:1px solid var(--linea)}
 html.oscuro .yo-falta-l small{color:var(--sec)}
 html.oscuro .yo-falta-n{color:var(--sec)}
+html.oscuro .yo-an{border-top:1px solid var(--linea);border-bottom:1px solid var(--linea)}
+html.oscuro .yo-an summary{color:var(--tinta)}
+html.oscuro .yo-an summary:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+html.oscuro .yo-an-t{color:var(--tinta)}
+html.oscuro .yo-an-cab small{color:var(--sec)}
+html.oscuro .yo-an-fl{fill:none;stroke:var(--sec)}
+html.oscuro .yo-an-i{color:var(--sec)}
+html.oscuro .yo-an-n{color:var(--tinta)}
 html.oscuro .yo-fm-fl{fill:none;stroke:var(--sec)}
 html.oscuro .pn-v .pn-ic{stroke:var(--oro-t)}
 html.oscuro .pn-fl{stroke:var(--oro-t)}

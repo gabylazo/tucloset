@@ -1737,6 +1737,8 @@ const ZAP_MUESTRA = {
   'mocasines-negros': ['Mocasines negros', '#1B1B1B', 0.422], 'bailarinas-negras': ['Bailarinas negras', '#1B1B1B', 0.339],
   'sandalias-negras-tacon': ['Sandalias negras de tacón', '#1B1B1B', 0.633], 'sandalias-negras-planas': ['Sandalias negras planas', '#1B1B1B', 0.389],
   'sandalias-beige-plataforma': ['Sandalias beige de plataforma', '#D8C7A8', 0.469], 'sandalias-marrones-planas': ['Sandalias marrones planas', '#6B4A2B', 0.383],
+  // 15/11: los de vestir de las ocasiones con matiz (gala y boda de noche con frío), cuando ninguno suyo vale (motor.js, ZV_SUB)
+  'tacones-negros': ['Tacones negros', '#1B1B1B', 0.58], 'zapato-cordones-negro': ['Zapatos de cordones negros', '#1B1B1B', 0.439],
 };
 function claveMuestra(ps, spec) {
   if (spec?.muestra) return spec.muestra; // el motor de looks ya sabe cuál
@@ -1760,6 +1762,8 @@ function conZapato(ps, spec, como) {
   let r = ps;
   if (ps.length && !ps.some(p => p.tipo === 'Calzado') && ps.some(p => ['Abajo', 'Vestidos'].includes(p.tipo))) {
     // 0.112 (Gabriela, 28/10: «no sé de dónde sacas esos zapatos, míos no son»): si tiene zapatos subidos, siempre uno suyo; los de muestra, solo sin ninguno
+    // 15/11: también en una ocasión con matiz para la que no tiene ninguno que valga (Gabriela, 2345: «ponme de los míos el que más pegue aunque sugieran cuáles
+    // serían los perfectos»): el suyo más arreglado, y Hoy dice cuál sería el ideal (zspec.sub)
     const suyo = zapatoPara(spec || {}, ps), k = suyo ? null : claveMuestra(ps, spec), z = k && ZAP_MUESTRA[k];
     if (suyo) r = [...ps, suyo];
     else if (z) { const id = 'zm-' + k, src = `zapatos/${k}.webp`; if (!alfa.has(id)) alfa.set(id, src); r = [...ps, { id, tipo: 'Calzado', nombre: z[0], src, caja: [0, 0, 1, 1, z[2], .5], cajaV: 3, est: { pal: [z[1]] }, muestra: k }]; }
@@ -1801,7 +1805,8 @@ function zapatoPara(spec, ps) {
   const zs = activas().filter(p => p.tipo === 'Calzado' && (!spec.deporte || (typeof Motor !== 'undefined' && Motor.aptoDeporte({ p, _f: Motor.ficha(p) }))));
   for (const z of zs) {
     const n = `${z.nombre || ''} ${z.x || ''}`.toLowerCase(), tipo = (spec.tipo || '').toLowerCase().replace(/s$/, '').replace(/e$/, '');
-    let s = (tipo && n.includes(tipo.slice(0, 5)) ? 1.2 : 0) + (spec.color && (z.color || '').toLowerCase().startsWith(spec.color.slice(0, 4)) ? .5 : 0) + afinZapato(z, ps, E.tiempo?.t) * .3;
+    let s = (tipo && n.includes(tipo.slice(0, 5)) ? 1.2 : 0) + (spec.color && (z.color || '').toLowerCase().startsWith(spec.color.slice(0, 4)) ? .5 : 0) + afinZapato(z, ps, E.tiempo?.t) * .3
+      + (spec.sub ? (estDe(z).form || 3) * .5 : 0); // 15/11: en un plan con matiz que ninguno suyo cumple, el más arreglado (para una gala, mejor unos botines que unas zapatillas)
     if (s > mp) { mp = s; mejor = z; }
   }
   return mejor;
@@ -1921,10 +1926,17 @@ function preguntaHoy(planHoy) {
 }
 const opcionesHoy = sel => `<div class="hz-ops">${OCASIONES.map(o => `<button class="${o === sel ? 'on' : ''}" data-hzoc="${o}">${ocNombre(o)}</button>`).join('')}</div>`;
 document.addEventListener('click', async e => {
-  const b = e.target.closest('#p-hoy [data-hzpreg],#p-hoy [data-hzoc],#p-looks [data-hzpreg],#p-looks [data-hzoc]'); if (!b) return;
+  const b = e.target.closest('#p-hoy [data-hzpreg],#p-hoy [data-hzoc],#p-hoy [data-hzsub],#p-looks [data-hzpreg],#p-looks [data-hzoc]'); if (!b) return;
+  const k = diaISO(new Date()), h = new Date().getHours(), fr = h < 14 ? 'Mañana' : h < 20 ? 'Tarde' : 'Noche';
   if (b.dataset.hzoc) {
-    const k = diaISO(new Date()), h = new Date().getHours(), fr = h < 14 ? 'Mañana' : h < 20 ? 'Tarde' : 'Noche';
     E.agenda[k] = E.agenda[k] || { planes: [] }; E.agenda[k].planes = [{ id: uid(), oc: b.dataset.hzoc, fr, deHoy: 1 }, ...E.agenda[k].planes.filter(p => p.oc !== b.dataset.hzoc)];
+    // 15/11: en Hoy (Atelier) la fila sigue abierta para elegir, si quiere, el plan concreto debajo (segunda fila); en Looks se cierra como antes
+    E.hzPreg = E.pantalla !== 'looks' && document.documentElement.classList.contains('at') && Motor.subocasiones(b.dataset.hzoc).length > 0; E.hoyDiario = false; E.propuestas = []; E.hoyIdx = 0; await guardar();
+  } else if (b.dataset.hzsub) {
+    // el plan concreto se apunta en el plan de hoy de esa ocasión (el que eligió en Hoy o su evento suelto de hoy); otra vez el mismo, se quita
+    const x = Motor.subocasiones().find(s => s.id === b.dataset.hzsub); if (!x) return;
+    const a = E.agenda[k] = E.agenda[k] || { planes: [] }, ev = eventoAhora(), pl = a.planes.find(p => p.deHoy && p.oc === x.oc) || (ev && !ev.fijo && ev.oc === x.oc ? ev.ref : null);
+    if (pl) pl.sub = subPlan({ ...pl, oc: x.oc }) === x.id ? '' : x.id; else a.planes.unshift({ id: uid(), oc: x.oc, sub: x.id, fr, deHoy: 1 });
     E.hzPreg = false; E.hoyDiario = false; E.propuestas = []; E.hoyIdx = 0; await guardar();
   } else E.hzPreg = !E.hzPreg;
   if (E.pantalla === 'looks') pintarLooks(); else pintarHoy();
@@ -2016,8 +2028,8 @@ const frDe = h => !h ? 'Mañana' : h < '14:00' ? 'Mañana' : h < '20:00' ? 'Tard
 const OC_POR_NOMBRE = [[/gym|gimnas|pilates|yoga|correr|running|p[aá]del|tenis|deporte|entren|crossfit|spinning|nata|piscina|baile/i, 'Deporte'], [/oficina|trabaj|reuni|clase|universidad|facultad|cliente|curro|cole/i, 'Oficina'], [/cena|copas|fiesta|discoteca|concierto|teatro|cine|noche/i, 'Noche'], [/boda|bautiz|comuni|graduaci|gala|evento|cumple/i, 'Evento'], [/viaje|vuelo|avi[oó]n|tren|escapada|aeropuerto/i, 'Viaje']];
 function eventosDe(d) {
   const a = E.agenda[d] || {}, dow = new Date(d + 'T12:00').getDay(), sin = a.sin || [];
-  const fijos = (E.perfil?.fijos || []).filter(f => f.dias.includes(dow) && !sin.includes(f.id) && (!f.desde || d >= f.desde) && (!f.hasta || d <= f.hasta)).map(f => ({ id: f.id, nombre: f.nombre, oc: f.oc, hora: f.hora || '', fijo: true, url: f.url, desc: f.desc, lugar: f.lugar, ref: f }));
-  const sueltos = (a.planes || []).map((p, i) => ({ id: p.id || 'p' + i, i, nombre: p.nombre || '', oc: p.oc, hora: p.hora || HORA_FR[p.fr] || '', deHoy: p.deHoy, url: p.url, desc: p.desc, lugar: p.lugar, ref: p }));
+  const fijos = (E.perfil?.fijos || []).filter(f => f.dias.includes(dow) && !sin.includes(f.id) && (!f.desde || d >= f.desde) && (!f.hasta || d <= f.hasta)).map(f => ({ id: f.id, nombre: f.nombre, oc: f.oc, hora: f.hora || '', fijo: true, url: f.url, desc: f.desc, lugar: f.lugar, sub: f.sub, ref: f }));
+  const sueltos = (a.planes || []).map((p, i) => ({ id: p.id || 'p' + i, i, nombre: p.nombre || '', oc: p.oc, hora: p.hora || HORA_FR[p.fr] || '', deHoy: p.deHoy, url: p.url, desc: p.desc, lugar: p.lugar, sub: p.sub, ref: p }));
   return [...fijos, ...sueltos].sort((x, y) => (x.hora || '99').localeCompare(y.hora || '99'));
 }
 function lookDe(d, ev) { const a = E.agenda[d] || {}, ids = a.looks?.[ev.id] || (a.look && eventosDe(d)[0]?.id === ev.id ? a.look : null); return ids?.length && ids.every(P) ? ids : null; }
@@ -2027,6 +2039,12 @@ function eventoAhora() { // el evento de hoy que toca: el próximo (o el que aca
   return evs.find(e => e.deHoy) || evs.find(e => !e.hora || e.hora >= ya) || evs[evs.length - 1]; // lo que eligió en Hoy manda
 }
 const nomEv = ev => ev.nombre || ocNombre(ev.oc);
+// 15/11 (Sheila, grupo, 12/11, 2135: «cóctel, boda, gala, velada, concierto de clásica; deporte al aire libre o en el gimnasio; cena con amigos, merienda,
+// comida formal…»): el plan concreto dentro de la ocasión. Lo elige ella (Hoy o el calendario) o lo dice el texto del evento («Cóctel en el Ritz»);
+// sin elegir nada ni palabra que lo diga, no se adivina (Moda, SUB5). sub '' = «Sin concretar» elegido a propósito
+const conSubs = () => typeof Motor !== 'undefined' && !!Motor.subocasiones; // el diseño clásico (?ver=clasico) no carga el motor
+const subPlan = ev => !ev || !conSubs() ? null : ev.sub != null ? ev.sub || null : Motor.detectarSub([ev.nombre, ev.desc].join(' '), ev.oc, parseInt(ev.hora) || undefined);
+const subNom = id => { const x = id && conSubs() && Motor.subocasiones().find(s => s.id === id); return x ? t(x.nombre, x.en) : ''; };
 function diasTxt(ds) {
   const o = [1, 2, 3, 4, 5, 6, 0].filter(x => ds.includes(x)), en = idioma() === 'en';
   if (o.join() === '1,2,3,4,5') return t('de lunes a viernes', 'Monday to Friday'); if (o.length === 7) return t('todos los días', 'every day'); if (o.join() === '6,0') return t('los fines de semana', 'weekends');
@@ -2042,6 +2060,7 @@ const escH = x => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').r
 // filas. Arriba, el título; debajo, cada dato en una línea con su icono delante en vez de su nombre (el nombre lo lleva el control, para quien no ve).
 // El valor lo pinta la app y el control del sistema (la hora, la fecha, la lista) va encima, transparente: al tocar la fila sale su rueda o su lista
 const hastaTxt = d => t('Hasta el ', 'Until ') + new Date(d + 'T12:00').toLocaleDateString(idioma() === 'en' ? 'en-GB' : 'es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+const subOpciones = (oc, sel) => !conSubs() ? '' : `<option value="">${t('Sin concretar', 'Not specified')}</option>` + Motor.subocasiones(oc).map(x => `<option value="${x.id}"${x.id === sel ? ' selected' : ''}>${t(x.nombre, x.en)}</option>`).join('');
 function formEvento() {
   const f = E.cal.form, en = idioma() === 'en', L = en ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
   const dia = new Date(f.dia + 'T12:00').toLocaleDateString(en ? 'en-GB' : 'es-ES', { weekday: 'long' });
@@ -2054,13 +2073,14 @@ function formEvento() {
     ${f.rep === 'dias' ? `<div class="ag-dias" role="group" aria-label="${t('Días', 'Days')}">${[1, 2, 3, 4, 5, 6, 0].map((x, i) => `<button class="${f.dias.includes(x) ? 'on' : ''}" data-agdow="${x}" aria-pressed="${f.dias.includes(x)}" aria-label="${diasTxt([x])}">${L[i]}</button>`).join('')}</div>` : ''}
     ${f.rep === 'varios' ? fila('dias', `<span id="ag-hasta-v">${hastaTxt(f.hasta || diaMas(f.dia, 4))}</span>`, `<input id="ag-hasta" class="ag-nat" type="date" aria-label="${t('Hasta el', 'Until')}" min="${diaMas(f.dia, 1)}" max="${diaMas(f.dia, 30)}" value="${f.hasta || ''}">`) : ''}
     ${fila('percha', `<span id="ag-oc-v">${ocNombre(f.oc)}</span>${agIc('abajo')}`, `<select id="ag-oc" class="ag-nat" aria-label="${t('Ocasión', 'Occasion')}">${OCASIONES.map(o => `<option value="${o}"${o === f.oc ? ' selected' : ''}>${ocNombre(o)}</option>`).join('')}</select>`)}
+    ${!conSubs() ? '' : fila('matiz', `<span id="ag-sub-v"${f.sub ? '' : ' class="no"'}>${subNom(f.sub) || t('Sin concretar', 'Not specified')}</span>${agIc('abajo')}`, `<select id="ag-sub" class="ag-nat" aria-label="${t('Qué plan es', 'What kind of plan')}">${subOpciones(f.oc, f.sub)}</select>`)}
     <label class="ag-f ag-fe">${agIc('pin')}<input id="ag-url" class="ag-esc ag-url" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" aria-label="${t('Sitio', 'Place')}" placeholder="${t('Sitio o enlace de Maps', 'Place or Maps link')}" value="${escH(f.url || '')}"></label>
     <label class="ag-f ag-fe ag-fd">${agIc('nota')}<textarea id="ag-desc" class="ag-esc ag-desc" rows="1" maxlength="240" aria-label="${t('Detalles', 'Details')}" placeholder="${t('Detalles', 'Details')}">${escH(f.desc || '')}</textarea></label>
     <div class="cal-bts"><button class="hz-bt" data-agguarda>${t('Guardar', 'Save')}</button></div></div>`;
 }
 // 13/11 (Gabriela: «me sigue sin gustar lo del calendario»; eligió la maqueta «Mes, más limpio»): el plan abierto enseña el look en grande y, debajo,
 // sus acciones en una fila de iconos con rótulo, en vez de la lista de textos; borrar un plan que se repite pregunta antes si solo ese día o todos
-const AG_IC = { mas: '<path d="M12 5v14M5 12h14"/>', abajo: '<path d="m7 10 5 5 5-5"/>', reloj: '<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>', pin: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/>', nota: '<path d="M5 7h14M5 12h14M5 17h9"/>',
+const AG_IC = { mas: '<path d="M12 5v14M5 12h14"/>', matiz: '<path d="M4.5 12.5V5h7.5l8 8-7.5 7.5z"/><circle cx="8.5" cy="9" r="1.3"/>', abajo: '<path d="m7 10 5 5 5-5"/>', reloj: '<circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/>', pin: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/>', nota: '<path d="M5 7h14M5 12h14M5 17h9"/>',
   dias: '<rect x="4" y="5.5" width="16" height="14" rx="1"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4M7.5 14.5h9"/>', maleta: '<rect x="4.5" y="8" width="15" height="11" rx="1"/><path d="M9 8V5.5h6V8M4.5 12.5h15"/>', lapiz: '<path d="M4.5 19.5l1-4.5L15.8 4.7a1.8 1.8 0 0 1 2.5 0l1 1a1.8 1.8 0 0 1 0 2.5L9 18.5z"/><path d="M13.8 6.7l3.5 3.5"/>',
   papelera: '<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7M10.5 10.5v6M13.5 10.5v6"/>', girar: '<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/>',
   cal: '<rect x="4" y="5.5" width="16" height="14" rx="1"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>', cerrar: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
@@ -2131,9 +2151,13 @@ function pintarAgenda(raiz) {
       ${E.cal.menu && !f && d >= hoy ? `<div class="ag-menu" role="group" aria-label="${t('Añadir', 'Add')}">${agMi('data-agnuevo', 'cal', t('Evento', 'Event'))}${agMi('data-agvarios', 'dias', t('Varios días', 'Several days'))}${typeof abrirViaje === 'function' ? agMi('data-agviaje', 'maleta', t('Viaje', 'Trip')) : ''}</div>` : ''}
       ${f ? formEvento() : filas || (d >= hoy ? '' : `<p class="cal-vacio">${t('Sin eventos.', 'No events.')}</p>`)}
       ${puesto.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(puesto, true)}</div></div>` : ''}</section></div>`;
-  const nom = $('ag-nom'); if (nom) { nom.oninput = () => { f.nombre = nom.value; const o = OC_POR_NOMBRE.find(([r]) => r.test(nom.value)); if (o && !f.ocTocada && o[1] !== f.oc) { f.oc = o[1]; if ($('ag-oc')) $('ag-oc').value = f.oc; if ($('ag-oc-v')) $('ag-oc-v').textContent = ocNombre(f.oc); } }; if (!f.nombre) nom.focus(); }
+  // 15/11: el plan concreto se deduce del nombre mientras escribe («cóctel», «gala», «gimnasio»), dentro de su ocasión, hasta que ella lo elige a mano
+  const pintaSub = () => { if (!conSubs()) return; if (!f.subTocada) f.sub = Motor.detectarSub(f.nombre || '', f.oc, parseInt(f.hora) || undefined) || ''; else if (f.sub && !Motor.subocasiones(f.oc).some(x => x.id === f.sub)) f.sub = '';
+    const s = $('ag-sub'), v = $('ag-sub-v'); if (s) s.innerHTML = subOpciones(f.oc, f.sub); if (v) { v.textContent = subNom(f.sub) || t('Sin concretar', 'Not specified'); v.classList.toggle('no', !f.sub); } };
+  const nom = $('ag-nom'); if (nom) { nom.oninput = () => { f.nombre = nom.value; const o = OC_POR_NOMBRE.find(([r]) => r.test(nom.value)) || (() => { const s = conSubs() && Motor.detectarSub(nom.value, null), x = s && Motor.subocasiones().find(q => q.id === s); return x ? [0, x.oc] : null; })(); if (o && !f.ocTocada && o[1] !== f.oc) { f.oc = o[1]; if ($('ag-oc')) $('ag-oc').value = f.oc; if ($('ag-oc-v')) $('ag-oc-v').textContent = ocNombre(f.oc); } pintaSub(); }; if (!f.nombre) nom.focus(); }
   const hr = $('ag-hora'); if (hr) hr.oninput = hr.onchange = () => { f.hora = hr.value; const v = $('ag-hora-v'); v.textContent = hr.value || t('Sin hora', 'No time'); v.classList.toggle('no', !hr.value); };
-  const so = $('ag-oc'); if (so) so.onchange = () => { f.oc = so.value; f.ocTocada = true; $('ag-oc-v').textContent = ocNombre(f.oc); };
+  const so = $('ag-oc'); if (so) so.onchange = () => { f.oc = so.value; f.ocTocada = true; $('ag-oc-v').textContent = ocNombre(f.oc); pintaSub(); };
+  const ss = $('ag-sub'); if (ss) ss.onchange = () => { f.sub = ss.value; f.subTocada = true; pintaSub(); };
   const ha = $('ag-hasta'); if (ha) ha.oninput = ha.onchange = () => { if (ha.value) { f.hasta = ha.value; $('ag-hasta-v').textContent = hastaTxt(ha.value); } };
   const de = $('ag-desc'); if (de) { const alto = () => { de.style.height = 'auto'; de.style.height = de.scrollHeight + 'px'; }; de.oninput = alto; alto(); }
   // lo escrito no se pierde al cambiar cómo se repite
@@ -2166,11 +2190,15 @@ function pintarAgenda(raiz) {
       const hasta = f.rep === 'varios' && !f.edita ? $('ag-hasta')?.value || '' : '';
       if (f.rep === 'varios' && !f.edita && !(hasta > d)) { toast(t('Elige hasta qué día dura', 'Pick the last day')); return; }
       let obj;
-      if (f.edita) { obj = f.edita; if (obj.url !== extra.url) delete obj.lugar; Object.assign(obj, { nombre, oc: f.oc, hora, ...extra }); if (!obj.dias) obj.fr = frDe(hora); }
-      else if (dias) { if (!dias.length) { toast(t('Marca los días en que se repite', 'Pick the days it repeats')); return; } obj = { id: uid(), nombre, oc: f.oc, hora, dias: [...dias].sort(), desde: d, ...(hasta ? { hasta } : {}), ...extra }; E.perfil.fijos = [...(E.perfil.fijos || []), obj]; }
-      else { obj = { id: uid(), nombre, oc: f.oc, hora, fr: frDe(hora), ...extra }; ag(d).planes.push(obj); }
+      // el plan concreto: el que eligió, o el que dice el nombre o la descripción («Sin concretar» elegido a propósito se guarda como '')
+      if (!f.subTocada) f.sub = subPlan({ nombre, desc, oc: f.oc, hora }) || '';
+      if (f.sub && conSubs() && !Motor.subocasiones(f.oc).some(x => x.id === f.sub)) f.sub = '';
+      const sub = f.sub || f.subTocada ? { sub: f.sub || '' } : {};
+      if (f.edita) { obj = f.edita; if (obj.url !== extra.url) delete obj.lugar; delete obj.sub; Object.assign(obj, { nombre, oc: f.oc, hora, ...sub, ...extra }); if (!obj.dias) obj.fr = frDe(hora); }
+      else if (dias) { if (!dias.length) { toast(t('Marca los días en que se repite', 'Pick the days it repeats')); return; } obj = { id: uid(), nombre, oc: f.oc, hora, dias: [...dias].sort(), desde: d, ...(hasta ? { hasta } : {}), ...sub, ...extra }; E.perfil.fijos = [...(E.perfil.fijos || []), obj]; }
+      else { obj = { id: uid(), nombre, oc: f.oc, hora, fr: frDe(hora), ...sub, ...extra }; ag(d).planes.push(obj); }
       E.cal.form = null; await guardar(); E.propuestas = []; toast(f.edita ? t('Cambios guardados', 'Changes saved') : hasta ? t('Evento guardado: ', 'Event saved: ') + rangoEv(obj) : dias ? t('Evento guardado: se repite ', 'Event saved: repeats ') + diasTxt(dias) : t('Evento guardado', 'Event saved'));
-      registrar('plan', { dia: d, hora, oc: f.oc, nombre, desc, url, repite: hasta ? rangoEv(obj) : dias ? diasTxt(dias) : '' });
+      registrar('plan', { dia: d, hora, oc: f.oc, sub: f.sub || '', nombre, desc, url, repite: hasta ? rangoEv(obj) : dias ? diasTxt(dias) : '' });
       if (url && !obj.lugar) leerEnlace(obj, d);
       if (hasta) planear = [eventosDe(d).find(x => x.id === obj.id), d]; // recién apuntado, sale ya un look para cada día
     }
@@ -2180,7 +2208,7 @@ function pintarAgenda(raiz) {
     else if (q.cotra !== undefined) { registrar('otra', { dia: E.cal.dia, ev: (E.cal.ev || '').split('|')[1], idea: E.cal.idea }); E.cal.idea++; }
     else if (q.agmios !== undefined) E.cal.mios = !E.cal.mios;
     else if (q.agcambia !== undefined) { E.cal.cambia = true; E.cal.idea = 0; }
-    else if (q.agedita !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) { E.cal.form = { dia, oc: ev.oc, hora: ev.hora, rep: 'una', dias: [], nombre: ev.nombre, url: ev.url, desc: ev.desc, edita: ev.ref, ocTocada: true }; E.cal.ev = null; } }
+    else if (q.agedita !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) { E.cal.form = { dia, oc: ev.oc, hora: ev.hora, rep: 'una', dias: [], nombre: ev.nombre, url: ev.url, desc: ev.desc, edita: ev.ref, ocTocada: true, sub: subPlan(ev) || '', subTocada: ev.sub != null }; E.cal.ev = null; } }
     else if (q.agquitalook !== undefined) { const a = ag(dia); if (a.looks) delete a.looks[evId]; if (a.look && eventosDe(dia)[0]?.id === evId) delete a.look; await guardar(); E.propuestas = []; }
     else if (q.agquita !== undefined) { const ev = eventosDe(dia).find(x => x.id === evId); if (ev) { const a = ag(dia); if (ev.fijo) a.sin = [...(a.sin || []), ev.id]; else a.planes.splice(ev.i, 1); if (a.looks) delete a.looks[ev.id]; E.cal.ev = null; await guardar(); E.propuestas = []; toast(ev.fijo ? t('Quitado de este día', 'Removed from this day') : t('Evento borrado', 'Event deleted')); } }
     else if (q.agbfijo) { const fj = (E.perfil.fijos || []).find(x => x.id === q.agbfijo); E.perfil.fijos = (E.perfil.fijos || []).filter(x => x.id !== q.agbfijo); E.cal.ev = null; await guardar(); E.propuestas = []; toast(fj?.hasta ? t('Borrado en todos sus días', 'Deleted from every day') : t('Borrado en todas las semanas', 'Deleted from every week')); }
@@ -4217,31 +4245,45 @@ document.addEventListener('click', e => { if (!e.target.closest('[data-yo-inspo]
 // le falta en más de ellas. Solo el tipo de prenda, nunca una tienda ni un enlace (N13); primero lo que ya tiene: se recuerda «Antes de comprar». Va aparte del
 // pintado, a trozos para no frenar la pantalla (8 vueltas del motor: el tiempo de hoy y el de la temporada que viene), y se guarda mientras no cambien la ropa,
 // el día ni el tiempo.
-const FALTA_OC = { Diario: ['el día a día', 'every day'], Oficina: ['la oficina', 'the office'], Noche: ['salir de noche', 'nights out'], Evento: ['eventos', 'events'] };
+// 15/11 (Gabriela, 2347: «ponlo primero, que sea para desplegar y de una forma más profesional, con otro nombre, y agrega las ocasiones que dijo Sheila»):
+// «Análisis de tu clóset», arriba del todo en Yo y plegado; prueba también los planes con matiz que pidió Sheila (2135) y, si para uno ningún zapato suyo vale,
+// cuenta el que pone el motor como el que le falta (tacones para una gala).
+const FALTA_PLANES = [['Diario', '', 'el día a día', 'every day'], ['Oficina', '', 'la oficina', 'the office'], ['Noche', '', 'salir de noche', 'nights out'], ['Evento', '', 'eventos', 'events'],
+  ['', 'D2', 'una cena con amigos', 'dinner with friends'], ['', 'D3', 'una merienda', 'afternoon coffee'], ['', 'D4', 'una comida formal', 'a formal lunch'], ['', 'N4', 'el teatro o la ópera', 'theatre or opera'],
+  ['', 'E1', 'un cóctel', 'a cocktail party'], ['', 'E2', 'una boda de día', 'a daytime wedding'], ['', 'E3', 'una boda de noche', 'an evening wedding'], ['', 'E4', 'una gala', 'a gala'],
+  ['', 'S1', 'el gimnasio', 'the gym'], ['', 'S2', 'correr o montar en bici', 'running or cycling']];
 let FALTAS_C = null;
 async function faltasCloset() {
   const ps = activas(); if (typeof Motor === 'undefined' || !Motor.nombreTipo || ps.length < 6) return [];
-  const t0 = Math.round(E.tiempo?.t ?? 15), k = `${hoyISO()}|${t0}|${E.perfil?.publico || ''}|${ps.map(p => p.id + (p.tipo || '') + (p.subtipo || '')).join()}`;
+  const t0 = Math.round(E.tiempo?.t ?? 15), k = `2|${hoyISO()}|${t0}|${E.perfil?.publico || ''}|${ps.map(p => p.id + (p.tipo || '') + (p.subtipo || '')).join()}`;
   if (FALTAS_C?.k === k) return FALTAS_C.v;
-  const cuenta = {};
+  const cuenta = {}, subs = new Set((Motor.subocasiones?.() || []).map(x => x.id)), planes = FALTA_PLANES.filter(p => !p[1] || subs.has(p[1]));
   const mes = new Date().getMonth(), luego = mes >= 7 || mes === 0 ? t0 - 5 : t0 + 5;   // de agosto a enero viene el frío; de febrero a julio, el calor
-  for (const t of [t0, luego]) for (const oc of Object.keys(FALTA_OC)) {
-    await new Promise(r => setTimeout(r, 0)); let r; try { r = Motor.looks({ prendas: ps, tiempo: { t, max: t + 3, min: t - 6 }, plan: oc, perfil: E.perfil || {}, n: 4, hoy: hoyISO(), hora: oc === 'Noche' ? 20 : 12, pro: true }); } catch (x) { continue; }
-    for (const f of r.falta || []) { const c = cuenta[f.tipo] = cuenta[f.tipo] || { tipo: f.tipo, n: 0, ocs: new Set() }; c.n += f.n; c.ocs.add(oc); }
+  for (const t of [t0, luego]) for (const [oc, sub] of planes) {
+    await new Promise(r => setTimeout(r, 0)); let r;
+    try { r = Motor.looks({ prendas: ps, tiempo: { t, max: t + 3, min: t - 6 }, ...(sub ? { sub } : { plan: oc, hora: oc === 'Noche' ? 20 : 12 }), perfil: E.perfil || {}, n: 4, hoy: hoyISO(), pro: true }); } catch (x) { continue; }
+    const id = sub || oc, suma = (tipo, n) => { const c = cuenta[tipo] = cuenta[tipo] || { tipo, n: 0, ocs: new Set() }; c.n += n; c.ocs.add(id); };
+    for (const f of r.falta || []) if (f.n > 1) suma(f.tipo, f.n); // con una sola fórmula no es una pieza que abra looks (le salían zapatos de cordones para una gala)
+    for (const l of r.looks || []) { const z = Motor.aPropuesta(l).zspec; if (z?.sub && z.tipo) { suma(z.tipo, 1); break; } }
   }
   const v = Object.values(cuenta).sort((a, b) => b.ocs.size - a.ocs.size || b.n - a.n).slice(0, 3);
-  FALTAS_C = { k, v }; return v;
+  v.tot = planes.length; FALTAS_C = { k, v }; return v;
 }
 async function pintarFaltasYo() {
   const sec = $('yo-falta'); if (!sec) return;
   const v = await faltasCloset(), en = idioma() === 'en'; if (E.pantalla !== 'yo') return;
   if (!v.length) { sec.innerHTML = ''; return; }
-  const lista = l => l.length > 1 ? l.slice(0, -1).join(', ') + (en ? ' and ' : ' y ') + l[l.length - 1] : l[0];
-  sec.innerHTML = `<h2 class="es-tit">${t('Qué le falta a tu clóset', 'What your closet is missing')}</h2><ul class="yo-falta-l">${v.map(f => {
-    const nom = Motor.nombreTipo(f.tipo), ocs = Object.keys(FALTA_OC).filter(o => f.ocs.has(o)).map(o => FALTA_OC[o][en ? 1 : 0]);
-    return `<li><b>${escH(nom.charAt(0).toUpperCase() + nom.slice(1))}</b><small>${t('Te abriría looks para', 'Would open up looks for')} ${lista(ocs)}</small></li>`; }).join('')}</ul>
-    <p class="yo-falta-n">${t('Antes de comprar, mira si ya tienes algo parecido: Looks → Antes de comprar.', 'Before buying, check whether you already have something similar: Looks → Before you buy.')}</p>`;
+  const y = l => l.length > 1 ? l.slice(0, -1).join(', ') + (en ? ' and ' : ' y ') + l[l.length - 1] : l[0];
+  const nomP = id => { const p = FALTA_PLANES.find(x => (x[1] || x[0]) === id); return p ? p[en ? 3 : 2] : id; };
+  const planes = f => { const l = FALTA_PLANES.map(p => p[1] || p[0]).filter(id => f.ocs.has(id)).map(nomP); return l.length > 4 ? l.slice(0, 3).join(', ') + t(` y ${l.length - 3} más`, ` and ${l.length - 3} more`) : y(l); };
+  sec.innerHTML = `<details class="yo-an" id="yo-an"${E.yoAn ? ' open' : ''}><summary><span class="yo-an-cab"><span class="yo-an-t">${t('Análisis de tu clóset', 'Closet analysis')}</span>
+    <small>${t('Las piezas que más looks te abrirían', 'The pieces that would open up the most looks')}</small></span><svg class="yo-an-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+    <p class="yo-an-i">${t(`Tu ropa, probada en ${v.tot} planes, del día a día a una gala, con el tiempo de ahora y el de las próximas semanas.`, `Your clothes, tried in ${v.tot} plans, from every day to a gala, with today’s weather and the weeks ahead.`)}</p>
+    <ol class="yo-falta-l">${v.map((f, i) => { const nom = Motor.nombreTipo(f.tipo);
+      return `<li><span class="yo-an-n" aria-hidden="true">${i + 1}</span><span class="yo-an-x"><b>${escH(nom.charAt(0).toUpperCase() + nom.slice(1))}</b><small>${t(`${f.ocs.size} de ${v.tot} planes`, `${f.ocs.size} of ${v.tot} plans`)}: ${planes(f)}</small></span></li>`; }).join('')}</ol>
+    <p class="yo-falta-n">${t('Antes de comprar, mira si ya tienes algo parecido: Looks → Antes de comprar.', 'Before buying, check whether you already have something similar: Looks → Before you buy.')}</p></details>`;
 }
+document.addEventListener('toggle', e => { if (e.target.id === 'yo-an') E.yoAn = e.target.open; }, true);
 function pintarYo() {
   const pf = E.perfil || {}, es = idioma() === 'en' ? 1 : 0;
   const fila = (attr, tit, val, oro, flecha = true) => `<button class="item" ${attr}>${tit}<span class="valor${oro ? ' oro' : ''}">${val}${flecha ? '<svg><use href="#ic-flecha"/></svg>' : ''}</span></button>`;
@@ -4265,8 +4307,8 @@ function pintarYo() {
     + ent('data-ir="estilo"', t('Mi estilo', 'My style'), ests.length ? (ests.length > 2 ? ests.slice(0, 2).map(min).join(', ') + ` +${ests.length - 2}` : ests.map(min).join(t(' y ', ' and '))) : t('elígelo', 'choose it'))
     + ent(dg?.color || pf.selfie ? 'data-diag="ver-color"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
   $('yo-lista').setAttribute('aria-label', t('Tu perfil', 'Your profile')); $('yo-ajustes-t').textContent = t('Ajustes', 'Settings');
-  let fa = $('yo-falta'); if (!fa) { fa = document.createElement('section'); fa.id = 'yo-falta'; fa.className = 'yo-fm-sec'; $('yo-lista').after(fa); } setTimeout(() => { if (E.pantalla === 'yo') pintarFaltasYo(); }, 0);
-  let fm = $('yo-fm'); if (!fm) { fm = document.createElement('div'); fm.id = 'yo-fm'; fa.after(fm); } fm.innerHTML = bloqueFotosYo() + bloqueInspoYo() + bloqueGastosYo();
+  let fa = $('yo-falta'); if (!fa) { fa = document.createElement('section'); fa.id = 'yo-falta'; fa.className = 'yo-fm-sec'; $('yo-ley').after(fa); } setTimeout(() => { if (E.pantalla === 'yo') pintarFaltasYo(); }, 0); // 15/11: el análisis, lo primero (Gabriela, 2347)
+  let fm = $('yo-fm'); if (!fm) { fm = document.createElement('div'); fm.id = 'yo-fm'; $('yo-lista').after(fm); } fm.innerHTML = bloqueFotosYo() + bloqueInspoYo() + bloqueGastosYo();
   let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; fm.after(td); } td.innerHTML = tarjetaDiag() + tarjetaAvatar();
   pintarPanelYo();
   if (pend && !diagCorriendo) diagHastaAlDia().then(() => { if (E.pantalla === 'yo') pintarYo(); });
