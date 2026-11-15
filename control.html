@@ -163,6 +163,9 @@ button { font: inherit; color: inherit; }
 .cc-top b { font-weight: 400; font-size: 1.4rem; letter-spacing: .01em; line-height: 1; color: #111; } /* Bellefair solo tiene un grueso */
 .cc-top b em { font-style: normal; color: var(--oro); }
 .cc-top small { font-size: .84rem; color: var(--ink-2); }
+.cc-top { flex-wrap: wrap; }
+.cc-volver { padding: 0 16px 0 10px; }
+.cc-marca { flex-basis: 100%; display: flex; align-items: center; gap: 10px; }
 .head { display: grid; gap: 4px; margin-top: 6px; }
 section { display: grid; gap: 14px; align-content: start; }
 section[hidden] { display: none; }
@@ -270,7 +273,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .trow .ic { width: 16px; height: 16px; color: var(--ink-3); }
 a.trow { min-height: 48px; }
 .mensaje { max-width: 34ch; margin: 64px auto; text-align: center; display: grid; gap: 10px; justify-items: center; }
-.mensaje h2 { margin: 0; font-size: 1.3rem; }
+.mensaje h1, .mensaje h2 { margin: 0; font-size: 1.3rem; }
 .mensaje p { margin: 0; color: var(--ink-2); }
 #tip { position: fixed; z-index: 30; pointer-events: none; background: var(--ink); color: #fff; padding: 6px 10px; border-radius: 8px; font-size: .78rem; line-height: 1.3; max-width: 240px; opacity: 0; transition: opacity .12s; }
 #tip b { display: block; font-size: .9rem; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -279,10 +282,11 @@ a.trow { min-height: 48px; }
 </style>
 </head>
 <body>
+<!-- 16/11 (Gabriela: «cuando entré no me dejó salir, debe tener algún botón para ir atrás»): en la app instalada no hay botón atrás del navegador -->
 <header class="cc-top cc-cab">
-  <a class="logo" href="./" aria-label="TuCloset: volver a la app"><img src="iconos/icono-129-180.png" alt=""><b>Tu<em>Closet</em></b></a>
-  <small>Centro de control</small>
+  <a class="btn-s cc-volver" href="./"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Volver a la app</a>
   <span id="cc-hora"></span>
+  <div class="cc-marca"><div class="logo"><img src="iconos/icono-129-180.png" alt=""><b>Tu<em>Closet</em></b></div><small>Centro de control</small></div>
 </header>
 <div id="raiz"><main><p class="vacio">Cargando…</p></main></div>
 <div id="tip" aria-hidden="true"></div>
@@ -291,7 +295,7 @@ a.trow { min-height: 48px; }
   const raiz = document.getElementById('raiz'), hora0 = document.getElementById('cc-hora');
   const API = (() => { try { const q = localStorage.getItem('tc_api'); if (q) return q; } catch (e) { } return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://localhost:8787' : 'https://tucloset-api.apptucloset.workers.dev'; })();
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  const mensaje = (tit, txt, boton) => { raiz.innerHTML = `<main><div class="mensaje"><h2>${tit}</h2><p>${txt}</p>${boton ? `<a class="btn-s" href="./">${boton}</a>` : ''}</div></main>`; };
+  const mensaje = (tit, txt, boton) => { raiz.innerHTML = `<main><div class="mensaje"><h1>${tit}</h1><p>${txt}</p>${boton ? `<a class="btn-s" href="./">${boton}</a>` : ''}</div></main>`; };
   let c = null; try { c = JSON.parse(localStorage.getItem('tc_cuenta') || 'null'); } catch (e) { }
   if (!c?.token) return mensaje('Entra primero', 'Abre tu cuenta en la app y vuelve a esta página.', 'Ir a la app');
   let r; try { r = await fetch(API + '/api/control', { headers: { Authorization: 'Bearer ' + c.token } }); } catch (e) { return mensaje('Sin conexión', 'No he podido hablar con el servidor. Prueba otra vez en un momento.'); }

@@ -200,7 +200,8 @@ const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { ret
 // 12/11 (Coordinación de marketing, para Gabriela: «si alguien pulsa el enlace e intenta crearse una cuenta, todavía no puede»): PROPUESTA, apagada.
 // Con PRONTO, quien llega desde las redes (?o=…) sin cuenta en ese móvil ve «Abrimos muy pronto» y un solo botón en vez de crear la cuenta.
 // ?pronto=1 la enseña para verla. Cuando haya lista de espera, el botón pasa a «Apúntate» (espera.html?o=<red>).
-const PRONTO = false;
+// 16/11 (Gabriela en el panel: «tienes nuestros sí para lo de abrimos pronto y lo de los códigos»): encendida.
+const PRONTO = true;
 function portadaPronto() {
   const q = new URLSearchParams(location.search);
   if (!(q.get('pronto') === '1' || (PRONTO && /^(ig|tt|pin)/.test(ORIGEN) && !LS.get('tc_cuenta')))) return;
@@ -3535,7 +3536,7 @@ function pintarPanelYo() {
   $('yo-panel').innerHTML =
     grupoP(t('Tu cuenta', 'Your account'),
       (NUBE ? filaP({ attr: 'data-ir="cuenta"', ic: 'cuenta', tit: t('Cuenta', 'Account'), val: c ? (c.correo || '') : t('Entrar o crear', 'Sign in or create') }) : '')
-      + filaP({ id: 'yo-plan-info', ic: 'plan', tit: t('Plan', 'Plan'), val: t('Prueba gratis', 'Free trial'), oro: true })
+      + filaP({ id: 'yo-plan-info', ic: 'plan', tit: t('Plan', 'Plan'), val: socia() ? nomPlan(planDemo()) : 'Pro', oro: true }) // 16/11 (Gabriela: «queremos que sea plan Pro, no gratis»)
       + (NUBE ? filaP({ id: 'yo-pareja', ic: 'pareja', tit: t('Pareja', 'Partner'), val: c && LS.get('tc_pareja') ? escH(LS.get('tc_pareja')) : '' }) : ''),
       enGratis() && E.prendas.length > TOPE_GRATIS ? t(`En la gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`) : '')
     + grupoP(t('La app', 'The app'),
@@ -3757,6 +3758,10 @@ function panelCiudad() {
   });
 }
 function panelPlan() {
+  // 16/11 (Gabriela: «queremos que sea plan Pro, no gratis»): las probadoras tienen el Pro con todo; sin la lista de planes ni precios (punto 47). Las socias ven la lista para probar.
+  if (!socia()) return abrirPanel(t('Plan', 'Plan'), `<p class="pn-lema">${t('Tienes el plan Pro, con todas las funciones de TuCloset.', 'You have the Pro plan, with every TuCloset feature.')}</p>`
+    + grupoP('', filaP({ tag: 'div', tit: 'Pro', val: t('Activo', 'Active'), oro: true, flecha: false }) + `<p class="pn-txt">${t('Tu clóset sin tope de prendas, el look de cada día, los looks de la estilista, Mi cápsula, el calendario y los cuidados. Además, tu asesora de imagen: tus colores y tu silueta a partir de tus fotos, aplicados a tus looks; «Inspírate en…», Planear un viaje e ideas con cada prenda.', 'Your closet with no garment limit, the daily look, the stylist’s looks, My capsule, the calendar and care tips. Plus your image adviser: your colours and figure from your photos, applied to your looks; “Get inspired by…”, Plan a trip and ideas with each garment.')}</p>`)
+    + `<p class="pn-nota">${t('Mientras estemos en pruebas, no pagas nada.', 'While we are in testing, you pay nothing.')}</p>`);
   abrirPanel(t('Plan', 'Plan'), `<p class="pn-lema">${t('Estás viendo la app como', 'You are viewing the app as')} ${({ gratis: t('Gratis', 'Free'), basico: t('Básico', 'Basic'), pro: 'Pro' })[planDemo()] || 'Pro'}.</p>`
     + grupoP('', filaP({ tag: 'div', tit: t('Gratis', 'Free'), val: t('7 días', '7 days'), flecha: false }) + `<p class="pn-txt">${t('Hasta 10 prendas, con el look de cada día y el calendario. Al acabar los 7 días, tu clóset sigue ahí. Para seguir sacándole partido, elige un plan.', 'Up to 10 garments, with the daily look and the calendar. When the 7 days end, your closet is still there. To keep making the most of it, choose a plan.')}</p>`)
     + grupoP('', filaP({ tag: 'div', tit: t('Básico', 'Basic'), val: t('1,99 € al mes', '€1.99 a month'), flecha: false }) + `<p class="pn-txt">${t('Tu clóset sin tope de prendas, el look de cada día, los looks de la estilista, Mi cápsula, el calendario y los cuidados.', 'Your closet with no garment limit, the daily look, the stylist’s looks, My capsule, the calendar and care tips.')}</p>`)
@@ -4521,7 +4526,15 @@ $('p-planes').addEventListener('click', e => {
   $('p-planes').classList.toggle('anual', E.pl.per === 'anual');
 });
 if (new URLSearchParams(location.search).get('planes') !== 'a') $('p-planes').classList.add('pl-b'); // diseño B por defecto desde la 0.16 (Gabriela: «me gusta la opción B»); ?planes=a, el de dos columnas
-$('pl-empezar').addEventListener('click', async () => { E.perfil = Object.assign(E.perfil || {}, { alta: E.perfil?.alta || hoyISO(), idioma: idioma(), planElegido: E.pl.plan, periodo: E.pl.per }); await guardar(); const co = $('a-correo').value.trim(), cl = $('a-clave').value; if (co && cl && !cuenta()) await abrirCuenta('alta', co, cl, E.perfil.nombre); ir('hoy'); toast(t('Tu prueba de 7 días ha empezado', 'Your 7-day trial has started')); });
+// 16/11 (Gabriela: «queremos que sea plan Pro, no gratis»): en la web pública el paso 4 ya no enseña planes, precios ni la prueba de 7 días (punto 47): todas empiezan con el Pro
+if (PUBLICA) {
+  E.pl.plan = 'pro'; const pp = $('p-planes'); pp.classList.add('pl-pro');
+  pp.querySelector('.ac-cab h1').textContent = t('Tu plan: Pro', 'Your plan: Pro');
+  pp.querySelectorAll('[data-pdet]').forEach(x => x.classList.toggle('on', x.dataset.pdet === 'pro'));
+  const lema = pp.querySelector('[data-pdet="pro"] .plb-lema'); if (lema) lema.textContent = t('Todas las funciones de TuCloset, también las del Básico.', 'Every TuCloset feature, the Basic ones too.');
+  $('pl-empezar').textContent = t('Empezar', 'Start'); pp.querySelector('.ac-pie .ac-nota').textContent = t('Mientras estemos en pruebas, no pagas nada.', 'While we are in testing, you pay nothing.');
+}
+$('pl-empezar').addEventListener('click', async () => { E.perfil = Object.assign(E.perfil || {}, { alta: E.perfil?.alta || hoyISO(), idioma: idioma(), planElegido: E.pl.plan, periodo: E.pl.per }); await guardar(); const co = $('a-correo').value.trim(), cl = $('a-clave').value; if (co && cl && !cuenta()) await abrirCuenta('alta', co, cl, E.perfil.nombre); ir('hoy'); toast(PUBLICA ? t('Ya tienes TuCloset Pro', 'You now have TuCloset Pro') : t('Tu prueba de 7 días ha empezado', 'Your 7-day trial has started')); });
 document.querySelectorAll('[data-social]').forEach(b => b.onclick = () => toast(t(`Entrar con ${b.dataset.social} llegará con las cuentas en la nube. Ahora tu clóset vive en este móvil.`, `${b.dataset.social} sign-in comes with cloud accounts. For now your closet lives on this phone.`)));
 $('e-olvido').onclick = () => toast(t('Escríbenos a app@tucloset.app desde tu correo y te ayudamos a entrar.', 'Write to app@tucloset.app from your email and we will help you in.'));
 $('a-ubicacion').onclick = () => { if (!navigator.geolocation) return toast(t('Tu navegador no da la ubicación', 'Your browser gives no location')); navigator.geolocation.getCurrentPosition(async p => { E.perfil = Object.assign(E.perfil || {}, { lat: p.coords.latitude, lon: p.coords.longitude, ciudad: '', lugar: '' }); $('a-ciudad').value = ''; await guardar(); await cargarTiempo(true); toast(E.tiempo ? `${E.tiempo.nombre || t('Ubicación', 'Location')} · ${E.tiempo.t}°` : t('Ubicación guardada', 'Location saved')); }, () => toast(t('Sin permiso de ubicación: escribe la ciudad', 'No location permission: type the city'))); };

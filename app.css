@@ -820,6 +820,7 @@ h1,h2{font-family:var(--f-marca);font-weight:400;letter-spacing:0}
 .plb-noms button{font-family:var(--f-marca);font-size:30px;color:var(--ter);position:relative;padding-bottom:22px}
 .plb-noms button.on{color:var(--tinta)}
 .plb-noms button.on::after{content:'';position:absolute;left:50%;bottom:0;width:13px;height:13px;margin-left:-6.5px;background:var(--boton2) center/contain no-repeat}
+.pl-pro .pl-linea,.pl-pro .pl-periodo,.pl-pro .pl-planes2,.pl-pro .plb-noms,.pl-pro .pl-pre,.pl-pro .pl-per,.pl-pro .pl-ahorro,.pl-pro .plb-mas{display:none!important} /* 16/11: en la web pública, solo el Pro, sin precios */
 .plb-det{display:none;margin-top:26px}
 .plb-det.on{display:grid;justify-items:center;gap:2px}
 .plb-pre{font-family:var(--f-marca);font-size:40px;line-height:1;color:var(--tinta);margin:0}
