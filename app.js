@@ -2039,7 +2039,10 @@ function lookDe(d, ev) { const a = E.agenda[d] || {}, ids = a.looks?.[ev.id] || 
 function eventoAhora() { // el evento de hoy que toca: el próximo (o el que acaba de empezar); si ya pasaron todos, el último
   const d = diaISO(new Date()), evs = eventosDe(d); if (!evs.length) return null;
   const n = new Date(), ya = `${String(Math.max(0, n.getHours() - 1)).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
-  return evs.find(e => e.deHoy) || evs.find(e => !horaEv(e) || horaEv(e) >= ya) || evs[evs.length - 1]; // lo que eligió en Hoy manda
+  // lo que eligió en Hoy manda, y de eso, lo ÚLTIMO que eligió (el primero de la lista: cada elección va delante). 16/11 (Gabriela: «no me deja cambiar a diario»):
+  // con el orden por hora salía el elegido por la mañana (Evento, 09:00) aunque después tocara Diario (16:00)
+  const elegido = (E.agenda[d]?.planes || []).find(p => p.deHoy), evEl = elegido && evs.find(e => e.ref === elegido);
+  return evEl || evs.find(e => !horaEv(e) || horaEv(e) >= ya) || evs[evs.length - 1];
 }
 const nomEv = ev => ev.nombre || ocNombre(ev.oc);
 // 15/11 (Sheila, grupo, 12/11, 2135: «cóctel, boda, gala, velada, concierto de clásica; deporte al aire libre o en el gimnasio; cena con amigos, merienda,
