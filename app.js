@@ -559,7 +559,7 @@ async function preguntarFotosCuenta() {
   const pf = E.perfil || {}; if (!cuenta() || pf.permisos?.fotos || pf.fotosCuentaVista >= 2 || !(permiso('diag') || tieneAvatar()) || !(pf.selfie instanceof Blob || pf.cuerpo instanceof Blob || pf.avatar instanceof Blob)) return;
   pf.fotosCuentaVista = 2; await guardar(); programarNube();
   const si = await confirmar(t('¿Guardamos tus fotos en tu cuenta?', 'Keep your photos in your account?'),
-    t('Privadas, para verlas en otros móviles y en el ordenador. Si no, se quedan solo en este móvil. Puedes cambiarlo en Tus medidas y fotos.', 'Private, to see them on other phones and on your computer. If not, they stay only on this phone. You can change it in Your measurements and photos.'),
+    t('Privadas, para verlas en otros móviles y en el ordenador. Si no, se quedan solo en este móvil. Puedes cambiarlo en Yo → Mi silueta.', 'Private, to see them on other phones and on your computer. If not, they stay only on this phone. You can change it in Me → My figure.'),
     t('Guardarlas', 'Keep them'), t('Solo en este móvil', 'Only on this phone'));
   if (!si) { await fotosEnCuenta(false); const ck = $('dg-cuenta'); if (ck) ck.checked = false; return; }
   await fotosEnCuenta(true); toast(t('Tus fotos se guardan en tu cuenta', 'Your photos are kept in your account'));
@@ -3413,7 +3413,7 @@ function lookPropio(ids, c) { // lo que el motor aprende de un look que ella se 
   E.nlFoto = null;
 }
 function prepararNuevoLook(pre) {
-  E.preseleccion = Array.isArray(pre) ? pre.slice() : []; E.nlFoto = null; pintarNlFoto();
+  E.preseleccion = Array.isArray(pre) ? pre.slice() : []; E.nlFoto = null; // 16/11 (auditoría, Gabriela «1 sí»): sin «Súbelo con una foto»; las fotos de looks van solo por «Recrear un look»
   $('nl-nombre').value = ''; $('nl-ocasiones').innerHTML = OCASIONES.map(o => `<button type="button" class="chip ${o === 'Diario' ? 'sel' : ''}" data-oc="${o}">${ocNombre(o)}</button>`).join('');
   $('nl-ocasiones').dataset.sel = 'Diario';
   const act = activas();
@@ -3461,9 +3461,9 @@ const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no
   ['Hoy y looks', 'Qué es «Mi cápsula»', 'En Looks → Mis looks: elige el plan y cuántas prendas quieres llevar, y la app busca las que más looks dan entre sí.'],
   ['Mi prenda', 'Qué significan los iconos de la ficha', 'Hoy: llevarla hoy. Look: crear un look con ella. Ideas: looks con esa prenda. Cuidar: cómo lavarla. Sucia: que no salga en los looks hasta que la marques limpia. Guardar: fuera de temporada. Donar y Cerca: puntos para donarla o venderla cerca de ti.'],
   ['Mi estilo', 'Cómo cambio mi estilo', 'En Yo → Mi estilo, elige hasta cinco estilos y toca «Guardar». Los looks que te propone la app se ordenan según ellos.'],
-  ['Mi estilo', 'Cómo aprende la app lo que me gusta', 'En Yo → Mi estilo, «Looks que te encantan»: sube hasta cinco fotos de looks que te gusten (tuyos, de Pinterest o de Instagram). La app lee la ropa, sus colores y su estilo, y te propone más looks parecidos. La foto no se guarda.'],
+  ['Mi estilo', 'Cómo aprende la app lo que me gusta', 'Con lo que eliges en Yo → Mi estilo, con los looks que recreas en Looks → Ideas → «Recrear un look» y con lo que te pones y guardas. La foto no se guarda.'],
   ['Mi estilo', 'Cómo copio el estilo de alguien', 'En el Pro, Looks → Ideas → «Inspírate en…»: elige una referencia y la app arma looks con tu ropa en ese estilo.'],
-  ['Mi estilo', 'Cómo funciona mi diagnóstico', 'En Yo → Tus medidas y fotos: apunta tus medidas con la cinta (el contorno de pecho, cintura y cadera) y sube una foto de cara y una de cuerpo entero. La app calcula tu silueta y tus colores. En el Pro, los looks los tienen en cuenta.'],
+  ['Mi estilo', 'Cómo funciona mi diagnóstico', 'En Yo → Mi silueta: apunta tus medidas con la cinta (el contorno de pecho, cintura y cadera) y sube una foto de cara y una de cuerpo entero. La app calcula tu silueta y tus colores. En el Pro, los looks los tienen en cuenta.'],
   ['Mi estilo', 'Cómo me veo los looks puestos', 'En el Pro, Yo → Tu avatar: con tu foto de cara y la de cuerpo entero la app crea tu avatar. Después, en Hoy, toca la figura junto a «Me lo pongo». Lo último que te pruebas se queda en Yo, en todos los sitios donde entres con tu cuenta.'],
   ['Mi cuenta y datos', 'Dónde se guarda mi ropa', 'Con cuenta, tu ropa y tus looks se guardan en tu cuenta y los ves en cualquier móvil en el que entres. Tus fotos de cara y de cuerpo se quedan en tu móvil, salvo que elijas guardarlas en tu cuenta (privadas).'],
   ['Mi cuenta y datos', 'Qué se hace con mis fotos', 'Con tu permiso, TuCloset usa tus fotos y medidas para sacar tus colores y tu silueta y, en el Pro, para crear tu avatar con Google, que puede tratarlas fuera de la UE. Solo tú las ves. Puedes retirar el permiso cuando quieras en Ajustes → Tus datos y permisos, y se borra todo lo que salió de ellas.'],
@@ -3792,7 +3792,7 @@ async function panelPrivacidad() {
   abrirPanel(t('Tus datos y permisos', 'Your data and permissions'),
     grupoP(t('Qué se guarda', 'What is kept'), `<ul class="pn-lista">
       <li>${icY('nube')}<span>${c ? t('Tus prendas, sus fotos, tus looks y tu calendario se guardan en tu cuenta para verlos en cualquier móvil.', 'Your garments, their photos, your looks and your calendar are kept in your account so you can see them on any phone.') : t('Sin cuenta, todo se queda en este móvil.', 'Without an account, everything stays on this phone.')}</span></li>
-      <li>${icY('camara')}<span>${E.perfil?.fotosCuenta ? t('Tu selfie y tu foto de cuerpo se guardan en tu cuenta, privadas, porque así lo elegiste. Lo cambias en Yo → Tus medidas y fotos.', 'Your selfie and body photo are kept in your account, private, because you chose so. Change it in Me → Your measurements and photos.') : t('Tu selfie y tu foto de cuerpo se quedan en este móvil.', 'Your selfie and body photo stay on this phone.')} ${t('Si creas tu avatar, se envían a Google (Gemini) para hacerlo, y tu avatar y tu cara, cada vez que te pruebas un look.', 'If you create your avatar, they are sent to Google (Gemini) to make it, and your avatar and face each time you try on a look.')}</span></li>
+      <li>${icY('camara')}<span>${E.perfil?.fotosCuenta ? t('Tu selfie y tu foto de cuerpo se guardan en tu cuenta, privadas, porque así lo elegiste. Lo cambias en Yo → Mi silueta.', 'Your selfie and body photo are kept in your account, private, because you chose so. Change it in Me → My figure.') : t('Tu selfie y tu foto de cuerpo se quedan en este móvil.', 'Your selfie and body photo stay on this phone.')} ${t('Si creas tu avatar, se envían a Google (Gemini) para hacerlo, y tu avatar y tu cara, cada vez que te pruebas un look.', 'If you create your avatar, they are sent to Google (Gemini) to make it, and your avatar and face each time you try on a look.')}</span></li>
       <li>${icY('percha')}<span>${t('Para quitar el fondo de tu ropa y hacer la foto de catálogo, la foto de la prenda pasa por nuestro servidor y por la IA de imagen de Google.', 'To remove the background of your clothes and make the catalogue photo, the garment photo goes through our server and Google’s image AI.')}</span></li>
       ${c && LS.get('tc_pareja') ? `<li>${icY('pareja')}<span>${t('Tu pareja ve tus prendas y sus fotos para combinar looks con los suyos. Tus medidas, tus fotos y tu diagnóstico, no. Lo quitas en Looks → Ideas → En pareja.', 'Your partner sees your garments and their photos to match looks with theirs. Not your measurements, photos or analysis. Turn it off in Looks → Ideas → As a couple.')}</span></li>` : ''}
       <li>${icY('ciudad')}<span>${t('Tu ciudad o tu ubicación solo se usan para darte el tiempo.', 'Your city or location is only used for the weather.')}</span></li>
@@ -3800,7 +3800,7 @@ async function panelPrivacidad() {
     + grupoP(t('Lo que nos has permitido', 'What you have allowed'), filaP({ id: 'pv-pdiag', ic: 'camara', tit: t('Analizar tus fotos y medidas', 'Analyse your photos and measurements'), val: permiso('diag') ? t('Sí', 'Yes') : t('No', 'No') })
       + (planDemo() === 'pro' ? filaP({ id: 'pv-pavatar', ic: 'avatar', tit: t('Tu avatar', 'Your avatar'), val: permiso('avatar') ? t('Sí', 'Yes') : t('No', 'No') }) : '')
       + (c ? filaP({ id: 'pv-pfotos', ic: 'nube', tit: t('Tus fotos en tu cuenta', 'Your photos in your account'), val: E.perfil?.fotosCuenta ? t('Sí', 'Yes') : t('No', 'No') }) : ''),
-      t('Se dan y se retiran en Yo → Tus medidas y fotos y en Tu avatar. Al retirarlos, borramos lo que salió de ellos.', 'You give and withdraw them in Me → Your measurements and photos and in Your avatar. When you withdraw one, we delete what came from it.'))
+      t('Se dan y se retiran en Yo → Mi silueta y en Tu avatar. Al retirarlos, borramos lo que salió de ellos.', 'You give and withdraw them in Me → My figure and in Your avatar. When you withdraw one, we delete what came from it.'))
     + grupoP(t('Permisos del móvil', 'Phone permissions'), filaP({ tag: 'div', ic: 'ciudad', tit: t('Ubicación', 'Location'), val: ubic, flecha: false }) + filaP({ tag: 'div', ic: 'camara', tit: t('Cámara', 'Camera'), val: t('Solo al subir fotos', 'Only when uploading'), flecha: false }),
       t('Los permisos se cambian en los ajustes del navegador o del móvil.', 'Permissions are changed in your browser or phone settings.'))
     + grupoP(t('Tus datos', 'Your data'), filaP({ id: 'pv-exportar', ic: 'bajar', tit: t('Descargar una copia', 'Download a copy'), flecha: false })
@@ -4231,6 +4231,7 @@ async function panelDiag(pendientes = [], tab) {
     <div class="dx-panel" role="tabpanel" id="dxp-color" aria-labelledby="dxt-color" ${tab === 'color' ? '' : 'hidden'}>${col}</div>
     <div class="dx-panel" role="tabpanel" id="dxp-silueta" aria-labelledby="dxt-silueta" ${tab === 'silueta' ? '' : 'hidden'}>${sil}</div>
     ${!pro && (c || b) ? `<p class="dx-nota">${t('Con el Pro, tus looks usan también tu silueta y ves qué prendas de tu clóset te favorecen.', 'With Pro, your looks also use your figure and you see which of your clothes suit you.')}</p>` : ''}
+    <p class="dx-enls"><button class="dx-enl" data-diag="fotos">${t('Tus medidas y fotos', 'Your measurements and photos')}</button></p>
     <p class="dx-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer') : t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`;
   abrirPanel(t('Tu diagnóstico', 'Your analysis'), html, cap => cap.addEventListener('click', e => {
     const tb = e.target.closest('[data-dxtab]');
@@ -4382,7 +4383,7 @@ function pintarYo() {
     + ent(dg?.color || pf.selfie ? 'data-diag="ver-color"' : 'data-diag="fotos"', t('Mis colores', 'My colours'), mira('color', 'selfie'));
   $('yo-lista').setAttribute('aria-label', t('Tu perfil', 'Your profile')); $('yo-ajustes-t').textContent = t('Ajustes', 'Settings');
   let fa = $('yo-falta'); if (!fa) { fa = document.createElement('section'); fa.id = 'yo-falta'; fa.className = 'yo-fm-sec'; $('yo-ley').after(fa); } setTimeout(() => { if (E.pantalla === 'yo') pintarFaltasYo(); }, 0); // 15/11: el análisis, lo primero (Gabriela, 2347)
-  let fm = $('yo-fm'); if (!fm) { fm = document.createElement('div'); fm.id = 'yo-fm'; $('yo-lista').after(fm); } fm.innerHTML = bloqueFotosYo() + bloqueInspoYo() + bloqueGastosYo();
+  let fm = $('yo-fm'); if (!fm) { fm = document.createElement('div'); fm.id = 'yo-fm'; $('yo-lista').after(fm); } fm.innerHTML = bloqueGastosYo(); // 16/11 (auditoría, Gabriela «1 sí, 4 sí»): las fotos y medidas se piden solo en Mi silueta y Mis colores; las fotos de looks, solo en «Recrear un look»
   let td = $('yo-diag'); if (!td) { td = document.createElement('div'); td.id = 'yo-diag'; fm.after(td); } td.innerHTML = tarjetaDiag() + tarjetaAvatar();
   pintarPanelYo();
   if (pend && !diagCorriendo) diagHastaAlDia().then(() => { if (E.pantalla === 'yo') pintarYo(); });
@@ -4740,7 +4741,7 @@ function pintarEstilo() {
     + `<p class="es-cuenta" aria-live="polite">${el.length ? `<b>${el.length} ${t('de', 'of')} ${MAX_ESTILOS}</b>${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(', ')}` : '&nbsp;'}</p>`
     // 0.108 · «Enseñar la cintura» (Gabriela, 28/10: «12. sí»): preferencia de estilo, saltable, guardada solo en este móvil
     + `<div class="es-cint"><h3 class="es-tit">${t('Un detalle más', 'One more thing')}</h3><p>${t('¿Te gusta enseñar la cintura?', 'Do you like showing your waist?')}</p><div>${[['1', t('Sí', 'Yes')], ['0', t('No', 'No')]].map(([v, n]) => `<button data-cintura="${v}" class="${cinturaPref() === v ? 'on' : ''}">${n}</button>`).join('')}</div><span class="es-d">${t('Así sabemos si proponerte tops cortos con pantalones de tiro bajo.', 'So we know whether to suggest crop tops with low-rise trousers.')}</span></div>`
-    + bloqueUso() + bloqueGusto() + bloqueInspo();
+    + bloqueUso() + bloqueGusto(); // 16/11: sin «Looks que te encantan» (auditoría); lo ya subido sigue en perfil.inspo
 }
 // 12/11 (Sheila, 2086): cómo usas tu ropa; viaja con la cuenta (perfil.usoRopa) y el motor ordena los looks según eso (ajusteUso en motor.js)
 const USOS_ROPA = () => [['variar', t('Variar', 'Mix it up'), t('Lo que te pusiste hace poco sale menos.', 'What you wore recently comes up less.')],

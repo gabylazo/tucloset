@@ -94,6 +94,17 @@ const Motor = (() => {
     f.foco = /encaje|transparen|lentejuel|abullon|peplum|asimetric|un hombro|volant/.test(nomM);
     // 07/11 (Gabriela: «un jersey que es por los hombros abiertos con una camisa abajo, no tiene sentido»): escotes que no admiten nada debajo
     f.hombros = /hombros? al aire|hombros? descubierto|hombros? abierto|off.?shoulder|bardot|palabra de honor|sin tirantes|un hombro|asimetric|halter|espalda al aire|espalda abierta|escote barco caido|cut.?out|recortes/.test(nomM) ? 'al_aire' : undefined;
+    // 16/11 (Gabriela: «un solo vestido para todos los diferentes tipos de eventos, teniendo yo más»): el arreglo de un vestido no sale solo de su largo.
+    // Con estampado de diario (rayas, vichy, cuadros) es de día aunque sea largo; liso en un color de noche, o con encaje, satén, terciopelo o lentejuelas, es de
+    // cóctel aunque sea corto. f.dibujo: 'diario' (rayas, vichy…), 'fiesta' (flores, lunares, estampados) o null (liso); f.base: el primer color que dice el nombre
+    if (f.cat === 'vestido' && !dep) {
+      const diario = /raya|vichy|cuadro|pata de gallo|denim|vaquer|de punto|canale|camiser/.test(nomM), dibujo = diario || /flor|lunar|estampad|marmol|print|animal|leopard|cebra| y blanc| y negr/.test(nomM);
+      if (diario) f.form = Math.min(f.form, 2.5);
+      else if (/encaje|saten|raso|seda|terciopel|lentejuel|pedreri|metaliz/.test(nomM)) f.form = Math.max(f.form, 3.8);
+      else if (!dibujo && /negr|burdeos|granate|electric|marino|esmeralda|botella|roj[oa]|platead|dorad/.test(nomM)) f.form = Math.max(f.form, f.subtipo === 'vestido_largo' ? 4.5 : 3.8);
+      f.dibujo = diario ? 'diario' : dibujo ? 'fiesta' : null;
+      f.base = (nomM.match(/blanc|crudo|marfil|negr|burdeos|granate|azul|roj|verde|rosa|amarill|naranja|lila|morad|gris|beige|camel|marron|crema|terracota/) || [''])[0];
+    }
     // color: el de la app; si es «Estampado» o vacío, el del nombre; vaquero = neutro siempre
     let col = p.color && p.color !== 'Estampado' ? p.color : null;
     if (!col) for (const [c, rs] of Object.entries(I.color.palabras_en_el_nombre)) if (rs.some(r => r.test(nom))) { col = c; break; }
@@ -395,7 +406,11 @@ const Motor = (() => {
   function capaPorClima(l, ents, ctx) {
     const id = ctx.tramo.id, grupos = id === 'T4' ? ['@capa_ligera', '@capa_media'] : id === 'T5' ? ['@capa_media', '@abrigo_frio'] : id === 'T6' || id === 'T7' ? ['@abrigo_frio'] : id === 'T3' ? ['@capa_ligera'] : id === 'T2' && (ctx.t_min < 16 || ctx.amplitud >= 10) ? ['@capa_ligera'] : null;
     if (!grupos || l.capa) return [];
-    const t = grupos.flatMap(g => R.grupos[g]), cs = ents.filter(p => t.includes(p._f.subtipo) && !PIEZAS.some(k => l[k] === p)).sort((a, b) => cercania(b, l, ctx) - cercania(a, l, ctx)).slice(0, 2);
+    const t = grupos.flatMap(g => R.grupos[g]); let cs = ents.filter(p => t.includes(p._f.subtipo) && !PIEZAS.some(k => l[k] === p));
+    // 16/11 (Gabriela: «un solo vestido para todos los eventos»): bajo techo, a un vestido se le pone su abrigo para ir y volver (gabardina o abrigo, el que el plan
+    // admite); una americana o una cazadora no bastan con frío y los vetos de frío tumbaban todos sus vestidos cortos
+    if (ctx.bajo_techo && l.vestido) { const ab = cs.filter(p => p._f.rol === 'abrigo' && !(ctx.sub_capa_no || []).includes(p._f.subtipo)); if (ab.length) cs = ab; }
+    cs = cs.sort((a, b) => cercania(b, l, ctx) - cercania(a, l, ctx)).slice(0, 2);
     return cs.map(c => ({ ...l, capa: c }));
   }
   // 06/11 (Gabriela: «¿cómo va a combinar una camiseta con un short de deporte y las alpargatas?»): la ropa de deporte (detalle «Deporte» o nombre) solo va en fórmulas de deporte
@@ -453,7 +468,10 @@ const Motor = (() => {
     // gala, teatro) se está bajo techo (unos 20°): su vestido arreglado vale aunque fuera haga frío, con la capa para ir y volver (el tramo de clima la pide)
     const bajoTecho = !!ctx.bajo_techo, dentro = { ...ctx, t_ref: Math.max(ctx.t_ref, 20) };
     ents = ents.filter(p => (vaHoy(p, ctx) || (bajoTecho && p._f.cat === 'vestido' && p._f.form >= 3 && vaHoy(p, dentro))) && (dep ? aptoDeporte(p) : !soloDeporte(p._f)));
-    const zHoy = zapatos.filter(p => p.muestra || vaHoy(p, ctx) || (bajoTecho && !ctx.lluvia && p._f.form >= 4 && vaHoy(p, dentro))); if (zHoy.length) zapatos = zHoy; // bajo techo, también sus sandalias de tacón (sin lluvia)
+    // bajo techo, también sus sandalias de tacón (sin lluvia), pero solo si no tiene un zapato de vestir cerrado que valga con el frío de hoy (16/11, Gabriela: «con frío,
+    // teniendo tacones cerrados, me propone los abiertos»)
+    const cerrado = zapatos.some(p => !p.muestra && vaHoy(p, ctx) && !p._f.abierto && !p._f.deportiva && p._f.form >= 3.5 && !(ctx.sub_calzado_no || []).includes(p._f.subtipo));
+    const zHoy = zapatos.filter(p => p.muestra || vaHoy(p, ctx) || (bajoTecho && !ctx.lluvia && !cerrado && p._f.form >= 4 && vaHoy(p, dentro))); if (zHoy.length) zapatos = zHoy;
     if (dep) zapatos = zapatos.filter(p => p.muestra || aptoDeporte(p)); // en Deporte, solo zapatillas de deporte (unas de ante no)
     const H = r => formula.huecos.filter(h => h.rol === r), salida = [], parejas = [];
     const [hv] = H('vestido');
@@ -583,13 +601,37 @@ const Motor = (() => {
     const z = l.calzado && !l.calzado.muestra ? v.compl.get(l.calzado.id) || 0 : 0;
     return (fav ? s / 2 : s) + Math.min(.04, pz * .008) + Math.min(.02, z * .004);
   }
+  /* 16/11 (Gabriela: «un solo vestido para todos los diferentes tipos de eventos, teniendo yo más»): qué vestido pide cada plan, con el protocolo de invitada
+     habitual en España (convención de estilismo; Moda lo contrasta con fuentes en su estudio): cóctel, corto o midi y liso; boda de día, corto o midi, con color
+     o estampado de fiesta, nunca blanco y mejor no negro; boda de noche y gala, largo y liso; ceremonia o funeral, hombros cubiertos y colores sobrios;
+     graduación o fiesta de día, corto o midi; restaurante elegante y teatro, mejor corto o midi que de gala. Puntos de nota (la de un look va de 0 a 1) */
+  const ETIQ = {
+    E1: { corto: .1, midi: .1, largo: -.14, diario: -.25, fiesta: -.04, liso: .04, blanco: -.04 },
+    E2: { corto: .08, midi: .1, largo: -.04, diario: -.2, fiesta: .04, blanco: -.6, negro: -.12 },
+    E3: { largo: .14, midi: .02, corto: -.1, diario: -.3, fiesta: -.08, liso: .05, blanco: -.6 },
+    E4: { largo: .16, midi: -.04, corto: -.14, diario: -.3, fiesta: -.1, liso: .06 },
+    E5: { midi: .04, diario: -.05, fiesta: -.04, hombros: -.15, vivo: -.1 },
+    E6: { corto: .06, midi: .08, largo: -.04, diario: -.04, fiesta: .04 },
+    N2: { corto: .05, midi: .06, largo: -.02, diario: -.12, liso: .03 },
+    N4: { corto: .05, midi: .06, largo: -.02, diario: -.12, liso: .03 }
+  };
+  function etiqueta(l, ctx) {
+    const v = l.vestido, E = ctx.sub && ETIQ[ctx.sub]; if (!v || v.muestra || !E) return 0;
+    const f = v._f, lg = f.subtipo === 'vestido_largo' ? 'largo' : f.subtipo === 'vestido_midi' ? 'midi' : 'corto', col = norm(f.color);
+    let s = (E[lg] || 0) + (E[f.dibujo || 'liso'] || 0);
+    if (/^(blanc|crudo|marfil)/.test(f.base || '') || ['blanco', 'crudo', 'marfil'].includes(col)) s += E.blanco || 0;
+    else if (f.base === 'negr' || col === 'negro') s += E.negro || 0;
+    if (f.hombros || ['tirantes', 'sin_mangas'].includes(f.manga)) s += E.hombros || 0;
+    if (['vivo', 'acento'].includes(f.color_clase)) s += E.vivo || 0;
+    return s;
+  }
   function evaluar(l, ctx, pf, hoy) {
     const c = camposLook(l, ctx, pf, hoy), e = entorno(l, c, ctx, pf), veto = vetar(e), pts = puntuar(l, c, e), uso = ajusteUso(l, pts, pf, hoy);
     // un look puesto ayer no es la primera idea: el peso del grupo «variedad» solo no lo baja lo bastante
     const ayer = uso.ayer && (c.dias_desde_ultimo_uso === 1 || c.dias_desde_ultimo_uso === 0) ? (c.es_favorito ? .05 : .15) : 0;
     const nota0 = pts.total + veto.p / 2, gusto = pf.ap ? gustoLook(l, pf.ap, nota0, veto) : 0, vm = pf.uso ? 0 : variedadModa(l, c, pf, hoy, nota0); // con «Cómo usas tu ropa» elegido, manda ajusteUso
     const desc = descanso(l, pf, c.es_favorito);
-    return { ...l, ctx, campos: c, veto, pts, gusto, variedad: vm, descanso: desc, nota: pts.total + uso.p + gusto + vm + veto.p / 2 - ayer - desc + huella(hoy + claveRopa(l)) * .04 + AF.nota * (PIEZAS.reduce((s, k) => s + afin(l[k]), 0) / Math.max(1, PIEZAS.filter(k => l[k]).length)), casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
+    return { ...l, ctx, campos: c, veto, pts, gusto, variedad: vm, descanso: desc, etiqueta: etiqueta(l, ctx), nota: pts.total + uso.p + gusto + vm + veto.p / 2 - ayer - desc + etiqueta(l, ctx) + huella(hoy + claveRopa(l)) * .04 + AF.nota * (PIEZAS.reduce((s, k) => s + afin(l[k]), 0) / Math.max(1, PIEZAS.filter(k => l[k]).length)), casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
   }
   function elegir(cs, n, excluir) {
     const ok = cs.filter(l => !l.veto.duros.length && !l.casi && !excluir.has(claveLook(l))).sort((a, b) => b.nota - a.nota), sel = [], usoA = new Map(), usoB = new Map(), usoF = new Map(), usoZ = new Map(), usoC = new Map(), vistos = new Set(), gemelos = new Set();
