@@ -137,13 +137,14 @@ const Motor = (() => {
     const tr = R.clima.tramos.find(x => t_ref >= x.desde) || R.clima.tramos[R.clima.tramos.length - 1];
     const lluvia = !Sb?.interior && ((tiempo.lluvia ?? 0) >= R.clima.lluvia.umbral_probabilidad || tiempo.lluviaH != null);
     return { t_ref, t_min: tmin, t_max: tmax, amplitud: tmax - tmin, lluvia, viento: v, humedad: tiempo.hum ?? 50, hora: h, ocasion: plan, evento: extra.evento || null, lugar: extra.lugar || 'normal',
-      tramo: tr, clo_min: tr.clo[0], clo_max: tr.clo[1], clo_min_menos_0_4: tr.clo[0] - .4, clo_max_mas_0_35: tr.clo[1] + .35, sol: (tiempo.uv ?? 0) >= 6, paraguas: !!extra.paraguas, ...subCtx(Sb) };
+      tramo: tr, clo_min: tr.clo[0], clo_max: tr.clo[1], clo_min_menos_0_4: tr.clo[0] - .4, clo_min_menos_1: tr.clo[0] - 1, clo_max_mas_0_35: tr.clo[1] + .35, sol: (tiempo.uv ?? 0) >= 6, paraguas: !!extra.paraguas, ...subCtx(Sb) };
   }
   /* 15/11 (Sheila, grupo, 12/11, 2135: cóctel, boda, gala, concierto de clásica, gimnasio, merienda…): la subocasión que se elige en Hoy o en el calendario.
      Los datos son de Moda (R.subocasiones, 13/11); aquí solo se pasan al contexto para que los lean los vetos SUB_ y los puntos SUB_P de reglas-looks.json.
      El nivel de arreglo de Moda va en su escala: el motor veta a más de un punto por debajo o por encima y puntúa estar dentro (±0,25). Sin subocasión, nada cambia. */
   // 15/11 (Gabriela, 2367): cóctel, bodas, gala y teatro son bajo techo: sus vestidos y sus sandalias de tacón valen aunque fuera refresque (el abrigo, para ir y volver)
-  const BAJO_TECHO = new Set(['E1', 'E2', 'E3', 'E4', 'N4']);
+  // 16/11 (Gabriela: «no me sugiere vestidos en cenas de gala»): también el restaurante elegante (N2), que es bajo techo
+  const BAJO_TECHO = new Set(['E1', 'E2', 'E3', 'E4', 'N2', 'N4']);
   function subCtx(Sb) {
     if (!Sb) return { sub: null };
     return { sub: Sb.id, bajo_techo: BAJO_TECHO.has(Sb.id), sub_form_min: Sb.form[0] - .25, sub_form_max: Sb.form[1] + .25, sub_form_duro_min: Sb.form[0] - 1, sub_form_duro_max: Sb.form[1] + 1,
@@ -443,7 +444,9 @@ const Motor = (() => {
   // de paño o sandalias a 12°. Ahora es fija: lo que está a más de 3° de su rango (el de su estación, o el de su tipo) no entra en el look de hoy.
   // 06/11 (banco de looks de Moda): a primera hora la referencia mira la mínima y una cazadora o un jersey de entretiempo pasaban en un día de 25° (looks 34, 49, 88,
   // 107, 110, 150, 191 y 195, notas 1 y 2); ahora tampoco vale si la máxima del día pasa en más de 6° la de su estación (7° si es una capa, que se quita al mediodía)
-  const vaHoy = (p, ctx) => { const f = p._f; return !((f.tmin != null && ctx.t_ref < f.tmin - 3) || (f.tmax != null && (ctx.t_ref > f.tmax + 3 || (ctx.t_max ?? ctx.t_ref) > f.tmax + (f.cat === 'capa' ? 7 : 6)))); };
+  // 16/11 (auditoría de la semana de pruebas): con frío_capas, lo de arriba y lo de abajo valen hasta 9 °C por debajo de su mínimo, porque van debajo del abrigo;
+  // y bajo techo (gala, boda, restaurante elegante), el abrigo también, porque es solo para ir y volver (el juez sigue pidiendo abrigo suficiente, V11)
+  const vaHoy = (p, ctx) => { const f = p._f, fr = (ctx.frio_capas && (f.cat === 'arriba' || f.cat === 'abajo')) || (ctx.bajo_techo && f.cat === 'capa') ? 9 : 3; return !((f.tmin != null && ctx.t_ref < f.tmin - fr) || (f.tmax != null && (ctx.t_ref > f.tmax + 3 || (ctx.t_max ?? ctx.t_ref) > f.tmax + (f.cat === 'capa' ? 7 : 6)))); };
   function rellenar(formula, ents, zapatos, ctx, pf, hoy, cacheP) {
     const dep = formula.ocasiones.includes('Deporte');
     // 15/11 (Gabriela, 2367: «en las bodas y las ceremonias, ¿por qué no pones vestido largo? Yo tengo vestido largo»): en un plan de etiqueta (cóctel, boda,
@@ -692,6 +695,18 @@ const Motor = (() => {
       res = elegir(cs, n, excluir);
       if (margen === 6) { BARATOS.add('V39'); if (!res.length) res = elegir(cs.filter(l => l.campos.arriba_fuera_grados <= 4 && l.veto.duros.every(v => v.id === 'V39')).map(l => ({ ...l, veto: { ...l.veto, duros: [] } })), Math.min(n, 3), excluir); }
       if (res.length >= Math.min(3, n) || (margen === 3 && res.length)) break;
+    }
+    // 16/11 (auditoría de la semana de pruebas): con la sensación por debajo de unos 5 °C no salía ningún look, en ningún plan, porque lo de entretiempo (mínimo 8 °C)
+    // se quedaba fuera aunque fuera debajo del abrigo. Si no sale nada con frío, se prueba otra vez con lo de arriba y lo de abajo debajo del abrigo: el juez
+    // sigue pidiendo el abrigo que haga falta (V11) y sigue vetando lo de verano y lo sin mangas (V34, V08)
+    if (!res.length && ctx0.t_ref < 8) {
+      const ctxF = { ...ctx0, frio_capas: true }, cacheP = new Map(); cs = [];
+      for (const f of formulasPosibles(ctxF, pf, plan, 6)) {
+        const ocs = plan === 'Todos' ? OC_TODOS(ctxF).filter(x => f.ocasiones.includes(x)) : [plan], ctx = plan === 'Todos' ? { ...ctxF, ocasion: ocs[0] } : ctxF;
+        const resta = plan === 'Todos' && ocs[0] !== 'Diario' && ocs[0] !== 'Noche' ? .1 : 0;
+        for (const l of rellenar(f, ropa, zapatos, ctx, pf, hoy, cacheP)) { const e = evaluar(l, ctx, pf, hoy); e.nota -= resta; cs.push(e); }
+      }
+      res = elegir(cs, n, excluir);
     }
     // 15/11: si con la subocasión no queda nada (una gala sin nada de gala en el clóset), lo más cercano que tenga, avisando (subCorto) en vez de dejarla sin ideas
     let subCorto = false;
