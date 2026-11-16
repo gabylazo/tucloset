@@ -162,11 +162,14 @@ if (AT) (() => {
   const RANGO = { A: [1.5, 3.2, 1.9], C: [.9, 1.42, 1.05], T: [.88, 1.12, 1], B: [.88, 1.12, 1], V: [.88, 1.12, 1], G: [1.2, 2.6, 1.5], Z: [1.1, 2.4, 1.35] }; // 07/11 (Gabriela: «todavía siguen habiendo espacios vacíos»): la capa, el calzado y el bolso pueden crecer más para tapar el hueco de su columna
   const ORDEN = { A: 0, C: 1, T: 2, G: 3, B: 4, V: 4, Z: 5 }, ROPA = new Set(['C', 'T', 'B', 'V']);
   function collage(ps, asp = .8) {
-    const rol = r => ps.filter(p => r.includes(p.tipo)), arriba = rol(['Arriba']), grande = rol(['Abajo', 'Vestidos'])[0], top = arriba[arriba.length - 1] || null;
+    // 16/11 (looks de playa de «Tu viaje»): el bañador o el bikini se guarda como Vestidos, pero no es el vestido del look: va al lado, con las capas, o arriba si
+    // no hay nada más arriba ni vestido (bikini y short)
+    const banoP = ps.filter(p => p.tipo === 'Vestidos' && esBano(p)), rol = r => ps.filter(p => r.includes(p.tipo) && !banoP.includes(p)), arriba = rol(['Arriba']), grande = rol(['Abajo', 'Vestidos'])[0];
+    const banoTop = !arriba.length && grande?.tipo !== 'Vestidos' ? banoP[0] : null, top = arriba[arriba.length - 1] || banoTop || null;
     if (!top && !grande) return null;
     const L = [], add = (p, r) => { const [w, h] = medidas(p), [lo, hi, pref] = RANGO[r]; L.push({ p, r, w, h, lo, hi, pref, k: ORDEN[r] }); };
     rol(['Accesorios']).slice(0, 2).forEach(p => add(p, 'A'));
-    [...rol(['Abrigo']), ...arriba.slice(0, -1)].forEach(p => add(p, 'C'));
+    [...rol(['Abrigo']), ...arriba.slice(0, -1), ...banoP.filter(p => p !== banoTop)].forEach(p => add(p, 'C'));
     if (top) add(top, 'T');
     const bolso = rol(['Bolsos'])[0]; if (bolso) add(bolso, 'G');
     if (grande) add(grande, grande.tipo === 'Vestidos' ? 'V' : 'B');
@@ -886,7 +889,11 @@ if (AT) (() => {
     const tv = await tiempoViaje(g.latitude, g.longitude, f.desde, f.dias), usos = new Map(), hechos = new Set(), plan = [];
     const poner = (fecha, w, oc, hora) => { const x = lookDeViaje(w, oc, hora, fecha, usos, hechos, f.lugar); if (!x) return; x.ids.forEach(id => usos.set(id, (usos.get(id) || 0) + 1)); hechos.add(x.ids.slice().sort().join());
       plan.push({ fecha, oc, ids: x.ids, zspec: x.zspec, como: x.como, w: { max: w.max, min: w.min, lluvia: w.lluvia, clave: w.clave } }); };
-    tv.dias.forEach((w, i) => poner(masDias(f.desde, i), w, f.motivo, 12));
+    // 16/11 (Sheila, 2432: «5-sí», que su bikini salga en los looks de playa): en un viaje de playa que no es de trabajo, los días de calor (25° o más) el look del día
+    // es el de playa (el bañador o el bikini con un vestido playero, una camisa abierta y un short, o un short, y sandalias o chanclas) mientras haya uno distinto;
+    // sin ropa de baño o sin combinaciones nuevas, el de siempre
+    const playa = w => f.lugar === 'playa' && f.motivo !== 'Oficina' && w.max >= 25;
+    tv.dias.forEach((w, i) => { const n0 = plan.length; if (playa(w)) poner(masDias(f.desde, i), w, 'Playa', 12); if (plan.length === n0) poner(masDias(f.desde, i), w, f.motivo, 12); });
     const ultimo = tv.dias.length - 1; for (const oc of f.extras) poner(masDias(f.desde, Math.max(0, ultimo - (oc === 'Evento' ? 1 : 0))), tv.dias[Math.max(0, ultimo - (oc === 'Evento' ? 1 : 0))], oc, 21);
     plan.sort((a, b) => a.fecha.localeCompare(b.fecha));
     const tmin = Math.min(...tv.dias.map(w => w.min)), tmax = Math.max(...tv.dias.map(w => w.max));

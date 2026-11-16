@@ -221,7 +221,8 @@ const Motor = (() => {
   const cumple = (si, env) => { for (const c of si) if (!una(c, env)) return false; return true; };
 
   /* ---------- 4. los campos del look ---------- */
-  const PIEZAS = ['arriba', 'base_interior', 'abajo', 'vestido', 'capa', 'calzado', 'bolso', 'accesorio'];
+  // 16/11 (Sheila, 2432: su bikini en los looks de playa): «bano» es el bañador o el bikini que va debajo en las fórmulas de playa (PLA-01 y PLA-02), solo en «Tu viaje»
+  const PIEZAS = ['arriba', 'base_interior', 'abajo', 'vestido', 'capa', 'calzado', 'bolso', 'accesorio', 'bano'];
   const diasDesde = (iso, hoy) => Math.round((Date.parse(hoy) - Date.parse(iso)) / 864e5);
   function camposLook(l, ctx, pf, hoy) {
     const ps = PIEZAS.map(k => l[k]).filter(Boolean), ropaP = ps.filter(p => !['calzado', 'bolso', 'accesorio'].includes(p._f.cat)), ropa = ropaP.map(p => p._f);
@@ -493,7 +494,7 @@ const Motor = (() => {
     for (const par0 of parejas.slice(0, MAXPAR)) {
       const par = { ...par0, formula }; delete par.n; par.como = comoDe(formula, par);
       let looks = [par], faltaHueco = null;
-      for (const r of ['capa', 'base_interior']) {
+      for (const r of ['capa', 'base_interior', 'bano']) {
         const [hc] = H(r); if (!hc) continue;
         // lo de debajo: una camisa que asoma, o una prenda neutra si de verdad hace frío (una camiseta roja bajo un jersey de rayas no aporta nada)
         // y lo de encima tiene que admitirlo: con mangas, sin hombros al aire y que sea de punto, sudadera o chaleco (07/11, Gabriela: el jersey de hombros abiertos con una camisa debajo «no tiene sentido»)
@@ -508,8 +509,8 @@ const Motor = (() => {
         // con mucho frío, también una prenda neutra lisa que ya valía por sí sola (como antes del 16/11), pero nada con volantes, encaje, transparencias o asimetrías
         const debajo = p => r !== 'base_interior' || (encima && p._f.largo !== 'crop' && (bajoOk(p) || (ents.includes(p) && !p._f.hombros && !BLUSA_NO_DEBAJO.test(norm(p.p.nombre || ''))
           && ['T5', 'T6', 'T7'].includes(ctx.tramo.id) && ['neutro', 'neutro_suave'].includes(p._f.color_clase))));
-        const cs = cands(hc, r === 'base_interior' ? paraDebajo : ents).filter(p => !PIEZAS.some(k => par[k] === p) && debajo(p)).sort((a, b) => cercania(b, par, ctx) + AF.capa * afin(b) - cercania(a, par, ctx) - AF.capa * afin(a)).slice(0, 2);
-        if (!cs.length && !hc.opcional) { faltaHueco = { rol: r, h: hc }; continue; }
+        const cs = cands(hc, r === 'base_interior' ? paraDebajo : ents).filter(p => !PIEZAS.some(k => par[k] === p) && debajo(p)).sort((a, b) => cercania(b, par, ctx) + AF.capa * afin(b) - cercania(a, par, ctx) - AF.capa * afin(a)).slice(0, r === 'bano' ? 4 : 2); // del bañador, hasta 4: decide el color
+        if (!cs.length && !hc.opcional) { if (r === 'bano') { looks = []; break; } faltaHueco = { rol: r, h: hc }; continue; } // sin bañador no hay look de playa
         looks = looks.flatMap(l => cs.map(c => ({ ...l, [r]: c })).concat(hc.opcional ? [l] : []));
       }
       looks = looks.flatMap(l => { const con = capaPorClima(l, ents, ctx); if (!con.length && !l.capa && String(ctx.tramo.capa).startsWith('obligatoria')) return [{ ...l, capa_faltante: true }]; return con.concat(con.length && String(ctx.tramo.capa).startsWith('obligatoria') ? [] : [l]); });
@@ -649,7 +650,8 @@ const Motor = (() => {
   function elegir(cs, n, excluir) {
     const ok = cs.filter(l => !l.veto.duros.length && !l.casi && !excluir.has(claveLook(l))).sort((a, b) => b.nota - a.nota), sel = [], usoA = new Map(), usoB = new Map(), usoF = new Map(), usoZ = new Map(), usoC = new Map(), vistos = new Set(), gemelos = new Set();
     // 15/11 (Gabriela, 2367): una fórmula da como mucho 2 looks; en una boda de noche o una gala, la del vestido largo da hasta 2 de cada 3 (Moda: «la mujer, vestido largo»)
-    const fMax = l => l.vestido && (l.ctx?.sub_vestido_si || []).includes(l.vestido._f.subtipo) ? Math.max(2, Math.ceil(n * 2 / 3)) : 2;
+    // 16/11: en la playa casi todo sale de una sola fórmula (vestido playero sobre el bañador), así que ahí no hay tope por fórmula
+    const fMax = l => l.ctx?.ocasion === 'Playa' ? n : l.vestido && (l.ctx?.sub_vestido_si || []).includes(l.vestido._f.subtipo) ? Math.max(2, Math.ceil(n * 2 / 3)) : 2;
     // tres pasadas: 1) todo distinto; 2) se puede repetir zapato, chaqueta o la de abajo, pero no la prenda de arriba ni el vestido (15/11, Gabriela, 2367: «tienes que ser
     // más variada»; la gala repetía el vestido beige teniendo seis largos); 3) si aún faltan, también la de arriba
     for (const fase of [1, 2, 3]) for (const l of ok) {
@@ -669,7 +671,7 @@ const Motor = (() => {
   const ocasionesDe = p => { const f0 = ficha(p, {}), e = [{ id: p.id, p, _f: f0 }];
     if (f0.cat === 'bolso') return [...(grupo('@bolso_dia').includes(f0.subtipo) ? ['Diario', 'Oficina', 'Viaje'] : []), ...(grupo('@bolso_noche').includes(f0.subtipo) ? ['Noche', 'Evento'] : [])]; // 06/11: complementos
     if (f0.subtipo === 'cinturon') return ['Diario', 'Oficina', 'Noche', 'Evento'];
-    return [...new Set(F.formulas.filter(f => (!soloDeporte(f0) || f.ocasiones.includes('Deporte')) && f.huecos.some(h => cands(h, e).length)).flatMap(f => f.ocasiones))].filter(o => !(f0.form < (R.ocasiones[o]?.form_media_min ?? 0) - .5)); };
+    return [...new Set(F.formulas.filter(f => (!soloDeporte(f0) || f.ocasiones.includes('Deporte')) && f.huecos.some(h => cands(h, e).length)).flatMap(f => f.ocasiones))].filter(o => o !== 'Playa' && !(f0.form < (R.ocasiones[o]?.form_media_min ?? 0) - .5)); };
   const claveLook = l => PIEZAS.map(k => l[k]).filter(p => p && !p.muestra).map(p => p.id).sort().join();
 
   /* ---------- 6. fórmulas posibles, qué falta y la llamada de la app ---------- */
@@ -716,7 +718,8 @@ const Motor = (() => {
     const t0 = Date.now(), hoy = o.hoy || new Date().toISOString().slice(0, 10), plan = sb ? sb.oc : o.plan || 'Todos', n = o.n || 6, pf = perfilMotor(o.perfil, o), excluir = new Set(o.excluir || []);
     const ctx0 = contexto(o.tiempo, plan, { hora: o.hora ?? sb?.hora, t_ref: o.t_ref, evento: o.evento || sb?.evento, lugar: o.lugar || sb?.lugar, sub: sb?.id });
     const ents = (o.prendas || []).filter(p => !p.noMeGusta).map(p => ({ id: p.id, p, _f: ficha(p, pf) }));
-    COMPL = !!o.complementos; MAXPAR = o.parejas || 12; pf.ap = aprendido(pf.gustos, ents, hoy);
+    // 16/11: en la playa (solo «Tu viaje»), sin los complementos de ciudad (cinturón, pañuelo, joyas, bolso)
+    COMPL = !!o.complementos && plan !== 'Playa'; MAXPAR = o.parejas || 12; pf.ap = aprendido(pf.gustos, ents, hoy);
     pf.vis = null; for (const x of o.perfil?.vistos || []) { const d = diasDesde(x.d, hoy); if (!(d >= 1 && d <= 3)) continue; // los 3 días anteriores a hoy
       const v = pf.vis = pf.vis || { looks: new Map(), prendas: new Map(), compl: new Map() };
       for (const k of x.k || []) { if (!v.looks.has(k) || v.looks.get(k) > d) v.looks.set(k, d); for (const id of k.split(',')) v.prendas.set(id, (v.prendas.get(id) || 0) + 1); }
@@ -734,7 +737,9 @@ const Motor = (() => {
     const vale = x => !sb || !(x._f.cat === 'capa' && (sb.capa_no || []).includes(x._f.subtipo)) && !(x._f.cat === 'abajo' && ((sb.abajo_no || []).includes(x._f.subtipo) || (sb.abajo_si && !sb.abajo_si.includes(x._f.subtipo))))
       && !(x._f.cat === 'calzado' && ((sb.calzado_no || []).includes(x._f.subtipo) || (sb.tacon_no || []).includes(x._f.tacon)));
     if (sb) ropa = ropa.filter(vale);
-    const susZ = propios.filter(vale), zapatos = susZ.length ? susZ : sb ? [...ZV, ...ZV_SUB].filter(vale) : propios.length ? propios : ZV;
+    const susZ = propios.filter(vale); let zapatos = susZ.length ? susZ : sb ? [...ZV, ...ZV_SUB].filter(vale) : propios.length ? propios : ZV;
+    // 16/11 (looks de playa de «Tu viaje»): solo sandalias planas, chanclas o alpargatas; las suyas y, si no tiene, las de muestra (unas zapatillas no van a la playa)
+    if (plan === 'Playa') { const pz = p => ['sandalias_planas', 'chanclas', 'alpargatas'].includes(p._f.subtipo) && !(p._f.tacon_num >= 2), suyas = propios.filter(pz); zapatos = suyas.length ? suyas : ZV.filter(pz); }
     if (ents.length > 150) { // clóset enorme: se forman parejas con lo menos puesto últimamente
       const reciente = x => (x.p.usos || []).reduce((m, u) => u > m ? u : m, ''), poco = (tipo, n) => ropa.filter(x => x.p.tipo === tipo).sort((a, b) => reciente(a).localeCompare(reciente(b))).slice(0, n);
       ropa = [...poco('Arriba', 40), ...poco('Abajo', 25), ...ropa.filter(x => !['Arriba', 'Abajo'].includes(x.p.tipo))];
@@ -871,7 +876,7 @@ const Motor = (() => {
   const zapatoDe = l => { const c = l.calzado; if (!c || !c.muestra) return null; const f = c._f; return { muestra: c.muestra, tipo: f.subtipo, color: f.color.toLowerCase(), tacon: f.tacon, ...(l.ctx.sub ? { sub: l.ctx.sub } : {}) }; };
   // la propuesta tal y como la pinta la app: los ids de las prendas reales, el zapato de muestra si hace falta y cómo se lleva la de arriba
   function aPropuesta(l) {
-    const ps = ['capa', 'arriba', 'base_interior', 'abajo', 'vestido', 'calzado', 'bolso', 'accesorio', 'accesorio2', 'joya'].map(k => l[k]).filter(p => p && !p.muestra);
+    const ps = ['capa', 'arriba', 'base_interior', 'abajo', 'vestido', 'bano', 'calzado', 'bolso', 'accesorio', 'accesorio2', 'joya'].map(k => l[k]).filter(p => p && !p.muestra);
     return { ids: ps.map(p => p.id), ocasion: l.ctx.ocasion, formula: l.formula?.id, estilos: l.formula?.estilos || [], fmedia: l.campos?.form_media, nombre: l.formula?.nombre, porque: l.formula?.porque, como: l.campos.como === 'por_dentro' ? 'por dentro' : l.campos.como, zspec: zapatoDe(l), faltaCapa: !!l.faltaCapa, capaFalta: l.faltaCapa ? capaQueFalta(l) : null, nota: l.nota };
   }
   /* 08/11 (Gabriela: «uno escanea piezas en tiendas y que la app le diga un porcentaje de utilidad, es decir, si tendría muchas combinaciones en su clóset»):

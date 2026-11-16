@@ -123,7 +123,7 @@ function traducir() {
 const tipoNombre = tp => ({ Arriba: ['Tops', 'Tops'], Abajo: ['Pantalones y faldas', 'Trousers and skirts'], // 0.77 (Gabriela: «una de arriba, una de abajo: esto es feo decirlo así»)
   Vestidos: ['Vestidos', 'Dresses'], Abrigo: ['Abrigo', 'Outerwear'], Calzado: ['Calzado', 'Shoes'], Bolsos: ['Bolsos', 'Bags'], Accesorios: ['Accesorios', 'Accessories'], Todo: ['Todo', 'All'] }[tp] || [tp, tp])[idioma() === 'en' ? 1 : 0];
 const estNombre = e => ({ 'Todo el año': ['Todo el año', 'All year'], Verano: ['Verano', 'Summer'], Entretiempo: ['Entretiempo', 'In-between'], Invierno: ['Invierno', 'Winter'] }[e] || [e, e])[idioma() === 'en' ? 1 : 0];
-const ocNombre = o => ({ Diario: ['Diario', 'Everyday'], Oficina: ['Oficina', 'Office'], Noche: ['Noche', 'Night'], Deporte: ['Deporte', 'Sport'], Evento: ['Evento', 'Event'], Viaje: ['Viaje', 'Travel'] }[o] || [o, o])[idioma() === 'en' ? 1 : 0];
+const ocNombre = o => ({ Diario: ['Diario', 'Everyday'], Oficina: ['Oficina', 'Office'], Noche: ['Noche', 'Night'], Deporte: ['Deporte', 'Sport'], Evento: ['Evento', 'Event'], Viaje: ['Viaje', 'Travel'], Playa: ['Playa', 'Beach'] }[o] || [o, o])[idioma() === 'en' ? 1 : 0];
 const veces = n => `${n} ${n === 1 ? t('vez', 'time') : t('veces', 'times')}`;
 const fecha = (iso, corta) => { if (!iso) return '—'; const d = new Date(iso); return d.toLocaleDateString(idioma() === 'en' ? 'en-GB' : 'es-ES', corta ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'long' }); };
 
