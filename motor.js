@@ -462,11 +462,15 @@ const Motor = (() => {
   // 16/11 (auditoría de la semana de pruebas): con frío_capas, lo de arriba y lo de abajo valen hasta 9 °C por debajo de su mínimo, porque van debajo del abrigo;
   // y bajo techo (gala, boda, restaurante elegante), el abrigo también, porque es solo para ir y volver (el juez sigue pidiendo abrigo suficiente, V11)
   const vaHoy = (p, ctx) => { const f = p._f, fr = (ctx.frio_capas && (f.cat === 'arriba' || f.cat === 'abajo')) || (ctx.bajo_techo && f.cat === 'capa') ? 9 : 3; return !((f.tmin != null && ctx.t_ref < f.tmin - fr) || (f.tmax != null && (ctx.t_ref > f.tmax + 3 || (ctx.t_max ?? ctx.t_ref) > f.tmax + (f.cat === 'capa' ? 7 : 6)))); };
+  const BLUSA_NO_DEBAJO = /volant|encaje|transparen|abullon|peplum|campana|acampanad|fruncid|drapead|cruzad|asimetric|lentejuel|brillo|saten|un hombro/;
   function rellenar(formula, ents, zapatos, ctx, pf, hoy, cacheP) {
     const dep = formula.ocasiones.includes('Deporte');
     // 15/11 (Gabriela, 2367: «en las bodas y las ceremonias, ¿por qué no pones vestido largo? Yo tengo vestido largo»): en un plan de etiqueta (cóctel, boda,
     // gala, teatro) se está bajo techo (unos 20°): su vestido arreglado vale aunque fuera haga frío, con la capa para ir y volver (el tramo de clima la pide)
     const bajoTecho = !!ctx.bajo_techo, dentro = { ...ctx, t_ref: Math.max(ctx.t_ref, 20) };
+    // 16/11 (capas): la prenda de debajo va bajo un jersey o un vestido y con abrigo, así que su mínimo de temperatura no cuenta (una blusa es de 14° si va sola);
+    // solo que no sea de calor (tmax)
+    const paraDebajo = formula.huecos.some(h => h.rol === 'base_interior') ? ents.filter(p => p._f.cat === 'arriba' && !soloDeporte(p._f) && !(p._f.tmax != null && ctx.t_ref > p._f.tmax + 3)) : [];
     ents = ents.filter(p => (vaHoy(p, ctx) || (bajoTecho && p._f.cat === 'vestido' && p._f.form >= 3 && vaHoy(p, dentro))) && (dep ? aptoDeporte(p) : !soloDeporte(p._f)));
     // bajo techo, también sus sandalias de tacón (sin lluvia), pero solo si no tiene un zapato de vestir cerrado que valga con el frío de hoy (16/11, Gabriela: «con frío,
     // teniendo tacones cerrados, me propone los abiertos»)
@@ -494,8 +498,17 @@ const Motor = (() => {
         // lo de debajo: una camisa que asoma, o una prenda neutra si de verdad hace frío (una camiseta roja bajo un jersey de rayas no aporta nada)
         // y lo de encima tiene que admitirlo: con mangas, sin hombros al aire y que sea de punto, sudadera o chaleco (07/11, Gabriela: el jersey de hombros abiertos con una camisa debajo «no tiene sentido»)
         const fA = par.arriba?._f, encima = !fA || (!fA.hombros && (String(fA.subtipo).startsWith('chaleco') || !['sin_mangas', 'tirantes'].includes(fA.manga)) && (R.grupos['@punto'].includes(fA.subtipo) || ['cardigan', 'sudadera', 'chaleco_punto', 'chaleco_traje'].includes(fA.subtipo)));
-        const debajo = p => r !== 'base_interior' || (encima && p._f.largo !== 'crop' && (p._f.subtipo === 'camisa' || (['T5', 'T6', 'T7'].includes(ctx.tramo.id) && ['neutro', 'neutro_suave'].includes(p._f.color_clase))));
-        const cs = cands(hc, ents).filter(p => !PIEZAS.some(k => par[k] === p) && debajo(p)).sort((a, b) => cercania(b, par, ctx) + AF.capa * afin(b) - cercania(a, par, ctx) - AF.capa * afin(a)).slice(0, 2);
+        // 16/11 (sí de Gabriela al punto 3; lo pidió Sheila, 2192: looks con capas): además de la camisa, una blusa lisa de manga larga (sin volantes, encaje,
+        // transparencias ni mangas de volumen, que no caben bajo un jersey) y un cuello alto que no sea grueso, este solo bajo un cárdigan, un chaleco, un vestido
+        // o una americana (dos jerséis o dos cuellos, no)
+        const bajoOk = p => { const f = p._f; if (f.subtipo === 'camisa') return true;
+          if (f.subtipo === 'blusa') return f.estampado === 'liso' && f.manga === 'larga' && !f.hombros && !BLUSA_NO_DEBAJO.test(norm(p.p.nombre || ''));
+          if (f.subtipo === 'jersey_cuello_alto') return f.grosor !== 'grueso' && !(fA && ['jersey', 'jersey_cuello_alto', 'sudadera'].includes(fA.subtipo));
+          return false; };
+        // con mucho frío, también una prenda neutra lisa que ya valía por sí sola (como antes del 16/11), pero nada con volantes, encaje, transparencias o asimetrías
+        const debajo = p => r !== 'base_interior' || (encima && p._f.largo !== 'crop' && (bajoOk(p) || (ents.includes(p) && !p._f.hombros && !BLUSA_NO_DEBAJO.test(norm(p.p.nombre || ''))
+          && ['T5', 'T6', 'T7'].includes(ctx.tramo.id) && ['neutro', 'neutro_suave'].includes(p._f.color_clase))));
+        const cs = cands(hc, r === 'base_interior' ? paraDebajo : ents).filter(p => !PIEZAS.some(k => par[k] === p) && debajo(p)).sort((a, b) => cercania(b, par, ctx) + AF.capa * afin(b) - cercania(a, par, ctx) - AF.capa * afin(a)).slice(0, 2);
         if (!cs.length && !hc.opcional) { faltaHueco = { rol: r, h: hc }; continue; }
         looks = looks.flatMap(l => cs.map(c => ({ ...l, [r]: c })).concat(hc.opcional ? [l] : []));
       }
