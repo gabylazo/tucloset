@@ -2676,8 +2676,8 @@ const REGLAS_FOTO = [
 ];
 const reglasFoto = () => `<details class="s-reglas"><summary>${t('Cómo hacer una buena foto', 'How to take a good photo')}</summary><ol>${REGLAS_FOTO.map(r => `<li><b>${t(r[0], r[2])}</b>${t(r[1], r[3])}</li>`).join('')}</ol></details>`;
 // 03/11 (Gabriela: «tengo 29» en el móvil y 25 en la cuenta; va a subir toda su ropa): sin cuenta abierta, o en el clóset de pruebas, lo subido se queda solo en este móvil; se avisa antes de subir
-// 16/11 (Gabriela: «deben saberlo, aunque puedes ponerlo en la app cuando vayan a subir su primera foto»): la primera vez el móvil baja el reconocedor (unos 50 MB)
-const avisoWifi = () => { let ya = false; try { ya = localStorage.tc_modelos === '1'; } catch (e) { } return ya ? '' : `<p class="s-fondo">${t('La primera vez que subes ropa, la app se baja unos 50 MB para reconocerla: mejor con wifi.', 'The first time you add clothes, the app downloads about 50 MB to recognise them: best on wifi.')}</p>`; };
+// 16/11 (Gabriela: «deben saberlo, aunque puedes ponerlo en la app cuando vayan a subir su primera foto»; «de forma profesional, nada de textos enormes»): la primera vez el móvil baja el reconocedor (unos 50 MB)
+const avisoWifi = () => { let ya = false; try { ya = localStorage.tc_modelos === '1'; } catch (e) { } return ya ? '' : `<p class="s-fondo">${t('La primera subida descarga unos 50 MB: mejor con wifi.', 'First upload downloads about 50 MB: best on wifi.')}</p>`; };
 function avisoSinNube() {
   if (enGratis() && E.prendas.length >= TOPE_GRATIS) return `<div class="s-aviso s-nube"><b>${t(`En la versión gratis caben ${TOPE_GRATIS} prendas`, `The free version holds ${TOPE_GRATIS} garments`)}</b><span>${t('Tu ropa sigue guardada en tu cuenta. Con Básico o Pro no hay tope.', 'Your clothes stay saved in your account. Basic and Pro have no limit.')}</span><div><button class="boton" data-ir="yo">${t('Ver las versiones', 'See the versions')}</button></div></div>`;
   if (!NUBE) return '';
