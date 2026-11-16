@@ -2031,13 +2031,15 @@ function eventosDe(d) {
   const a = E.agenda[d] || {}, dow = new Date(d + 'T12:00').getDay(), sin = a.sin || [];
   const fijos = (E.perfil?.fijos || []).filter(f => f.dias.includes(dow) && !sin.includes(f.id) && (!f.desde || d >= f.desde) && (!f.hasta || d <= f.hasta)).map(f => ({ id: f.id, nombre: f.nombre, oc: f.oc, hora: f.hora || '', fijo: true, url: f.url, desc: f.desc, lugar: f.lugar, sub: f.sub, ref: f }));
   const sueltos = (a.planes || []).map((p, i) => ({ id: p.id || 'p' + i, i, nombre: p.nombre || '', oc: p.oc, hora: p.hora || HORA_FR[p.fr] || '', deHoy: p.deHoy, url: p.url, desc: p.desc, lugar: p.lugar, sub: p.sub, ref: p }));
-  return [...fijos, ...sueltos].sort((x, y) => (x.hora || '99').localeCompare(y.hora || '99'));
+  return [...fijos, ...sueltos].sort((x, y) => (horaEv(x) || '99').localeCompare(horaEv(y) || '99'));
 }
+// 16/11: un plan de todo el día (los días de un viaje) cuenta como de las 17:00 para el orden y para saber cuál toca: hasta entonces sale el del día y después el de la noche
+const horaEv = e => e.hora || (e.ref?.dia ? '17:00' : '');
 function lookDe(d, ev) { const a = E.agenda[d] || {}, ids = a.looks?.[ev.id] || (a.look && eventosDe(d)[0]?.id === ev.id ? a.look : null); return ids?.length && ids.every(P) ? ids : null; }
 function eventoAhora() { // el evento de hoy que toca: el próximo (o el que acaba de empezar); si ya pasaron todos, el último
   const d = diaISO(new Date()), evs = eventosDe(d); if (!evs.length) return null;
   const n = new Date(), ya = `${String(Math.max(0, n.getHours() - 1)).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
-  return evs.find(e => e.deHoy) || evs.find(e => !e.hora || e.hora >= ya) || evs[evs.length - 1]; // lo que eligió en Hoy manda
+  return evs.find(e => e.deHoy) || evs.find(e => !horaEv(e) || horaEv(e) >= ya) || evs[evs.length - 1]; // lo que eligió en Hoy manda
 }
 const nomEv = ev => ev.nombre || ocNombre(ev.oc);
 // 15/11 (Sheila, grupo, 12/11, 2135: «cóctel, boda, gala, velada, concierto de clásica; deporte al aire libre o en el gimnasio; cena con amigos, merienda,
@@ -4648,7 +4650,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
-  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
+  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => window.viajesAlCalendario?.()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
