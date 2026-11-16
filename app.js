@@ -3552,7 +3552,8 @@ function pintarPanelYo() {
     grupoP(t('Tu cuenta', 'Your account'),
       (NUBE ? filaP({ attr: 'data-ir="cuenta"', ic: 'cuenta', tit: t('Cuenta', 'Account'), val: c ? (c.correo || '') : t('Entrar o crear', 'Sign in or create') }) : '')
       + filaP({ id: 'yo-plan-info', ic: 'plan', tit: t('Plan', 'Plan'), val: socia() ? nomPlan(planDemo()) : 'Pro', oro: true }) // 16/11 (Gabriela: «queremos que sea plan Pro, no gratis»)
-      + (NUBE ? filaP({ id: 'yo-pareja', ic: 'pareja', tit: t('Pareja', 'Partner'), val: c && LS.get('tc_pareja') ? escH(LS.get('tc_pareja')) : '' }) : ''),
+      // 16/11 (Gabriela: «lo de pareja ya sale en Looks, ¿por qué ponerlo de nuevo en Ajustes?»): fuera de Ajustes; se enlaza y se gestiona en Looks → En pareja
+      + '',
       enGratis() && E.prendas.length > TOPE_GRATIS ? t(`En la gratis se ven ${TOPE_GRATIS} prendas. Las otras ${E.prendas.length - TOPE_GRATIS} siguen guardadas en tu cuenta.`, `The free version shows ${TOPE_GRATIS} garments. The other ${E.prendas.length - TOPE_GRATIS} stay saved in your account.`) : '')
     + grupoP(t('La app', 'The app'),
       filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
@@ -3723,7 +3724,7 @@ async function pintarPareja(cap, codigo) {
     return;
   }
   z.innerHTML = intro + (codigo ? `<div class="pn-par-cod"><p class="pn-par-n" aria-label="${t('Tu código', 'Your code')}: ${codigo.split('').join(' ')}">${codigo}</p>
-      <p class="pn-nota">${t('Dáselo a tu pareja: lo escribe en su TuCloset, en Ajustes → Pareja. Vale 24 horas.', 'Give it to your partner: they type it in their TuCloset, in Settings → Partner. Valid for 24 hours.')}</p>
+      <p class="pn-nota">${t('Dáselo a tu pareja: lo escribe en su TuCloset, en Looks → Ideas → En pareja. Vale 24 horas.', 'Give it to your partner: they type it in their TuCloset, in Looks → Ideas → As a couple. Valid for 24 hours.')}</p>
       <button class="boton linea" id="pn-par-copiar">${t('Copiar el código', 'Copy the code')}</button></div>`
       : `<button class="boton" id="pn-par-crear">${t('Crear un código', 'Create a code')}</button>`)
     + `<label class="pn-campo"><span>${t('¿Te han dado un código?', 'Have you been given a code?')}</span><input id="pn-par-in" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="8" placeholder="${t('Por ejemplo, K7M2QX', 'For example, K7M2QX')}"></label>
@@ -3793,7 +3794,7 @@ async function panelPrivacidad() {
       <li>${icY('nube')}<span>${c ? t('Tus prendas, sus fotos, tus looks y tu calendario se guardan en tu cuenta para verlos en cualquier móvil.', 'Your garments, their photos, your looks and your calendar are kept in your account so you can see them on any phone.') : t('Sin cuenta, todo se queda en este móvil.', 'Without an account, everything stays on this phone.')}</span></li>
       <li>${icY('camara')}<span>${E.perfil?.fotosCuenta ? t('Tu selfie y tu foto de cuerpo se guardan en tu cuenta, privadas, porque así lo elegiste. Lo cambias en Yo → Tus medidas y fotos.', 'Your selfie and body photo are kept in your account, private, because you chose so. Change it in Me → Your measurements and photos.') : t('Tu selfie y tu foto de cuerpo se quedan en este móvil.', 'Your selfie and body photo stay on this phone.')} ${t('Si creas tu avatar, se envían a Google (Gemini) para hacerlo, y tu avatar y tu cara, cada vez que te pruebas un look.', 'If you create your avatar, they are sent to Google (Gemini) to make it, and your avatar and face each time you try on a look.')}</span></li>
       <li>${icY('percha')}<span>${t('Para quitar el fondo de tu ropa y hacer la foto de catálogo, la foto de la prenda pasa por nuestro servidor y por la IA de imagen de Google.', 'To remove the background of your clothes and make the catalogue photo, the garment photo goes through our server and Google’s image AI.')}</span></li>
-      ${c && LS.get('tc_pareja') ? `<li>${icY('pareja')}<span>${t('Tu pareja ve tus prendas y sus fotos para combinar looks con los suyos. Tus medidas, tus fotos y tu diagnóstico, no. Lo quitas en Ajustes → Pareja.', 'Your partner sees your garments and their photos to match looks with theirs. Not your measurements, photos or analysis. Turn it off in Settings → Partner.')}</span></li>` : ''}
+      ${c && LS.get('tc_pareja') ? `<li>${icY('pareja')}<span>${t('Tu pareja ve tus prendas y sus fotos para combinar looks con los suyos. Tus medidas, tus fotos y tu diagnóstico, no. Lo quitas en Looks → Ideas → En pareja.', 'Your partner sees your garments and their photos to match looks with theirs. Not your measurements, photos or analysis. Turn it off in Looks → Ideas → As a couple.')}</span></li>` : ''}
       <li>${icY('ciudad')}<span>${t('Tu ciudad o tu ubicación solo se usan para darte el tiempo.', 'Your city or location is only used for the weather.')}</span></li>
       <li>${icY('info')}<span>${t('Si llegas desde un enlace nuestro en una red social, contamos esa visita: solo el día y la red, sin cookies ni nada tuyo.', 'If you arrive from one of our links on social media, we count that visit: only the day and the network, with no cookies and nothing about you.')}</span></li></ul>`)
     + grupoP(t('Lo que nos has permitido', 'What you have allowed'), filaP({ id: 'pv-pdiag', ic: 'camara', tit: t('Analizar tus fotos y medidas', 'Analyse your photos and measurements'), val: permiso('diag') ? t('Sí', 'Yes') : t('No', 'No') })

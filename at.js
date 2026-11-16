@@ -1124,7 +1124,8 @@ if (AT) (() => {
       ${vacio ? `<p class="at-vj-sub">${vacio}</p>` : `<div class="at-par-pares">${R.pares.map((p, i) => `<section class="at-par-par" aria-label="${t('Pareja de looks', 'Pair of looks')} ${i + 1}">
         <div class="at-rej2"><figure class="at-t">${baldosa(p.a.ps, TW, TH, ` data-parlook="${i}" aria-label="${t('Tu look', 'Your look')}"`)}<figcaption>${t('Tú', 'You')}</figcaption></figure>
         <figure class="at-t">${baldosaFija(p.b.ps, TW, TH, t(`Look de ${quien}`, `${quien}’s look`))}<figcaption>${Q}</figcaption></figure></div>
-        ${p.por ? `<p class="at-par-por">${p.por}</p>` : ''}</section>`).join('')}</div>`}`;
+        ${p.por ? `<p class="at-par-por">${p.por}</p>` : ''}</section>`).join('')}</div>`}
+      <p class="at-enlaces"><button class="at-enlace" data-parajustes>${t('Gestionar el enlace', 'Manage the link')}</button></p>`; // 16/11 (Gabriela: «lo de pareja ya sale en Looks, ¿por qué ponerlo de nuevo en Ajustes?»): se gestiona desde aquí
     deslizable(cap.querySelector('.at-par-ocs'));
     const on = cap.querySelector('.at-par-ocs .on'); if (on) requestAnimationFrame(() => on.scrollIntoView({ block: 'nearest', inline: 'center' }));
   }
