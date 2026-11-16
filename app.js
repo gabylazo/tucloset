@@ -2392,7 +2392,7 @@ function yaSinFondo(img) {
 // compara la foto con 48 descripciones de prendas calculadas antes (modelos/ropa-textos.json); con las 24 fotos de Sheila acierta 23
 let SES_ROPA = null, TXT_ROPA = null;
 async function reconocerPrenda(cv) {
-  if (!SES_ROPA) { await modeloRecorte(); [SES_ROPA, TXT_ROPA] = await Promise.all([ort.InferenceSession.create('modelos/ropa-mobileclip-s0.onnx', { executionProviders: ['wasm'] }), fetch('modelos/ropa-textos.json').then(r => r.json())]); }
+  if (!SES_ROPA) { await modeloRecorte(); [SES_ROPA, TXT_ROPA] = await Promise.all([ort.InferenceSession.create('modelos/ropa-mobileclip-s0.onnx', { executionProviders: ['wasm'] }), fetch('modelos/ropa-textos.json').then(r => r.json())]); try { localStorage.tc_modelos = '1'; } catch (e) { } }
   const S = 256, c = document.createElement('canvas'); c.width = S; c.height = S; const x = c.getContext('2d', { willReadFrequently: true });
   x.fillStyle = '#fff'; x.fillRect(0, 0, S, S); const e = Math.min(S / cv.width, S / cv.height); x.drawImage(cv, (S - cv.width * e) / 2, (S - cv.height * e) / 2, cv.width * e, cv.height * e);
   const d = x.getImageData(0, 0, S, S).data, ent = new Float32Array(3 * S * S);
@@ -2676,6 +2676,8 @@ const REGLAS_FOTO = [
 ];
 const reglasFoto = () => `<details class="s-reglas"><summary>${t('Cómo hacer una buena foto', 'How to take a good photo')}</summary><ol>${REGLAS_FOTO.map(r => `<li><b>${t(r[0], r[2])}</b>${t(r[1], r[3])}</li>`).join('')}</ol></details>`;
 // 03/11 (Gabriela: «tengo 29» en el móvil y 25 en la cuenta; va a subir toda su ropa): sin cuenta abierta, o en el clóset de pruebas, lo subido se queda solo en este móvil; se avisa antes de subir
+// 16/11 (Gabriela: «deben saberlo, aunque puedes ponerlo en la app cuando vayan a subir su primera foto»): la primera vez el móvil baja el reconocedor (unos 50 MB)
+const avisoWifi = () => { let ya = false; try { ya = localStorage.tc_modelos === '1'; } catch (e) { } return ya ? '' : `<p class="s-fondo">${t('La primera vez que subes ropa, la app se baja unos 50 MB para reconocerla: mejor con wifi.', 'The first time you add clothes, the app downloads about 50 MB to recognise them: best on wifi.')}</p>`; };
 function avisoSinNube() {
   if (enGratis() && E.prendas.length >= TOPE_GRATIS) return `<div class="s-aviso s-nube"><b>${t(`En la versión gratis caben ${TOPE_GRATIS} prendas`, `The free version holds ${TOPE_GRATIS} garments`)}</b><span>${t('Tu ropa sigue guardada en tu cuenta. Con Básico o Pro no hay tope.', 'Your clothes stay saved in your account. Basic and Pro have no limit.')}</span><div><button class="boton" data-ir="yo">${t('Ver las versiones', 'See the versions')}</button></div></div>`;
   if (!NUBE) return '';
@@ -2697,7 +2699,7 @@ function pintarSubida() {
   const n = E.subida.length, raiz = $('s-raiz'), X = `<button class="x" data-ir="closet" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>`;
   const mas = (txt, cls) => `<label class="${cls}">${txt}<input type="file" accept="image/*" multiple data-sfotos></label>`;
   const det = n === 1 ? E.subida[0] : E.subida.find(i => i.id === E.sDet);
-  if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Hasta 20 fotos a la vez, una prenda en cada una', 'Up to 20 photos at once, one garment in each')}</div></div>${avisoSinNube()}<div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div><p class="consejo">${t('La app quita el fondo y te propone tipo y color.', 'The app removes the background and suggests type and colour.')}</p>${reglasFoto()}<div class="bts"><label class="boton">${t('Hacer una foto', 'Take a photo')}<input type="file" accept="image/*" capture="environment" data-sfotos></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}<span class="txt">${t('Hasta 20 a la vez', 'Up to 20 at a time')}</span></div></div>`;
+  if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Hasta 20 fotos a la vez, una prenda en cada una', 'Up to 20 photos at once, one garment in each')}</div></div>${avisoSinNube()}${avisoWifi()}<div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div><p class="consejo">${t('La app quita el fondo y te propone tipo y color.', 'The app removes the background and suggests type and colour.')}</p>${reglasFoto()}<div class="bts"><label class="boton">${t('Hacer una foto', 'Take a photo')}<input type="file" accept="image/*" capture="environment" data-sfotos></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}<span class="txt">${t('Hasta 20 a la vez', 'Up to 20 at a time')}</span></div></div>`;
   else if (det) {
     const i = E.subida.indexOf(det), listo = det.estado === 'listo';
     const ops = (lista, sel, k, nom) => `<div class="ops">${lista.map(x => `<button type="button" class="${x === sel ? 'on' : ''}" data-s${k}="${x}">${nom(x)}</button>`).join('')}</div>`;
