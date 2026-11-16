@@ -740,6 +740,8 @@ const Motor = (() => {
     const susZ = propios.filter(vale); let zapatos = susZ.length ? susZ : sb ? [...ZV, ...ZV_SUB].filter(vale) : propios.length ? propios : ZV;
     // 16/11 (looks de playa de «Tu viaje»): solo sandalias planas, chanclas o alpargatas; las suyas y, si no tiene, las de muestra (unas zapatillas no van a la playa)
     if (plan === 'Playa') { const pz = p => ['sandalias_planas', 'chanclas', 'alpargatas'].includes(p._f.subtipo) && !(p._f.tacon_num >= 2), suyas = propios.filter(pz); zapatos = suyas.length ? suyas : ZV.filter(pz); }
+    // 16/11 (Gabriela: «¿cómo para diario me propones un pantalón, tacones, gabardina y camisa?»): Diario sin matiz va sin tacones; el tacón es de Cena con amigos o de una comida formal
+    if (plan === 'Diario' && !sb) { const pl = p => !['tacones', 'sandalias_tacon'].includes(p._f.subtipo) && !(p._f.tacon_num >= 2), suyos = zapatos.filter(pl); zapatos = suyos.length ? suyos : ZV.filter(pl); }
     if (ents.length > 150) { // clóset enorme: se forman parejas con lo menos puesto últimamente
       const reciente = x => (x.p.usos || []).reduce((m, u) => u > m ? u : m, ''), poco = (tipo, n) => ropa.filter(x => x.p.tipo === tipo).sort((a, b) => reciente(a).localeCompare(reciente(b))).slice(0, n);
       ropa = [...poco('Arriba', 40), ...poco('Abajo', 25), ...ropa.filter(x => !['Arriba', 'Abajo'].includes(x.p.tipo))];
@@ -869,7 +871,10 @@ const Motor = (() => {
       if (duros.length && !capa) { if (deTiempo.length < 2) deTiempo.push({ ...v, aviso: duros.some(x => RC_FRIO.has(x)) ? 'frio' : duros.includes('V14') ? 'lluvia' : duros.includes('V34') ? 'estacion' : 'calor' }); continue; }
       vistas.add(clave); versiones.push({ ...v, adaptado: !versiones.length && primera === 'tiempo' });
     }
-    return { versiones: versiones.length ? versiones : deTiempo, faltan, ocasion: plan };
+    // 16/11 (Gabriela: «puse un outfit para recrearlo que tenía unos tacones negros y me ha propuesto unas sandalias marrones bajas teniendo yo varios modelos de tacones»):
+    // si a la más parecida solo la frena el tiempo de hoy, sale primero (con su aviso, para guardarla) y detrás la adaptada a hoy
+    const fiel = primera === 'tiempo' && versiones.length && deTiempo.length ? [deTiempo[0]] : [];
+    return { versiones: versiones.length ? [...fiel, ...versiones].slice(0, 4) : deTiempo, faltan, ocasion: plan };
   }
   const capaQueFalta = l => { const tr = l.ctx.tramo; if (String(tr.capa).startsWith('obligatoria')) return tr.id === 'T4' ? 'chaqueta' : 'abrigo'; return l.hueco_faltante ? nombreTipo(tiposDe(l.hueco_faltante.h)[0]) : 'abrigo'; };
   // sub: con una ocasión con matiz, el de muestra sale aunque tenga zapatos, porque ninguno suyo vale para ese plan (15/11: la gala salía con sus zapatillas)
