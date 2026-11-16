@@ -3492,6 +3492,7 @@ const IC_Y = {
   plan: '<path d="M12 3.8l2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.6l-5 2.6.9-5.6-4-3.9 5.6-.8z"/>',
   ciudad: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
   modo: '<path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/>',
+  letra: '<path d="M3 18.5 8 6h1l5 12.5M4.8 14h7.4"/><path d="m14.5 18.5 3-7.5h.6l3 7.5M15.6 16h4.4"/>',
   idioma: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5s1.2-6.1 3.6-8.5z"/>',
   avisos: '<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   privacidad: '<rect x="5.5" y="10.5" width="13" height="9.5" rx="1"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
@@ -3521,6 +3522,18 @@ function cambiarModo() {
   const tc = document.querySelector('meta[name="theme-color"]'), cs = document.querySelector('meta[name="color-scheme"]'); if (tc) tc.content = on ? '#1A1410' : '#FFFFFF'; if (cs) cs.content = on ? 'dark' : 'only light';
   pintarPanelYo();
 }
+// D10 (Gabriela, 16/11: «en ajustes? sí, creo que deberías ponerlo ya para las personas mayores»): «Letra grande» en Yo → Ajustes. Cada tamaño de letra en px de las
+// hojas de la app sube un 15 % (el diseño se recoloca solo); se guarda en este móvil (tc_letra) y se vuelve a aplicar al abrir
+const LETRA_G = 1.15; let letraOrig = null;
+function aplicarLetra(on) {
+  document.documentElement.classList.toggle('letra-g', on);
+  if (on && !letraOrig) letraOrig = new Map(); else if (!on && !letraOrig) return;
+  const recorrer = reglas => { for (const r of reglas) { if (r.style) { const fs = r.style.fontSize; if (on && /px$/.test(fs) && !letraOrig.has(r)) { letraOrig.set(r, fs); r.style.fontSize = Math.round(parseFloat(fs) * LETRA_G * 10) / 10 + 'px'; } else if (!on && letraOrig.has(r)) r.style.fontSize = letraOrig.get(r); } if (r.cssRules) recorrer(r.cssRules); } };
+  for (const h of document.styleSheets) { try { if (h.href && /\/(app|at|oscuro)\.css/.test(h.href)) recorrer(h.cssRules); } catch (e) { } }
+  if (!on) letraOrig = null;
+}
+function cambiarLetra() { const on = !document.documentElement.classList.contains('letra-g'); try { localStorage.setItem('tc_letra', on ? '1' : '0'); } catch (e) { } aplicarLetra(on); pintarPanelYo(); }
+window.addEventListener('load', () => { let on = false; try { on = localStorage.getItem('tc_letra') === '1'; } catch (e) { } if (on) aplicarLetra(true); });
 const filaP = ({ id, attr = '', ic, tit, val = '', rojo, flecha = true, apagada, oro, tag = 'button' }) => `<${tag} class="pn-f${rojo ? ' rojo' : ''}${apagada ? ' apagada' : ''}"${id ? ` id="${id}"` : ''} ${attr}>${ic ? icY(ic) : ''}<span class="pn-t">${tit}</span>${val !== '' ? `<span class="pn-v${oro ? ' oro' : ''}">${val}</span>` : ''}${flecha ? '<svg class="pn-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>' : ''}</${tag}>`;
 const grupoP = (tit, filas, nota) => `<section class="pn-g${tit ? '' : ' pn-g0'}">${tit ? `<h2 class="pn-gt">${tit}</h2>` : ''}<div class="pn-c">${filas}</div>${nota ? `<p class="pn-nota">${nota}</p>` : ''}</section>`;
 function abrirPanel(tit, html, enlazar) {
@@ -3544,6 +3557,7 @@ function pintarPanelYo() {
     + grupoP(t('La app', 'The app'),
       filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
       + filaP({ id: 'yo-modo', ic: 'modo', tit: t('Modo oscuro', 'Dark mode'), val: '<span class="pn-sw" aria-hidden="true"></span>', flecha: false, attr: `role="switch" aria-checked="${document.documentElement.classList.contains('oscuro')}"` })
+      + filaP({ id: 'yo-letra', ic: 'letra', tit: t('Letra grande', 'Large text'), val: '<span class="pn-sw" aria-hidden="true"></span>', flecha: false, attr: `role="switch" aria-checked="${document.documentElement.classList.contains('letra-g')}"` })
       + filaP({ id: 'yo-idioma', ic: 'idioma', tit: t('Idioma', 'Language'), val: es ? 'English' : 'Español' }))
     + grupoP(t('Privacidad y datos', 'Privacy and data'),
       filaP({ id: 'yo-privacidad', ic: 'privacidad', tit: t('Tus datos y permisos', 'Your data and permissions') }))
@@ -3562,7 +3576,7 @@ function pintarPanelYo() {
       + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))) : '');
   if ($('yo-pareja')) $('yo-pareja').onclick = panelPareja;
   if ($('yo-avisos')) $('yo-avisos').onclick = panelAvisos;
-  if ($('yo-vercomo')) $('yo-vercomo').onclick = panelVerComo; $('yo-modo').onclick = cambiarModo; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
+  if ($('yo-vercomo')) $('yo-vercomo').onclick = panelVerComo; $('yo-modo').onclick = cambiarModo; if ($('yo-letra')) $('yo-letra').onclick = cambiarLetra; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
   if ($('yo-closet')) $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
   if ($('yo-intercambio')) $('yo-intercambio').onclick = () => intercambiarClosets().catch(e => { avisarFallo('intercambio', e); toast(t('No se ha podido. No se ha cambiado nada.', 'It did not work. Nothing was changed.')); });
