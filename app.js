@@ -408,8 +408,18 @@ const PERMISOS = {
   avatar: ['Acepto enviar mis fotos a Google para crear mi avatar.', 'I agree to send my photos to Google to create my avatar.'],
   fotos: ['Guardar mis fotos en mi cuenta, privadas.', 'Keep my photos in my account, private.']
 };
+// 17/11 (D3, sí de las dos: Gabriela en el panel el 16/11 y Sheila en el grupo, 2432): el permiso en dos líneas, la casilla y «Saber más» plegado,
+// con las mismas palabras que la ayuda (Mi cuenta y datos → Qué se hace con mis fotos). Lo que se acepta no cambia: PERMISO_V sigue igual
+const PERMISOS_MAS = {
+  diag: ['Con tus fotos y medidas se sacan tus colores y tu silueta y, en el Pro, tu avatar con Google, que puede tratarlas fuera de la UE. Solo tú las ves. Puedes retirar el permiso en Ajustes → Tus datos y permisos, y se borra todo lo que salió de ellas.',
+    'Your photos and measurements are used to find your colours and silhouette and, in Pro, to create your avatar with Google, which may process them outside the EU. Only you see them. You can withdraw permission in Settings → Your data and permissions, and everything that came from them is deleted.'],
+  avatar: ['Google crea tu avatar con tus fotos y puede tratarlas fuera de la UE. Puedes retirar el permiso en Ajustes → Tus datos y permisos, y se borra el avatar.',
+    'Google creates your avatar from your photos and may process them outside the EU. You can withdraw permission in Settings → Your data and permissions, and the avatar is deleted.'],
+  fotos: ['Se guardan en tu cuenta para verlas en tus otros móviles. Solo tú las ves y puedes borrarlas en Ajustes → Tus datos y permisos.',
+    'They are kept in your account so you can see them on your other phones. Only you see them, and you can delete them in Settings → Your data and permissions.']
+};
 const permiso = k => E.perfil?.permisos?.[k]?.si === true;
-const casillaPermiso = (k, id) => `<label class="pm-cas"><input type="checkbox" ${id ? `id="${id}"` : `data-permiso="${k}"`} ${permiso(k) ? 'checked' : ''}><span>${t(...PERMISOS[k])}</span></label>`;
+const casillaPermiso = (k, id) => `<label class="pm-cas"><input type="checkbox" ${id ? `id="${id}"` : `data-permiso="${k}"`} ${permiso(k) ? 'checked' : ''}><span>${t(...PERMISOS[k])}</span></label><details class="pm-mas"><summary>${t('Saber más', 'Learn more')}</summary><p>${t(...PERMISOS_MAS[k])}</p></details>`;
 async function permisoAlServidor(k) {
   const p = E.perfil?.permisos?.[k]; if (!cuenta() || !p) return false;
   try { return (await api('/api/permiso', { method: 'POST', json: { que: k, si: !!p.si, v: p.v }, tiempo: 15000 })).ok; } catch (e) { return false; }

@@ -879,6 +879,9 @@ html.oscuro .pm-cas input:checked{background:var(--tinta)}
 html.oscuro .pm-cas input:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
 html.oscuro .dx-perm{border-bottom:1px solid var(--linea)}
 html.oscuro .dx-bloq{border:0}
+html.oscuro .pm-mas{color:var(--tinta)}
+html.oscuro .pm-mas summary{text-decoration:underline}
+html.oscuro .pm-mas summary:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
 html.oscuro .col-nom{color:var(--sec)}
 html.oscuro .toast-acc{background:none;border:0;color:inherit;text-decoration:underline}
 html.oscuro .yi-c{border:1px dashed var(--ter);background:var(--baldosa,var(--o-fondo))}

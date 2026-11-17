@@ -443,7 +443,8 @@ const Motor = (() => {
       case 'sub': return en(f.subtipo); case 'tejido': return en(f.tejido); case 'corte': return en(f.corte); case 'tiro': return en(f.tiro); case 'txt': return new RegExp(v).test(txt);
       case 'neutro': return String(f.color_clase).startsWith('neutro'); case 'vivo': return ['vivo', 'acento'].includes(f.color_clase); case 'suave': return f.color_clase === 'suave' || f.familia === 'rosa';
       case 'liso': return f.estampado === 'liso'; case 'estampado': return f.estampado !== 'liso'; case 'rayas': return /rayas/.test(f.estampado || ''); case 'flores': case 'lunares': case 'cuadros': return f.estampado === k;
-      case 'vaquero': case 'cuero': case 'sastre': return f.tejido === k; case 'formal': return f.form >= 4; case 'informal': return f.form <= 2;
+      case 'vaquero': return f.tejido === 'denim' || f.tejido === 'vaquero'; // 17/11: la ficha llama «denim» al tejido vaquero; antes este rasgo no casaba nunca
+      case 'cuero': case 'sastre': return f.tejido === k; case 'formal': return f.form >= 4; case 'informal': return f.form <= 2;
       case 'deportiva': return !!f.deportiva || f.uso === 'deporte'; case 'brillo': return /saten|raso|lentejuel|brillo|metaliz|terciopelo|charol|seda/.test(txt);
       case 'encaje': return /encaje/.test(txt); case 'volantes': return /volant/.test(txt); case 'romantico': return /volant|encaje/.test(txt) || f.estampado === 'flores';
       case 'foco': return !!f.foco; case 'volumen': return (f.volumen ?? 0) >= 2 || ['ancho', 'barril', 'oversize'].includes(f.corte); case 'crop': return f.largo === 'crop';

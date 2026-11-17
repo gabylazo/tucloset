@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.280'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.288'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -722,22 +722,25 @@ if (AT) (() => {
     };
   };
 
-  /* ---------- LOOKS: Mis looks · Favoritos · Calendario, en letras; los looks en baldosas de dos en dos; el primero, «Crear un look» ---------- */
-  const filaLooks = act => `<header class="at-tit"><h1>${t('Looks', 'Looks')}</h1></header><nav class="at-fila at-cats" aria-label="${t('Tipos de look', 'Look types')}">${[['ideas', t('Ideas', 'Ideas')], ['mios', t('Mis looks', 'My looks')], ['fav', t('Favoritos', 'Favourites')], ['cal', t('Calendario', 'Calendar')]].map(([k, n]) => `<button class="${act === k ? 'on' : ''}" data-lktab="${k}"${act === k ? ' aria-current="true"' : ''}>${n}${DOS}</button>`).join('')}</nav>`;
+  /* ---------- LOOKS: Ideas · Mis looks · Calendario, en letras; los looks en baldosas de dos en dos. 17/11 (D5, sí de las dos): Favoritos deja de ser pestaña
+     y pasa a filtro dentro de Mis looks («Todos · Favoritos»), sin pantalla nueva ---------- */
+  const filaLooks = act => `<header class="at-tit"><h1>${t('Looks', 'Looks')}</h1></header><nav class="at-fila at-cats" aria-label="${t('Tipos de look', 'Look types')}">${[['ideas', t('Ideas', 'Ideas')], ['mios', t('Mis looks', 'My looks')], ['cal', t('Calendario', 'Calendar')]].map(([k, n]) => `<button class="${act === k ? 'on' : ''}" data-lktab="${k}"${act === k ? ' aria-current="true"' : ''}>${n}${DOS}</button>`).join('')}</nav>`;
   pintarLooks = function () {
     const raiz = $('lk-raiz'); document.documentElement.dataset.looks = 'at';
-    if (!E.lkTocado || !['ideas', 'mios', 'fav', 'cal'].includes(E.lkTab)) E.lkTab = 'ideas'; // se abre en Ideas hasta que ella elija otra
+    if (E.lkTab === 'fav') { E.lkTab = 'mios'; E.lkFav = true; } // la pestaña vieja de Favoritos abre Mis looks con el filtro puesto
+    if (!E.lkTocado || !['ideas', 'mios', 'cal'].includes(E.lkTab)) E.lkTab = 'ideas'; // se abre en Ideas hasta que ella elija otra
     if (E.lkTab === 'cal') return pintarCalendario(raiz);
     if (E.lkTab === 'ideas') return pintarIdeas(raiz);
-    const fav = E.lkTab === 'fav', lista = E.conjuntos.filter(c => !fav || c.fav || esFav(c.ids));
+    const fav = !!E.lkFav, lista = E.conjuntos.filter(c => !fav || c.fav || esFav(c.ids));
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     // 09/11 (decisión 36, pedida por Gabriela): «Crear un look» y «Mi cápsula» en una fila corta. 13/11 (Gabriela: «salen cosas repetidas en ideas y en mis looks… quita lo que sobre»):
     // «Crear un look» y «Recrear un look» van solo en Ideas, que es donde se abre Looks; aquí queda «Mi cápsula» y los looks guardados justo debajo; «Mi semana» pasó al Calendario como «Planear varios días» (Gabriela, 13/11)
-    const acc = fav ? '' : `<div class="at-iconos at-ideas-acc at-mios-acc" role="group" aria-label="${t('Tu cápsula', 'Your capsule')}"><button class="at-ib" data-capsula><span class="at-ib-c">${I.percha}</span><span class="at-ib-t">${t('Mi cápsula', 'My capsule')}</span></button></div>`;
+    const acc = `<div class="at-iconos at-ideas-acc at-mios-acc" role="group" aria-label="${t('Tu cápsula', 'Your capsule')}"><button class="at-ib" data-capsula><span class="at-ib-c">${I.percha}</span><span class="at-ib-t">${t('Mi cápsula', 'My capsule')}</span></button></div>`
+      + (E.conjuntos.length ? `<div class="at-fila at-vj-ops at-lk-fil" role="group" aria-label="${t('Filtrar mis looks', 'Filter my looks')}">${[[0, t('Todos', 'All')], [1, t('Favoritos', 'Favourites')]].map(([v, n]) => `<button class="${fav === !!v ? 'on' : ''}" data-lkfav="${v}" aria-pressed="${fav === !!v}">${n}${DOS}</button>`).join('')}</div>` : '');
     const t1 = c => `<figure class="at-t">${baldosa(psDe(c), TW, TH, ` data-look="${c.id}" aria-label="${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}"`)}<figcaption>${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</figcaption></figure>`;
-    raiz.innerHTML = filaLooks(E.lkTab) + acc + (lista.length ? `<div class="at-rej2">${lista.map(t1).join('')}</div>` : !fav ? `<div class="at-vacio"><p>${t('Aún no has guardado ningún look. Crea uno o guárdalo desde Hoy.', 'You have not saved any looks yet. Create one or save it from Today.')}</p></div>`
+    raiz.innerHTML = filaLooks(E.lkTab) + acc + (lista.length ? `<div class="at-rej2">${lista.map(t1).join('')}</div>` : !fav || !E.conjuntos.length ? `<div class="at-vacio"><p>${t('Aún no has guardado ningún look. Crea uno o guárdalo desde Hoy.', 'You have not saved any looks yet. Create one or save it from Today.')}</p></div>`
       : `<div class="at-vacio"><p>${t('Aún no tienes favoritos. Abre un look y toca el corazón.', 'No favourites yet. Open a look and tap the heart.')}</p></div>`);
-    raiz.onclick = e => { if (e.target.closest('[data-capsula]')) return abrirCapsula(); const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
+    raiz.onclick = e => { if (e.target.closest('[data-capsula]')) return abrirCapsula(); const f = e.target.closest('[data-lkfav]'); if (f) { E.lkFav = f.dataset.lkfav === '1'; return pintarLooks(); } const b = e.target.closest('[data-lktab]'); if (!b) return; E.lkTab = b.dataset.lktab; E.lkTocado = true; pintarLooks(); };
   };
   // el calendario de siempre, con la cabecera de Looks
   const pintarAgendaVieja = pintarAgenda;
@@ -1543,12 +1546,39 @@ if (AT) (() => {
   };
   function afinArq(a) { const reglas = ARQ_RASGOS[a[0]] || [];
     return (f, txt) => .5 * Motor.afinEstilo(f, txt, a[4]) + .5 * Math.max(-1, Math.min(1, reglas.reduce((s, [tok, n]) => s + (Motor.rasgo(f, txt, tok) ? n : 0), 0))); }
+  /* 17/11 (D8, sí de las dos; puntos 66 y 67 del análisis de Producto: «los looks con tu ropa no se parecen a la referencia»): solo sale un look que comparte con
+     la referencia al menos dos de sus rasgos, ninguno en contra y una afinidad media de 0,25; debajo, en qué se parece. Si no sale ninguno, lo dice y propone
+     la pieza que más lo acercaría (Gabriela: «que te sugiera qué necesitas, pero corto y profesional») */
+  const PIEZA_ARQ = { vestido_largo: ['un vestido largo', 'a long dress'], falda_larga: ['una falda larga', 'a long skirt'], abrigo_lana: ['un abrigo de lana', 'a wool coat'], americana: ['una americana', 'a blazer'],
+    sudadera: ['una sudadera', 'a sweatshirt'], camiseta: ['una camiseta', 'a T-shirt'], pantalon_vestir: ['un pantalón de vestir', 'tailored trousers'], chaleco_traje: ['un chaleco de traje', 'a suit waistcoat'],
+    henley: ['una camiseta henley', 'a henley top'], jersey: ['un jersey', 'a jumper'], vestido_corto: ['un vestido corto', 'a short dress'], vestido_midi: ['un vestido midi', 'a midi dress'], falda_mini: ['una minifalda', 'a mini skirt'],
+    cardigan: ['un cárdigan', 'a cardigan'], polo: ['un polo', 'a polo shirt'], mocasin: ['unos mocasines', 'loafers'], zapatillas: ['unas zapatillas', 'trainers'], jersey_cuello_alto: ['un jersey de cuello alto', 'a roll-neck jumper'],
+    botas: ['unas botas', 'boots'], botines: ['unos botines', 'ankle boots'],
+    cuero: ['una prenda de cuero', 'a leather piece'], vaquero: ['unos vaqueros', 'jeans'], sastre: ['una prenda de sastrería', 'a tailored piece'], flores: ['una prenda de flores', 'a floral piece'], cuadros: ['una prenda de cuadros', 'a checked piece'],
+    brillo: ['una prenda con brillo', 'a shiny piece'], estampado: ['una prenda estampada', 'a printed piece'], vivo: ['una prenda de color vivo', 'a bright piece'], tierra: ['una prenda en tonos tierra', 'an earth-tone piece'] };
+  const NOM_RASGO = { neutro: ['neutros', 'neutrals'], vivo: ['color vivo', 'bright colour'], estampado: ['estampado', 'print'], flores: ['flores', 'florals'], cuadros: ['cuadros', 'checks'], vaquero: ['vaquero', 'denim'],
+    cuero: ['cuero', 'leather'], sastre: ['sastrería', 'tailoring'], deportiva: ['aire deportivo', 'sporty feel'], brillo: ['brillo', 'shine'], foco: ['una pieza protagonista', 'a statement piece'], volumen: ['volumen', 'volume'],
+    crop: ['corto', 'cropped'], negro: ['negro', 'black'], tierra: ['tonos tierra', 'earth tones'], blanco: ['blanco', 'white'], gris: ['gris', 'grey'], rojo: ['rojo', 'red'], verde: ['verde', 'green'],
+    punto: ['punto', 'knit'], lana: ['lana', 'wool'], ante: ['ante', 'suede'], ancho: ['corte ancho', 'wide cut'], alto: ['tiro alto', 'high rise'] };
+  const sinArt = x => x.replace(/^(un|una|unos|unas|a|an) /, '');
+  function parecidoArq(a, l) { const reglas = ARQ_RASGOS[a[0]] || [], pos = new Map(), neg = new Set();
+    for (const k of ['arriba', 'abajo', 'vestido', 'capa', 'calzado']) { const x = l[k]; if (!x?._f) continue; const txt = Motor.txtAfin(x.p);
+      for (const [tok, n] of reglas) if (Motor.rasgo(x._f, txt, tok)) { if (n < 0) { neg.add(tok); continue; } const [kk, v] = tok.split(':');
+        const nom = kk === 'sub' ? (PIEZA_ARQ[x._f.subtipo] || []).map(sinArt) : kk === 'txt' ? [(new RegExp(v).exec(txt)?.[0] || 'sus colores').replace('marron', 'marrón'), 'its colours'] : NOM_RASGO[v ? x._f[kk] : kk] || NOM_RASGO[kk];
+        if (nom?.length && (!pos.has(tok) || pos.get(tok).n < n)) pos.set(tok, { n, nom }); } }
+    const vale = pos.size >= 2 && !neg.size, top = [...pos.values()].sort((x, y) => y.n - x.n).map(x => x.nom[en() ? 1 : 0]).filter((x, i, v) => v.indexOf(x) === i).slice(0, 2);
+    return { vale, en: top.length ? top.join(en() ? ' and ' : ' y ').replace(/^./, c => c.toUpperCase()) : '' }; }
+  // la pieza que más acercaría su ropa a la referencia: primero las prendas que nombra y no tiene; si las tiene todas, el rasgo de más peso que no tiene
+  function faltaArq(a, ps) { const reglas = (ARQ_RASGOS[a[0]] || []).filter(([, n]) => n > 0).sort((x, y) => y[1] - x[1]), tiene = new Set(ps.map(p => Motor.ficha(p).subtipo)), r = [];
+    for (const [tok] of reglas) if (tok.startsWith('sub:')) for (const s of tok.slice(4).split('|')) if (!tiene.has(s) && PIEZA_ARQ[s]) r.push(PIEZA_ARQ[s]);
+    if (!r.length) for (const [tok] of reglas) if (PIEZA_ARQ[tok] && !ps.some(p => Motor.rasgo(Motor.ficha(p), Motor.txtAfin(p), tok))) r.push(PIEZA_ARQ[tok]);
+    return r.slice(0, 2).map(x => x[en() ? 1 : 0]).join(en() ? ' or ' : ' o '); }
   // nota de cada candidato para esa referencia: la del motor (ya lleva la afinidad), más su fórmula si es de ese estilo y, en «tonal», todo de la misma familia
   function notaArq(a, l, FS) { const fe = (FS.find(y => y?.id === l.formula?.id) || l.formula || {}).estilos || [], c = fe.filter(e => a[4].includes(e)).length, prim = a[4].includes(fe[0]);
     const ks = ['arriba', 'abajo', 'vestido', 'capa', 'calzado'].filter(k => l[k]), af = ks.reduce((s, k) => s + (l[k]._af || 0), 0) / Math.max(1, ks.length);
     let n = .5 * l.nota + 1.2 * af + (prim ? .08 : 0) + .02 * c;
     if (a[0] === 'tonal') { const fam = ['arriba', 'abajo', 'vestido', 'capa'].map(k => l[k]?._f?.familia).filter(Boolean); if (fam.length && fam.every(x => x === fam[0])) n += .25; }
-    return { n, c, prim }; }
+    return { n, c, prim, af }; }
   // seis looks que no se parezcan: primero, ninguna parte de arriba, de abajo ni capa repetida; luego, como mucho dos veces cada una; al final, solo looks distintos
   function elegirArq(lista, n) { const sel = [], vistos = new Set(), uso = new Map(), cuenta = (k, id) => uso.get(k + id) || 0;
     for (const tope of [1, 2, 99]) for (const { l } of lista) { if (sel.length >= n) break;
@@ -1574,15 +1604,15 @@ if (AT) (() => {
       // todos los candidatos del motor con la afinidad de esa referencia; valen los de una fórmula de su estilo (principal o compartido)
       const r = Motor.looks({ prendas: activas(), tiempo: E.tiempo, plan: 'Todos', perfil: { ...(E.perfil || {}), estilos: a[4] }, n: 12, hoy: hoyISO(), pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est], depurar: true, afin: afinArq(a) });
       const FS = Array.isArray(Motor.F) ? Motor.F : Motor.F?.formulas || Object.values(Motor.F || {}), min = Motor.R.puntos?.umbrales?.mostrar_minimo ?? -1e9;
-      const lista = (r.todos || []).filter(l => (l.casi || !l.veto.duros.length) && l.nota >= min).map(l => ({ l, ...notaArq(a, l, FS) })).filter(o => o.prim || o.c >= 1).sort((x, y) => y.n - x.n);
+      const lista = (r.todos || []).filter(l => (l.casi || !l.veto.duros.length) && l.nota >= min).map(l => ({ l, ...notaArq(a, l, FS), par: parecidoArq(a, l) })).filter(o => (o.prim || o.c >= 1) && o.af >= .25 && o.par.vale).sort((x, y) => y.n - x.n);
       const deporte = new Set(deVerdad('Deporte', lista.map(o => Motor.aPropuesta(o.l))).map(x => x.ids.join())); // en Deporte, solo los que llevan ropa de deporte
-      const looks = elegirArq(lista.filter(o => o.l.ctx.ocasion !== 'Deporte' || deporte.has(Motor.aPropuesta(o.l).ids.join())), 6).map(l => ({ ...Motor.aPropuesta(l), faltaCapa: !!l.casi }));
+      const looks = elegirArq(lista.filter(o => o.l.ctx.ocasion !== 'Deporte' || deporte.has(Motor.aPropuesta(o.l).ids.join())), 6).map(l => ({ ...Motor.aPropuesta(l), faltaCapa: !!l.casi, parece: lista.find(o => o.l === l)?.par.en || '' }));
       const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
       E.inspLooks = looks;
       cap.innerHTML = `${X}<h1>${a[1]}</h1><p class="at-insp-a">${L(a[2])}</p>${foto(a)}<p class="at-vj-sub">${L(a[3])}</p>
-        ${looks.length ? `<div class="at-rej2 at-vj-dias">${looks.map((x, i) => `<figure class="at-t">${baldosa(psDe(x), TW, TH, ` data-insplook="${i}" aria-label="${esc(ocNombre(x.ocasion || 'Diario'))}"`)}<figcaption>${esc(ocNombre(x.ocasion || 'Diario'))}</figcaption></figure>`).join('')}</div>
+        ${looks.length ? `<div class="at-rej2 at-vj-dias">${looks.map((x, i) => `<figure class="at-t">${baldosa(psDe(x), TW, TH, ` data-insplook="${i}" aria-label="${esc(ocNombre(x.ocasion || 'Diario') + (x.parece ? '. ' + t('Se parece en: ', 'Similar in: ') + x.parece : ''))}"`)}<figcaption>${esc(x.parece || ocNombre(x.ocasion || 'Diario'))}</figcaption></figure>`).join('')}</div>
           ${looks.some(x => x.faltaCapa) ? `<p class="at-vj-nota">${t('Con este tiempo, con tu abrigo encima.', 'In this weather, with your coat on top.')}</p>` : ''}`
-          : `<p class="at-vj-sub">${t('Con lo que tienes aún no puedo armar este estilo: sigue subiendo prendas.', 'I can’t build this style from what you have yet: keep adding clothes.')}</p>`}`;
+          : (f => `<p class="at-vj-sub at-insp-falta">${f ? t(`Con tu ropa aún no sale este estilo; lo acercaría ${f}.`, `Your clothes can’t make this style yet; ${f} would bring it closer.`) : t('Con tu ropa aún no sale este estilo.', 'Your clothes can’t make this style yet.')}</p>`)(faltaArq(a, activas()))}`;
     }
     cap.scrollTop = 0;
     cap.onclick = e => {

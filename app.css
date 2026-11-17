@@ -1830,6 +1830,12 @@ html.oscuro .pn-error{color:#E8776B}
 #ac-perm{width:100%;margin-top:14px}
 .ac-fotos label.bloq{opacity:.4;cursor:default}
 .av-tarjeta .pm-cas{margin-top:12px}
+/* 17/11 (D3): «Saber más» del permiso, debajo de la casilla y alineado con su texto */
+.pm-mas{max-width:420px;margin:-6px auto 4px;padding-left:34px;text-align:left;font-size:13px;line-height:1.5;color:var(--tinta)}
+.pm-mas summary{display:inline-block;cursor:pointer;list-style:none;text-decoration:underline;text-underline-offset:3px;padding:4px 0}
+.pm-mas summary::-webkit-details-marker{display:none}
+.pm-mas summary:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
+.pm-mas p{margin:4px 0 0}
 .av-tarjeta .at-btn:disabled{opacity:.4;cursor:default}
 /* 11/11 (Sheila, mensaje 1996): con 39 colores, el nombre del elegido sale debajo de las muestras */
 .col-nom{margin:8px 0 0;font-size:13px;color:var(--sec)}
