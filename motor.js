@@ -4,7 +4,7 @@
    herramientas/motor-datos.py). Sin servidor y sin modelos. Todo entra por parámetro y las prendas no se tocan (la ficha va aparte), para poder probarlo en Node
    contra PRUEBA-CLOSET.md. No hay nada aleatorio: el desempate es una huella del día y del look, así que el mismo día salen las mismas ideas. */
 const Motor = (() => {
-  let R, F, S = {}, ZV = [], ZV_SUB = [], VETA_ZAPATO = new Set(), SUBS = new Map();
+  let R, F, S = {}, ZV = [], ZV_SUB = [], ZC_SUB = [], VETA_ZAPATO = new Set(), SUBS = new Map();
   const FRIO_CAPA = new Set(['V11', 'V07', 'V08']); // los vetos que se arreglan poniéndose el abrigo encima (clo bajo, brazos al aire con frío)
   const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -42,6 +42,9 @@ const Motor = (() => {
     ZV = ZAPS.map(zm);
     // 15/11: para una gala o una boda de noche sin zapato de vestir en el clóset, el que haría falta (solo con subocasión: sin ella, los de siempre)
     ZV_SUB = [['tacones-negros', 'tacones', 'Negro', 'alto'], ['zapato-cordones-negro', 'zapato_cordones', 'Negro', 'plano']].map(zm);
+    // Moda 17/11 (Z8): la estola de muestra, para un vestido sin mangas en un plan bajo techo cuando ninguna capa suya da el nivel (B5: la gala con 18 °C); solo si existe el tipo (P14)
+    const est = R.inferencia.subtipos.find(x => x.id === 'estola');
+    ZC_SUB = est ? [['estola-negra', 'Negro'], ['estola-crudo', 'Crudo']].map(([k, color]) => ({ id: 'zc-' + k, muestra: k, _f: conColor({ ...R.inferencia.defecto_atributos, ...est.def, subtipo: 'estola', cat: 'capa', conf: {}, estilos: [] }, color) })) : [];
   }
   const grupo = t => t[0] === '@' ? R.grupos[t] || [] : [t];
   // lo que se llama sin apellido («Pantalón negro», «Zapatos», «Chaqueta», «Top») entra donde entra su familia; si no, no saldría en casi ningún look
@@ -151,7 +154,7 @@ const Motor = (() => {
     const tr = R.clima.tramos.find(x => t_ref >= x.desde) || R.clima.tramos[R.clima.tramos.length - 1];
     const lluvia = !Sb?.interior && ((tiempo.lluvia ?? 0) >= R.clima.lluvia.umbral_probabilidad || tiempo.lluviaH != null);
     return { t_ref, t_min: tmin, t_max: tmax, amplitud: tmax - tmin, lluvia, viento: v, humedad: tiempo.hum ?? 50, hora: h, ocasion: plan, evento: extra.evento || null, lugar: extra.lugar || 'normal',
-      tramo: tr, clo_min: tr.clo[0], clo_max: tr.clo[1], clo_min_menos_0_4: tr.clo[0] - .4, clo_min_menos_1: tr.clo[0] - 1, clo_max_mas_0_35: tr.clo[1] + .35, sol: (tiempo.uv ?? 0) >= 6, paraguas: !!extra.paraguas, ...subCtx(Sb) };
+      tramo: tr, clo_min: tr.clo[0], clo_max: tr.clo[1], clo_min_menos_0_4: tr.clo[0] - .4, clo_min_menos_1: tr.clo[0] - 1, clo_max_mas_0_35: tr.clo[1] + .35, clo_ir_volver: Math.max(0, 1.22 - .06 * t_ref), sol: (tiempo.uv ?? 0) >= 6, paraguas: !!extra.paraguas, ...subCtx(Sb) };
   }
   /* 15/11 (Sheila, grupo, 12/11, 2135: cóctel, boda, gala, concierto de clásica, gimnasio, merienda…): la subocasión que se elige en Hoy o en el calendario.
      Los datos son de Moda (R.subocasiones, 13/11); aquí solo se pasan al contexto para que los lean los vetos SUB_ y los puntos SUB_P de reglas-looks.json.
@@ -160,7 +163,7 @@ const Motor = (() => {
   // 16/11 (Gabriela: «no me sugiere vestidos en cenas de gala»): también el restaurante elegante (N2), que es bajo techo
   const BAJO_TECHO = new Set(['E1', 'E2', 'E3', 'E4', 'N2', 'N4']);
   function subCtx(Sb) {
-    if (!Sb) return { sub: null };
+    if (!Sb) return { sub: null, bajo_techo: false }; // Moda 17/11 (Z10): sin matiz, el plan es en la calle; si no, «bajo_techo != true» no se cumplía nunca (un campo que no existe da falso) y V08, V11, V13 y V34 dejaban pasar sandalias, tirantes y poco abrigo
     return { sub: Sb.id, bajo_techo: BAJO_TECHO.has(Sb.id), sub_form_min: Sb.form[0] - .25, sub_form_max: Sb.form[1] + .25, sub_form_duro_min: Sb.form[0] - 1, sub_form_duro_max: Sb.form[1] + 1,
       sub_calzado_si: Sb.calzado_si, sub_calzado_no: Sb.calzado_no, sub_tacon_no: Sb.tacon_no, sub_capa_si: Sb.capa_si, sub_capa_no: Sb.capa_no, sub_abajo_si: Sb.abajo_si, sub_abajo_no: Sb.abajo_no,
       sub_vestido_si: Sb.vestido_si, sub_bolso: Sb.bolso, sub_bolso_no: Sb.bolso_no, sub_sin_estampado: !!Sb.sin_estampado, sub_capa_lisa: !!Sb.capa_lisa, sub_denim: !!Sb.abajo_si_denim, sub_ocs: Sb.ocs };
@@ -199,6 +202,8 @@ const Motor = (() => {
   }
 
   /* ---------- 3. condiciones: las de las fórmulas sobre una prenda y las de las reglas sobre el look ---------- */
+  // Moda 17/11 (Z9): clo_ir_volver es el aislamiento que aguanta 1 hora andando despacio (ISO 11079, Dlim mínimo; M 115 W/m², viento 1 m/s): 1,22 − 0,06·t.
+  // Para ir y volver (oficina, noche, eventos) con abrigo basta con eso; en Diario se sigue pidiendo el tramo, que equivale a unas 2 horas fuera (V11)
   function cumpleCond(cond, f) {
     if (!cond) return true;
     for (const k in cond) {
@@ -406,6 +411,8 @@ const Motor = (() => {
     const conZapatoOBolso = p => p._f.familia && (p._f.familia === z.familia || p._f.familia === l.bolso?._f.familia); // la piel, a juego con el zapato o el bolso
     return elegir(ents.filter(p => p._f.subtipo === 'cinturon' && conZapatoOBolso(p)), () => 0, .25);
   }
+  // Moda 17/11 (Z8): una capa suya que vale encima de un vestido de fiesta: del nivel del plan, que el plan no descarte y que no sobre con el calor (V10)
+  const capaDeVestir = (c, ctx) => !c.muestra && c._f.form >= (ctx.sub_form_min ?? 0) && !(ctx.sub_capa_no || []).includes(c._f.subtipo) && !(ctx.t_ref >= 18 && c._f.clo >= .5);
   // la capa que pide el tramo de temperatura aunque la fórmula no la escriba
   function capaPorClima(l, ents, ctx) {
     const id = ctx.tramo.id, grupos = id === 'T4' ? ['@capa_ligera', '@capa_media'] : id === 'T5' ? ['@capa_media', '@abrigo_frio'] : id === 'T6' || id === 'T7' ? ['@abrigo_frio'] : id === 'T3' ? ['@capa_ligera'] : id === 'T2' && (ctx.t_min < 16 || ctx.amplitud >= 10) ? ['@capa_ligera'] : null;
@@ -415,6 +422,8 @@ const Motor = (() => {
     // admite); una americana o una cazadora no bastan con frío y los vetos de frío tumbaban todos sus vestidos cortos
     if (ctx.bajo_techo && l.vestido) { const ab = cs.filter(p => p._f.rol === 'abrigo' && !(ctx.sub_capa_no || []).includes(p._f.subtipo)); if (ab.length) cs = ab; }
     cs = cs.sort((a, b) => cercania(b, l, ctx) - cercania(a, l, ctx)).slice(0, 2);
+    // Moda 17/11 (Z8): un vestido sin mangas bajo techo con 12–20 °C, si ninguna capa suya (de las que van hoy) da el nivel del plan (o el abrigo sobra: V10 desde 18 °C), sale con la estola de muestra y el aviso
+    if (ZC_SUB.length && ctx.sub && ctx.bajo_techo && l.vestido && ['sin_mangas', 'tirantes'].includes(l.vestido._f.manga) && ctx.t_ref >= 12 && ctx.t_ref < 20 && !ents.some(c => c._f.cat === 'capa' && capaDeVestir(c, ctx))) cs.push(...ZC_SUB); // como el zapato de muestra: solo si nada suyo vale (ents ya trae solo lo que va hoy)
     return cs.map(c => ({ ...l, capa: c }));
   }
   // 06/11 (Gabriela: «¿cómo va a combinar una camiseta con un short de deporte y las alpargatas?»): la ropa de deporte (detalle «Deporte» o nombre) solo va en fórmulas de deporte
@@ -465,7 +474,8 @@ const Motor = (() => {
   // 107, 110, 150, 191 y 195, notas 1 y 2); ahora tampoco vale si la máxima del día pasa en más de 6° la de su estación (7° si es una capa, que se quita al mediodía)
   // 16/11 (auditoría de la semana de pruebas): con frío_capas, lo de arriba y lo de abajo valen hasta 9 °C por debajo de su mínimo, porque van debajo del abrigo;
   // y bajo techo (gala, boda, restaurante elegante), el abrigo también, porque es solo para ir y volver (el juez sigue pidiendo abrigo suficiente, V11)
-  const vaHoy = (p, ctx) => { const f = p._f, fr = (ctx.frio_capas && (f.cat === 'arriba' || f.cat === 'abajo')) || (ctx.bajo_techo && f.cat === 'capa') ? 9 : 3; return !((f.tmin != null && ctx.t_ref < f.tmin - fr) || (f.tmax != null && (ctx.t_ref > f.tmax + 3 || (ctx.t_max ?? ctx.t_ref) > f.tmax + (f.cat === 'capa' ? 7 : 6)))); };
+  // Moda 17/11 (Z9): debajo del abrigo, lo de arriba de manga larga no tiene mínimo propio (un jersey de entretiempo bajo un abrigo de lana a −2 °C): lo decide el clo del conjunto (V11)
+  const vaHoy = (p, ctx) => { const f = p._f, fr = (ctx.frio_capas && (f.cat === 'arriba' || f.cat === 'abajo')) || (ctx.bajo_techo && f.cat === 'capa') ? 9 : 3; if (ctx.frio_capas && f.cat === 'arriba' && f.manga === 'larga' && !(f.tmax != null && ctx.t_ref > f.tmax + 3)) return true; return !((f.tmin != null && ctx.t_ref < f.tmin - fr) || (f.tmax != null && (ctx.t_ref > f.tmax + 3 || (ctx.t_max ?? ctx.t_ref) > f.tmax + (f.cat === 'capa' ? 7 : 6)))); };
   const BLUSA_NO_DEBAJO = /volant|encaje|transparen|abullon|peplum|campana|acampanad|fruncid|drapead|cruzad|asimetric|lentejuel|brillo|saten|un hombro/;
   function rellenar(formula, ents, zapatos, ctx, pf, hoy, cacheP) {
     const dep = formula.ocasiones.includes('Deporte');
@@ -712,6 +722,9 @@ const Motor = (() => {
       const t0 = ctx.tramo.id === 'T4' ? 'gabardina' : ctx.tramo.id === 'T5' || arreglado ? 'abrigo_lana' : 'plumifero', g = ctx.tramo.id === 'T4' ? 'capa' : 'abrigo', c = cuenta[g] = cuenta[g] || { n: 0, tipos: {} };
       c.n += 50; c.tipos[t0] = (c.tipos[t0] || 0) + 50;
     }
+    // Moda 17/11 (Z8): con vestidos sin mangas y un plan bajo techo de 12–20 °C, si ninguna capa suya vale para ese plan, le falta una estola o un chal de fiesta
+    if (ZC_SUB.length && ctx.sub && ctx.bajo_techo && ctx.t_ref >= 12 && ctx.t_ref < 20 && ents.some(p => p._f.cat === 'vestido' && ['sin_mangas', 'tirantes'].includes(p._f.manga) && p._f.form >= (ctx.sub_form_min ?? 0) - .5) && !ents.some(p => p._f.cat === 'capa' && capaDeVestir(p, ctx))) {
+      const c = cuenta.capa = cuenta.capa || { n: 0, tipos: {} }; c.n += 20; c.tipos.estola = (c.tipos.estola || 0) + 20; }
     const orden = R.faltas.prioridad;
     if (!Object.keys(cuenta).length && !cands({ tipos: ['@pantalon', '@falda'] }, ents.filter(p => p._f.tmax >= ctx.t_ref && p._f.tmin <= ctx.t_ref)).length) { const c = cuenta.abajo = { n: 1, tipos: {} }; c.tipos[ctx.sub_abajo_si?.[0] || (plan === 'Deporte' ? 'malla' : ctx.t_ref >= 24 ? 'pantalon_lino' : 'pantalon_vestir')] = 1; } // 15/11: para el gimnasio, mallas // sin ninguna prenda de abajo para este tiempo
     return Object.entries(cuenta).sort((a, b) => b[1].n - a[1].n || orden.indexOf(a[0]) - orden.indexOf(b[0])).slice(0, 3).map(([g, c]) => {
@@ -892,7 +905,7 @@ const Motor = (() => {
   // la propuesta tal y como la pinta la app: los ids de las prendas reales, el zapato de muestra si hace falta y cómo se lleva la de arriba
   function aPropuesta(l) {
     const ps = ['capa', 'arriba', 'base_interior', 'abajo', 'vestido', 'bano', 'calzado', 'bolso', 'accesorio', 'accesorio2', 'joya'].map(k => l[k]).filter(p => p && !p.muestra);
-    return { ids: ps.map(p => p.id), ocasion: l.ctx.ocasion, formula: l.formula?.id, estilos: l.formula?.estilos || [], fmedia: l.campos?.form_media, nombre: l.formula?.nombre, porque: l.formula?.porque, como: l.campos.como === 'por_dentro' ? 'por dentro' : l.campos.como, zspec: zapatoDe(l), faltaCapa: !!l.faltaCapa, capaFalta: l.faltaCapa ? capaQueFalta(l) : null, nota: l.nota };
+    return { ids: ps.map(p => p.id), ocasion: l.ctx.ocasion, formula: l.formula?.id, estilos: l.formula?.estilos || [], fmedia: l.campos?.form_media, nombre: l.formula?.nombre, porque: l.formula?.porque, como: l.campos.como === 'por_dentro' ? 'por dentro' : l.campos.como, zspec: zapatoDe(l), faltaCapa: !!l.faltaCapa || !!l.capa?.muestra, capaFalta: l.capa?.muestra ? 'un chal o una estola' : l.faltaCapa ? capaQueFalta(l) : null, nota: l.nota }; // Z8: la estola de muestra no se pinta; se avisa
   }
   /* 08/11 (Gabriela: «uno escanea piezas en tiendas y que la app le diga un porcentaje de utilidad, es decir, si tendría muchas combinaciones en su clóset»):
      la prenda que aún no tienes se prueba con tu ropa en su temporada (dos temperaturas si vale para mucho tiempo) y en todas las ocasiones en que puede salir;
