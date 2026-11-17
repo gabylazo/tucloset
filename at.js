@@ -16,7 +16,7 @@ if (AT) (() => {
   const CAT_SUB = { camiseta: 'Camisetas', camiseta_tirantes: 'Camisetas', henley: 'Camisetas', polo: 'Camisetas', camiseta_tecnica: 'Camisetas',
     top: 'Tops', top_corto: 'Tops', body: 'Tops', top_deportivo: 'Tops', blusa: 'Camisas y blusas', camisa: 'Camisas y blusas', sobrecamisa: 'Camisas y blusas',
     jersey: 'Punto', jersey_cuello_alto: 'Punto', cardigan: 'Punto', chaleco_punto: 'Punto', sudadera: 'Sudaderas', forro_polar: 'Sudaderas',
-    chaleco_traje: 'Abrigos', chaleco_acolchado: 'Abrigos', americana: 'Abrigos', chaqueta_vaquera: 'Abrigos', cazadora_cuero: 'Abrigos', bomber: 'Abrigos', chaqueta_deportiva: 'Abrigos',
+    chaleco_traje: 'Abrigos', chaleco_acolchado: 'Abrigos', americana: 'Abrigos', chaqueta_vaquera: 'Abrigos', cazadora_cuero: 'Abrigos', bomber: 'Abrigos', chaqueta_tecnica: 'Abrigos', chaqueta_deportiva: 'Abrigos',
     chubasquero: 'Abrigos', parka: 'Abrigos', plumifero: 'Abrigos', gabardina: 'Abrigos', abrigo_lana: 'Abrigos', abrigo_generico: 'Abrigos', kimono: 'Abrigos', chaqueta: 'Abrigos',
     vaquero: 'Vaqueros', shorts: 'Shorts', bermudas: 'Shorts', mono: 'Vestidos', bikini: 'Baño', banador: 'Baño' /* 14/11 (Sheila, 2240): ropa de baño */ };
   const ARRIBA = ['Camisetas', 'Tops', 'Camisas y blusas', 'Punto', 'Sudaderas'];
@@ -1134,6 +1134,21 @@ if (AT) (() => {
   /* ---------- CON UNA PRENDA, en Looks → Ideas (08/11, Gabriela: «que selecciones una pieza que sí o sí quieras usar, por ejemplo un jean, y que la app te
      proponga outfits en función del estilo que quieres»): eliges la prenda y, si quieres, un estilo; salen hasta seis looks con ella. Desde el 13/11 solo aquí
      (Gabriela: «debería estar en Looks → Ideas por lógica»); en Hoy ya no está ---------- */
+  /* 17/11 (Sheila, 2599): si con su ropa no sale ningún look con la prenda elegida, una línea con la pieza que lo completaría (Motor.faltaCon), como D8 en
+     «Inspírate en…» (Gabriela: «que te sugiera qué necesitas, pero corto y profesional»); sin enlaces de compra */
+  const PIEZA_FALTA = { malla: ['unas mallas', 'leggings'], jogger: ['un pantalón jogger', 'joggers'], camiseta_tecnica: ['una camiseta técnica', 'a sports top'], top_deportivo: ['un top deportivo', 'a sports bra'],
+    shorts: ['unos shorts', 'shorts'], falda_deportiva: ['una falda deportiva', 'a sports skirt'], pantalon_cargo: ['un pantalón cargo', 'cargo trousers'], chino: ['un chino', 'chinos'], pantalon_recto: ['un pantalón recto', 'straight trousers'],
+    camisa: ['una camisa', 'a shirt'], blusa: ['una blusa', 'a blouse'], gabardina: ['una gabardina', 'a trench coat'], chubasquero: ['un chubasquero', 'a rain jacket'], parka: ['una parka', 'a parka'], plumifero: ['un plumífero', 'a puffer jacket'],
+    bailarinas: ['unas bailarinas', 'ballet flats'], sandalias_planas: ['unas sandalias planas', 'flat sandals'], sandalias_tacon: ['unas sandalias de tacón', 'heeled sandals'], tacones: ['unos zapatos de tacón', 'heels'], mocasines: ['unos mocasines', 'loafers'],
+    botas_altas: ['unas botas altas', 'knee-high boots'], zapato_cordones: ['unos zapatos de cordones', 'lace-up shoes'], zapato_cerrado: ['unos zapatos cerrados', 'closed shoes'] };
+  const conArticulo = id => { const x = PIEZA_FALTA[id] || PIEZA_ARQ[id]; if (x) return x[en() ? 1 : 0]; const nom = Motor.nombreTipo(id);
+    return en() ? id.replace(/_/g, ' ') : (/as$/.test(nom.split(' ')[0]) ? 'unas ' : /[oe]s$/.test(nom.split(' ')[0]) ? 'unos ' : /a$/.test(nom.split(' ')[0]) ? 'una ' : 'un ') + nom; };
+  function faltaConPrenda(p) {
+    let ts = []; try { ts = Motor.faltaCon({ prenda: p, prendas: activas(), perfil: E.perfil }); } catch (x) { ts = []; }
+    const sin = t('Con tu ropa aún no sale un look con esta prenda.', 'Your clothes don’t make a look with this garment yet.'); if (!ts.length) return sin;
+    const ns = ts.map(conArticulo), plural = ns.length > 1 || /^(unos|unas) /.test(ns[0]);
+    return t(`Con tu ropa aún no sale un look con esta prenda; ${plural ? 'lo completarían' : 'lo completaría'} ${ns.join(' y ')}.`, `Your clothes don’t make a look with this garment yet; ${ns.join(' and ')} would complete it.`);
+  }
   function abrirConPrenda() {
     const cap = capaDe('at-conprenda', 'at-cp', t('Con una prenda', 'With one garment')), S = E.conP = E.conP || { id: null, estilo: '' };
     const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button>`;
@@ -1161,7 +1176,7 @@ if (AT) (() => {
         ${otroDia ? `<p class="at-vj-nota at-cp-aviso">${t(`Con el tiempo de hoy no le va. Así la llevarías un día de unos ${looks[0].conT}°.`, `It doesn’t suit today’s weather. This is how you’d wear it on a day of about ${looks[0].conT}°.`)}</p>` : ''}
         ${capa ? `<p class="at-vj-nota at-cp-aviso">${t(`Para completarlos, con tu ${capa} encima. Si aún no está en tu clóset, ${/a$/.test(capa) ? 'súbela' : 'súbelo'}.`, `To complete them, wear your ${capa} on top. If it isn’t in your closet yet, add it.`)}</p>` : ''}
         ${looks.length ? `<div class="at-rej2 at-vj-dias">${looks.map((x, i) => `<figure class="at-t">${baldosa(psDe(x), TW, TH, ` data-cplook="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<figcaption>${esc(ocNombre(x.ocasion))}${x.conT != null && !otroDia ? ` · ${t(`para un día de ${x.conT}°`, `for a ${x.conT}° day`)}` : ''}</figcaption></figure>`).join('')}</div>`
-          : `<p class="at-vj-sub">${est ? t(`Con tu ropa aún no sale un look ${L(est).toLowerCase()} con esta prenda. Prueba otro estilo.`, `Your clothes don’t make a ${L(est).toLowerCase()} look with this garment yet. Try another style.`) : t('Con tu ropa aún no sale un look con esta prenda.', 'Your clothes don’t make a look with this garment yet.')}</p>`}`;
+          : `<p class="at-vj-sub">${est ? t(`Con tu ropa aún no sale un look ${L(est).toLowerCase()} con esta prenda. Prueba otro estilo.`, `Your clothes don’t make a ${L(est).toLowerCase()} look with this garment yet. Try another style.`) : faltaConPrenda(p)}</p>`}`;
       deslizable(cap.querySelector('.at-cp-est'));
       const on = cap.querySelector('.at-cp-est .on'); if (on && S.estilo) requestAnimationFrame(() => on.scrollIntoView({ block: 'nearest', inline: 'center' }));
     }
