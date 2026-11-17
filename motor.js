@@ -696,7 +696,8 @@ const Motor = (() => {
       const sin = f.huecos.filter(h => !h.opcional && !cands(h, h.rol === 'calzado' ? zapatosPropios : ents).length);
       if (sin.length !== 1) continue;
       const h = sin[0], abrigo = h.rol === 'capa' && tiposDe(h).some(t => R.grupos['@abrigo_frio'].includes(t)), g = abrigo ? 'abrigo' : h.rol === 'base_interior' ? 'arriba' : h.rol;
-      const ts = (pf.publico === 'masculino' ? tiposDe(h).filter(t => !SOLO_MUJER.test(t)) : tiposDe(h)).filter(delPlan); if (!ts.length) continue; // 14/11: con ropa de hombre no se le dice que le falta una falda ni una malla
+      const tiene = new Set((h.rol === 'calzado' ? zapatosPropios : ents).map(p => p._f.subtipo)); // 17/11 (Gabriela: «me recomienda jersey, si yo tengo un montón de jersey»): si ya tiene ese tipo y solo le falla el ajuste o el color, no le falta
+      const ts = (pf.publico === 'masculino' ? tiposDe(h).filter(t => !SOLO_MUJER.test(t)) : tiposDe(h)).filter(delPlan).filter(t => !tiene.has(String(t).replace(/[\^$]/g, ''))); if (!ts.length) continue; // 14/11: con ropa de hombre no se le dice que le falta una falda ni una malla
       const c = cuenta[g] = cuenta[g] || { n: 0, tipos: {}, todos: new Set() }; c.n++; const t0 = g === 'calzado' && pf.publico !== 'masculino' && (plan === 'Evento' || (ctx.sub_calzado_si || []).includes('tacones')) && ts.includes('tacones') ? 'tacones' : ts[0]; c.tipos[t0] = (c.tipos[t0] || 0) + 1; for (const t of ts) c.todos.add(t); // 15/11: a una mujer, para un evento, tacones antes que zapatos de cordones
     }
     if (String(ctx.tramo.capa).startsWith('obligatoria') && !ents.some(p => p._f.cat === 'capa' && p._f.subtipo !== 'chaleco_traje')) {
