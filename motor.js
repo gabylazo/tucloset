@@ -487,7 +487,8 @@ const Motor = (() => {
     const bajoTecho = !!ctx.bajo_techo, dentro = { ...ctx, t_ref: Math.max(ctx.t_ref, 20) };
     // 16/11 (capas): la prenda de debajo va bajo un jersey o un vestido y con abrigo, así que su mínimo de temperatura no cuenta (una blusa es de 14° si va sola);
     // solo que no sea de calor (tmax)
-    const paraDebajo = formula.huecos.some(h => h.rol === 'base_interior') ? ents.filter(p => p._f.cat === 'arriba' && !soloDeporte(p._f) && !(p._f.tmax != null && ctx.t_ref > p._f.tmax + 3)) : [];
+    const paraDebajo = formula.huecos.some(h => h.rol === 'base_interior') ? ents.filter(p => p._f.cat === 'arriba' && !soloDeporte(p._f) && !(p._f.tmax != null && ctx.t_ref > p._f.tmax + 3)
+      && !(p._f.tejido === 'lino' && ctx.t_ref < (p._f.tmin ?? 20) - 6)) : []; // 17/11: el lino es de verano: debajo de otras capas, sí en entretiempo, con frío no (clóset de demostración de hombre, 7°)
     ents = ents.filter(p => (vaHoy(p, ctx) || (bajoTecho && p._f.cat === 'vestido' && p._f.form >= 3 && vaHoy(p, dentro))) && (dep ? aptoDeporte(p) : !soloDeporte(p._f)));
     // bajo techo, también sus sandalias de tacón (sin lluvia), pero solo si no tiene un zapato de vestir cerrado que valga con el frío de hoy (16/11, Gabriela: «con frío,
     // teniendo tacones cerrados, me propone los abiertos»)
@@ -523,7 +524,9 @@ const Motor = (() => {
           if (f.subtipo === 'jersey_cuello_alto') return f.grosor !== 'grueso' && !(fA && ['jersey', 'jersey_cuello_alto', 'sudadera'].includes(fA.subtipo));
           return false; };
         // con mucho frío, también una prenda neutra lisa que ya valía por sí sola (como antes del 16/11), pero nada con volantes, encaje, transparencias o asimetrías
-        const debajo = p => r !== 'base_interior' || (encima && p._f.largo !== 'crop' && (bajoOk(p) || (ents.includes(p) && !p._f.hombros && !BLUSA_NO_DEBAJO.test(norm(p.p.nombre || ''))
+        // 17/11 (clóset de demostración de hombre): bajo un jersey de cuello alto no va nada con cuello: la camisa no asoma y los dos cuellos se pisan (F19 y CAP-06 piden que asome o un jersey de pico)
+        const cuelloArriba = fA?.subtipo === 'jersey_cuello_alto';
+        const debajo = p => r !== 'base_interior' || (encima && p._f.largo !== 'crop' && !(cuelloArriba && ['camisa', 'blusa', 'polo'].includes(p._f.subtipo)) && (bajoOk(p) || (ents.includes(p) && !p._f.hombros && !BLUSA_NO_DEBAJO.test(norm(p.p.nombre || ''))
           && ['T5', 'T6', 'T7'].includes(ctx.tramo.id) && ['neutro', 'neutro_suave'].includes(p._f.color_clase))));
         const cs = cands(hc, r === 'base_interior' ? paraDebajo : ents).filter(p => !PIEZAS.some(k => par[k] === p) && debajo(p)).sort((a, b) => cercania(b, par, ctx) + AF.capa * afin(b) - cercania(a, par, ctx) - AF.capa * afin(a)).slice(0, r === 'bano' ? 4 : 2); // del bañador, hasta 4: decide el color
         if (!cs.length && !hc.opcional) { if (r === 'bano') { looks = []; break; } faltaHueco = { rol: r, h: hc }; continue; } // sin bañador no hay look de playa
