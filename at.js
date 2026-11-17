@@ -471,6 +471,7 @@ if (AT) (() => {
 
   /* ---------- Estilos (Sheila, 03/11, m. 1702: «más visuales, para que las personas se identifiquen con outfits que les gustan»): cada estilo con un look en foto, hecho
      con Gemini (de nadie, sin marcas); la paleta del 22/10 (Gabriela: «me gusta con las paletas de colores») se queda debajo, en una tira. Decide Gabriela ---------- */
+  // 17/11 (Sheila, 2742: un hombre que elige estilo solo veía looks de mujer): con ropa de hombre, las muestras de `estilos-h/` (13 looks de hombre del Gemini de Gabriela, sin personas, marca de IA en el XMP)
   const FOTO_ESTILO = new Set(['oldmoney', 'clasico', 'minimalista', 'frances', 'casual', 'deportivo', 'urbano', 'rock', 'glam', 'retro', 'eclectico', 'romantico', 'boho']);
   const pintarEstiloViejo = pintarEstilo;
   pintarEstilo = function () {
@@ -478,7 +479,7 @@ if (AT) (() => {
     $('at-ropa-sel')?.remove(); const ro = E.perfil?.ropa;
     $('es-sub').insertAdjacentHTML('beforebegin', `<div id="at-ropa-sel"><h2 class="es-tit">${t('Ropa que llevas', 'What you wear')}</h2><div class="at-fila at-vj-ops at-insp-g">${ROPAS.map(([v, n]) => `<button class="${ro === v ? 'on' : ''}" data-ropasel="${v}" aria-pressed="${ro === v}">${n[en() ? 1 : 0].replace(/^Ropa de /, '').replace(/^\w/, c => c.toUpperCase())}${DOS}</button>`).join('')}</div></div>`);
     $('at-ropa-sel').onclick = async e => { const b = e.target.closest('[data-ropasel]'); if (!b) return; await ponerRopa(b.dataset.ropasel); pintarEstilo(); };
-    document.querySelectorAll('#es-lista [data-estilo]').forEach(b => { if (!FOTO_ESTILO.has(b.dataset.estilo)) return; const tela = b.querySelector('.es-tela'); tela.insertAdjacentHTML('beforebegin', `<img class="es-foto" src="estilos/${b.dataset.estilo}.webp?v=1" alt="">`); tela.classList.add('es-mini'); });
+    document.querySelectorAll('#es-lista [data-estilo]').forEach(b => { if (!FOTO_ESTILO.has(b.dataset.estilo)) return; const tela = b.querySelector('.es-tela'); tela.insertAdjacentHTML('beforebegin', `<img class="es-foto" src="${ro === 'hombre' ? 'estilos-h' : 'estilos'}/${b.dataset.estilo}.webp?v=1" alt="">`); tela.classList.add('es-mini'); });
   };
 
   /* ---------- al volver de una prenda o de un look, el clóset y Looks siguen donde estaban (la queja repetida de las apps de armario) ---------- */
