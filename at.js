@@ -959,7 +959,7 @@ if (AT) (() => {
   function viajeAlCalendario(v) {
     const hoy = diaISO(new Date());
     (v.plan || []).forEach((d, i) => { if (d.fecha < hoy || !d.ids?.length) return; const id = `vj${v.id}-${i}`, a = E.agenda[d.fecha] = E.agenda[d.fecha] || { planes: [] }, noche = ['Noche', 'Evento'].includes(d.oc);
-      a.planes = a.planes || []; if (!a.planes.some(p => p.id === id)) a.planes.push({ id, nombre: v.destino, oc: noche ? d.oc : 'Viaje', ...(noche ? { hora: '21:00' } : { dia: 1 }), viaje: v.id });
+      a.planes = a.planes || []; if (!a.planes.some(p => p.id === id)) a.planes.push({ id, nombre: d.nombre ? `${t(d.nombre, d.en)} · ${v.destino}` : v.destino, oc: noche ? d.oc : 'Viaje', ...(noche ? { hora: '21:00' } : { dia: 1 }), viaje: v.id });
       a.looks = { ...(a.looks || {}), [id]: [...d.ids] }; });
     v.cal = 1;
   }
@@ -967,7 +967,20 @@ if (AT) (() => {
     for (const f of new Set((v.plan || []).map(d => d.fecha))) { const a = E.agenda[f]; if (!a) continue; a.planes = (a.planes || []).filter(p => p.viaje !== v.id);
       if (a.looks) for (const k of Object.keys(a.looks)) if (k.startsWith(`vj${v.id}-`)) delete a.looks[k]; }
   }
-  window.viajesAlCalendario = async () => { const vs = (E.perfil?.viajes || []).filter(v => !v.cal); if (!vs.length) return 0; vs.forEach(viajeAlCalendario); await guardar(); E.propuestas = []; return vs.length; };
+  // 17/11 (Gabriela, 2678 y 2692: «quiero todo solucionado ya»): los viajes guardados con la maleta de antes (sin noches ni fechas señaladas), si aún no han empezado,
+  // se rehacen solos al abrir la app con la de ahora (el mismo destino, días y plan; se queda lo marcado como metido en la maleta). Sin red, se quedan como estaban
+  const VIAJE_V = 2; let rehaciendo = false;
+  async function rehacerViajes() {
+    if (rehaciendo || !E.perfil) return; const hoy = diaISO(new Date()), viejos = viajes().filter(v => (v.ver || 1) < VIAJE_V && v.desde >= hoy); if (!viejos.length) return; rehaciendo = true;
+    try { for (const v of viejos) { try {
+      const n = await hacerViaje({ destino: v.destino, pais: v.pais, lat: v.lat, lon: v.lon, desde: v.desde, dias: v.dias, motivo: v.motivo, lugar: v.lugar, extras: v.motivo !== 'Oficina' && v.dias >= 3 && !(v.extras || []).includes('Noche') ? [...(v.extras || []), 'Noche'] : v.extras || [] });
+      const ids = new Set([...n.plan.flatMap(d => d.ids), ...n.bano]); Object.assign(n, { id: v.id, destino: v.destino, pais: v.pais || n.pais, creado: v.creado, listo: (v.listo || []).filter(k => ids.has(k) || ['bano', 'paraguas'].includes(k)) });
+      const vs = viajes(), i = vs.indexOf(v); if (i < 0) continue; viajeFueraDelCalendario(v); vs[i] = n; viajeAlCalendario(n);
+      if ($('at-viaje')?.dataset.vj === v.id) abrirViaje(v.id);
+    } catch (x) { } }
+    E.propuestas = []; await guardar(); programarNube(); if (E.pantalla === 'hoy' && typeof pintarHoy === 'function') pintarHoy(); } finally { rehaciendo = false; }
+  }
+  window.viajesAlCalendario = async () => { rehacerViajes(); const vs = (E.perfil?.viajes || []).filter(v => !v.cal); if (!vs.length) return 0; vs.forEach(viajeAlCalendario); await guardar(); E.propuestas = []; return vs.length; };
   const masDias = (d, n) => { const x = new Date(d + 'T12:00'); x.setDate(x.getDate() + n); return diaISO(x); };
   const fDia = (d, o) => new Date(d + 'T12:00').toLocaleDateString(loc(), o);
   const rango = v => { const a = v.desde, b = masDias(v.desde, v.dias - 1), m = { day: 'numeric', month: 'short' }; return a === b ? fDia(a, m) : a.slice(0, 7) === b.slice(0, 7) ? `${fDia(a, { day: 'numeric' })}–${fDia(b, m)}` : `${fDia(a, m)} – ${fDia(b, m)}`; };
@@ -979,47 +992,26 @@ if (AT) (() => {
     return { previsto, dias: d.time.map((_, i) => { const max = Math.round(d.temperature_2m_max[i]), min = Math.round(d.temperature_2m_min[i]), cod = d.weather_code[i] ?? 2;
       return { t: Math.round((2 * max + min) / 3), max, min, cod, clave: claveTiempo(cod), lluvia: previsto ? d.precipitation_probability_max?.[i] ?? 0 : (d.precipitation_sum?.[i] >= 1 ? 70 : 10), viento: (d.wind_speed_10m_max?.[i] ?? 10) * .6, uv: d.uv_index_max?.[i] ?? 3 }; }) };
   }
-  // el look de un día: entre los buenos del motor, el que menos prendas nuevas mete en la maleta, sin repetir la parte de arriba si se puede
-  // 14/11 (Gabriela: «en viaje te tiene que poner el destino, los días… lo que creas, para que sepas qué recomendar»): el plan del viaje (ciudad, playa o campo)
-  // afina el calzado. Entre los looks buenos del motor para ese día, en la playa gana el de calzado abierto o plano y pierde el de tacón o bota; en el campo gana
-  // el de zapatilla o bota plana y pierde el de tacón, sandalia o bailarina. En ciudad no cambia nada
-  const CALZ_VIAJE = {
-    playa: f => f.tacon_num >= 2 || /^bota|^botines/.test(f.subtipo) ? 1.5 : f.abierto || ['sandalias_planas', 'chanclas', 'alpargatas'].includes(f.subtipo) ? -1.5 : f.subtipo === 'zapatillas' ? -.5 : 0,
-    campo: f => f.tacon_num >= 2 ? 2 : ['zapatillas', 'botas_montana', 'botines', 'botas_agua', 'botas_altas'].includes(f.subtipo) ? -1.5 : f.abierto || ['bailarinas', 'sandalias_planas', 'chanclas'].includes(f.subtipo) ? 1 : 0 };
-  const calzViaje = (x, lugar) => { const k = CALZ_VIAJE[lugar]; if (!k) return 0; const z = x.ids.map(P).find(p => p?.tipo === 'Calzado'); if (z) return k(Motor.ficha(z));
-    const s = x.zspec; return s ? k({ subtipo: s.tipo, tacon_num: { plano: 0, bajo: 1, medio: 2, alto: 3 }[s.tacon] || 0, abierto: /^sandalias|^chanclas/.test(s.tipo) }) : 0; };
-  function lookDeViaje(w, plan, hora, dia, usos, hechos, lugar) {
-    const r = Motor.looks({ prendas: activas(), tiempo: w, plan, perfil: E.perfil, n: 14, hoy: dia, hora, pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true });
-    const cs = deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)).filter(x => !hechos.has(x.ids.slice().sort().join()));
-    let mejor = null, min = 1e9;
-    cs.forEach((x, i) => { const c = i * .15 + calzViaje(x, lugar) + x.ids.reduce((s, id) => { const p = P(id), n = usos.get(id) || 0; return !p ? s : !n ? s + 1 : p.tipo === 'Arriba' && !esCapa(p) ? s + 2.2 * n : s; }, 0); if (c < min) { min = c; mejor = x; } });
-    return mejor;
-  }
+  // 17/11: el plan de cada día, las noches, las fechas señaladas y la elección de cada look están en el motor (Motor.planViaje), para probarlos con la ropa de cada una
   async function hacerViaje(f) {
-    const g = (await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(f.destino)}&count=1&language=${idioma()}`)).json()).results?.[0];
+    // al rehacer un viaje guardado, el mismo sitio (lat y lon); si es de antes, por su nombre, como se buscó entonces
+    const g = f.lat != null ? { name: f.destino, latitude: f.lat, longitude: f.lon, country: f.pais } : (await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(f.destino)}&count=1&language=${idioma()}`)).json()).results?.[0];
     if (!g) throw new Error('destino');
-    const tv = await tiempoViaje(g.latitude, g.longitude, f.desde, f.dias), usos = new Map(), hechos = new Set(), plan = [];
-    const poner = (fecha, w, oc, hora) => { const x = lookDeViaje(w, oc, hora, fecha, usos, hechos, f.lugar); if (!x) return; x.ids.forEach(id => usos.set(id, (usos.get(id) || 0) + 1)); hechos.add(x.ids.slice().sort().join());
-      plan.push({ fecha, oc, ids: x.ids, zspec: x.zspec, como: x.como, w: { max: w.max, min: w.min, lluvia: w.lluvia, clave: w.clave } }); };
-    // 16/11 (Sheila, 2432: «5-sí», que su bikini salga en los looks de playa): en un viaje de playa que no es de trabajo, los días de calor (25° o más) el look del día
-    // es el de playa (el bañador o el bikini con un vestido playero, una camisa abierta y un short, o un short, y sandalias o chanclas) mientras haya uno distinto;
-    // sin ropa de baño o sin combinaciones nuevas, el de siempre
-    const playa = w => f.lugar === 'playa' && f.motivo !== 'Oficina' && w.max >= 25;
-    tv.dias.forEach((w, i) => { const n0 = plan.length; if (playa(w)) poner(masDias(f.desde, i), w, 'Playa', 12); if (plan.length === n0) poner(masDias(f.desde, i), w, f.motivo, 12); });
-    const ultimo = tv.dias.length - 1; for (const oc of f.extras) poner(masDias(f.desde, Math.max(0, ultimo - (oc === 'Evento' ? 1 : 0))), tv.dias[Math.max(0, ultimo - (oc === 'Evento' ? 1 : 0))], oc, 21);
-    plan.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    // 16/11 (Sheila, 2432: «5-sí»): en la playa, con 25° o más, los días de playa llevan el bañador o el bikini; sin ropa de baño, el de siempre (todo en Motor.planViaje)
+    const tv = await tiempoViaje(g.latitude, g.longitude, f.desde, f.dias);
+    const { plan } = Motor.planViaje({ prendas: activas(), perfil: E.perfil, desde: f.desde, dias: tv.dias, lugar: f.lugar || 'ciudad', motivo: f.motivo, extras: f.extras, nocheMano: !!f.nocheMano, pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
     const tmin = Math.min(...tv.dias.map(w => w.min)), tmax = Math.max(...tv.dias.map(w => w.max));
     if (!plan.length) { const e = new Error('sinlooks'); const g = n => String(n).replace('-', '−'); e.temp = t(`de ${g(tmin)}° a ${g(tmax)}°`, `${g(tmin)}° to ${g(tmax)}°`); e.falta = tmax < 12 ? t('te hace falta ropa de más abrigo', 'you need warmer clothes') : tmin > 22 ? t('te hace falta ropa más fresca', 'you need lighter clothes') : ''; throw e; }
     // de playa: la ropa de baño va en la maleta aunque no salga en ningún look (una pieza por cada dos días, hasta cuatro; primero las que más se pone)
     const bano = f.lugar === 'playa' ? activas().filter(esBano).sort((a, b) => (b.usos || []).length - (a.usos || []).length || String(b.creada || '').localeCompare(String(a.creada || ''))).slice(0, Math.min(4, Math.ceil(f.dias / 2))).map(p => p.id) : [];
-    return { id: uid(), destino: g.name, pais: g.country || '', desde: f.desde, dias: f.dias, motivo: f.motivo, extras: f.extras, lugar: f.lugar || 'ciudad', bano, previsto: tv.previsto, plan, listo: [], lluvia: tv.dias.some(w => w.lluvia >= 50), tmin, tmax, creado: Date.now() };
+    return { id: uid(), ver: VIAJE_V, destino: g.name, pais: g.country || '', lat: g.latitude, lon: g.longitude, desde: f.desde, dias: f.dias, motivo: f.motivo, extras: f.extras, nocheMano: !!f.nocheMano, lugar: f.lugar || 'ciudad', bano, previsto: tv.previsto, plan, listo: [], lluvia: tv.dias.some(w => w.lluvia >= 50), tmin, tmax, creado: Date.now() };
   }
   window.abrirViaje = id => abrirViaje(id); // 13/11: también se abre desde el «+» del calendario (app.js)
   function abrirViaje(id) {
     let cap = $('at-viaje'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-viaje'; cap.className = 'ay-capa at-vj'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-label', t('Planear un viaje', 'Plan a trip')); document.body.append(cap); }
     const cerrar = () => { cap.remove(); if (E.pantalla === 'looks') pintarLooks(); };
     const X = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>`;
-    const v = id && viajes().find(x => x.id === id);
+    const v = id && viajes().find(x => x.id === id); cap.dataset.vj = v ? v.id : '';
     if (planDemo() !== 'pro') { cap.innerHTML = `${X}<h1>${t('Tu viaje', 'Your trip')}</h1><p class="at-vj-sub">${t('Dices adónde vas y cuántos días, y te preparo un look para cada día con el tiempo de allí y la lista de la maleta.', 'Tell me where and for how many days, and I’ll plan a look for each day with the weather there and your packing list.')}</p><p class="at-vj-sub"><span class="dg-pro">Pro</span></p>`; cap.querySelector('.x').onclick = cerrar; return; }
     if (!v) return formViaje(cap, X, cerrar);
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25), m = Math.round(TW * .17), mh = Math.round(TH * .12);
@@ -1028,7 +1020,7 @@ if (AT) (() => {
     const cosas = [...maleta.map(p => [p.id, p.nombre]), ...(v.lugar === 'playa' && !maleta.some(esBano) ? [['bano', t('Bikini o bañador', 'Swimwear')]] : []), ...(v.lluvia ? [['paraguas', t('Paraguas', 'Umbrella')]] : [])];
     const tmin = v.tmin ?? Math.min(...v.plan.map(d => d.w.min)), tmax = v.tmax ?? Math.max(...v.plan.map(d => d.w.max));
     cap.innerHTML = `${X}<h1>${esc(v.destino)}</h1><p class="at-vj-datos">${rango(v)} · ${tmin}°–${tmax}°${v.lugar && v.lugar !== 'ciudad' ? ' · ' + nomLugar(v.lugar) : ''}</p>${v.previsto ? '' : `<p class="at-vj-nota">${t('Aún no hay previsión: es el tiempo de esos días el año pasado.', 'No forecast yet: this is last year’s weather for those days.')}</p>`}
-      ${v.plan.length ? `<div class="at-rej2 at-vj-dias at-vj-plan">${v.plan.map(d => `<figure class="at-t"><div class="at-bal" style="width:${TW}px;height:${TH}px">${figura(psDe(d), TW - 2 * m, TH - 2 * mh)}</div><figcaption>${fDia(d.fecha, { weekday: 'short', day: 'numeric' })}${ICO_T[d.w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(d.w.clave) ? 'nube' : d.w.clave] || ''}${d.w.max}°${d.w.lluvia >= 50 ? ICO_T.lluvia : ''}${d.oc !== v.motivo ? ` · ${ocNombre(d.oc)}` : ''}</figcaption></figure>`).join('')}</div>`
+      ${v.plan.length ? `<div class="at-rej2 at-vj-dias at-vj-plan">${v.plan.map(d => `<figure class="at-t"><div class="at-bal" style="width:${TW}px;height:${TH}px">${figura(psDe(d), TW - 2 * m, TH - 2 * mh)}</div><figcaption>${fDia(d.fecha, { weekday: 'short', day: 'numeric' })}${ICO_T[d.w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(d.w.clave) ? 'nube' : d.w.clave] || ''}${d.w.max}°${d.w.lluvia >= 50 ? ICO_T.lluvia : ''}${d.nombre ? ` · ${t(d.nombre, d.en)}` : d.oc !== v.motivo ? ` · ${ocNombre(d.oc)}` : ''}</figcaption></figure>`).join('')}</div>`
         : `<p class="at-vj-sub">${t('Con tu ropa no sale un look para este viaje. Sube más y vuelve a probar.', 'Your clothes don’t make a look for this trip yet.')}</p>`}
       ${cosas.length ? `<h2 class="at-vj-h2">${t('En la maleta', 'In the suitcase')} · ${cosas.length}</h2><ul class="at-vj-maleta">${cosas.map(([k, n]) => { const on = v.listo.includes(k); return `<li><button data-vjk="${k}" aria-pressed="${on}" class="${on ? 'on' : ''}"><span class="at-vj-caja" aria-hidden="true"></span>${esc(n)}</button></li>`; }).join('')}</ul>` : ''}
       <div class="at-enlaces at-vj-pie"><button class="at-enlace" data-vjotra>${t('Otro viaje', 'Another trip')}</button><button class="at-enlace" data-vjborrar>${t('Borrar el viaje', 'Delete the trip')}</button></div>`;
@@ -1047,7 +1039,7 @@ if (AT) (() => {
   const LUGARES = [['ciudad', 'Ciudad', 'City'], ['playa', 'Playa', 'Beach'], ['campo', 'Campo', 'Countryside']];
   const nomLugar = k => { const l = LUGARES.find(x => x[0] === k) || LUGARES[0]; return t(l[1], l[2]); };
   function formViaje(cap, X, cerrar) {
-    const F = E.vjForm = E.vjForm || { destino: '', desde: masDias(diaISO(new Date()), 1), dias: 3, motivo: 'Diario', extras: [], lugar: 'ciudad' }; F.lugar = F.lugar || 'ciudad';
+    const F = E.vjForm = E.vjForm || { destino: '', desde: masDias(diaISO(new Date()), 1), dias: 3, motivo: 'Diario', extras: ['Noche'], lugar: 'ciudad' }; F.lugar = F.lugar || 'ciudad'; // 17/11 (Moda): la noche de salir, marcada de entrada
     const fila = (ic, id, valor, control) => `<label class="ag-f">${agIc(ic)}<span class="ag-v" aria-hidden="true"><span id="${id}-v">${valor}</span>${control.startsWith('<select') ? agIc('abajo') : ''}</span>${control}</label>`;
     const nDias = n => t(`${n} ${n === 1 ? 'día' : 'días'}`, `${n} day${n === 1 ? '' : 's'}`), nomMotivo = m => m === 'Oficina' ? t('De trabajo', 'For work') : t('De ocio', 'For leisure');
     const idaTxt = () => t('Ida: ', 'Leaving ') + fDia(F.desde, { weekday: 'short', day: 'numeric', month: 'short' });
@@ -1070,7 +1062,7 @@ if (AT) (() => {
       const b = e.target.closest('.x,[data-vjextra],[data-vjver]'); if (!b) return; e.preventDefault(); lee();
       if (b.classList.contains('x')) return cerrar();
       if (b.dataset.vjver) return abrirViaje(b.dataset.vjver);
-      const x = b.dataset.vjextra, on = !F.extras.includes(x); F.extras = on ? [...F.extras, x] : F.extras.filter(y => y !== x); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+      const x = b.dataset.vjextra, on = !F.extras.includes(x); F.extras = on ? [...F.extras, x] : F.extras.filter(y => y !== x); if (x === 'Noche') F.nocheMano = true; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
     };
     cap.querySelector('form').onsubmit = async e => {
       e.preventDefault(); lee(); const err = cap.querySelector('.at-vj-error'), bt = cap.querySelector('[type=submit]');

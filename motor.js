@@ -161,7 +161,8 @@ const Motor = (() => {
      El nivel de arreglo de Moda va en su escala: el motor veta a más de un punto por debajo o por encima y puntúa estar dentro (±0,25). Sin subocasión, nada cambia. */
   // 15/11 (Gabriela, 2367): cóctel, bodas, gala y teatro son bajo techo: sus vestidos y sus sandalias de tacón valen aunque fuera refresque (el abrigo, para ir y volver)
   // 16/11 (Gabriela: «no me sugiere vestidos en cenas de gala»): también el restaurante elegante (N2), que es bajo techo
-  const BAJO_TECHO = new Set(['E1', 'E2', 'E3', 'E4', 'N2', 'N4']);
+  // 17/11 (Gabriela, 2678: la maleta de La Habana sin tacones ni vestidos el 31/12; Moda, maleta-viaje C1): la cena elegante del viaje (V4) y la fiesta de Nochevieja (E7), también
+  const BAJO_TECHO = new Set(['E1', 'E2', 'E3', 'E4', 'N2', 'N4', 'V4', 'E7']);
   function subCtx(Sb) {
     if (!Sb) return { sub: null, bajo_techo: false }; // Moda 17/11 (Z10): sin matiz, el plan es en la calle; si no, «bajo_techo != true» no se cumplía nunca (un campo que no existe da falso) y V08, V11, V13 y V34 dejaban pasar sandalias, tirantes y poco abrigo
     return { sub: Sb.id, bajo_techo: BAJO_TECHO.has(Sb.id), sub_form_min: Sb.form[0] - .25, sub_form_max: Sb.form[1] + .25, sub_form_duro_min: Sb.form[0] - 1, sub_form_duro_max: Sb.form[1] + 1,
@@ -170,11 +171,12 @@ const Motor = (() => {
   }
   // las subocasiones de una ocasión (para la segunda fila de Hoy y del calendario) y la que nombra el texto de un evento: solo dentro de su ocasión
   // (SUB5 de Moda: sin palabra del calendario ni elección suya, no se adivina) y la palabra más larga gana («concierto clásico» antes que «concierto»)
-  const subocasiones = oc => [...SUBS.values()].filter(x => !oc || x.oc === oc).map(x => ({ id: x.id, oc: x.oc, nombre: x.nombre, en: x.en }));
+  // 17/11: la fiesta de Nochevieja (E7, solo_viaje) no sale en la fila de planes: solo en «Tu viaje» y en un plan del calendario que la nombre
+  const subocasiones = oc => [...SUBS.values()].filter(x => (!oc || x.oc === oc) && !x.solo_viaje).map(x => ({ id: x.id, oc: x.oc, nombre: x.nombre, en: x.en }));
   function detectarSub(txt, oc, hora) {
     const t = ' ' + norm(txt).replace(/[^a-z0-9ñ ]/g, ' ') + ' '; let mejor = null, largo = 0;
     // sin ocasión (oc null): en todas, para deducirla del nombre («ópera», «cóctel»)
-    for (const x of SUBS.values()) if (!oc || x.oc === oc) for (const w of x.detectar || []) if (w.length > largo && t.includes(' ' + w + (w.length > 5 ? '' : ' '))) { mejor = x.id; largo = w.length; }
+    for (const x of SUBS.values()) if ((!oc || x.oc === oc) && !x.solo_viaje) for (const w of x.detectar || []) // 17/11: E7 (Nochevieja), solo en «Tu viaje» hasta que digan sí a verla en el calendario if (w.length > largo && t.includes(' ' + w + (w.length > 5 ? '' : ' '))) { mejor = x.id; largo = w.length; }
     if (mejor === 'E2' && hora >= 19) mejor = 'E3'; // una boda por la noche
     return mejor;
   }
@@ -643,7 +645,10 @@ const Motor = (() => {
     E5: { midi: .04, diario: -.05, fiesta: -.04, hombros: -.15, vivo: -.1 },
     E6: { corto: .06, midi: .08, largo: -.04, diario: -.04, fiesta: .04 },
     N2: { corto: .05, midi: .06, largo: -.02, diario: -.12, liso: .03 },
-    N4: { corto: .05, midi: .06, largo: -.02, diario: -.12, liso: .03 }
+    N4: { corto: .05, midi: .06, largo: -.02, diario: -.12, liso: .03 },
+    // 17/11 (Moda, maleta-viaje C2): Nochevieja, vestido de cualquier largo con una ventaja mínima del largo y el midi; la cena elegante del viaje, como el restaurante elegante
+    E7: { largo: .08, midi: .08, corto: .06, diario: -.3, fiesta: .06 },
+    V4: { corto: .05, midi: .06, largo: -.02, diario: -.12, liso: .03 }
   };
   function etiqueta(l, ctx) {
     const v = l.vestido, E = ctx.sub && ETIQ[ctx.sub]; if (!v || v.muestra || !E) return 0;
@@ -742,11 +747,17 @@ const Motor = (() => {
     });
   }
   /* Entrada: { prendas, tiempo, plan, perfil, n, hoy, hora, excluir, pro, colorEstacion }. Salida: { looks, casi, falta, ctx }. */
+  const NOCHE_SUBE = new Set(['V4', 'E7']);
   function looks(o) {
     const Sb = o.sub && SUBS.get(o.sub), sb = Sb && (!o.plan || o.plan === 'Todos' || o.plan === Sb.oc) ? Sb : null; // 15/11: la subocasión manda su ocasión; si no es de la ocasión pedida, no cuenta
     const t0 = Date.now(), hoy = o.hoy || new Date().toISOString().slice(0, 10), plan = sb ? sb.oc : o.plan || 'Todos', n = o.n || 6, pf = perfilMotor(o.perfil, o), excluir = new Set(o.excluir || []);
     const ctx0 = contexto(o.tiempo, plan, { hora: o.hora ?? sb?.hora, t_ref: o.t_ref, evento: o.evento || sb?.evento, lugar: o.lugar || sb?.lugar, sub: sb?.id });
     const ents = (o.prendas || []).filter(p => !p.noMeGusta).map(p => ({ id: p.id, p, _f: ficha(p, pf) }));
+    // 17/11 (Gabriela, 2678 y 2688: «si conocieras mi estilo de verdad»; Moda, maleta-viaje C3): de noche (la cena del viaje y Nochevieja) el tacón que marcó en el alta sube
+    // hasta el más alto del que tiene al menos dos pares: dos son una costumbre (Moda lo pedía de un punto; con «bajo» marcado y tres pares de sandalias de tacón alto,
+    // como Gabriela, un punto no llegaba a ninguno). De día manda lo que marcó; quien marcó «plano» no sube
+    if (sb && NOCHE_SUBE.has(sb.id) && pf.tacon_num >= 1 && pf.tacon_num < 3) { const altos = ents.filter(x => ['tacones', 'sandalias_tacon'].includes(x._f.subtipo)).map(x => x._f.tacon_num);
+      for (let k = 3; k > pf.tacon_num; k--) if (altos.filter(v => v === k).length >= 2) { pf.tacon_num = k; pf.tacon = ['plano', 'bajo', 'medio', 'alto'][k]; break; } }
     // 16/11: en la playa (solo «Tu viaje»), sin los complementos de ciudad (cinturón, pañuelo, joyas, bolso)
     COMPL = !!o.complementos && plan !== 'Playa'; MAXPAR = o.parejas || 12; pf.ap = aprendido(pf.gustos, ents, hoy);
     pf.vis = null; for (const x of o.perfil?.vistos || []) { const d = diasDesde(x.d, hoy); if (!(d >= 1 && d <= 3)) continue; // los 3 días anteriores a hoy
@@ -981,6 +992,85 @@ const Motor = (() => {
   // sub: con una ocasión con matiz, el de muestra sale aunque tenga zapatos, porque ninguno suyo vale para ese plan (15/11: la gala salía con sus zapatillas)
   const zapatoDe = l => { const c = l.calzado; if (!c || !c.muestra) return null; const f = c._f; return { muestra: c.muestra, tipo: f.subtipo, color: f.color.toLowerCase(), tacon: f.tacon, ...(l.ctx.sub ? { sub: l.ctx.sub } : {}) }; };
   // la propuesta tal y como la pinta la app: los ids de las prendas reales, el zapato de muestra si hace falta y cómo se lleva la de arriba
+  /* ---------- «TU VIAJE» (17/11; Gabriela, 2678: la maleta de La Habana, del 26/12 al 01/01, «no hay ni un solo par de tacones ni vestidos largos… es 31 de diciembre»;
+     2686: «para un viaje tienes que contar todo… no tienen que decirte que son porque se sobreentiende»; Moda, estudio/2026-11-17-maleta-viaje.md). Antes estaba en at.js
+     (hacerViaje y lookDeViaje): cada día era «Diario», la noche solo salía marcándola y siempre la última, y ganaba el look que menos prendas nuevas metía, así que
+     repetía zapatillas y bolso. Ahora, en un viaje de ocio:
+     - cada día lleva su plan: trayecto (V1) el primero y el último; en medio, turismo a pie (V2), en la playa con 25° o más dos de playa y uno de V2, y en el campo dos de
+       naturaleza (V3) y uno de V2. De trabajo, como antes: Oficina;
+     - las fechas señaladas se cuentan solas (Nochebuena, cena elegante V4; Nochevieja, fiesta E7), salvo el último día, que se viaja;
+     - las noches con look propio (las señaladas dentro), según el lugar y los días: ciudad min(4, ⌈(N−1)/3⌉), playa min(3, ⌈(N−1)/4⌉), campo 1 desde 4 días y 2 desde 8;
+       las libres, si está marcada «Una noche de salir», en los días que más se alejan de las otras noches;
+     - entre los 14 mejores del motor gana el que menos cuesta: (mejor nota − su nota)/K, con K = 0,03 de día, 0,01 en una noche y 0,001 en una noche señalada (ahí gana
+       el mejor look), +1 por prenda nueva en la maleta, +2,2·n por repetir la parte de arriba y +1,5 si un zapato o un bolso de día ya llegó a su tope de usos,
+       T = máx(2, mín(⌈N/2⌉, 5)); el calzado de playa o de campo, como antes. Las señaladas se eligen primero y, si su clóset tiene vestido y zapato del plan, los llevan.
+     Lo que sale de Moda (tabla de noches, K, T, los pesos) es su criterio, no fuente, y se calibra con el banco y las pruebas de viajes. ---------- */
+  const SENALADAS = [{ md: '12-24', nombre: 'Nochebuena', en: 'Christmas Eve', sub: 'V4' }, { md: '12-31', nombre: 'Nochevieja', en: 'New Year’s Eve', sub: 'E7' }];
+  const CALZ_VIAJE = {
+    playa: f => f.tacon_num >= 2 || /^bota|^botines/.test(f.subtipo) ? 1.5 : f.abierto || ['sandalias_planas', 'chanclas', 'alpargatas'].includes(f.subtipo) ? -1.5 : f.subtipo === 'zapatillas' ? -.5 : 0,
+    campo: f => f.tacon_num >= 2 ? 2 : ['zapatillas', 'botas_montana', 'botines', 'botas_agua', 'botas_altas'].includes(f.subtipo) ? -1.5 : f.abierto || ['bailarinas', 'sandalias_planas', 'chanclas'].includes(f.subtipo) ? 1 : 0 };
+  const diaMas = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  function planViaje(o) {
+    const N = o.dias.length, ocio = o.motivo !== 'Oficina', lugar = o.lugar || 'ciudad', fecha = i => diaMas(o.desde, i), extras = o.extras || [];
+    const byId = new Map((o.prendas || []).map(p => [p.id, p])), T = Math.max(2, Math.min(Math.ceil(N / 2), 5)), usos = new Map(), usosDia = new Map(), hechos = new Set(), plan = [];
+    const deDia = (i, w) => !ocio ? { plan: o.motivo, oc: o.motivo } : N === 1 ? { plan: 'Viaje', sub: 'V2', oc: o.motivo } : i === 0 || i === N - 1 ? { plan: 'Viaje', sub: 'V1', oc: o.motivo }
+      : lugar === 'playa' && w.max >= 25 ? ((i - 1) % 3 < 2 ? { plan: 'Playa', oc: 'Playa' } : { plan: 'Viaje', sub: 'V2', oc: o.motivo })
+      : lugar === 'campo' ? { plan: 'Viaje', sub: (i - 1) % 3 < 2 ? 'V3' : 'V2', oc: o.motivo } : { plan: 'Viaje', sub: 'V2', oc: o.motivo };
+    // las noches: las señaladas en su fecha; el evento que se marca sin fecha señalada, el penúltimo día; las libres, lejos de las demás
+    const noches = [];
+    for (let i = 0; i < N - 1; i++) { const s = SENALADAS.find(x => x.md === fecha(i).slice(5)); if (s) noches.push({ i, plan: s.sub === 'E7' ? 'Evento' : 'Viaje', sub: s.sub, oc: s.sub === 'E7' ? 'Evento' : 'Noche', nombre: s.nombre, en: s.en, K: .001, senal: 1 }); }
+    const sen = noches.length;
+    if (extras.includes('Evento') && !sen) noches.push({ i: Math.max(0, N - 2), plan: 'Evento', oc: 'Evento', K: .01 });
+    const tot = N <= 2 ? 0 : lugar === 'playa' ? Math.min(3, Math.ceil((N - 1) / 4)) : lugar === 'campo' ? (N >= 8 ? 2 : N >= 4 ? 1 : 0) : Math.min(4, Math.ceil((N - 1) / 3));
+    let libres = !extras.includes('Noche') ? 0 : ocio ? Math.max(0, tot - noches.length) : 0;
+    if (extras.includes('Noche') && !libres && !noches.length && (o.nocheMano || !ocio)) libres = 1; // si ella la marca a mano (o es de trabajo, como antes), al menos una
+    const huecos = N >= 3 ? Array.from({ length: N - 2 }, (_, k) => k + 1) : Array.from({ length: N }, (_, k) => k);
+    for (let k = 0; k < libres; k++) {
+      const ds = huecos.filter(i => !noches.some(x => x.i === i)); if (!ds.length) break;
+      const lejos = i => noches.length ? Math.min(...noches.map(x => Math.abs(x.i - i))) : (!ocio ? i : 0); // de trabajo, como antes: la última noche
+      const i = ds.reduce((a, b) => lejos(b) > lejos(a) ? b : a);
+      noches.push(ocio ? { i, plan: 'Viaje', sub: 'V4', oc: 'Noche', K: .01 } : { i, plan: 'Noche', oc: 'Noche', K: .01 });
+    }
+    const calz = l => { const k = CALZ_VIAJE[lugar], z = l.calzado; return k && z?._f ? k(z._f) : 0; };
+    const elegir = (i, q, hora) => {
+      // de día, el zapato y el bolso que ya llegaron a su tope no se prueban (el motor enseña cada look con su mejor zapato, y si no, saldría siempre el mismo); si sin ellos
+      // no sale nada, vuelven: no es un veto
+      const lleno = id => { const p = byId.get(id); return p && ['Calzado', 'Bolsos'].includes(p.tipo) && (usosDia.get(id) || 0) >= T; };
+      const sin = hora < 19 && [...usosDia.keys()].some(lleno) ? (o.prendas || []).filter(p => !lleno(p.id)) : null;
+      if (sin && !q.conTodo) { const m = elegir(i, { ...q, conTodo: 1, prendas: sin }, hora); if (m) return m; }
+      const w = o.dias[i], r = looks({ prendas: q.prendas || o.prendas, tiempo: w, plan: q.plan, perfil: o.perfil, n: 14, hoy: fecha(i), hora, pro: o.pro, colorEstacion: o.colorEstacion, complementos: true, ...(q.sub ? { sub: q.sub } : {}) });
+      let ls = (r.looks.length ? r.looks : r.casi).map(l => ({ l, x: aPropuesta(l) })).filter(({ x }) => x.ids.length && !hechos.has(x.ids.slice().sort().join()));
+      // las noches, con un zapato suyo de los que pide el plan (la cena del viaje: sandalia de tacón, tacón, botín, mocasín o bailarina) si alguno de los 14 lo lleva; las señaladas,
+      // además, con vestido si lo hay (Nochevieja: vestido y tacón o sandalia de tacón). Si su clóset no los tiene, sale lo de siempre y, en Nochevieja, «lo ideal» de muestra
+      const Sb = q.sub && (q.senal || hora >= 19) && SUBS.get(q.sub);
+      if (Sb) { const zap = ({ l }) => l.calzado && !l.calzado.muestra && (Sb.calzado_si || []).includes(l.calzado._f.subtipo), ves = ({ l }) => l.vestido && !l.vestido.muestra && (Sb.vestido_si || []).includes(l.vestido._f.subtipo);
+        let si = q.senal ? ls.filter(c => zap(c) && ves(c)) : []; if (!si.length) si = ls.filter(zap); if (si.length) ls = si; }
+      if (!ls.length) return null;
+      const K = q.K || .03, max = Math.max(...ls.map(({ l }) => l.nota ?? 0)), noche = hora >= 19;
+      let mejor = null, min = 1e9;
+      for (const c of ls) {
+        let s = (max - (c.l.nota ?? 0)) / K + calz(c.l);
+        for (const id of c.x.ids) { const p = byId.get(id); if (!p) continue; const n = usos.get(id) || 0;
+          if (!n) s += 1; else if (p.tipo === 'Arriba' && ficha(p, {}).cat !== 'capa') s += 2.2 * n;
+          if (!noche && ['Calzado', 'Bolsos'].includes(p.tipo) && (usosDia.get(id) || 0) >= T) s += 1.5 * ((usosDia.get(id) || 0) - T + 1); } // cada uso de más, más caro
+        if (s < min) { min = s; mejor = c; } }
+      return mejor;
+    };
+    // si el plan no da ningún look (sin bañador para la playa, nada de fiesta), el de siempre: turismo a pie, el día de diario o la noche de salir
+    const reserva = q => q.plan === 'Playa' ? { ...q, plan: 'Viaje', sub: 'V2', oc: o.motivo } : q.sub === 'E7' || q.plan === 'Evento' ? { ...q, plan: 'Evento', sub: null, senal: 0 } : q.sub === 'V4' ? { ...q, plan: 'Noche', sub: null, senal: 0 } : q.sub ? { ...q, plan: ocio ? 'Diario' : o.motivo, sub: null } : null;
+    const poner = (i, q, hora) => {
+      let m = elegir(i, q, hora); for (let r = reserva(q); !m && r; r = reserva(r)) m = elegir(i, r, hora);
+      if (!m) return; const w = o.dias[i], noche = hora >= 19;
+      m.x.ids.forEach(id => { usos.set(id, (usos.get(id) || 0) + 1); if (!noche) usosDia.set(id, (usosDia.get(id) || 0) + 1); }); hechos.add(m.x.ids.slice().sort().join());
+      plan.push({ fecha: fecha(i), oc: q.oc, sub: q.sub || null, ...(q.nombre ? { nombre: q.nombre, en: q.en } : {}), hora, ids: m.x.ids, zspec: m.x.zspec, como: m.x.como, w: { max: w.max, min: w.min, lluvia: w.lluvia, clave: w.clave } });
+    };
+    // primero las señaladas (su ropa de fiesta entra antes de que el ahorro de la maleta la deje fuera), después los días y al final las demás noches
+    noches.filter(q => q.senal).forEach(q => poner(q.i, q, 21));
+    o.dias.forEach((w, i) => poner(i, deDia(i, w), 12));
+    noches.filter(q => !q.senal).forEach(q => poner(q.i, q, 21));
+    plan.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora - b.hora);
+    return { plan, T };
+  }
   function aPropuesta(l) {
     const ps = ['capa', 'arriba', 'base_interior', 'abajo', 'vestido', 'bano', 'calzado', 'bolso', 'accesorio', 'accesorio2', 'joya'].map(k => l[k]).filter(p => p && !p.muestra);
     return { ids: ps.map(p => p.id), ocasion: l.ctx.ocasion, formula: l.formula?.id, estilos: l.formula?.estilos || [], fmedia: l.campos?.form_media, nombre: l.formula?.nombre, porque: l.formula?.porque, como: l.campos.como === 'por_dentro' ? 'por dentro' : l.campos.como, zspec: zapatoDe(l), faltaCapa: !!l.faltaCapa || !!l.capa?.muestra, capaFalta: l.capa?.muestra ? 'un chal o una estola' : l.faltaCapa ? capaQueFalta(l) : null, nota: l.nota }; // Z8: la estola de muestra no se pinta; se avisa
@@ -1020,7 +1110,7 @@ const Motor = (() => {
     return { pct: posibles.length ? Math.round(100 * conEl.length / posibles.length) : null, con: conEl.map(x => x.id), posibles: posibles.length, nLooks: vistos.size,
       ocasiones: ocs.filter(x => enOc.has(x)), temps, looks: lista.map(aPropuesta), parecidas, tipos: CON_TIPO[p.tipo] || [] };
   }
-  return { iniciar, subocasiones, detectarSub, inferir, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, recrear, aPropuesta, faltas, faltaCon, nombreTipo, claveLook, claveRopa, utilidad, get R() { return R; }, get F() { return F; } };
+  return { iniciar, subocasiones, detectarSub, inferir, planViaje, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, recrear, aPropuesta, faltas, faltaCon, nombreTipo, claveLook, claveRopa, utilidad, get R() { return R; }, get F() { return F; } };
 })();
 if (typeof module !== 'undefined') module.exports = Motor;
 else if (typeof MOTOR_DATOS !== 'undefined') Motor.iniciar(MOTOR_DATOS.R, MOTOR_DATOS.F, MOTOR_DATOS.S);
