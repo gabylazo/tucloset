@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.288'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.293'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -907,7 +907,7 @@ if (AT) (() => {
     const lista = E.ideas = sinHoy.length ? sinHoy : todas;
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     const fila = ['Todos', 'Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].map(o => `<button class="${o === oc ? 'on' : ''}" data-ideaoc="${o}"${o === oc ? ' aria-current="true"' : ''}>${o === 'Todos' ? t('Todas', 'All') : ocNombre(o)}${DOS}</button>`).join('');
-    const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button></figure>`; };
+    const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-desc at-desc-t" data-ideadesc="${i}" aria-label="${t('Descartar esta idea: no volverá a salir', 'Discard this idea: it won’t come back')}">${I.cerrar}</button></figure>`; };
     // 14/11 (Gabriela: «la función sigue apareciendo donde mismo, debe sugerirte lo que le falta o lo que le vendría bien a tu clóset»): sale de aquí; ahora es
     // «Qué le falta a tu clóset» en Yo, debajo de los colores de su clóset (faltasCloset en app.js)
     const vendria = false && r.falta?.length && !en() && activas().length ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';
@@ -922,7 +922,7 @@ if (AT) (() => {
       + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio">${activas().length ? `<p>${oc === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte. Cuando la subas, tus looks saldrán aquí.', 'No sportswear yet. Once you add some, your looks will appear here.')) : t('Con lo que tienes aún no sale un look completo para esta ocasión. Cuando subas más, saldrá aquí.', 'What you have doesn’t make a complete look for this occasion yet.')}</p>` : `<p>${t('Sube tu ropa y aquí saldrán tus ideas.', 'Add your clothes and your ideas will appear here.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>`}</div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
     deslizable(raiz.querySelector('.at-ocs-ideas')); if (filaSub) deslizable(raiz.querySelector('.at-subs-ideas'));
     raiz.onclick = async e => {
-      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-ideasub],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje],[data-inspira],[data-recrear],[data-conprenda],[data-compra],[data-pareja]'); if (!b) return;
+      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-ideasub],[data-idea],[data-ideafav],[data-ideadesc],[data-ideavendria],[data-viaje],[data-inspira],[data-recrear],[data-conprenda],[data-compra],[data-pareja]'); if (!b) return;
       if (b.dataset.recrear != null) return abrirRecrear();
       if (b.dataset.conprenda != null) return abrirConPrenda();
       if (b.dataset.pareja != null) return abrirPareja();
@@ -933,9 +933,20 @@ if (AT) (() => {
       if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; return pintarLooks(); }
       if (b.dataset.ideasub) { const o = E.ideaOc || 'Todos'; E.ideaSub = E.ideaSub || {}; E.ideaSub[o] = E.ideaSub[o] === b.dataset.ideasub ? null : b.dataset.ideasub; pintarLooks(); return raiz.querySelector(`[data-ideasub="${b.dataset.ideasub}"]`)?.focus({ preventScroll: true }); }
       if (b.dataset.ideavendria != null) { E.ideaVendria = !E.ideaVendria; return pintarLooks(); }
+      if (b.dataset.ideadesc != null) return descartarIdea(lista[+b.dataset.ideadesc], +b.dataset.ideadesc);
       if (b.dataset.ideafav != null) { const x = lista[+b.dataset.ideafav]; await alternarFav(x.ids, x.ocasion); await datosLook(x); const on = esFav(x.ids); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); return; }
       abrirIdea(lista[+b.dataset.idea]);
     };
+  }
+  // 17/11 (probadora, por Sheila, 2643: «en las ideas no me deja eliminar uno; mi idea era eliminarlo a ver si me generaba otra combinación nueva»): la ✕ de Hoy (12/11)
+  // también en cada idea. La idea descartada no vuelve (gustos.fuera, que pedirMotor ya excluye), cuenta como «no me gusta» y la rejilla se rellena con la siguiente. Con «Deshacer».
+  async function descartarIdea(x, i) {
+    if (!x || !E.perfil) return; const k = claveLook(x.ids); anotarGusto(x.ids, 'no'); const g = E.perfil.gustos; g.fuera = [...(g.fuera || []), k].slice(-300);
+    await guardar(); programarNube(); pintarLooks();
+    const foco = () => { const bs = document.querySelectorAll('#p-looks [data-ideadesc]'); (bs[Math.min(i, bs.length - 1)] || document.querySelector('#p-looks [data-ideaoc][aria-current]'))?.focus({ preventScroll: true }); }; foco();
+    toast(t('Descartada. No volverá a salir', 'Discarded. It won’t come back'), [t('Deshacer', 'Undo'), async () => {
+      g.fuera = (g.fuera || []).filter(y => y !== k); parejas(x.ids.map(P).filter(Boolean)).forEach(q => { if (g.no?.[q] > 1) g.no[q]--; else if (g.no) delete g.no[q]; });
+      await guardar(); programarNube(); pintarLooks(); foco(); }]);
   }
   /* ---------- PLANNING TRAVEL (Pro; «Qué incluye cada plan»): destino, ida y días → un look por día con el tiempo de allí y la lista de la maleta.
      Gabriela, 03/11: «todo lo que falta incorporarlo ya». El tiempo es la previsión de Open-Meteo hasta 16 días; más lejos, cómo fue esos días el año

@@ -216,6 +216,9 @@ html.at .dg-tarjeta .boton { width: 240px; max-width: 100%; margin: 0 auto; }
 html.at .at-para { margin: 0; text-align: center; font-size: 13px; line-height: 1.4; color: var(--sec); }
 html.at .at-idea { position: relative; }
 html.at .at-fav-t { position: absolute; top: 2px; right: 2px; }
+/* 17/11: la ✕ de descartar una idea, enfrente del corazón (la de Hoy, .at-desc, más pequeña) */
+html.at .at-desc-t { top: 2px; left: 2px; right: auto; }
+html.at .at-desc-t svg { width: 16px; height: 16px; }
 html.at .at-ocs-ideas { gap: 16px; }
 html.at .at-ocs-ideas button { font-size: 13px; letter-spacing: 0; text-transform: none; }
 html.at .at-vendria { display: flex; width: max-content; margin: 0 auto; }
