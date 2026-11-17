@@ -192,7 +192,7 @@ document.addEventListener('click', async e => {
 /* ---------- cuenta y nube (0.73) ---------- */
 // Gabriela, 23/10: «crea la opción de las cuentas, para desde la mía empezar a subir mi ropa e ir haciendo pruebas reales».
 // Con cuenta, el clóset «Mi ropa» se guarda también en el servidor (Cloudflare) y se recupera en cualquier móvil; el de «Pruebas» no.
-// Las fotos de la selfie y del cuerpo no se suben nunca (R4): se quedan en el móvil.
+// Las fotos de la selfie y del cuerpo se quedan en el móvil salvo con la casilla de guardarlas en la cuenta o al crear el avatar (17/11: la frase de antes, «no se suben nunca», ya no era cierta).
 const API = (() => { try { const q = localStorage.getItem('tc_api'); if (q) return q; } catch (e) { } return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://localhost:8787' : 'https://tucloset-api.apptucloset.workers.dev'; })();
 // mientras el servidor no esté publicado, la web pública no enseña las cuentas (en local, sí, con el servidor de pruebas)
 const NUBE = true; // 0.76: servidor publicado en Cloudflare (tucloset-api.apptucloset.workers.dev)
@@ -723,7 +723,7 @@ function pintarCuenta() {
         + filaP({ tag: 'div', ic: 'percha', tit: t('Prendas guardadas', 'Saved garments'), val: String(n), flecha: false })
         + filaP({ id: 'cu-ya', ic: 'subir', tit: t('Guardar ahora', 'Save now'), flecha: false })
         + filaP({ id: 'cu-traer', ic: 'bajar', tit: t('Traer lo de otros móviles', 'Bring from other phones'), flecha: false }),
-        t('Tu selfie y tu foto de cuerpo no se suben: se quedan en este móvil.', 'Your selfie and body photo are never uploaded: they stay on this phone.'))
+        t('Tu selfie y tu foto de cuerpo solo salen de este móvil si las guardas en tu cuenta o creas tu avatar.', 'Your selfie and body photo only leave this phone if you save them to your account or create your avatar.'))
       + grupoP('', filaP({ id: 'cu-salir', ic: 'salir', tit: t('Cerrar sesión', 'Sign out'), flecha: false }) + filaP({ id: 'cu-borrar', ic: 'borrar', tit: t('Borrar mi cuenta', 'Delete my account'), rojo: true, flecha: false }));
     $('cu-ya').onclick = () => subirNube(); $('cu-traer').onclick = async () => { E.nube.estado = 'bajando'; pintarCuenta(); await bajarNube(); E.nube.estado = 'ok'; pintarCuenta(); toast(t('Clóset al día', 'Closet up to date')); };
     $('cu-salir').onclick = cerrarSesion; $('cu-borrar').onclick = borrarCuenta;
@@ -3937,7 +3937,7 @@ function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; e
     <p class="dg-res">${[dg.color?.n[es], dg.cuerpo?.n[es]].filter(Boolean).join(' · ')}</p><span class="dg-ver">${t('Ver mi diagnóstico', 'See my analysis')}<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span></section>`;
   return `<section class="dg-tarjeta"><div class="dg-cab"><h2>${t('Tu diagnóstico', 'Your analysis')}</h2><span class="dg-pro">Pro</span></div>
     <div class="dg-fotos">${mini('selfie', 'ic-camara')}${mini('cuerpo', 'ic-cuerpo')}</div>
-    <p>${AT ? t('Dos fotos para tus colores y tu silueta. Se quedan en tu móvil.', 'Two photos for your colours and figure. They stay on your phone.') : t('Una foto de tu cara y otra de cuerpo entero: la app analiza tus colores, tu silueta y la ropa que te favorece. Las fotos no salen de tu móvil.', 'A face photo and a full-body photo: the app analyses your colours, your figure and the clothes that suit you. Photos never leave your phone.')}</p>
+    <p>${AT ? t('Dos fotos para tus colores y tu silueta. El análisis se hace en tu móvil.', 'Two photos for your colours and figure. The analysis runs on your phone.') : t('Una foto de tu cara y otra de cuerpo entero: la app analiza tus colores, tu silueta y la ropa que te favorece. El análisis se hace en tu móvil.', 'A face photo and a full-body photo: the app analyses your colours, your figure and the clothes that suit you. The analysis runs on your phone.')}</p>
     ${pf.selfie || pf.cuerpo ? `<p class="dg-d">${!permiso('diag') ? t('Falta tu permiso para analizarlas.', 'Your permission is needed to analyse them.') : diagPendiente() && !diagFallo ? cargaIco('tc-carga-i') + t('Analizando tus fotos…', 'Analysing your photos…') : t('No he podido leer tus fotos. Prueba con otras.', 'I could not read your photos. Try others.')}</p><button class="boton linea" data-diag="fotos">${t('Ver mis fotos', 'See my photos')}</button>` : `<button class="boton" data-diag="fotos">${t('Hacer las fotos', 'Take the photos')}</button>`}</section>`;
 }
 // 07/11 (Gabriela: «con la foto que yo puse de mi cara y la foto del cuerpo con la que me hicieron el diagnóstico se puede hacer un avatar… el objetivo es que subiendo
