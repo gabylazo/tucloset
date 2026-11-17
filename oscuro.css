@@ -921,6 +921,9 @@ html.oscuro #s-raiz .s-est{color:var(--tinta)}
 html.oscuro #s-raiz .rej small{color:#6E5F54}
 html.oscuro .est-arm{fill:none;stroke:var(--oro-t)}
 html.oscuro .est-rot{color:var(--tinta)}
+html.oscuro .nl-barra{background:var(--o-fondo);border-top:1px solid var(--linea)}
+html.oscuro .nl-elegidas img{border:1px solid var(--linea2);background:var(--o-fondo)}
+html.oscuro .nl-elegidas p{color:var(--sec)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}

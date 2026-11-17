@@ -3431,7 +3431,7 @@ document.addEventListener('change', async e => {
   if (r.sinRopa) return pintarNlFoto(t('No veo ropa en esa foto. Prueba con otra en la que se vea el look entero.', 'I can’t see clothes in that photo. Try one that shows the whole look.'));
   if (r.error) return pintarNlFoto(['tope', 'tope-ia'].includes(r.error) ? t('Hoy ya no puedo leer más fotos. Prueba mañana.', 'I can’t read more photos today. Try tomorrow.') : t('No he podido leer la foto. Prueba otra vez.', 'I couldn’t read the photo. Try again.'));
   const { ids, faltan } = buscarEnCloset(r.prendas, activas());
-  E.preseleccion = ids; E.nlFoto = { estilos: r.estilos || [], colores: r.colores || [], formalidad: r.formalidad || null };
+  E.preseleccion = ids; E.nlFoto = { estilos: r.estilos || [], colores: r.colores || [], formalidad: r.formalidad || null }; pintarElegidas();
   document.querySelectorAll('#nl-prendas [data-sel]').forEach(b => b.classList.toggle('sel', ids.includes(b.dataset.sel)));
   if (OCASIONES.includes(r.ocasion)) { $('nl-ocasiones').dataset.sel = r.ocasion; $('nl-ocasiones').querySelectorAll('[data-oc]').forEach(b => b.classList.toggle('sel', b.dataset.oc === r.ocasion)); }
   const nom = x => [x.tipo, x.color ? adjColor(x.color) : ''].filter(Boolean).join(' ').toLowerCase();
@@ -3450,7 +3450,11 @@ function prepararNuevoLook(pre) {
   $('nl-ocasiones').dataset.sel = 'Diario';
   const act = activas();
   $('nl-prendas').innerHTML = act.length ? TIPOS.filter(tp => act.some(p => p.tipo === tp)).map(tp => `<span class="et">${tipoNombre(tp)}</span>` + act.filter(p => p.tipo === tp).map(p => `<button type="button" data-sel="${p.id}" class="${E.preseleccion.includes(p.id) ? 'sel' : ''}" title="${p.nombre}"><img src="${urlFoto(p)}" alt=""></button>`).join('')).join('') : `<div class="vacio" style="grid-column:1/-1">${t('Primero añade prendas al clóset.', 'Add garments to the closet first.')}</div>`;
+  pintarElegidas();
 }
+// 17/11 (Gabriela: «cuando elijo las piezas, ¿qué hago? No me da la opción de guardar ni nada»): las elegidas, en la barra de abajo junto a «Guardar el look»
+function pintarElegidas() { const z = $('nl-elegidas'); if (!z) return; const ps = E.preseleccion.map(P).filter(Boolean);
+  z.innerHTML = ps.length ? ps.map(p => `<img src="${urlCat(p)}" alt="${escH(p.nombre)}">`).join('') : `<p>${t('Toca las prendas de tu look.', 'Tap the garments for your look.')}</p>`; }
 async function guardarLook() {
   const ids = E.preseleccion; if (ids.length < 2) return toast(t('Elige al menos dos prendas', 'Pick at least two garments'));
   const nombre = $('nl-nombre').value.trim() || `${ocNombre($('nl-ocasiones').dataset.sel)} ${E.conjuntos.length + 1}`;
@@ -4558,7 +4562,7 @@ document.addEventListener('click', e => {
   else if (b.dataset.gguardar !== undefined) { const g = E.generados[+b.dataset.gguardar]; if (g) { E.conjuntos.unshift({ id: uid(), nombre: g.nombre, ocasion: g.ocasion, ids: g.ids, creada: hoyISO(), usos: [], ...(g.zspec ? { zspec: g.zspec } : {}), ...(g.como ? { como: g.como } : {}) }); E.generados.splice(+b.dataset.gguardar, 1); guardar(); E.propuestas = []; toast(t('Conjunto guardado', 'Outfit saved')); pintarLooks(); } }
   else if (b.dataset.ghoy !== undefined) { const g = E.generados[+b.dataset.ghoy]; if (g) ponerse(g.ids); }
   else if (b.dataset.plan) { E.plan = b.dataset.plan; E.hoyIdx = 0; E.propuestas = []; pintarHoy(); }
-  else if (b.dataset.sel) { const id = b.dataset.sel; const i = E.preseleccion.indexOf(id); i >= 0 ? E.preseleccion.splice(i, 1) : E.preseleccion.push(id); b.classList.toggle('sel', i < 0); }
+  else if (b.dataset.sel) { const id = b.dataset.sel; const i = E.preseleccion.indexOf(id); i >= 0 ? E.preseleccion.splice(i, 1) : E.preseleccion.push(id); b.classList.toggle('sel', i < 0); pintarElegidas(); }
 });
 $('busca').oninput = e => { E.busca = e.target.value; pintarCloset(); };
 $('mc-filtrar').onclick = () => hojaFiltros(true); $('mc-velo').onclick = () => hojaFiltros(false); $('mc-ver').onclick = () => hojaFiltros(false);

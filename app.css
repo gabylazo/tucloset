@@ -1957,3 +1957,10 @@ html.oscuro .pn-error{color:#E8776B}
 
 /* 15/11: avisos (Ajustes → Para probar → Avisos): los botones con aire, como en Pareja */
 #pn-avisos .boton{width:100%;margin-top:12px}#pn-avisos .boton+.boton{margin-top:10px}#pn-avisos .pn-campo{margin-bottom:4px}
+
+/* 17/11 (Gabriela: «cuando elijo las piezas, ¿qué hago? No me da la opción de guardar ni nada»): en «Crear un look», las prendas elegidas y «Guardar el look» quedan fijos abajo */
+#p-nuevo-look.sin-tabs{padding-bottom:0}
+.nl-barra{position:sticky;bottom:0;z-index:5;margin:18px -18px 0;padding:10px 18px calc(12px + env(safe-area-inset-bottom));background:var(--fondo);border-top:1px solid var(--linea)}
+.nl-elegidas{display:flex;gap:6px;align-items:center;min-height:44px;margin-bottom:8px;overflow-x:auto}
+.nl-elegidas img{width:44px;height:44px;flex:none;object-fit:contain;border:1px solid var(--linea2);background:var(--fondo)}
+.nl-elegidas p{margin:0;font-size:14px;color:var(--sec)}
