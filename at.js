@@ -1238,7 +1238,7 @@ if (AT) (() => {
     if (!cap.querySelector('.at-par-pares')) cap.innerHTML = `${cab}<p class="at-vj-sub">${cargaIco()}${t('Un momento…', 'One moment…')}</p>`;
     let d; try { d = await parejaDatos(); } catch (e) { cap.innerHTML = `${cab}<p class="at-vj-sub">${t('Sin conexión. Prueba otra vez en un momento.', 'No connection. Try again in a moment.')}</p><button class="boton linea at-par-enl" data-parotra>${t('Probar otra vez', 'Try again')}</button>`; return; }
     if (!cap.isConnected) return;
-    if (!d) { cap.innerHTML = enlazar(t('Enlaza tu clóset con el de tu pareja y aquí verás a la vez un look para ti y otro para tu pareja que combinan. Cada una sigue con su cuenta y su ropa.', 'Link your closet with your partner’s and here you’ll see a look for you and one for your partner that go together. Each keeps their own account and clothes.')); return; }
+    if (!d) { cap.innerHTML = enlazar(t('Enlaza tu clóset con el de tu pareja y aquí verás a la vez un look para ti y otro para tu pareja que combinan. Cada persona sigue con su cuenta y su ropa.', 'Link your closet with your partner’s and here you’ll see a look for you and one for your partner that go together. Each keeps their own account and clothes.')); return; }
     const R = hacerPares(d, S.oc), quien = d.nombre || t('Tu pareja', 'Your partner'), Q = escH(quien);
     await fotosPareja([...new Set(R.pares.flatMap(p => p.b.ps))]);
     if (!cap.isConnected) return;

@@ -3739,25 +3739,25 @@ async function parejaDatos(forzar) {
   if (!cuenta()) return null;
   if (!forzar && PAREJA.datos !== null && Date.now() - PAREJA.cuando < 10 * 60000) return PAREJA.datos;
   const r = await api('/api/pareja', { tiempo: 20000 }); if (!r.ok) throw new Error('pareja ' + r.status);
-  PAREJA.datos = (await r.json()).pareja || false; PAREJA.cuando = Date.now(); LS.set('tc_pareja', PAREJA.datos ? PAREJA.datos.nombre || t('Enlazada', 'Linked') : null);
+  PAREJA.datos = (await r.json()).pareja || false; PAREJA.cuando = Date.now(); LS.set('tc_pareja', PAREJA.datos ? PAREJA.datos.nombre || t('Tu pareja', 'Your partner') : null);
   return PAREJA.datos;
 }
 function panelPareja() { abrirPanel(t('Pareja', 'Partner'), '<div id="pn-pareja"></div>', cap => pintarPareja(cap)); }
 async function pintarPareja(cap, codigo) {
   const z = cap.querySelector('#pn-pareja'); if (!z) return;
   const intro = `<p class="pn-par-intro">${t('Enlaza tu clóset con el de tu pareja y, en Looks → Ideas, «En pareja» te propondrá a la vez un look para ti y otro para tu pareja que combinan.', 'Link your closet with your partner’s and, in Looks → Ideas, «As a couple» will suggest a look for you and one for your partner that go together.')}</p>`;
-  if (!cuenta()) { z.innerHTML = intro + grupoP('', filaP({ attr: 'data-ir="cuenta"', ic: 'cuenta', tit: t('Entrar o crear tu cuenta', 'Sign in or create your account') }), t('Cada una necesita su cuenta de TuCloset.', 'Each of you needs a TuCloset account.')); z.querySelector('[data-ir]').addEventListener('click', () => cap.remove()); return; }
+  if (!cuenta()) { z.innerHTML = intro + grupoP('', filaP({ attr: 'data-ir="cuenta"', ic: 'cuenta', tit: t('Entrar o crear tu cuenta', 'Sign in or create your account') }), t('Cada persona necesita su cuenta de TuCloset.', 'Each of you needs a TuCloset account.')); z.querySelector('[data-ir]').addEventListener('click', () => cap.remove()); return; }
   if (!codigo) z.innerHTML = `<p class="pn-nota pn-par-carga">${cargaIco()}${t('Un momento…', 'One moment…')}</p>`;
   let d; try { d = await parejaDatos(true); } catch (e) { z.innerHTML = intro + `<p class="pn-error" role="alert">${t('Sin conexión. Prueba otra vez en un momento.', 'No connection. Try again in a moment.')}</p>`; return; }
   pintarPanelYo();
   if (d) {
-    z.innerHTML = grupoP('', filaP({ tag: 'div', ic: 'pareja', tit: t('Enlazada con', 'Linked with'), val: escH(d.nombre || t('tu pareja', 'your partner')), flecha: false })
+    z.innerHTML = grupoP('', filaP({ tag: 'div', ic: 'pareja', tit: t('Pareja', 'Partner'), val: escH(d.nombre || t('tu pareja', 'your partner')), flecha: false })
       + filaP({ id: 'pn-par-fuera', ic: 'borrar', tit: t('Desenlazar', 'Unlink'), rojo: true, flecha: false }),
       t('Tu pareja ve tus prendas y sus fotos para combinar looks con los suyos, y tú las suyas. Vuestras medidas, fotos del diagnóstico y notas, no.', 'Your partner sees your garments and their photos to match looks with theirs, and you see theirs. Not your measurements, analysis photos or notes.'));
     z.querySelector('#pn-par-fuera').onclick = async () => {
       if (!await confirmar(t('¿Desenlazar?', 'Unlink?'), t('Dejaréis de ver la ropa de la otra. Vuestros clósets no cambian.', 'You will stop seeing each other’s clothes. Your closets don’t change.'), t('Desenlazar', 'Unlink'))) return;
       const r = await api('/api/pareja', { method: 'DELETE', tiempo: 15000 }).catch(() => null); if (!r?.ok) return toast(t('Sin conexión: no se ha desenlazado', 'No connection: not unlinked'));
-      PAREJA.datos = false; LS.set('tc_pareja', null); toast(t('Desenlazadas', 'Unlinked')); pintarPareja(cap);
+      PAREJA.datos = false; LS.set('tc_pareja', null); toast(t('Enlace deshecho', 'Unlinked')); pintarPareja(cap);
     };
     return;
   }
@@ -4219,7 +4219,7 @@ function barrasSilueta(b) {
 }
 const listaFavor = (l, cls = '') => `<ul class="dx-lista${cls}">${l.map(x => `<li>${cls ? '' : IC_BIEN}<span>${x}</span></li>`).join('')}</ul>`;
 const fotosCloset = ps => `<div class="dx-closet">${ps.map(p => `<button data-ficha="${p.id}" aria-label="${(p.nombre || '').replace(/"/g, '')}"><img src="${urlCat(p)}" alt=""></button>`).join('')}</div>`;
-async function panelDiag(pendientes = [], tab) {
+async function panelDiag(pendientes = [], tab, solo) { // 17/11 (Sheila, 2744): «Mi silueta» y «Mis colores» abren solo lo suyo; con pestañas, Silueta a la izquierda, como en Yo
   const pf = E.perfil || {}, dg = pf.diag || {}, es = idioma() === 'en' ? 1 : 0, m = medidasLocales(), c = dg.color, b = dg.cuerpo, pro = planDemo() === 'pro';
   let R = null; try { R = (await diagMod()).R; } catch (e) { }
   tab = tab || (c ? 'color' : 'silueta');
@@ -4265,13 +4265,13 @@ async function panelDiag(pendientes = [], tab) {
         <li>${t('Fiabilidad', 'Confidence')}: ${conf(b.confianza)}</li>${avisosB.map(x => `<li>${x}</li>`).join('')}</ul></details>`;
   }
   const html = `<div class="dx">${pendientes.length ? `<ul class="dx-avisos">${pendientes.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
-    <div class="dx-tabs" role="tablist">${[['color', t('Colores', 'Colours')], ['silueta', t('Silueta', 'Figure')]].map(([k, n]) => `<button role="tab" id="dxt-${k}" aria-controls="dxp-${k}" aria-selected="${tab === k}" data-dxtab="${k}">${n}</button>`).join('')}</div>
-    <div class="dx-panel" role="tabpanel" id="dxp-color" aria-labelledby="dxt-color" ${tab === 'color' ? '' : 'hidden'}>${col}</div>
-    <div class="dx-panel" role="tabpanel" id="dxp-silueta" aria-labelledby="dxt-silueta" ${tab === 'silueta' ? '' : 'hidden'}>${sil}</div>
+    ${solo ? '' : `<div class="dx-tabs" role="tablist">${[['silueta', t('Silueta', 'Figure')], ['color', t('Colores', 'Colours')]].map(([k, n]) => `<button role="tab" id="dxt-${k}" aria-controls="dxp-${k}" aria-selected="${tab === k}" data-dxtab="${k}">${n}</button>`).join('')}</div>`}
+    ${solo ? (tab === 'color' ? col : sil) : `<div class="dx-panel" role="tabpanel" id="dxp-silueta" aria-labelledby="dxt-silueta" ${tab === 'silueta' ? '' : 'hidden'}>${sil}</div>
+    <div class="dx-panel" role="tabpanel" id="dxp-color" aria-labelledby="dxt-color" ${tab === 'color' ? '' : 'hidden'}>${col}</div>`}
     ${!pro && (c || b) ? `<p class="dx-nota">${t('Con el Pro, tus looks usan también tu silueta y ves qué prendas de tu clóset te favorecen.', 'With Pro, your looks also use your figure and you see which of your clothes suit you.')}</p>` : ''}
     <p class="dx-enls"><button class="dx-enl" data-diag="fotos">${t('Tus medidas y fotos', 'Your measurements and photos')}</button></p>
     <p class="dx-priv">${IC_CANDADO}${pf.fotosCuenta ? t('Privadas: solo tú las ves, en tu móvil y en tu ordenador', 'Private: only you see them, on your phone and computer') : t('Tus fotos se quedan en tu móvil', 'Your photos stay on your phone')}</p></div>`;
-  abrirPanel(t('Tu diagnóstico', 'Your analysis'), html, cap => cap.addEventListener('click', e => {
+  abrirPanel(solo ? (tab === 'color' ? t('Mis colores', 'My colours') : t('Mi silueta', 'My figure')) : t('Tu diagnóstico', 'Your analysis'), html, cap => cap.addEventListener('click', e => {
     const tb = e.target.closest('[data-dxtab]');
     if (tb) { const k = tb.dataset.dxtab; cap.querySelectorAll('[data-dxtab]').forEach(x => x.setAttribute('aria-selected', x === tb)); cap.querySelectorAll('.dx-panel').forEach(p => { p.hidden = p.id !== 'dxp-' + k; }); cap.querySelector('.pn-cuerpo')?.scrollTo?.({ top: 0 }); return; }
     if (e.target.closest('[data-ir],[data-ficha],[data-diag]')) setTimeout(() => cap.remove(), 0);
@@ -4281,7 +4281,7 @@ document.addEventListener('click', async e => { const b = e.target.closest('[dat
   E.perfil = E.perfil || {}; E.perfil.verComo = k; E.propuestas = []; E.generados = []; await guardar(); pintarYo(); toast(t(`Viendo la app como ${nomPlan(k)}. Tu ropa y tus looks siguen igual.`, `Viewing the app as ${nomPlan(k)}. Your clothes and looks stay the same.`)); });
 document.addEventListener('click', async e => { const b = e.target.closest('[data-diag]'); if (!b) return; const k = b.dataset.diag; if (k === 'plan') return panelPlan(); if (k === 'fotos') return panelDiagFotos();
   if (diagPendiente() && !diagFallo) { toast(t('Analizando…', 'Analysing…')); await diagHastaAlDia(); }
-  const dg = E.perfil?.diag; if (!dg?.color && !dg?.cuerpo) return panelDiagFotos(); panelDiag([], k.split('-')[1]); });
+  const dg = E.perfil?.diag; if (!dg?.color && !dg?.cuerpo) return panelDiagFotos(); const tb = k.split('-')[1]; panelDiag([], tb, !!tb && !!b.closest('#yo-lista')); });
 // 08/11: tus medidas y tus fotos, en Yo (antes en Ajustes): una fila con las dos fotos en pequeño y las medidas; abre «Tus medidas y tus fotos»
 function bloqueFotosYo() {
   const pf = E.perfil || {}, md = pf.medidas || {}, en = idioma() === 'en';
