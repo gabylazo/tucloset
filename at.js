@@ -760,7 +760,7 @@ if (AT) (() => {
   // 15/11: el plan concreto de hoy en esa ocasión (el elegido en Hoy, el de su evento o el que dice su texto); solo lo usa Hoy (proponer), no Ideas
   const subHoy = plan => { const ev = eventoAhora(); return ev && ev.oc === plan ? subPlan(ev) : null; };
   const pedirMotor = (plan, n, sub) => {
-    const g = E.perfil?.gustos, hoy = hoyISO(), excluir = [...(g?.fuera || []), ...(g?.hoy?.d === hoy ? g.hoy.k : [])], ins = insHoy(plan), pr = quitarPor(ins, activas()), ev = sub ? eventoAhora() : null, hora = ev?.hora && !ev.deHoy ? parseInt(ev.hora) : undefined;
+    const g = E.perfil?.gustos, hoy = hoyISO(), excluir = [...(g?.fuera || []), ...(g?.hoy?.d === hoy ? g.hoy.k : [])], ins = insHoy(plan), pr = quitarPor(ins, activas()), ev = sub && eventoAhora()?.oc === plan ? eventoAhora() : null, hora = ev?.hora && !ev.deHoy ? parseInt(ev.hora) : undefined;
     const firma = JSON.stringify([plan, n, sub, hora, hoy, ins?.firma, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), pr.map(p => [p.nombre, p.tipo, p.color, p.estacion, p.catM, p.detalles, p.est?.sub].join('·')).join('|'), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
     const kc = plan + n + (sub || '');
     if (ultima[kc]?.firma === firma) { if (sub) E.subCorto = ultima[kc].r.subCorto ? ultima[kc].r.sub : null; return ultima[kc].r; }
@@ -899,7 +899,9 @@ if (AT) (() => {
 
   /* ---------- IDEAS: lo que el motor saca de su ropa para el tiempo de hoy, en rejilla como Pinterest; el corazón guarda sin abrir; sin frases a la vista ---------- */
   function pintarIdeas(raiz) {
-    const oc = E.ideaOc || 'Todos', r = pedirMotor(oc, 12), w = E.tiempo;
+    // 17/11 (Sheila, 2589: «aquí no te deja personalizar»): debajo de la ocasión, sus planes concretos, como en Hoy (opcional; otra vez el mismo, se quita).
+    // Lo elegido aquí no toca Hoy ni el calendario: solo cambia las ideas. E.subCorto es de Hoy, así que se deja como estaba
+    const oc = E.ideaOc || 'Todos', subs = Motor.subocasiones(oc), sub = subs.some(x => x.id === E.ideaSub?.[oc]) ? E.ideaSub[oc] : null, sc0 = E.subCorto, r = pedirMotor(oc, 12, sub), w = E.tiempo; E.subCorto = sc0;
     // 16/11 (auditoría, Gabriela «3 sí»): Ideas no repite el look que está en Hoy (si no queda otro, se deja)
     const deHoy = (E.propuestas || [])[E.hoyIdx || 0], k0 = deHoy ? claveLook(deHoy.ids) : '', todas = deVerdad(oc, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)), sinHoy = todas.filter(x => claveLook(x.ids) !== k0);
     const lista = E.ideas = sinHoy.length ? sinHoy : todas;
@@ -915,11 +917,12 @@ if (AT) (() => {
     const ibI = (attr, ic, w, pro) => `<button class="at-ib" ${attr}><span class="at-ib-c">${ic}</span><span class="at-ib-t">${w}${pro ? '<span class="dg-pro">Pro</span>' : ''}</span></button>`;
     const insp = oc === 'Todos' ? `<div class="at-iconos at-ideas-acc" role="group" aria-label="${t('Más formas de buscar looks', 'More ways to find looks')}">${ibI('data-ir="nuevo-look"', I.mas, t('Crear un look', 'Create a look'))}${ibI('data-recrear', I.recrear, t('Recrear un look', 'Recreate a look'))}${ibI('data-conprenda', I.percha, t('Con una prenda', 'With one garment'))}${ibI('data-compra', I.bolsa, t('Antes de comprar', 'Before you buy'))}${ibI('data-inspira', I.chispa, t('Inspírate en…', 'Get inspired by…'), planDemo() !== 'pro')}${NUBE ? ibI('data-pareja', I.pareja, t('En pareja', 'As a couple')) : ''}</div>` : '';
     const vj = oc === 'Viaje' ? `<div class="at-vj-entrada"><button class="at-enlace" data-viaje>${t('Planear un viaje', 'Plan a trip')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button>${viajes().map(v => `<button class="at-enlace" data-viaje="${v.id}">${esc(v.destino)} · ${rango(v)}</button>`).join('')}</div>` : '';
-    raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${insp}${vj}${w && !vj ? `<p class="at-para">${t('Con el tiempo de hoy', 'For today’s weather')}, ${Math.round(w.t)}°</p>` : ''}`
+    const filaSub = subs.length ? `<div class="at-fila at-subs at-subs-ideas" role="group" aria-label="${t('Qué plan es', 'What kind of plan')} (${t('opcional', 'optional')})">${subs.map(x => `<button class="${x.id === sub ? 'on' : ''}" data-ideasub="${x.id}" aria-pressed="${x.id === sub}">${t(x.nombre, x.en)}</button>`).join('')}</div>` : '';
+    raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${filaSub}${insp}${vj}${w && !vj ? `<p class="at-para">${t('Con el tiempo de hoy', 'For today’s weather')}, ${Math.round(w.t)}°</p>` : ''}`
       + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio">${activas().length ? `<p>${oc === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte. Cuando la subas, tus looks saldrán aquí.', 'No sportswear yet. Once you add some, your looks will appear here.')) : t('Con lo que tienes aún no sale un look completo para esta ocasión. Cuando subas más, saldrá aquí.', 'What you have doesn’t make a complete look for this occasion yet.')}</p>` : `<p>${t('Sube tu ropa y aquí saldrán tus ideas.', 'Add your clothes and your ideas will appear here.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>`}</div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
-    deslizable(raiz.querySelector('.at-ocs-ideas'));
+    deslizable(raiz.querySelector('.at-ocs-ideas')); if (filaSub) deslizable(raiz.querySelector('.at-subs-ideas'));
     raiz.onclick = async e => {
-      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje],[data-inspira],[data-recrear],[data-conprenda],[data-compra],[data-pareja]'); if (!b) return;
+      const b = e.target.closest('[data-lktab],[data-ideaoc],[data-ideasub],[data-idea],[data-ideafav],[data-ideavendria],[data-viaje],[data-inspira],[data-recrear],[data-conprenda],[data-compra],[data-pareja]'); if (!b) return;
       if (b.dataset.recrear != null) return abrirRecrear();
       if (b.dataset.conprenda != null) return abrirConPrenda();
       if (b.dataset.pareja != null) return abrirPareja();
@@ -928,6 +931,7 @@ if (AT) (() => {
       if (b.dataset.inspira != null) return abrirInspira();
       if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkTocado = true; return pintarLooks(); }
       if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; return pintarLooks(); }
+      if (b.dataset.ideasub) { const o = E.ideaOc || 'Todos'; E.ideaSub = E.ideaSub || {}; E.ideaSub[o] = E.ideaSub[o] === b.dataset.ideasub ? null : b.dataset.ideasub; pintarLooks(); return raiz.querySelector(`[data-ideasub="${b.dataset.ideasub}"]`)?.focus({ preventScroll: true }); }
       if (b.dataset.ideavendria != null) { E.ideaVendria = !E.ideaVendria; return pintarLooks(); }
       if (b.dataset.ideafav != null) { const x = lista[+b.dataset.ideafav]; await alternarFav(x.ids, x.ocasion); await datosLook(x); const on = esFav(x.ids); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); return; }
       abrirIdea(lista[+b.dataset.idea]);
