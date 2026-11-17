@@ -89,7 +89,7 @@ const T = {
   ac_crear: ['Crea tu clóset', 'Create your closet'], ac_nombre: ['Tu nombre', 'Your name'], ac_ciudad: ['Tu ciudad', 'Your city'], ac_ubic: ['Usar mi ubicación', 'Use my location'],
   ac_nota: ['La ciudad es solo para el tiempo. Tu clóset se guarda en tu cuenta.', 'The city is only for the weather. Your closet is saved in your account.'], ac_clave_pista: ['mínimo 8 caracteres', 'at least 8 characters'],
   ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Con estas dos fotos la app saca tu tipo de cuerpo y tus colores. Sirven para todo: no te las volverá a pedir.', 'With these two photos the app works out your body type and colours. They are used for everything: you will not be asked again.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_estilo: ['Tu estilo', 'Your style'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
-  ac_entrar: ['Hola de nuevo', 'Welcome back'], ac_correo: ['Correo', 'Email'], ac_clave: ['Contraseña', 'Password'], ac_olvido: ['¿La has olvidado?', 'Forgot it?'], ac_entrar_bt: ['Entrar', 'Sign in'], ac_o: ['o', 'or'],
+  ac_entrar: ['Hola de nuevo', 'Welcome back'], ac_correo: ['Correo', 'Email'], ac_clave: ['Contraseña', 'Password'], ac_clave2: ['Repite la contraseña', 'Repeat your password'], ac_olvido: ['¿La has olvidado?', 'Forgot it?'], ac_entrar_bt: ['Entrar', 'Sign in'], ac_o: ['o', 'or'],
   ac_apple: ['Continuar con Apple', 'Continue with Apple'], ac_google: ['Continuar con Google', 'Continue with Google'], ac_no_tengo: ['¿Aún no tienes cuenta? Crea tu clóset', 'No account yet? Create your closet'],
   lema: ['Optimiza tu estilo', 'Make the most of your style'], crear: ['Crear mi clóset', 'Create my closet'], ya_tengo: ['Ya tengo cuenta', 'I already have one'],
   legal: ['Pruébala gratis 7 días', 'Try it free for 7 days'],
@@ -730,10 +730,12 @@ function pintarCuenta() {
   } else {
     r.innerHTML = `<p class="cu-txt">${t('Crea tu cuenta para guardar tu clóset y verlo en cualquier móvil.', 'Create your account to keep your closet and see it on any phone.')}</p>
       <div class="ac-campos"><label class="ac-campo"><span class="mini-et">${t('Correo', 'Email')}</span><input type="email" id="cu-correo" autocomplete="email"></label>
-      <label class="ac-campo"><span class="mini-et">${t('Contraseña', 'Password')}</span> <small class="ac-pista">${t('mínimo 8 caracteres', 'at least 8 characters')}</small><input type="password" id="cu-clave" autocomplete="new-password"></label></div>
+      <label class="ac-campo"><span class="mini-et">${t('Contraseña', 'Password')}</span> <small class="ac-pista">${t('mínimo 8 caracteres', 'at least 8 characters')}</small><input type="password" id="cu-clave" autocomplete="new-password"></label>
+      <label class="ac-campo"><span class="mini-et">${t('Repite la contraseña', 'Repeat your password')}</span><input type="password" id="cu-clave2" autocomplete="new-password"></label></div>
       <div class="cu-bts"><button class="boton" id="cu-crear">${t('Crear mi cuenta', 'Create my account')}</button><button class="boton linea" id="cu-entrar">${t('Ya tengo cuenta', 'I have an account')}</button></div>`;
     ojos();
-    const go = async modo => { const b = $(modo === 'alta' ? 'cu-crear' : 'cu-entrar'); b.disabled = true; const ok = await abrirCuenta(modo, $('cu-correo').value.trim(), $('cu-clave').value, E.perfil?.nombre); b.disabled = false; if (ok) { pintarCuenta(); toast(modo === 'alta' ? t('Cuenta creada: tu clóset ya se guarda', 'Account created: your closet is being saved') : t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); } };
+    const go = async modo => { if (modo === 'alta' && $('cu-clave2').value !== $('cu-clave').value) { $('cu-clave2').focus(); return toast(t('Las dos contraseñas no coinciden', 'The two passwords do not match')); }
+      const b = $(modo === 'alta' ? 'cu-crear' : 'cu-entrar'); b.disabled = true; const ok = await abrirCuenta(modo, $('cu-correo').value.trim(), $('cu-clave').value, E.perfil?.nombre); b.disabled = false; if (ok) { pintarCuenta(); toast(modo === 'alta' ? t('Cuenta creada: tu clóset ya se guarda', 'Account created: your closet is being saved') : t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); } };
     $('cu-crear').onclick = () => go('alta'); $('cu-entrar').onclick = () => go('entrar');
   }
 }
@@ -4485,6 +4487,7 @@ async function guardarAlta() {
     if (j?.on) LS.set('tc_inv', cod); }
   if (co && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(co)) return toast(t('Escribe un correo válido', 'Enter a valid email'));
   if (co && cl.length < 8) return toast(t('La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'));
+  if (co && $('a-clave2').value !== cl) { $('a-clave2').focus(); return toast(t('Las dos contraseñas no coinciden', 'The two passwords do not match')); } // 17/11, Sheila (2731, 2741): repetirla para corregir un error al teclear
   const pf = E.perfil || {}; E.perfil = Object.assign(pf, { nombre: $('a-nombre').value.trim() || pf.nombre || '', ciudad: $('a-ciudad').value.trim() || pf.ciudad || '', idioma: idioma(), alta: pf.alta || hoyISO() });
   await guardar(); cargarTiempo(true); ir('silueta');
 }
@@ -4678,7 +4681,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   setTimeout(() => preguntarEncuesta(new URLSearchParams(location.search).get('encuesta') === '1'), 4000);
   // 04/11: un apunte al día por móvil con cuenta, para el centro de control (cuántas vuelven cada día); fuera de comparar.html
   try { const dia = new Date().toISOString().slice(0, 10); if (cuenta() && window.top === window && LS.get('tc_uso_dia') !== dia) { LS.set('tc_uso_dia', dia); api('/api/uso', { method: 'POST', tiempo: 10000 }).catch(() => { }); } } catch (e) { }
-  if (!NUBE) ['a-correo', 'a-clave'].forEach(id => $(id).closest('label').hidden = true);
+  if (!NUBE) ['a-correo', 'a-clave', 'a-clave2'].forEach(id => $(id).closest('label').hidden = true);
   document.querySelector('#p-closet .mc-cab')?.insertAdjacentHTML('beforeend', `<div class="cl-cambio">${['', 'pruebas'].map(k => `<button class="${k === CLOSET_ACT ? 'on' : ''}" data-cambio="${k}">${k ? t('Pruebas', 'Test') : t('Mi ropa', 'My clothes')}</button>`).join('')}</div>`); // 0.54 botón provisional (Sheila, 22/10: «me puedes crear un botón provisional»)
   document.addEventListener('click', e => { const b = e.target.closest('[data-cambio]'); if (!b || b.dataset.cambio === CLOSET_ACT) return; try { localStorage.setItem('tc_closet', b.dataset.cambio); } catch (er) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; });
   { const l = +new URLSearchParams(location.search).get('lema'); const t = LEMAS[l - 1]; if (t) $('p-inicio').querySelector('.lema .t').textContent = t; bordar(); }
