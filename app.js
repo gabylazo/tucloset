@@ -4352,20 +4352,25 @@ const FALTA_PLANES = [['Diario', '', 'el día a día', 'every day'], ['Oficina',
 let FALTAS_C = null;
 async function faltasCloset() {
   const ps = activas(); if (typeof Motor === 'undefined' || !Motor.nombreTipo || ps.length < 6) return [];
-  const t0 = Math.round(E.tiempo?.t ?? 15), k = `2|${hoyISO()}|${t0}|${E.perfil?.publico || ''}|${ps.map(p => p.id + (p.tipo || '') + (p.subtipo || '')).join()}`;
+  const t0 = Math.round(E.tiempo?.t ?? 15), k = `3|${hoyISO()}|${t0}|${E.perfil?.publico || ''}|${ps.map(p => p.id + (p.tipo || '') + (p.subtipo || '')).join()}`;
   if (FALTAS_C?.k === k) return FALTAS_C.v;
-  const cuenta = {}, subs = new Set((Motor.subocasiones?.() || []).map(x => x.id)), planes = FALTA_PLANES.filter(p => !p[1] || subs.has(p[1]));
+  const cuenta = {}, subs = new Set((Motor.subocasiones?.() || []).map(x => x.id)), planes = FALTA_PLANES.filter(p => !p[1] || subs.has(p[1])), tiene = new Set(ps.map(p => Motor.ficha(p).subtipo));
   const mes = new Date().getMonth(), luego = mes >= 7 || mes === 0 ? t0 - 5 : t0 + 5;   // de agosto a enero viene el frío; de febrero a julio, el calor
   for (const t of [t0, luego]) for (const [oc, sub] of planes) {
     await new Promise(r => setTimeout(r, 0)); let r;
     try { r = Motor.looks({ prendas: ps, tiempo: { t, max: t + 3, min: t - 6 }, ...(sub ? { sub } : { plan: oc, hora: oc === 'Noche' ? 20 : 12 }), perfil: E.perfil || {}, n: 4, hoy: hoyISO(), pro: true }); } catch (x) { continue; }
     const id = sub || oc, suma = (tipo, n) => { const c = cuenta[tipo] = cuenta[tipo] || { tipo, n: 0, ocs: new Set() }; c.n += n; c.ocs.add(id); };
     for (const f of r.falta || []) if (f.n > 1) suma(f.tipo, f.n); // con una sola fórmula no es una pieza que abra looks (le salían zapatos de cordones para una gala)
-    for (const l of r.looks || []) { const z = Motor.aPropuesta(l).zspec; if (z?.sub && z.tipo) { suma(z.tipo, 1); break; } }
+    // 17/11 (Moda, libro de fallos, Z1b): si ya tiene ese tipo de zapato pero ninguno vale (sus tacones son marrones y el vestido es negro), lo que le falta es ese tipo en ese color: «tacones negros», no «tacones»
+    for (const l of r.looks || []) { const z = Motor.aPropuesta(l).zspec; if (z?.sub && z.tipo) { suma(tiene.has(z.tipo) && z.color ? z.tipo + '|' + z.color : z.tipo, 1); break; } }
   }
   const v = Object.values(cuenta).sort((a, b) => b.ocs.size - a.ocs.size || b.n - a.n).slice(0, 3);
   v.tot = planes.length; FALTAS_C = { k, v }; return v;
 }
+// el nombre de lo que falta; con color (Z1b), concordado con la prenda: «tacones negros», «sandalias negras»
+const nomFalta = k => { const [tp, col] = k.split('|'), n = Motor.nombreTipo(tp); if (!col) return n;
+  const cab = n.split(' ')[0], pl = /s$/.test(cab); let c = /as$|a$/.test(cab) && /o$/.test(col) ? col.slice(0, -1) + 'a' : col;
+  if (pl) c = /[aeiou]$/.test(c) ? c + 's' : /ón$/.test(c) ? c.slice(0, -2) + 'ones' : c + 'es'; return `${n} ${c}`; };
 async function pintarFaltasYo() {
   const sec = $('yo-falta'); if (!sec) return;
   const v = await faltasCloset(), en = idioma() === 'en'; if (E.pantalla !== 'yo') return;
@@ -4376,7 +4381,7 @@ async function pintarFaltasYo() {
   sec.innerHTML = `<details class="yo-an" id="yo-an"${E.yoAn ? ' open' : ''}><summary><span class="yo-an-cab"><span class="yo-an-t">${t('Análisis de tu clóset', 'Closet analysis')}</span>
     <small>${t('Las piezas que más looks te abrirían', 'The pieces that would open up the most looks')}</small></span><svg class="yo-an-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
     <p class="yo-an-i">${t(`Tu ropa, probada en ${v.tot} planes, del día a día a una gala, con el tiempo de ahora y el de las próximas semanas.`, `Your clothes, tried in ${v.tot} plans, from every day to a gala, with today’s weather and the weeks ahead.`)}</p>
-    <ol class="yo-falta-l">${v.map((f, i) => { const nom = Motor.nombreTipo(f.tipo);
+    <ol class="yo-falta-l">${v.map((f, i) => { const nom = nomFalta(f.tipo);
       return `<li><span class="yo-an-n" aria-hidden="true">${i + 1}</span><span class="yo-an-x"><b>${escH(nom.charAt(0).toUpperCase() + nom.slice(1))}</b><small>${t(`${f.ocs.size} de ${v.tot} planes`, `${f.ocs.size} of ${v.tot} plans`)}: ${planes(f)}</small></span></li>`; }).join('')}</ol>
     <p class="yo-falta-n">${t('Antes de comprar, mira si ya tienes algo parecido: Looks → Antes de comprar.', 'Before buying, check whether you already have something similar: Looks → Before you buy.')}</p></details>`;
 }

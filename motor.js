@@ -5,6 +5,7 @@
    contra PRUEBA-CLOSET.md. No hay nada aleatorio: el desempate es una huella del día y del look, así que el mismo día salen las mismas ideas. */
 const Motor = (() => {
   let R, F, S = {}, ZV = [], ZV_SUB = [], VETA_ZAPATO = new Set(), SUBS = new Map();
+  const FRIO_CAPA = new Set(['V11', 'V07', 'V08']); // los vetos que se arreglan poniéndose el abrigo encima (clo bajo, brazos al aire con frío)
   const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // palabra que termina en $ = palabra completa; si no, prefijo de palabra
@@ -115,7 +116,9 @@ const Motor = (() => {
     // igual (mínimo 18 °C) y los de entretiempo no salían nunca en noviembre. Ahora: 4 °C menos de mínimo y +0,08 de clo (estimación de Moda, a calibrar)
     if (f.subtipo === 'vestido_corto' && f.manga === 'larga') { f.tmin -= 4; f.clo += .08; }
     // la estación de la ficha solo recorta el rango de temperatura (nunca lo amplía)
-    const e = I.estacion_a_rango[p.estacion]; if (e) { f.tmin = Math.max(f.tmin, e.tmin); f.tmax = Math.min(f.tmax, e.tmax); }
+    // Moda 17/11 (Z6): unos botines o unas botas marcados «Entretiempo» quieren decir «no son de verano», no que con menos de 8 °C no valgan (en el clóset de muestra dejaban la noche de invierno sin zapato)
+    const e = I.estacion_a_rango[p.estacion], botas = ['botines', 'botas_altas', 'botas_agua', 'botas_montana'].includes(f.subtipo) && p.estacion === 'Entretiempo';
+    if (e) { if (!botas) f.tmin = Math.max(f.tmin, e.tmin); f.tmax = Math.min(f.tmax, e.tmax); }
     f.estacion = p.estacion;
     for (const [k, v] of Object.entries(est)) if (v != null && !['conf', 'sub', 'pal', 'estilos', 'rol'].includes(k)) { f[k] = v; f.conf[k] = 'usuaria'; }
     if (est.rol) f.rol = est.rol;
@@ -491,7 +494,7 @@ const Motor = (() => {
       }
     }
     parejas.sort((x, y) => y.n - x.n);
-    for (const par0 of parejas.slice(0, MAXPAR)) {
+    for (const par0 of parejas.slice(0, hv ? MAXPAR * 2 : MAXPAR)) { // Moda 17/11 (Z5): con vestidos, la nota de la pareja es solo la afinidad y casi siempre vale 0; con 12 se quedaban fuera siempre los mismos (los últimos subidos)
       const par = { ...par0, formula }; delete par.n; par.como = comoDe(formula, par);
       let looks = [par], faltaHueco = null;
       for (const r of ['capa', 'base_interior', 'bano']) {
@@ -518,10 +521,12 @@ const Motor = (() => {
         const [hz] = H('calzado'); let cs = hz ? cands(hz, zapatos) : [];
         if (!cs.length && zapatos.length && (!zapatos[0].muestra || ctx.sub)) cs = zapatos; // con zapatos subidos, siempre uno suyo (15/11: con subocasión, también el de muestra que vale para el plan)
         // el tacón que ella dijo, si hay con qué (15/11: en una boda, una gala o un cóctel también sus tacones más altos, detrás de los de su altura, para que no salga siempre el mismo zapato)
-        const aguanta = cs.filter(c => pf.tacon_num == null || c._f.tacon_num <= pf.tacon_num); if (aguanta.length && !bajoTecho) cs = aguanta;
+        const aguanta = cs.filter(c => pf.tacon_num == null || c._f.tacon_num - (c._f.subtipo === 'alpargatas' ? 1 : 0) <= pf.tacon_num); if (aguanta.length && !bajoTecho) cs = aguanta; // Moda 17/11 (Z4): la cuña de esparto reparte el peso y se anda como un tacón un punto más bajo
         const sube = c => bajoTecho && pf.tacon_num != null && c._f.tacon_num > pf.tacon_num ? .04 * (c._f.tacon_num - pf.tacon_num) : 0;
         cs = cs.map(c => [puntosCalzado(c, l, ctx, pf, hz) + AF.zapato * afin(c) - sube(c), c]).sort((a, b) => b[0] - a[0]).map(x => x[1]);
         const sirven = []; for (const c of cs) { if (sirven.length >= 3) break; const lz = { ...l, calzado: c }; if (!vetar(entorno(lz, camposLook(lz, ctx, pf, hoy), ctx, pf)).duros.some(v => VETA_ZAPATO.has(v.id))) sirven.push(c); } // los tres mejores que el par admite
+        // Moda 17/11 (propuesta Z1): con un plan con matiz, si ningún zapato suyo vale para ESTE look (p. ej. sus únicos tacones cerrados son marrones y el vestido es negro de gala), el de muestra que pide el plan, con «Lo ideal para este plan»
+        if (!sirven.length && ctx.sub) for (const c of ZV_SUB) { const lz = { ...l, calzado: c }; if (!(ctx.sub_calzado_no || []).includes(c._f.subtipo) && !vetar(entorno(lz, camposLook(lz, ctx, pf, hoy), ctx, pf)).duros.some(v => VETA_ZAPATO.has(v.id))) { sirven.push(c); break; } }
         cs = sirven.length ? sirven : cs.slice(0, 1);
         for (const c of cs.length ? cs : [null]) {
           const l2 = { ...l }; if (c) l2.calzado = c; if (faltaHueco) l2.hueco_faltante = faltaHueco;
@@ -645,7 +650,7 @@ const Motor = (() => {
     const ayer = uso.ayer && (c.dias_desde_ultimo_uso === 1 || c.dias_desde_ultimo_uso === 0) ? (c.es_favorito ? .05 : .15) : 0;
     const nota0 = pts.total + veto.p / 2, gusto = pf.ap ? gustoLook(l, pf.ap, nota0, veto) : 0, vm = pf.uso ? 0 : variedadModa(l, c, pf, hoy, nota0); // con «Cómo usas tu ropa» elegido, manda ajusteUso
     const desc = descanso(l, pf, c.es_favorito);
-    return { ...l, ctx, campos: c, veto, pts, gusto, variedad: vm, descanso: desc, etiqueta: etiqueta(l, ctx), nota: pts.total + uso.p + gusto + vm + veto.p / 2 - ayer - desc + etiqueta(l, ctx) + huella(hoy + claveRopa(l)) * .04 + AF.nota * (PIEZAS.reduce((s, k) => s + afin(l[k]), 0) / Math.max(1, PIEZAS.filter(k => l[k]).length)), casi: !!(l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id) && veto.duros.every(v => v.id === 'V11'))) };
+    return { ...l, ctx, campos: c, veto, pts, gusto, variedad: vm, descanso: desc, etiqueta: etiqueta(l, ctx), nota: pts.total + uso.p + gusto + vm + veto.p / 2 - ayer - desc + etiqueta(l, ctx) + huella(hoy + claveRopa(l)) * .04 + AF.nota * (PIEZAS.reduce((s, k) => s + afin(l[k]), 0) / Math.max(1, PIEZAS.filter(k => l[k]).length)), casi: !!((l.hueco_faltante || (l.capa_faltante && ['T4', 'T5', 'T6', 'T7'].includes(ctx.tramo.id))) && veto.duros.every(v => FRIO_CAPA.has(v.id))) }; // Moda 17/11 (Z3): un «casi» solo se salta los vetos que arregla el abrigo que falta; antes se los saltaba todos (en un evento a 2 °C salía el plumífero con zapatillas de deporte)
   }
   function elegir(cs, n, excluir) {
     const ok = cs.filter(l => !l.veto.duros.length && !l.casi && !excluir.has(claveLook(l))).sort((a, b) => b.nota - a.nota), sel = [], usoA = new Map(), usoB = new Map(), usoF = new Map(), usoZ = new Map(), usoC = new Map(), vistos = new Set(), gemelos = new Set();
@@ -700,8 +705,11 @@ const Motor = (() => {
       const ts = (pf.publico === 'masculino' ? tiposDe(h).filter(t => !SOLO_MUJER.test(t)) : tiposDe(h)).filter(delPlan).filter(t => !tiene.has(String(t).replace(/[\^$]/g, ''))); if (!ts.length) continue; // 14/11: con ropa de hombre no se le dice que le falta una falda ni una malla
       const c = cuenta[g] = cuenta[g] || { n: 0, tipos: {}, todos: new Set() }; c.n++; const t0 = g === 'calzado' && pf.publico !== 'masculino' && (plan === 'Evento' || (ctx.sub_calzado_si || []).includes('tacones')) && ts.includes('tacones') ? 'tacones' : ts[0]; c.tipos[t0] = (c.tipos[t0] || 0) + 1; for (const t of ts) c.todos.add(t); // 15/11: a una mujer, para un evento, tacones antes que zapatos de cordones
     }
-    if (String(ctx.tramo.capa).startsWith('obligatoria') && !ents.some(p => p._f.cat === 'capa' && p._f.subtipo !== 'chaleco_traje')) {
-      const t0 = ctx.tramo.id === 'T4' ? 'gabardina' : ctx.tramo.id === 'T5' ? 'abrigo_lana' : 'plumifero', g = ctx.tramo.id === 'T4' ? 'capa' : 'abrigo', c = cuenta[g] = cuenta[g] || { n: 0, tipos: {} };
+    // Moda 17/11 (propuesta Z2): con frío no basta con tener «una capa»: tiene que abrigar lo que pide el tramo (de T5 abajo, un abrigo de frío) y poder ir a ese plan
+    // (el plumífero no va a la oficina, a la noche ni a un evento: V43). Con solo un plumífero, para la oficina le falta un abrigo de lana, no un pantalón
+    const arreglado = ['Oficina', 'Noche', 'Evento'].includes(plan), abriga = p => p._f.cat === 'capa' && p._f.subtipo !== 'chaleco_traje' && (plan === 'Deporte' || ctx.tramo.id === 'T4' || (R.grupos['@abrigo_frio'].includes(p._f.subtipo) && !(arreglado && p._f.subtipo === 'plumifero')));
+    if (String(ctx.tramo.capa).startsWith('obligatoria') && !ents.some(abriga)) {
+      const t0 = ctx.tramo.id === 'T4' ? 'gabardina' : ctx.tramo.id === 'T5' || arreglado ? 'abrigo_lana' : 'plumifero', g = ctx.tramo.id === 'T4' ? 'capa' : 'abrigo', c = cuenta[g] = cuenta[g] || { n: 0, tipos: {} };
       c.n += 50; c.tipos[t0] = (c.tipos[t0] || 0) + 50;
     }
     const orden = R.faltas.prioridad;
@@ -742,7 +750,8 @@ const Motor = (() => {
     // 16/11 (looks de playa de «Tu viaje»): solo sandalias planas, chanclas o alpargatas; las suyas y, si no tiene, las de muestra (unas zapatillas no van a la playa)
     if (plan === 'Playa') { const pz = p => ['sandalias_planas', 'chanclas', 'alpargatas'].includes(p._f.subtipo) && !(p._f.tacon_num >= 2), suyas = propios.filter(pz); zapatos = suyas.length ? suyas : ZV.filter(pz); }
     // 16/11 (Gabriela: «¿cómo para diario me propones un pantalón, tacones, gabardina y camisa?»): Diario sin matiz va sin tacones; el tacón es de Cena con amigos o de una comida formal
-    if (plan === 'Diario' && !sb) { const pl = p => !['tacones', 'sandalias_tacon'].includes(p._f.subtipo) && !(p._f.tacon_num >= 2), suyos = zapatos.filter(pl); zapatos = suyos.length ? suyos : ZV.filter(pl); }
+    // Moda 17/11 (Z4): las alpargatas de cuña son de día (esparto, cuña cómoda): no cuentan como tacón en Diario
+    if (plan === 'Diario' && !sb) { const pl = p => p._f.subtipo === 'alpargatas' || (!['tacones', 'sandalias_tacon'].includes(p._f.subtipo) && !(p._f.tacon_num >= 2)), suyos = zapatos.filter(pl); zapatos = suyos.length ? suyos : ZV.filter(pl); }
     if (ents.length > 150) { // clóset enorme: se forman parejas con lo menos puesto últimamente
       const reciente = x => (x.p.usos || []).reduce((m, u) => u > m ? u : m, ''), poco = (tipo, n) => ropa.filter(x => x.p.tipo === tipo).sort((a, b) => reciente(a).localeCompare(reciente(b))).slice(0, n);
       ropa = [...poco('Arriba', 40), ...poco('Abajo', 25), ...ropa.filter(x => !['Arriba', 'Abajo'].includes(x.p.tipo))];
