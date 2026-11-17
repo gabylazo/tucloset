@@ -3226,6 +3226,23 @@ function armonia(p, c) {
 }
 // cuántos looks buenos da el clóset y cuántos días seguidos puedes vestirte sin repetir ninguna prenda principal
 let SIN_HISTORIAL = false;
+// 17/11 (Gabriela: «sí, arregla… los looks posibles»): los looks posibles, con el mismo motor que Hoy: combinaciones de ropa distintas (sin contar zapato ni bolso) que el motor da
+// por buenas en el día a día, la oficina, la noche y los eventos, con el tiempo de todo el año (6, 13, 20 y 27 °C). No depende del tiempo de hoy ni de lo visto: solo cambia si cambia la ropa.
+// Va aparte del pintado, a trozos, y se guarda mientras no cambie la ropa.
+// Con una fecha fija (no la de hoy), para que el número no baile de un día a otro por el uso, la variedad y el desempate del motor; queda en el móvil (tc_posibles).
+let POSIBLES_C = (() => { try { return JSON.parse(localStorage.getItem('tc_posibles') || 'null'); } catch (e) { return null; } })();
+const clavePosibles = () => { const s = `1|${VER_APP}|${E.perfil?.publico || ''}|${activas().map(p => p.id + (p.tipo || '') + (p.subtipo || '') + (p.color || '')).join()}`; let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); };
+async function looksPosibles() {
+  const k = clavePosibles(); if (POSIBLES_C?.k === k) return POSIBLES_C.v;
+  const ps = activas(), min = Motor.R.puntos.umbrales.bueno, vistos = new Set(), perfil = { ...(E.perfil || {}), vistos: [], usoRopa: null };
+  for (const t of [6, 13, 20, 27]) for (const plan of ['Diario', 'Oficina', 'Noche', 'Evento']) {
+    await new Promise(r => setTimeout(r, 0)); let r;
+    try { r = Motor.looks({ prendas: ps, tiempo: { t, max: t + 3, min: t - 6 }, plan, perfil, n: 4, hoy: '2000-01-01', hora: plan === 'Noche' ? 20 : 12, pro: true, depurar: true }); } catch (x) { continue; }
+    for (const l of r.todos || []) if (!l.veto.duros.length && !l.casi && l.nota >= min) vistos.add(Motor.claveRopa(l));
+  }
+  if (clavePosibles() !== k) return null;   // la ropa cambió mientras contaba
+  POSIBLES_C = { k, v: vistos.size }; try { localStorage.setItem('tc_posibles', JSON.stringify(POSIBLES_C)); } catch (e) {} return vistos.size;
+}
 function resumenCloset() {
   const rnd = Math.random; Math.random = () => .5; SIN_HISTORIAL = true;
   try {
@@ -4370,14 +4387,21 @@ function pintarYo() {
   // 0.108 · Yo = Y3 «Tu armario» con la paleta de Y2 (Gabriela, 28/10: «Y3, pero me gusta mucho la paleta de colores de Y2… deberían unirse»)
   const nom = (pf.nombre || '').trim(), nomB = nom && nom === nom.toUpperCase() ? nom.charAt(0) + nom.slice(1).toLowerCase() : nom;
   $('yo-nombre').textContent = nomB ? t(`El clóset de ${nomB}`, `${nomB}’s closet`) : t('Tu clóset', 'Your closet');
-  const rc = E.prendas.length ? resumenCloset() : null;
-  $('yo-sub').textContent = [CLOSET_ACT ? t('clóset de pruebas', 'test closet') : '', `${E.prendas.length} ${t('prendas', 'garments')}`, rc ? `${rc.looks} ${t('looks posibles', 'possible looks')}` : ''].filter(Boolean).join(' · ');
-  const nCol = {}; E.prendas.forEach(p => { if (p.color) nCol[p.color] = (nCol[p.color] || 0) + 1; });
-  const ord = Object.entries(nCol).sort((a, b) => b[1] - a[1]), min = c => c.toLowerCase();
+  // 17/11 (Gabriela: «sí, arregla la frase y los looks posibles»): con el motor cargado, los looks posibles los cuenta el mismo motor que Hoy (looksPosibles); sin él (diseño clásico), el generador viejo
+  const sub = n => { $('yo-sub').textContent = [CLOSET_ACT ? t('clóset de pruebas', 'test closet') : '', `${E.prendas.length} ${t('prendas', 'garments')}`, n != null ? `${n} ${t('looks posibles', 'possible looks')}` : ''].filter(Boolean).join(' · '); };
+  if (typeof Motor === 'undefined' || !Motor.looks) sub(E.prendas.length ? resumenCloset().looks : null);
+  else { const c = POSIBLES_C?.k === clavePosibles() ? POSIBLES_C.v : null; sub(c); if (c == null && E.prendas.length) looksPosibles().then(n => { if (E.pantalla === 'yo' && n != null) sub(n); }); }
+  // 17/11 (Gabriela: «sí, arregla la frase»): solo la ropa que está en uso (sin la guardada ni la de donar), el orden no depende de cómo llegaron las prendas
+  const act = activas(), nCol = {}; act.forEach(p => { if (p.color) nCol[p.color] = (nCol[p.color] || 0) + 1; });
+  const ord = Object.entries(nCol).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])), min = c => c.toLowerCase();
   $('yo-pal').innerHTML = ord.map(([c, n]) => `<i style="flex:${n};background:${COLORES.find(x => x[0] === c)?.[1] || '#ccc'}" title="${c}"></i>`).join('');
-  const base = ord.slice(0, 3).map(e => e[0]).filter(c => c !== 'Estampado'), luz = ord.filter(([c]) => !base.includes(c) && !NEUTROS.has(c) && c !== 'Estampado').slice(0, 2).map(e => e[0]);
+  // los colores con más prendas, sin los estampados; si hay un empate en el corte, entran todos los empatados si caben en uno más y, si no, ninguno (así la frase no cambia de un día a otro)
+  const corta = (l, max) => { if (l.length <= max) return l; const v = l[max - 1][1]; if (l[max][1] !== v) return l.slice(0, max);
+    const ant = l.filter(e => e[1] > v), emp = l.filter(e => e[1] === v); return ant.length + emp.length <= max + 1 ? [...ant, ...emp] : ant; };
+  const sinEst = ord.filter(([c]) => c !== 'Estampado'), base = corta(sinEst, 3).map(e => e[0]), luz = corta(sinEst.filter(([c]) => !base.includes(c) && !NEUTROS.has(c)), 2).map(e => e[0]);
+  const estamp = (nCol.Estampado || 0) >= Math.max(3, act.length * .12);   // los estampados también cuentan: si son muchos, se dice
   const yy = l => l.length > 1 ? l.slice(0, -1).map(min).join(', ') + ' y ' + min(l[l.length - 1]) : l.map(min).join('');
-  $('yo-ley').textContent = !base.length ? '' : idioma() === 'en' ? 'The colours of your closet' : `Tu clóset es ${yy(base)}${luz.length ? `; ${luz.length > 1 ? 'el ' + min(luz[0]) + ' y el ' + min(luz[1]) + ' le dan' : 'el ' + min(luz[0]) + ' le da'} la luz` : ''}`;
+  $('yo-ley').textContent = !base.length ? '' : idioma() === 'en' ? 'The colours of your closet' : `Tu clóset es ${yy(base)}${estamp ? ', con muchos estampados' : ''}${luz.length ? `; ${luz.length > 1 ? 'el ' + min(luz[0]) + ' y el ' + min(luz[1]) + ' le dan' : 'el ' + min(luz[0]) + ' le da'} la luz` : ''}`;
   $('yo-pal').classList.toggle('oculto', !ord.length);
   const sil = pf.selfie && pf.cuerpo ? t('fotos listas', 'photos ready') : pf.selfie || pf.cuerpo ? t('falta una foto', 'one photo missing') : t('por descubrir', 'to discover');
   const ests = (pf.estilos || []).map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean), colO = pf.colores?.est ? EST_COLOR[pf.colores.est] : null;
