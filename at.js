@@ -385,6 +385,10 @@ if (AT) (() => {
     setTimeout(preguntarGusto, 1500); // 11/11: «¿Me enseñas tu gusto?», una vez
     const pant = $('p-hoy'), w = E.tiempo, planHoy = eventoAhora()?.oc;
     if (!E.propuestas.length) { E.hoyFalta = null; E.plan = planHoy && hayOcasion(planHoy) ? planHoy : E.hoyDiario && hayOcasion('Diario') ? 'Diario' : 'Todos'; proponer(); if (!E.propuestas.length && E.plan !== 'Todos') { E.hoyFalta = E.plan; E.plan = 'Todos'; proponer(); E.propuestas = masCercanos(E.hoyFalta, E.propuestas); } }
+    // 17/11 (Sheila, 2584: al cambiar de ocasión «no le genera look»): el look que te has puesto hoy sale el primero al abrir, pero si eliges otra ocasión o un plan
+    // concreto, Hoy salta al primer look de lo elegido (el puesto sigue con la flecha). Antes salía otra vez «Lo llevas hoy» y parecía que no cambiaba nada
+    if (E.hoySalto) { const sub = E.hoySalto === 'sub'; E.hoySalto = null;
+      const j = E.propuestas.findIndex(x => !x.puesto && (sub ? x.tipo === 'propuesta' : x.tipo !== 'agenda' || x.ocasion === E.plan)); if (j > 0) E.hoyIdx = j; }
     const lista = E.propuestas; if ((E.hoyIdx || 0) >= lista.length) E.hoyIdx = 0; const pr = lista[E.hoyIdx || 0];
     const dia = new Date().toLocaleDateString(loc(), { weekday: 'long', day: 'numeric' }).replace(',', '');
     const cielo = w ? (w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(w.clave) ? 'nube' : w.clave) : null;
