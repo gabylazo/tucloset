@@ -803,7 +803,14 @@ const CAT = { Arriba: 'arriba', Abajo: 'abajo', Vestidos: 'vestidos', Abrigo: 'a
 const catVar = tp => `var(--c-${CAT[tp] || 'otro'})`;
 const EMO_T = { sol: '☀️', solnube: '⛅', nube: '☁️', lluvia: '🌧️', nieve: '❄️', tormenta: '⛈️', niebla: '🌫️' };
 function colorTemp(tmp) { return tmp <= 8 ? ['#3E5F80', '#E8EFF6'] : tmp <= 15 ? ['#4E6B5A', '#ECF2EC'] : tmp <= 22 ? ['#8C6A1F', '#F8EFDC'] : ['#A4502E', '#F8E5DA']; }
-function avisoCorto(w) { if (['lluvia', 'tormenta'].includes(w.clave)) return { txt: t('lloviendo', 'raining'), lluvia: true }; if (w.lluviaH != null) return { txt: t(`lluvia ${w.lluviaH}:00`, `rain ${w.lluviaH}:00`), lluvia: true }; if (w.lluvia >= 30) return { txt: t('quizá llueva', 'may rain'), lluvia: true }; return { txt: t('sin lluvia', 'no rain'), lluvia: false }; }
+// 18/11 (Sheila, 2744 y 2770: «la hora sale mal»): la hora de la lluvia se mira al pintar, en la hora del sitio del tiempo (Open-Meteo da las horas en su zona):
+// si es la hora en curso, «pronto»; si ya pasó o el dato es de otro día, no se dice. Devuelve null, 'pronto' o la hora
+function horaLluvia(w) {
+  if (w?.lluviaH == null) return null; const off = w.off ?? -new Date().getTimezoneOffset() * 60, aqui = new Date(Date.now() + off * 1000), ya = aqui.getUTCHours();
+  if ((w.dia && w.dia !== aqui.toISOString().slice(0, 10)) || w.lluviaH < ya) return null; return w.lluviaH === ya ? 'pronto' : w.lluviaH;
+}
+const lluviaA = hl => hl === 'pronto' ? t('lluvia pronto', 'rain soon') : t(`lluvia a las ${hl}:00`, `rain at ${hl}:00`);
+function avisoCorto(w) { if (['lluvia', 'tormenta'].includes(w.clave)) return { txt: t('lloviendo', 'raining'), lluvia: true }; if (horaLluvia(w) != null) return { txt: lluviaA(horaLluvia(w)), lluvia: true }; if (w.lluvia >= 30) return { txt: t('quizá llueva', 'may rain'), lluvia: true }; return { txt: t('sin lluvia', 'no rain'), lluvia: false }; }
 const HEX = Object.fromEntries(COLORES.filter(([, c]) => c.startsWith('#')));
 function hsl(hex) { const h = hex.replace('#', ''); const r = parseInt(h.slice(0, 2), 16) / 255, g = parseInt(h.slice(2, 4), 16) / 255, b = parseInt(h.slice(4, 6), 16) / 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b); let H = 0, S = 0; const L = (mx + mn) / 2; if (mx !== mn) { const d = mx - mn; S = L > .5 ? d / (2 - mx - mn) : d / (mx + mn); H = (mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60; } return [Math.round(H), Math.round(S * 100), Math.round(L * 100)]; }
 function aplicarTono(ps) { // estilo «color»: el tono de la prenda principal, muy claro detrás y oscuro en los botones (siempre con contraste ≥ 7:1 con el blanco)
@@ -1435,7 +1442,7 @@ function ubicacionMovil(siempre) {
 }
 async function cargarTiempo(forzar) {
   let cache = null; try { cache = JSON.parse(localStorage.getItem('tc_tiempo') || 'null'); } catch (e) { } // 06/11: la pantalla «Diseño» guardaba ahí su eje «tiempo» ("emoji"…) y rompía el tiempo
-  if (!forzar && cache && cache.v && cache.k === 40 && 'lluviaH' in cache.v && Date.now() - cache.ts < 30 * 60000) { E.tiempo = cache.v; return E.tiempo; }
+  if (!forzar && cache && cache.v && cache.k === 41 && Date.now() - cache.ts < 30 * 60000 && new Date(cache.ts).getHours() === new Date().getHours()) { E.tiempo = cache.v; return E.tiempo; } // 18/11: también caduca al cambiar la hora
   try {
     let lat = E.perfil?.lat, lon = E.perfil?.lon, nombre = E.perfil?.ciudad || E.perfil?.lugar || '';
     // 0.38 (Sheila, 22/10: «me sale Madrid y yo estoy en Huelva»): sin ciudad ni ubicación ya no se da Madrid por hecho;
@@ -1447,9 +1454,9 @@ async function cargarTiempo(forzar) {
     if (!lat) { lat = 40.4168; lon = -3.7038; nombre = E.perfil?.ciudad || 'Madrid'; } // último recurso: sin red de ubicación ni ciudad encontrada
     const r = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,apparent_temperature,wind_speed_10m,relative_humidity_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max&hourly=precipitation_probability&timezone=auto&forecast_days=1`)).json();
     const cod = r.current.weather_code; const txt = cod === 0 ? ['despejado', 'clear'] : cod <= 2 ? ['nubes y claros', 'partly cloudy'] : cod === 3 ? ['nublado', 'cloudy'] : cod < 50 ? ['niebla', 'fog'] : cod < 70 ? ['lluvia', 'rain'] : cod < 80 ? ['nieve', 'snow'] : cod < 90 ? ['chubascos', 'showers'] : ['tormenta', 'storm'];
-    const ahora = new Date().getHours(); const probs = r.hourly?.precipitation_probability || []; let lluviaH = null; for (let h = ahora; h < Math.min(24, probs.length); h++) if (probs[h] >= 50) { lluviaH = h; break; }
-    E.tiempo = { sens: r.current.apparent_temperature, viento: r.current.wind_speed_10m, hum: r.current.relative_humidity_2m, uv: r.daily.uv_index_max?.[0], t: Math.round(r.current.temperature_2m), max: Math.round(r.daily.temperature_2m_max[0]), min: Math.round(r.daily.temperature_2m_min[0]), lluvia: r.daily.precipitation_probability_max?.[0] ?? 0, txt, nombre, cod, clave: claveTiempo(cod), lluviaH, lat, lon };
-    localStorage.setItem('tc_tiempo', JSON.stringify({ ts: Date.now(), k: 40, v: E.tiempo }));
+    const hc = /T(\d\d)/.exec(r.current?.time || ''), ahora = hc ? +hc[1] : new Date().getHours(); const probs = r.hourly?.precipitation_probability || []; let lluviaH = null; for (let h = ahora; h < Math.min(24, probs.length); h++) if (probs[h] >= 50) { lluviaH = h; break; }
+    E.tiempo = { sens: r.current.apparent_temperature, viento: r.current.wind_speed_10m, hum: r.current.relative_humidity_2m, uv: r.daily.uv_index_max?.[0], t: Math.round(r.current.temperature_2m), max: Math.round(r.daily.temperature_2m_max[0]), min: Math.round(r.daily.temperature_2m_min[0]), lluvia: r.daily.precipitation_probability_max?.[0] ?? 0, txt, nombre, cod, clave: claveTiempo(cod), lluviaH, off: r.utc_offset_seconds, dia: (r.current?.time || '').slice(0, 10) || null, lat, lon };
+    localStorage.setItem('tc_tiempo', JSON.stringify({ ts: Date.now(), k: 41, v: E.tiempo }));
   } catch (e) { E.tiempo = null; }
   return E.tiempo;
 }
@@ -1468,7 +1475,8 @@ function fraseTiempo(w) { // una sola frase: grados, cielo y qué hacer con la l
   const l = idioma() === 'en' ? 1 : 0; const ico = ICO_T[w.clave].replace('<svg', `<svg class="ico-${w.clave}"`);
   let aviso, lluvia = true;
   if (['lluvia', 'tormenta'].includes(w.clave)) aviso = t('Está lloviendo: lleva paraguas.', 'It is raining: take an umbrella.');
-  else if (w.lluviaH != null) aviso = t(`Lluvia desde las ${w.lluviaH}:00: lleva paraguas.`, `Rain from ${w.lluviaH}:00: take an umbrella.`);
+  else if (horaLluvia(w) === 'pronto') aviso = t('Lluvia pronto: lleva paraguas.', 'Rain soon: take an umbrella.');
+  else if (horaLluvia(w) != null) aviso = t(`Lluvia desde las ${w.lluviaH}:00: lleva paraguas.`, `Rain from ${w.lluviaH}:00: take an umbrella.`);
   else if (w.lluvia >= 30) aviso = t('Quizá llueva: un paraguas pequeño.', 'It might rain: a small umbrella.');
   else if (w.clave === 'nieve') aviso = t('Nieva: abrígate.', 'Snow: wrap up.');
   else { aviso = t('Sin lluvia.', 'No rain.'); lluvia = false; }
@@ -1909,7 +1917,7 @@ function ir(nombre, datos) {
 // 15 min con la app delante, si la que hay tiene más de 30 min se pide otra vez y se repinta la fecha con el tiempo. Los looks del día no cambian.
 function refrescarTiempo() {
   let ts = 0; try { ts = JSON.parse(localStorage.getItem('tc_tiempo') || 'null')?.ts || 0; } catch (e) { }
-  if (!E.tiempo || Date.now() - ts < 30 * 60000) return;
+  if (!E.tiempo || (Date.now() - ts < 30 * 60000 && new Date(ts).getHours() === new Date().getHours())) return; // 18/11: también al cambiar la hora (la de la lluvia)
   const antes = E.tiempo; cargarTiempo(true).then(w => { if (!w) E.tiempo = antes; cuandoQuieto(() => E.pantalla === 'hoy' && pintarHoy()); });
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refrescarTiempo(); });
@@ -1974,7 +1982,7 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   const hoyD = new Date(); const dia = cap(hoyD.toLocaleDateString(l === 'en' ? 'en-GB' : 'es-ES', { weekday: 'long', day: 'numeric' }));
   const ico = k => ICO_T[k] || ICO_T.nube;
   const cieloAhora = w ? (w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(w.clave) ? 'nube' : w.clave) : null; // el icono del cielo: sol si hay sol, aunque haga frío
-  const avisoLluvia = !w ? '' : ['lluvia', 'tormenta'].includes(w.clave) ? ` · ${ico('lluvia')}${t('ahora', 'now')}` : w.lluviaH != null ? ` · ${ico('lluvia')}${w.lluviaH}:00` : '';
+  const avisoLluvia = !w ? '' : ['lluvia', 'tormenta'].includes(w.clave) ? ` · ${ico('lluvia')}${t('ahora', 'now')}` : horaLluvia(w) != null ? ` · ${ico('lluvia')}${lluviaA(horaLluvia(w))}` : '';
   const cab = `<header class="hz-cab"><span class="marca"><svg viewBox="0 0 100 100"><use href="#i129"/></svg><span>Tu<span class="oro">Closet</span></span></span>
     <div class="hz-dia mini-et">${dia}${w ? `${ico(cieloAhora)}${w.t}°${avisoLluvia}` : ''}</div>${preguntaHoy(planHoy)}${E.hoyFalta ? avisoFalta(E.hoyFalta, false) : ''}</header>`;
   if (!pr) {
@@ -3388,7 +3396,7 @@ function lineaTiempo() { // fecha, cielo, mínima y máxima, y la lluvia con su 
   const w = E.tiempo, l = idioma(), d = new Date().toLocaleDateString(l === 'en' ? 'en-GB' : 'es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '');
   if (!w) return `<span>${d}</span>`;
   const ico = k => ICO_T[k] || ICO_T.nube, cielo = w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(w.clave) ? 'nube' : w.clave;
-  const lluvia = ['lluvia', 'tormenta'].includes(w.clave) ? `${ico('lluvia')}${t('ahora', 'now')}` : w.lluviaH != null ? `${ico('lluvia')}${w.lluviaH}:00` : '';
+  const lluvia = ['lluvia', 'tormenta'].includes(w.clave) ? `${ico('lluvia')}${t('ahora', 'now')}` : horaLluvia(w) != null ? `${ico('lluvia')}${lluviaA(horaLluvia(w))}` : '';
   return `<span>${d}</span><span>${ico(cielo)}${w.min != null ? `${w.min}° / ${w.max}°` : `${w.t}°`}</span>${lluvia ? `<span>${lluvia}</span>` : ''}`;
 }
 function pintarLooks() {

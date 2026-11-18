@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.303'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.305'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -402,10 +402,10 @@ if (AT) (() => {
     const lista = E.propuestas; if ((E.hoyIdx || 0) >= lista.length) E.hoyIdx = 0; const pr = lista[E.hoyIdx || 0];
     const dia = new Date().toLocaleDateString(loc(), { weekday: 'long', day: 'numeric' }).replace(',', '');
     const cielo = w ? (w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(w.clave) ? 'nube' : w.clave) : null;
-    const lluvia = !w ? '' : ['lluvia', 'tormenta'].includes(w.clave) ? `<span class="at-sep">·</span>${ICO_T.lluvia}${t('ahora', 'now')}` : w.lluviaH != null ? `<span class="at-sep">·</span>${ICO_T.lluvia}${t('lluvia a las', 'rain at')} ${w.lluviaH}:00` : '';
+    const lluvia = !w ? '' : ['lluvia', 'tormenta'].includes(w.clave) ? `<span>${ICO_T.lluvia}${t('lloviendo', 'raining')}</span>` : horaLluvia(w) != null ? `<span>${ICO_T.lluvia}${lluviaA(horaLluvia(w))}</span>` : '';
     // 18/11 (Sheila, 2744 y 2770: «la hora sale mal» en la pantalla principal): junto a la fecha solo salía la gota y «15:00», y se leía como la hora de ahora
     const cab = `<header class="at-cab"><span class="at-marca"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#i129"/></svg>Tu<span>Closet</span></span>
-      <p class="at-fecha">${dia}${w ? `${ICO_T[cielo] || ICO_T.nube}${w.t}°${lluvia}` : ''}</p></header>`;
+      <p class="at-fecha"><span>${dia}</span>${w ? `<span>${ICO_T[cielo] || ICO_T.nube}${w.t}°</span>${lluvia}` : ''}</p></header>`; // 18/11: cada parte sin partirse; si no cabe, la lluvia baja entera a otra línea
     // la ocasión, arriba bajo la fecha; al tocarla, todas para elegir
     // 15/11 (Sheila, 2135): con la fila abierta, debajo de las ocasiones, los planes concretos de la elegida (opcional); el elegido sale junto a la ocasión
     const subO = o => subHoy(o), ocTxt = o => ocNombre(o) + (subO(o) ? ' · ' + subNom(subO(o)) : '');
