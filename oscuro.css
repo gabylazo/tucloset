@@ -234,6 +234,7 @@ html.oscuro #s-raiz .guia i:nth-of-type(1){border-left-width:1.5px;border-top-wi
 html.oscuro #s-raiz .guia i:nth-of-type(2){border-right-width:1.5px;border-top-width:1.5px}
 html.oscuro #s-raiz .guia i:nth-of-type(3){border-left-width:1.5px;border-bottom-width:1.5px}
 html.oscuro #s-raiz .guia i:nth-of-type(4){border-right-width:1.5px;border-bottom-width:1.5px}
+html.oscuro #s-raiz .raf img{background:var(--o-fondo)}
 html.oscuro #s-raiz .consejo{color:var(--sec)}
 html.oscuro #s-raiz .boton.no{background:none;color:var(--tinta);border:1px solid var(--tinta)}
 html.oscuro #s-raiz .txt{color:var(--sec)}
