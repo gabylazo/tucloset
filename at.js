@@ -280,12 +280,17 @@ if (AT) (() => {
     const bm = await createImageBitmap(bl), W = bm.width, H = bm.height, k = Math.min(1, 240 / H), w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
     const c = document.createElement('canvas'); c.width = w; c.height = h; const cx = c.getContext('2d', { willReadFrequently: true }); cx.drawImage(bm, 0, 0, w, h);
     const d = cx.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1;
-    for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) { const o = (y * w + i) * 4; if (Math.min(d[o], d[o + 1], d[o + 2]) < 236) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
+    for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) { const o = (y * w + i) * 4; if (d[o + 3] > 16 && Math.min(d[o], d[o + 1], d[o + 2]) < 236) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
     if (x1 < 0 || (y1 - y0 + 1) / h > .97) return bl;
     const m = .03 * H, X0 = Math.max(0, x0 / k - m), Y0 = Math.max(0, y0 / k - m), X1 = Math.min(W, (x1 + 1) / k + m), Y1 = Math.min(H, (y1 + 1) / k + m);
     const cc = document.createElement('canvas'); cc.width = Math.round(X1 - X0); cc.height = Math.round(Y1 - Y0); cc.getContext('2d').drawImage(bm, X0, Y0, X1 - X0, Y1 - Y0, 0, 0, cc.width, cc.height);
     return await new Promise(r => cc.toBlob(z => r(z || bl), 'image/jpeg', .92));
   } catch (e) { return bl; } })(); RECORTES.set(bl, pr); return pr; };
+  // 18/11 (Sheila, 2906; capturas del vídeo del avatar): la capa medía lo mismo que el look de ropa, que en Hoy se queda bajo por el ancho, y debajo quedaba hueco.
+  // Ahora ocupa todo el alto libre de la zona (como `ajustar()` de Hoy); donde la zona no tiene alto fijo, el del look
+  const altoCapa = (zona, fig) => { const f = fig.offsetHeight || 0, z = zona.clientHeight; if (!z) return f || 320;
+    const resto = [...zona.children].filter(x => x !== fig && !x.classList.contains('at-puesto') && !x.classList.contains('at-flecha') && getComputedStyle(x).position !== 'absolute').reduce((s, x) => s + x.offsetHeight + 6, 0);
+    return Math.max(f, Math.floor(z - resto - 12)) || 320; };
   async function verPuesto(b, zona, ps, como, otra, auto, cambio) {
     let fig = zona?.querySelector('.at-look'); if (!fig) return;
     let capa = zona.querySelector('.at-puesto');
@@ -298,7 +303,7 @@ if (AT) (() => {
       const hecha = P0[base] instanceof Blob ? '' : COMOS().map(([v]) => v).find(v => P0[pre + v + av] instanceof Blob);
       if (hecha) { el = hecha; COMO_ELEGIDO.set(idsDe(ps), hecha); }
       else if (!auto && !(P0[base] instanceof Blob)) {
-        const sug = como || 'suelta', alto0 = fig.offsetHeight || 320;
+        const sug = como || 'suelta', alto0 = altoCapa(zona, fig);
         if (!capa) { capa = document.createElement('div'); capa.className = 'at-puesto'; fig.after(capa); }
         capa.style.height = alto0 + 'px'; fig.style.display = 'none'; b.setAttribute('aria-pressed', 'true'); LS.set('tc_ver_avatar', '1');
         capa.innerHTML = `<p class="at-como-tit" id="at-como-t">${t('¿Cómo llevas la de arriba?', 'How do you wear the top?')}</p>
@@ -313,7 +318,7 @@ if (AT) (() => {
     let r = null;
     if (auto) { r = await puestoEnMi(ps, como, false, true, el); fig = zona.querySelector('.at-look'); if (!r.blob || !fig || !zona.isConnected || b.getAttribute('aria-pressed') === 'true') return; capa = zona.querySelector('.at-puesto'); }
     else LS.set('tc_ver_avatar', '1');
-    const alto = fig.offsetHeight || capa?.offsetHeight || 320;
+    const alto = fig.style.display === 'none' && capa ? capa.offsetHeight : altoCapa(zona, fig);
     if (!capa) { capa = document.createElement('div'); capa.className = 'at-puesto'; fig.after(capa); }
     capa.style.height = alto + 'px'; if (!r) capa.innerHTML = `<p class="at-puesto-esp" role="status">${cargaIco('tc-carga-g')}${t('Vistiéndote…', 'Dressing you…')}</p>`; fig.style.display = 'none';
     b.setAttribute('aria-pressed', 'true');
