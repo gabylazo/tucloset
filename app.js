@@ -88,8 +88,8 @@ const T = {
   ac_inv: ['Código de invitación', 'Invitation code'], ac_inv_pista: ['TuCloset abre muy pronto. Por ahora se entra con invitación.', 'TuCloset opens very soon. For now, entry is by invitation.'],
   ac_crear: ['Crea tu clóset', 'Create your closet'], ac_nombre: ['Tu nombre', 'Your name'], ac_ciudad: ['Tu ciudad', 'Your city'], ac_ubic: ['Usar mi ubicación', 'Use my location'],
   ac_nota: ['La ciudad es solo para el tiempo. Tu clóset se guarda en tu cuenta.', 'The city is only for the weather. Your closet is saved in your account.'], ac_clave_pista: ['mínimo 8 caracteres', 'at least 8 characters'],
-  ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Con estas dos fotos la app saca tu tipo de cuerpo y tus colores. Sirven para todo: no te las volverá a pedir.', 'With these two photos the app works out your body type and colours. They are used for everything: you will not be asked again.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_estilo: ['Tu estilo', 'Your style'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
-  ac_entrar: ['Hola de nuevo', 'Welcome back'], ac_correo: ['Correo', 'Email'], ac_clave: ['Contraseña', 'Password'], ac_clave2: ['Repite la contraseña', 'Repeat your password'], ac_olvido: ['¿La has olvidado?', 'Forgot it?'], ac_entrar_bt: ['Entrar', 'Sign in'], ac_o: ['o', 'or'],
+  ac_silueta: ['Tu silueta', 'Your silhouette'], ac_sil_sub: ['Con estas dos fotos se calculan tu silueta y tus colores. No se vuelven a pedir.', 'With these two photos the app works out your body type and colours. They are used for everything: you will not be asked again.'], ac_cuerpo: ['Tu tipo de cuerpo', 'Your body type'], ac_estilo: ['Tu estilo', 'Your style'], ac_consejo: ['Luz natural, de frente y sin filtros.', 'Natural light, facing the camera, no filters.'], ac_luego: ['Ahora no', 'Not now'],
+  ac_entrar: ['Hola de nuevo', 'Welcome back'], ac_correo: ['Correo', 'Email'], ac_clave: ['Contraseña', 'Password'], ac_clave2: ['Repite la contraseña', 'Repeat your password'], ac_olvido: ['¿Has olvidado la contraseña?', 'Forgot it?'], ac_entrar_bt: ['Entrar', 'Sign in'], ac_o: ['o', 'or'],
   ac_apple: ['Continuar con Apple', 'Continue with Apple'], ac_google: ['Continuar con Google', 'Continue with Google'], ac_no_tengo: ['¿Aún no tienes cuenta? Crea tu clóset', 'No account yet? Create your closet'],
   lema: ['Optimiza tu estilo', 'Make the most of your style'], crear: ['Crear mi clóset', 'Create my closet'], ya_tengo: ['Ya tengo cuenta', 'I already have one'],
   legal: ['Pruébala gratis 7 días', 'Try it free for 7 days'],
@@ -105,7 +105,7 @@ const T = {
   privado: ['Las fotos se quedan en tu móvil. Solo tu silueta, sin tu cara, se usará para probarte la ropa.', 'Photos stay on your phone. Only your figure, without your face, will be used to try clothes on.'],
   buscar: ['Buscar en mi clóset', 'Search my closet'], nueva: ['Nueva prenda', 'New garment'], editar_prenda: ['Editar prenda', 'Edit garment'], borrar: ['Borrar', 'Delete'],
   hacer_foto: ['Haz una foto o elige una de la galería', 'Take a photo or pick one from the gallery'], foto_et: ['sobre fondo liso, la prenda entera', 'plain background, whole garment'],
-  nombre_prenda: ['Nombre', 'Name'], tipo: ['Tipo', 'Type'], categoria: ['Categoría', 'Category'], estacion: ['Estación', 'Season'], compra_q: ['La compraste', 'Bought'], tiro_q: ['¿Dónde te llega la cinturilla?', 'Where does the waistband sit?'], tiro_ay: ['El punto dorado es el ombligo. Si no lo sabes, déjalo sin marcar.', 'The gold dot is your navel. If unsure, leave it blank.'], largo_q: ['¿Hasta dónde te llega?', 'Where does it end?'], largo_ay: ['El punto dorado es el ombligo. Con esto sé si va por dentro o por fuera y qué pantalones le van.', 'The gold dot is your navel. It tells me whether to tuck it in and which trousers suit it.'], precio: ['Precio (si quieres)', 'Price (optional)'], color: ['Color', 'Colour'], notas: ['Notas (talla, tienda, cuidado…)', 'Notes (size, shop, care…)'],
+  nombre_prenda: ['Nombre', 'Name'], tipo: ['Tipo', 'Type'], categoria: ['Categoría', 'Category'], estacion: ['Estación', 'Season'], compra_q: ['La compraste', 'Bought'], tiro_q: ['¿Dónde te llega la cinturilla?', 'Where does the waistband sit?'], tiro_ay: ['El punto dorado es el ombligo. Si no lo sabes, déjalo sin marcar.', 'The gold dot is your navel. If unsure, leave it blank.'], largo_q: ['¿Hasta dónde te llega?', 'Where does it end?'], largo_ay: ['El punto dorado es el ombligo. Sirve para saber si va por dentro o por fuera y con qué pantalones combina.', 'The gold dot is your navel. It tells me whether to tuck it in and which trousers suit it.'], precio: ['Precio (opcional)', 'Price (optional)'], color: ['Color', 'Colour'], notas: ['Notas (talla, tienda, cuidado…)', 'Notes (size, shop, care…)'],
   guardar_closet: ['Guardar en mi clóset', 'Save to my closet'], guardar_otra: ['Guardar y añadir otra', 'Save and add another'], guardar_cambios: ['Guardar cambios', 'Save changes'],
   editar: ['Editar', 'Edit'], veces: ['veces puesta', 'times worn'], ultima: ['última vez', 'last worn'], conjuntos_min: ['conjuntos', 'outfits'], hoy_llevo: ['Hoy llevo esto', 'Wearing this today'],
   asi: ['Así te queda', 'How it looks on you'], ver_conjuntos: ['Ver conjuntos', 'See outfits'], conjuntos: ['Conjuntos', 'Outfits'], nuevo_conjunto: ['Nuevo conjunto', 'New outfit'],
@@ -172,14 +172,14 @@ function pintarMisColores() {
   const es = idioma() === 'en' ? 1 : 0, c = E.perfil?.colores || {}, r = c.r || {}, listo = PREG_COLOR.every(([k]) => r[k]);
   const est = listo ? estacionColor(r) : null, e = EST_COLOR[est];
   const mios = e ? [...new Set(E.prendas.filter(p => e.si.includes(p.color) && ['Arriba', 'Vestidos', 'Abrigo'].includes(p.tipo)).map(p => p.id))].slice(0, 6) : [];
-  $('co-raiz').innerHTML = `<p class="co-sub">${E.perfil?.ropa === 'hombre' ? t('Cuatro preguntas para saber qué colores te favorecen cerca de la cara. Mírate a la luz del día.', 'Four questions to find the colours that suit you near your face. Look at yourself in daylight.') : t('Cuatro preguntas para saber qué colores te favorecen cerca de la cara. Mírate a la luz del día, sin maquillaje fuerte.', 'Four questions to find the colours that suit you near your face. Look in daylight, without heavy make-up.')}</p>`
+  $('co-raiz').innerHTML = `<p class="co-sub">${E.perfil?.ropa === 'hombre' ? t('Cuatro preguntas para saber qué colores te favorecen cerca de la cara. Mírate a la luz del día.', 'Four questions to find the colours that suit you near your face. Look at yourself in daylight.') : t('Cuatro preguntas para saber qué colores te favorecen. Responde con luz del día y sin maquillaje fuerte.', 'Four questions to find the colours that suit you near your face. Look in daylight, without heavy make-up.')}</p>`
     + PREG_COLOR.map(([k, q, ops]) => `<div class="co-preg"><b>${q[es]}</b><div class="co-ops">${ops.map(([v, a, b]) => `<button class="${r[k] === v ? 'on' : ''}" aria-pressed="${r[k] === v}" data-copreg="${k}" data-coval="${v}">${es ? b : a}</button>`).join('')}</div></div>`).join('')
     // 06/11: con la foto de la cara, las respuestas afinan el diagnóstico (no dan otra estación aparte)
     + (E.perfil?.selfie && E.perfil?.diag?.color ? (listo ? `<div class="co-res dx-volver"><p>${t('Tus respuestas ya cuentan en tu diagnóstico.', 'Your answers now count in your analysis.')}</p><button class="boton" data-diag="ver-color">${t('Ver mis colores', 'See my colours')}</button></div>` : '') : e ? `<div class="co-res"><span class="mini-et">${t('Tu estación', 'Your season')}</span><h2>${e.n[es]}</h2><p>${e.d[es]}</p>
       <div class="co-tela">${e.hex.map(h => `<i style="background:${h}"></i>`).join('')}</div>
       <div class="co-dos"><div><span class="mini-et">${t('Te favorecen', 'Suit you')}</span><p>${e.si.map(x => colNom(x)).join(', ')}</p></div><div><span class="mini-et">${t('Mejor lejos de la cara', 'Better away from your face')}</span><p>${e.no.map(x => colNom(x)).join(', ')}</p></div></div>
       ${mios.length ? `<span class="mini-et">${t('De tu clóset, para la cara', 'From your closet, for your face')}</span><div class="co-mias">${mios.map(id => `<button data-ficha="${id}" aria-label="${escH(P(id)?.nombre || '')}"><img src="${urlCat(P(id))}" alt=""></button>`).join('')}</div>` : ''}
-      <p class="co-nota">${t('Es una orientación, no una regla: si un color te hace feliz, póntelo. Hoy ya tiene en cuenta tus colores.', 'A guide, not a rule: if a colour makes you happy, wear it. Today already takes your colours into account.')}</p></div>` : '');
+      <p class="co-nota">${t('Es una orientación, no una regla. Los looks de Hoy ya tienen en cuenta tus colores.', 'A guide, not a rule: if a colour makes you happy, wear it. Today already takes your colours into account.')}</p></div>` : '');
 }
 const colNom = c => idioma() === 'en' ? ({ Negro: 'black', Blanco: 'white', Gris: 'grey', Beige: 'beige', Camel: 'camel', Marrón: 'brown', Rojo: 'red', Rosa: 'pink', Naranja: 'orange', Amarillo: 'yellow', Verde: 'green', 'Azul claro': 'light blue', Azul: 'blue', Morado: 'purple' }[c] || c) : c.toLowerCase();
 document.addEventListener('click', async e => {
@@ -325,7 +325,7 @@ const ENCUESTA = [
   ['¿Pagarías 1,99 € al mes por ella?', 'Would you pay €1.99 a month for it?', [['Sí', 'Yes'], ['Con algo más', 'With something more'], ['No', 'No']]],
   // 13/11 (Gabriela: «las preguntas que sean de marcar, nada de desarrollar, solo opcional»): las dos que faltaban, también de tocar; escribir, solo si quiere, al final
   ['¿Qué has echado en falta?', 'What did you miss?', [['Nada', 'Nothing'], ['Looks más a mi estilo', 'Looks more my style'], ['Subir la ropa más rápido', 'Faster to add clothes'], ['Otra cosa', 'Something else']]],
-  ['¿Se la recomendarías a una amiga?', 'Would you recommend it to a friend?', [['Sí', 'Yes'], ['Puede', 'Maybe'], ['No', 'No']]]];
+  ['¿Se la recomendarías a otra persona?', 'Would you recommend it to a friend?', [['Sí', 'Yes'], ['Puede', 'Maybe'], ['No', 'No']]]];
 async function preguntarEncuesta(forzar) {
   try {
     if (!forzar) {
@@ -342,7 +342,7 @@ function abrirEncuesta(previa) { // previa (?encuesta=1): para que la vean las s
   const es = idioma() === 'en' ? 1 : 0, res = {};
   const html = `<p class="pn-lema">${t('Diez preguntas, solo tocar. Un minuto.', 'Ten questions, just tap. One minute.')}</p>
     ${ENCUESTA.map((q, i) => `<fieldset class="en-q"><legend>${q[es]}</legend><div class="at-fila at-vj-ops">${q[2].map((o, j) => `<button type="button" data-enq="${i}" data-eno="${j}" aria-pressed="false">${o[es]}<span class="at-dos" aria-hidden="true"></span></button>`).join('')}</div></fieldset>`).join('')}
-    <label class="campo en-com"><span>${t('Por último, cuéntanos lo que quieras: qué cambiarías, qué has echado en falta o qué te ha gustado. Todo nos sirve. Si quieres.', 'Last, tell us anything you like: what you would change, what you missed or what you liked. It all helps. Optional.')}</span><textarea id="en-com" rows="5" maxlength="1000"></textarea></label>
+    <label class="campo en-com"><span>${t('Para terminar, cuéntanos qué cambiarías, qué has echado en falta o qué te ha gustado. Es opcional.', 'Last, tell us anything you like: what you would change, what you missed or what you liked. It all helps. Optional.')}</span><textarea id="en-com" rows="5" maxlength="1000"></textarea></label>
     <button class="boton" id="en-enviar" disabled>${t('Enviar', 'Send')}</button>
     <button class="boton linea" id="en-luego">${t('Ahora no', 'Not now')}</button>
     <p class="pn-nota">${t('Solo se guardan tus respuestas, con tu cuenta. Nos sirven para mejorar la app.', 'Only your answers are saved, with your account. They help us improve the app.')}</p>`;
@@ -356,7 +356,7 @@ function abrirEncuesta(previa) { // previa (?encuesta=1): para que la vean las s
         const env = $('en-enviar'); env.disabled = true;
         const r = Object.fromEntries(ENCUESTA.map((q, i) => [q[0], q[2][res[i]][0]])), com = ($('en-com')?.value || '').trim().slice(0, 1000); if (com) r['¿Algo más?'] = com;
         try { const x = await api('/api/encuesta', { method: 'POST', json: { r }, tiempo: 15000 }); if (!x.ok) throw new Error('http ' + x.status); LS.set('tc_encuesta_hecha', '1'); cap.remove(); toast(t('Gracias. Lo leemos todo.', 'Thank you. We read every answer.')); }
-        catch (er) { env.disabled = false; toast(cuenta() ? t('No se ha podido enviar. Prueba otra vez.', 'Could not send. Try again.') : t('Entra en tu cuenta para enviarla.', 'Sign in to send it.')); }
+        catch (er) { env.disabled = false; toast(cuenta() ? t('No se ha podido enviar. Inténtalo de nuevo.', 'Could not send. Try again.') : t('Entra en tu cuenta para enviarla.', 'Sign in to send it.')); }
       }
     });
   });
@@ -644,18 +644,18 @@ async function bajarNube() {
   if (estacionesAuto()) await guardar(); // 0.101: estación por tipo, también para lo que llega de otros móviles
   E.propuestas = []; E.generados = []; E.nubeBajada = true; return true;
 }
-const ERR_CUENTA = { invitacion: ['Ese código de invitación no vale. TuCloset abre muy pronto.', 'That invitation code is not valid. TuCloset opens very soon.'], correo: ['Escribe un correo válido', 'Enter a valid email'], clave_corta: ['La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'], ya_existe: ['Ese correo ya tiene cuenta: entra con él', 'That email already has an account: sign in'], credenciales: ['Correo o contraseña incorrectos', 'Wrong email or password'], frenado: ['Demasiados intentos: espera 15 minutos', 'Too many attempts: wait 15 minutes'],
-  actualiza: ['Hay una versión nueva de la app: ciérrala y vuelve a abrirla', 'There is a new version of the app: close it and open it again'], envio: ['No he podido mandarte el código. Revisa el correo y prueba otra vez.', 'I could not send you the code. Check the email and try again.'] };
+const ERR_CUENTA = { invitacion: ['El código de invitación no es válido.', 'That invitation code is not valid. TuCloset opens very soon.'], correo: ['Escribe un correo válido', 'Enter a valid email'], clave_corta: ['La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'], ya_existe: ['Ese correo ya tiene cuenta: entra con él', 'That email already has an account: sign in'], credenciales: ['Correo o contraseña incorrectos', 'Wrong email or password'], frenado: ['Demasiados intentos: espera 15 minutos', 'Too many attempts: wait 15 minutes'],
+  actualiza: ['Hay una versión nueva de la app: ciérrala y vuelve a abrirla', 'There is a new version of the app: close it and open it again'], envio: ['No se ha podido enviar el código. Revisa el correo e inténtalo de nuevo.', 'I could not send you the code. Check the email and try again.'] };
 // 09/11 (Gabriela: «aparte de la contraseña, agrega un paso de verificación por correo»): al crear la cuenta y al entrar desde un móvil nuevo, el servidor manda
 // un código de 6 cifras desde app@tucloset.app y la sesión se abre al escribirlo. Cada móvil lleva un número al azar (tc_disp) que no se borra al cerrar sesión,
 // para que el servidor sepa si ya entró antes desde aquí. Mientras el correo no esté en marcha, el servidor abre la sesión como antes y esto no sale.
 const dispId = () => { let d = LS.get('tc_disp'); if (!/^[0-9a-f]{32}$/.test(d || '')) { d = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join(''); LS.set('tc_disp', d); } return d; };
 const ERR_CODIGO = { caducado: ['El código ha caducado: vuelve a empezar', 'The code has expired: start again'], intentos: ['Demasiados intentos: vuelve a empezar', 'Too many attempts: start again'],
-  espera: ['Espera un minuto antes de pedir otro', 'Wait a minute before asking for another'], envio: ['No he podido mandarlo. Prueba otra vez.', 'I could not send it. Try again.'] };
+  espera: ['Espera un minuto antes de pedir otro', 'Wait a minute before asking for another'], envio: ['No se ha podido enviar. Inténtalo de nuevo.', 'I could not send it. Try again.'] };
 function pedirCodigo(d) {
   return new Promise(res => {
     const dlg = document.createElement('dialog'); dlg.className = 'dlg-cod'; dlg.setAttribute('aria-labelledby', 'cod-t');
-    dlg.innerHTML = `<h2 id="cod-t">${t('Mira tu correo', 'Check your email')}</h2><p>${t('Te he mandado un código de 6 cifras a', 'I have sent a 6-digit code to')} <b>${escH(d.correo || '')}</b>${t('Escríbelo aquí.', 'Type it here.')}</p>
+    dlg.innerHTML = `<h2 id="cod-t">${t('Mira tu correo', 'Check your email')}</h2><p>${t('Se ha enviado un código de 6 cifras a', 'I have sent a 6-digit code to')} <b>${escH(d.correo || '')}</b>${t('Escríbelo aquí.', 'Type it here.')}</p>
       <label class="cod-campo"><span class="vh">${t('Código', 'Code')}</span><input id="cod-n" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" aria-describedby="cod-e"></label>
       <p id="cod-e" class="cod-e" role="alert"></p><div class="botones"><button class="boton" id="cod-ok" disabled>${t('Confirmar', 'Confirm')}</button><button class="boton linea" id="cod-no">${t('Cancelar', 'Cancel')}</button></div>
       <p class="cod-pie">${t('¿No llega? Mira en correo no deseado.', 'Not there? Check your spam folder.')}</p><button class="at-enlace" id="cod-otra">${t('Mandar otro código', 'Send another code')}</button>`;
@@ -665,12 +665,12 @@ function pedirCodigo(d) {
     inp.oninput = () => { inp.value = inp.value.replace(/\D/g, '').slice(0, 6); ok.disabled = inp.value.length !== 6; mal(''); if (inp.value.length === 6) ok.click(); };
     dlg.addEventListener('cancel', e => { e.preventDefault(); fin(null); }); dlg.querySelector('#cod-no').onclick = () => fin(null);
     ok.onclick = async () => { if (ok.disabled) return; ok.disabled = true;
-      let r, j; try { r = await api('/api/codigo', { method: 'POST', json: { reto: d.reto, codigo: inp.value, disp: dispId() }, tiempo: 20000 }); j = await r.json().catch(() => ({})); } catch (e) { ok.disabled = false; return mal(t('Sin conexión: prueba otra vez', 'No connection: try again')); }
+      let r, j; try { r = await api('/api/codigo', { method: 'POST', json: { reto: d.reto, codigo: inp.value, disp: dispId() }, tiempo: 20000 }); j = await r.json().catch(() => ({})); } catch (e) { ok.disabled = false; return mal(t('Sin conexión. Inténtalo de nuevo', 'No connection: try again')); }
       if (r.ok && j.token) return fin(j);
       if (j.error === 'codigo') { inp.value = ''; inp.focus(); return mal(t(`Ese no es el código${j.quedan > 0 ? `: te quedan ${j.quedan} intentos` : ''}`, `That is not the code${j.quedan > 0 ? `: ${j.quedan} tries left` : ''}`)); }
-      const m = ERR_CODIGO[j.error]; mal(m ? t(m[0], m[1]) : t('No se ha podido. Prueba otra vez.', 'It did not work. Try again.')); if (['caducado', 'intentos'].includes(j.error)) setTimeout(() => fin(null), 2500); else ok.disabled = false; };
-    dlg.querySelector('#cod-otra').onclick = async () => { let r, j; try { r = await api('/api/codigo', { method: 'POST', json: { reto: d.reto, otra: 1, en: idioma() === 'en' }, tiempo: 20000 }); j = await r.json().catch(() => ({})); } catch (e) { return mal(t('Sin conexión: prueba otra vez', 'No connection: try again')); }
-      if (r.ok) { inp.value = ''; inp.focus(); return mal(t('Te he mandado otro código', 'I have sent you another code')); } const m = ERR_CODIGO[j.error]; mal(m ? t(m[0], m[1]) : t('No se ha podido. Prueba otra vez.', 'It did not work. Try again.')); };
+      const m = ERR_CODIGO[j.error]; mal(m ? t(m[0], m[1]) : t('No se ha podido. Inténtalo de nuevo.', 'It did not work. Try again.')); if (['caducado', 'intentos'].includes(j.error)) setTimeout(() => fin(null), 2500); else ok.disabled = false; };
+    dlg.querySelector('#cod-otra').onclick = async () => { let r, j; try { r = await api('/api/codigo', { method: 'POST', json: { reto: d.reto, otra: 1, en: idioma() === 'en' }, tiempo: 20000 }); j = await r.json().catch(() => ({})); } catch (e) { return mal(t('Sin conexión. Inténtalo de nuevo', 'No connection: try again')); }
+      if (r.ok) { inp.value = ''; inp.focus(); return mal(t('Se ha enviado otro código', 'I have sent you another code')); } const m = ERR_CODIGO[j.error]; mal(m ? t(m[0], m[1]) : t('No se ha podido. Inténtalo de nuevo.', 'It did not work. Try again.')); };
   });
 }
 async function abrirCuenta(modo, correo, clave, nombre) {
@@ -689,7 +689,7 @@ async function abrirCuenta(modo, correo, clave, nombre) {
     const mias = E.prendas.filter(p => !p.ejemplo);
     if (mias.some(p => deCuenta(p) && !enNube.has(p.id))) { const c = LS.get('tc_cuenta'); await vaciarMovil(); LS.set('tc_cuenta', c); LS.set('tc_nube_ver', '0'); LS.set('tc_nube_ids', '[]'); }
     else if (modo === 'entrar' && mias.some(p => !enNube.has(p.id)) && !await confirmar(t('¿Añadimos la ropa de este móvil?', 'Add the clothes on this phone?'),
-      t(`En este móvil hay ${mias.length} prendas que no están en ninguna cuenta. Si dices que no, se quitan de este móvil y entras solo con lo de tu cuenta.`, `This phone has ${mias.length} garments that are not in any account. If you say no, they are removed from this phone and you get only what is in your account.`),
+      t(`Este móvil tiene ${mias.length} prendas que no están en ninguna cuenta. Si no las añades, se quitan de este móvil.`, `This phone has ${mias.length} garments that are not in any account. If you say no, they are removed from this phone and you get only what is in your account.`),
       t('Añadirlas a mi cuenta', 'Add them to my account'), t('No, solo mi cuenta', 'No, only my account'))) { const c = LS.get('tc_cuenta'); await vaciarMovil(); LS.set('tc_cuenta', c); LS.set('tc_nube_ver', '0'); LS.set('tc_nube_ids', '[]'); }
   }
   LS.set('tc_dueno', nuevo);
@@ -735,7 +735,7 @@ function pintarCuenta() {
       <div class="cu-bts"><button class="boton" id="cu-crear">${t('Crear mi cuenta', 'Create my account')}</button><button class="boton linea" id="cu-entrar">${t('Ya tengo cuenta', 'I have an account')}</button></div>`;
     ojos();
     const go = async modo => { if (modo === 'alta' && $('cu-clave2').value !== $('cu-clave').value) { $('cu-clave2').focus(); return toast(t('Las dos contraseñas no coinciden', 'The two passwords do not match')); }
-      const b = $(modo === 'alta' ? 'cu-crear' : 'cu-entrar'); b.disabled = true; const ok = await abrirCuenta(modo, $('cu-correo').value.trim(), $('cu-clave').value, E.perfil?.nombre); b.disabled = false; if (ok) { pintarCuenta(); toast(modo === 'alta' ? t('Cuenta creada: tu clóset ya se guarda', 'Account created: your closet is being saved') : t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); } };
+      const b = $(modo === 'alta' ? 'cu-crear' : 'cu-entrar'); b.disabled = true; const ok = await abrirCuenta(modo, $('cu-correo').value.trim(), $('cu-clave').value, E.perfil?.nombre); b.disabled = false; if (ok) { pintarCuenta(); toast(modo === 'alta' ? t('Cuenta creada: tu clóset ya se guarda', 'Account created: your closet is being saved') : t('Has entrado. Tu clóset está al día', 'Signed in: your closet is up to date')); } };
     $('cu-crear').onclick = () => go('alta'); $('cu-entrar').onclick = () => go('entrar');
   }
 }
@@ -954,7 +954,7 @@ function abrirRepetidas() {
   const lista = dudasRepetidas(); $('rep-capa')?.remove(); if (!lista.length) { if (E.pantalla === 'closet') pintarCloset(); return; }
   const p = lista[0], q = E.prendas.find(x => x.id === p.duda), dia = f => f ? new Date(f).toLocaleDateString(idioma() === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'short' }) : '';
   const cap = document.createElement('div'); cap.id = 'rep-capa'; cap.className = 'ay-capa at-vj at-rep'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'rep-t');
-  cap.innerHTML = `<h1 id="rep-t" tabindex="-1">${t('¿Es la misma prenda?', 'Is it the same garment?')}</h1><p class="at-vj-sub">${t('Se parecen mucho. Si es la misma, quito la que subiste después.', 'They look very alike. If it is the same, I remove the one you added later.')}</p>
+  cap.innerHTML = `<h1 id="rep-t" tabindex="-1">${t('¿Es la misma prenda?', 'Is it the same garment?')}</h1><p class="at-vj-sub">${t('Se parecen mucho. Si es la misma, se elimina la que subiste después.', 'They look very alike. If it is the same, I remove the one you added later.')}</p>
     <div class="rep-par">${[q, p].map(x => `<figure><img src="${urlCat(x)}" alt=""><figcaption>${String(x.nombre || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])}<small>${dia(x.creada)}</small></figcaption></figure>`).join('')}</div>
     <div class="at-ropa-ops"><button class="at-btn" data-rep="si">${t('Sí, es la misma', 'Yes, same one')}</button><button class="at-btn" data-rep="no">${t('No, son distintas', 'No, they differ')}</button></div>
     <button class="at-enlace" data-rep="">${lista.length > 1 ? t(`Ahora no · quedan ${lista.length - 1} más`, `Not now · ${lista.length - 1} more`) : t('Ahora no', 'Not now')}</button>`;
@@ -988,15 +988,15 @@ const retrasoEst = c => { const ahora = Date.now(); if (ahora - EST_ULT > 20000)
 const cargaIco = (c = '') => `<span class="tc-carga${c ? ' ' + c : ''}" style="--d:${retrasoEst(3.2)}" aria-hidden="true">${ARMARIO_EST}</span>`;
 function frasesEspera(primera) {
   const k = E.prendas.filter(p => p.cat && !p.ejemplo).length;
-  const f = [primera, k >= 4 ? t(`Ya tienes ${k} prendas listas: tu look de hoy te espera en Hoy.`, `${k} garments ready: today's look is waiting in Today.`) : t('Después, cada mañana te propongo un look con ellas.', 'Then every morning I suggest a look with them.'),
-    t('Puedes seguir usando la app: sigue sola.', 'You can keep using the app: it carries on by itself.')];
+  const f = [primera, k >= 4 ? t(`Ya tienes ${k} prendas listas: tu look de hoy te espera en Hoy.`, `${k} garments ready: today's look is waiting in Today.`) : t('Cada mañana verás un look con ellas.', 'Then every morning I suggest a look with them.'),
+    t('Puedes seguir usando la app mientras tanto.', 'You can keep using the app: it carries on by itself.')];
   return `<span class="est-rot" style="--d:${retrasoEst(13.5)}">${f.map((x, i) => `<span style="--i:${i}">${escH(x)}</span>`).join('')}</span>`;
 }
 function avisoEst() {
   const pa = $('pared'); let av = $('est-av'); const e = E.estil;
   if (e && !av && pa) { av = document.createElement('p'); av.id = 'est-av'; av.className = 'est-av'; av.setAttribute('role', 'status'); pa.before(av); }
   if (av) { av.hidden = !e; if (e) { let visto = 0; try { visto = localStorage.getItem('tc_est_visto'); } catch (x) { }
-    av.innerHTML = `<span class="est-arm-c" style="--d:${retrasoEst(3.2)}">${ARMARIO_EST}</span><span>${e.n > 1 ? t(`Estilizando tus fotos · ${e.i} de ${e.n}`, `Styling your photos · ${e.i} of ${e.n}`) : t('Estilizando tu foto', 'Styling your photo')}<small>${frasesEspera(visto ? t('La convierto en foto de catálogo.', 'I turn it into a catalogue photo.') : t('La convierto en foto de catálogo: unos 15 segundos por prenda.', 'I turn it into a catalogue photo: about 15 seconds per garment.'))}</small></span>`; } }
+    av.innerHTML = `<span class="est-arm-c" style="--d:${retrasoEst(3.2)}">${ARMARIO_EST}</span><span>${e.n > 1 ? t(`Estilizando tus fotos · ${e.i} de ${e.n}`, `Styling your photos · ${e.i} of ${e.n}`) : t('Estilizando tu foto', 'Styling your photo')}<small>${frasesEspera(visto ? t('Se convierte en foto de catálogo.', 'I turn it into a catalogue photo.') : t('Se convierte en foto de catálogo: unos 15 segundos por prenda.', 'I turn it into a catalogue photo: about 15 seconds per garment.'))}</small></span>`; } }
   const fi = $('at-ficha'), fe = $('est-ficha');
   if (fi && fe) fe.hidden = !(e && e.id === fi.dataset.id);
 }
@@ -1130,7 +1130,7 @@ async function noSeParece(p) {
     cap.dataset.ocupado = 1; cap.querySelectorAll('button').forEach(x => x.disabled = true);
     if (k === 'otra') { b.textContent = t('Haciendo otra… unos 20 segundos', 'Making another… about 20 seconds');
       const r = await pedirCatalogo(p, true, p.fotoPrev); const ok = r === true && await usarCat(p, !!p.nubeConserva);
-      toast(ok ? t('Foto de catálogo nueva puesta', 'New catalogue photo set') : r === 'parar' ? t('Ahora no puedo hacer fotos de catálogo. Prueba más tarde', 'I can’t make catalogue photos right now. Try again later') : t('No ha salido. Puedes volver a tu foto', 'It did not work. You can go back to your photo'));
+      toast(ok ? t('Foto de catálogo nueva puesta', 'New catalogue photo set') : r === 'parar' ? t('Ahora no se pueden hacer fotos de catálogo. Inténtalo más tarde', 'I can’t make catalogue photos right now. Try again later') : t('No ha salido. Puedes volver a tu foto', 'It did not work. You can go back to your photo'));
       return fin(); }
     if (k === 'mia') { const prev = p.fotoPrev;
       try { await subirFoto('/api/foto/' + p.id, prev); } catch (e2) { toast(t('Hace falta conexión para volver a tu foto', 'You need a connection to go back to your photo')); delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; }
@@ -1158,7 +1158,7 @@ function abrirCatalogo(id) {
     if (k === 'si') { if (!(await usarCat(p, rc && !!p.nubeConserva))) { delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; } toast(t('Foto de catálogo puesta', 'Catalogue photo set')); }
     else if (k === 'no') { delete p.catProp; delete p.catPropAR; delete p.catPregunta; if (p.catColor) delete p.catColor; else p.catNo = 1; await guardar(); }
     else if (k === 'otra') { b.textContent = t('Haciendo otra… unos 20 segundos', 'Making another… about 20 seconds'); const r = await pedirCatalogo(p, true); await BD.set('prendas', E.prendas).catch(() => { });
-      if (r !== true) toast(r === 'parar' ? t('Ahora no puedo hacer fotos de catálogo. Prueba más tarde', 'I can’t make catalogue photos right now. Try again later') : t('No ha salido: puedes usar esta o dejar la tuya', 'It did not work: use this one or keep yours'));
+      if (r !== true) toast(r === 'parar' ? t('Ahora no se pueden hacer fotos de catálogo. Inténtalo más tarde', 'I can’t make catalogue photos right now. Try again later') : t('No ha salido: puedes usar esta o dejar la tuya', 'It did not work: use this one or keep yours'));
       fin(); return abrirCatalogo(p.id); }
     fin(); if (E.pantalla === 'ficha' && $('at-ficha')?.dataset.id === p.id) { abrirFicha(p.id); if (catPend().length) abrirCatalogo(); } else abrirCatalogo(); };
 }
@@ -1171,7 +1171,7 @@ async function recolorCat(p) {
   const r = await pedirCatalogo(p, false, p.cat, `El color real es ${p.color.toLowerCase()}, la misma prenda, solo cambia el color`);
   await BD.set('prendas', E.prendas).catch(() => { });
   if (r === true) { p.catColor = p.color; return abrirCatalogo(p.id); }
-  toast(r === 'parar' ? t('Ahora no puedo cambiar la foto. Prueba más tarde', 'I can’t change the photo right now. Try again later') : t('No ha salido. Prueba otra vez', 'It did not work. Try again'));
+  toast(r === 'parar' ? t('Ahora no se puede cambiar la foto. Inténtalo más tarde', 'I can’t change the photo right now. Try again later') : t('No ha salido bien. Inténtalo de nuevo', 'It did not work. Try again'));
 }
 let midiendo = null;
 function medirTodas() {
@@ -1525,7 +1525,7 @@ function faltaPara(oc) {
 }
 // 0.68 (Sheila, 23/10: «creo que el texto es largo y agobiante»): una línea corta; lo que falta, plegado
 const avisoFalta = (oc, hay) => { const f = faltaPara(oc); if (!f.length && hay) return ''; const o = ocNombre(oc).toLowerCase();
-  return `<div class="cal-falta">${hay ? '' : `<p>${t(`Sin ropa de ${o}: te enseño lo más parecido.`, `Nothing for ${o}: here is the closest.`)}</p>`}${f.length ? `<details><summary>${t('Qué te vendría bien', 'What would help')}</summary><p>${cap(lista(f))}.</p></details>` : ''}</div>`; };
+  return `<div class="cal-falta">${hay ? '' : `<p>${t(`Sin ropa de ${o}: se muestra lo más parecido.`, `Nothing for ${o}: here is the closest.`)}</p>`}${f.length ? `<details><summary>${t('Qué te vendría bien', 'What would help')}</summary><p>${cap(lista(f))}.</p></details>` : ''}</div>`; };
 // 0.68 (Sheila, 23/10: «cuando pongo deporte me dice que no hay nada… puedes al menos poner las zapatillas»): sin ropa de esa ocasión,
 // lo más parecido: lo más arreglado para noche, evento y oficina; lo más cómodo para el resto; y para deporte, con zapatillas y sin bolso
 // 0.71 (Sheila, 23/10: «cómo voy a hacer deporte con una saya si hay pantalones… y una chaqueta es súper incómoda»): para deporte
@@ -1969,7 +1969,7 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   if (!pr) {
     const hay = activas().length;
     const rechazos = E.perfil?.gustos?.fuera?.length || (E.perfil?.gustos?.hoy?.d === hoyISO() && E.perfil.gustos.hoy.k.length);
-    pant.innerHTML = cab + `<div class="hz-vacio">${hay && rechazos ? t('Por hoy no me quedan combinaciones nuevas con tu ropa. Sube más prendas y te propongo otras.', 'No new combinations left for today. Upload more garments and I’ll suggest others.') : hay ? (E.perfil?.ropa === 'hombre' ? t('Me falta una parte de arriba y una de abajo para este tiempo.', 'I need a top and a bottom for this weather.') : t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.')) : t('Tu conjunto de hoy aparecerá aquí en cuanto tengas tres prendas: una de arriba, una de abajo y unos zapatos.', 'Your outfit of the day will appear here once you have three garments: a top, a bottom and shoes.')}
+    pant.innerHTML = cab + `<div class="hz-vacio">${hay && rechazos ? t('Hoy no quedan combinaciones nuevas con tu ropa. Sube más prendas para ver otras.', 'No new combinations left for today. Upload more garments and I’ll suggest others.') : hay ? (E.perfil?.ropa === 'hombre' ? t('Me falta una parte de arriba y una de abajo para este tiempo.', 'I need a top and a bottom for this weather.') : t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.')) : t('Tu conjunto de hoy aparecerá aquí en cuanto tengas tres prendas: una de arriba, una de abajo y unos zapatos.', 'Your outfit of the day will appear here once you have three garments: a top, a bottom and shoes.')}
       <button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button>${hay || PUBLICA ? '' : `<button class="hz-bt" id="hoy-ejemplo" style="border:0;margin-top:4px">${t('Ver un ejemplo', 'See an example')}</button>`}</div>`;
     const ej = $('hoy-ejemplo'); if (ej) ej.onclick = cargarEjemplo;
     return;
@@ -2261,7 +2261,7 @@ const FILTROS = () => [
   ['estacion', t('Estación', 'Season'), ESTACIONES.map(x => [x, x])],
   ['color', 'Color', COLORES.filter(([n]) => E.f.color.includes(n) || E.prendas.some(p => p.color === n)).map(([n, c]) => [n, c])], // 11/11: solo los colores de tu ropa (con 39, todos eran demasiados)
   ['uso', t('Uso', 'Use'), [['nueva', t('Sin estrenar', 'Never worn')], ['olvidada', t('Sin poner en 3 meses', 'Not worn in 3 months')], ['mas', t('Las que más uso', 'Most worn')]]],
-  ['estado', t('Estado', 'Status'), [['', t('Lista para poner', 'Ready to wear')], ['lavar', t('Sucia', 'In the wash')], ['guardada', t('Guardada', 'Stored')]]]
+  ['estado', t('Estado', 'Status'), [['', t('Disponible', 'Ready to wear')], ['lavar', t('Sucia', 'In the wash')], ['guardada', t('Guardada', 'Stored')]]]
 ];
 // 0.44 (Sheila, 22/10: el filtro «Oficina» daba 0 prendas): la ocasión salía solo de los looks guardados; ahora cada prenda tiene
 // también las suyas por su nivel (deportivo, diario, arreglado, noche); el bolso y los accesorios valen para todo menos deporte
@@ -2289,7 +2289,7 @@ function pintarCloset() {
   const lista = todas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && pasaFiltros(p) && (!q || [p.nombre, p.color, catDe(p), p.notas].join(' ').toLowerCase().includes(q)));
   const nf = Object.values(E.f).reduce((t, v) => t + v.length, 0); $('mc-nf').textContent = nf || '';
   $('pared').innerHTML = lista.map(p => `<button data-ficha="${p.id}" aria-label="${p.nombre}"><img src="${urlFoto(p)}" alt="">${p.estado ? `<i>${estadoTxt(p.estado)}</i>` : ''}</button>`).join('');
-  $('closet-vacio').innerHTML = todas.length ? (lista.length ? '' : `<div class="vacio">${t('Nada con ese filtro.', 'Nothing matches.')}</div>`) : `<div class="vacio">${t('Haz una foto a cada prenda sobre un fondo liso. Con tres ya hay conjunto de hoy.', 'Photograph each garment on a plain background. With three there is already an outfit of the day.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button>${PUBLICA ? '' : `<button class="hz-bt" style="border:0" id="cl-ejemplo">${t('Cargar un clóset de ejemplo', 'Load a sample closet')}</button>`}</div>`;
+  $('closet-vacio').innerHTML = todas.length ? (lista.length ? '' : `<div class="vacio">${t('Nada con ese filtro.', 'Nothing matches.')}</div>`) : `<div class="vacio">${t('Haz una foto a cada prenda sobre un fondo liso. Con tres ya hay look de hoy.', 'Photograph each garment on a plain background. With three there is already an outfit of the day.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button>${PUBLICA ? '' : `<button class="hz-bt" style="border:0" id="cl-ejemplo">${t('Cargar un clóset de ejemplo', 'Load a sample closet')}</button>`}</div>`;
   const ej = $('cl-ejemplo'); if (ej) ej.onclick = cargarEjemplo;
   if (!$('mc-hoja').hidden) pintarFiltros();
 }
@@ -2451,7 +2451,7 @@ async function revisarGuardadas() {
   }
   await guardar(); E.propuestas = []; E.generados = [];
   if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset();
-  if (giradas || corregidas) toast(t(`He revisado tus prendas: ${giradas} enderezadas y ${corregidas} con tipo o color corregido`, `I checked your garments: ${giradas} straightened, ${corregidas} fixed`));
+  if (giradas || corregidas) toast(t(`Prendas revisadas: ${giradas} enderezadas y ${corregidas} con tipo o color corregido`, `I checked your garments: ${giradas} straightened, ${corregidas} fixed`));
 }
 // 0.156 (Gabriela, 05/11: «los recortes de fondo han sido un desastre»): las prendas subidas desde el 04/11 con el recorte de antes
 // (el que tiraba las mangas y un zapato del par) se recortan otra vez, una vez y solas, solo con el modelo de recorte (4,5 MB, sin el reconocedor).
@@ -2472,7 +2472,7 @@ async function recortarOtraVez() {
     } catch (e) { break; } // sin modelo o sin red: se reintenta en la próxima apertura
   }
   await guardar(); programarNube();
-  if (hechas) { medirTodas(); E.propuestas = []; E.generados = []; cuandoQuieto(() => { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'hoy') pintarHoy(); }); toast(t(`He rehecho el recorte de ${hechas} ${hechas === 1 ? 'prenda' : 'prendas'} con el recorte nuevo`, `I redid the cut-out of ${hechas} garment${hechas === 1 ? '' : 's'}`)); }
+  if (hechas) { medirTodas(); E.propuestas = []; E.generados = []; cuandoQuieto(() => { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'hoy') pintarHoy(); }); toast(t(`Recorte nuevo en ${hechas} ${hechas === 1 ? 'prenda' : 'prendas'}`, `I redid the cut-out of ${hechas} garment${hechas === 1 ? '' : 's'}`)); }
 }
 async function reconocerGuardadas() {
   // 0.46 (Sheila, 22/10: un top peplum salió como vestido y Hoy lo proponía sin pantalón): los vestidos ya guardados se revisan una vez más con las descripciones nuevas
@@ -2489,7 +2489,7 @@ async function reconocerGuardadas() {
     } catch (e) { return; } // sin red o sin modelo: se reintenta en la próxima apertura
   }
   await guardar();
-  if (cambios) { E.propuestas = []; E.generados = []; if (E.pantalla === 'hoy') pintarHoy(); toast(t(`He revisado tus prendas: ${cambios} con el tipo corregido`, `I checked your garments: ${cambios} type${cambios > 1 ? 's' : ''} fixed`)); }
+  if (cambios) { E.propuestas = []; E.generados = []; if (E.pantalla === 'hoy') pintarHoy(); toast(t(`Prendas revisadas: ${cambios} con el tipo corregido`, `I checked your garments: ${cambios} type${cambios > 1 ? 's' : ''} fixed`)); }
 }
 // 0.37 (Sheila, 22/10: «o al menos un mensaje de alerta al cliente que lo debe hacer en un fondo uniforme»): desviación media de color
 // en una franja del 5 % alrededor de la foto; un fondo liso da menos de 20; las fotos de Sheila sobre pared, lámpara y sofá, de 33 a 66
@@ -2730,7 +2730,7 @@ function pintarSubida() {
     const i = E.subida.indexOf(det), listo = det.estado === 'listo';
     const ops = (lista, sel, k, nom) => `<div class="ops">${lista.map(x => `<button type="button" class="${x === sel ? 'on' : ''}" data-s${k}="${x}">${nom(x)}</button>`).join('')}</div>`;
     raiz.innerHTML = `<div class="sb uno">${n === 1 ? X : `<button class="x" data-svolver aria-label="${t('Volver', 'Back')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>`}<div class="tit"><h1>${t('Revisa tu prenda', 'Check your garment')}</h1>${n > 1 ? `<div class="mini-et">${i + 1} ${t('de', 'of')} ${n}</div>` : ''}</div>
-      <div class="foto">${det.url && listo ? `<button type="button" class="s-recortar" data-srecortar aria-label="${t('Arreglar la foto: marca la prenda y le quito el fondo otra vez', 'Fix the photo: frame the garment and I remove the background again')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/></svg><span aria-hidden="true">${t('Arreglar foto', 'Fix photo')}</span></button>` : ''}${det.url ? `<img src="${(!det.usaOriginal && det.urlCat) || det.url}" alt=""${det.catP ? ' class="est-p-img"' : ''}>${det.catP ? `<span class="s-est" role="status">${t('Estilizando…', 'Styling…')}</span>` : ''}` : `<p class="s-procesando">${t('Quitando el fondo y reconociendo la prenda…', 'Removing the background and recognising the garment…')}</p>`}</div>
+      <div class="foto">${det.url && listo ? `<button type="button" class="s-recortar" data-srecortar aria-label="${t('Arreglar la foto: marca la prenda y se quita el fondo de nuevo', 'Fix the photo: frame the garment and I remove the background again')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/></svg><span aria-hidden="true">${t('Arreglar foto', 'Fix photo')}</span></button>` : ''}${det.url ? `<img src="${(!det.usaOriginal && det.urlCat) || det.url}" alt=""${det.catP ? ' class="est-p-img"' : ''}>${det.catP ? `<span class="s-est" role="status">${t('Estilizando…', 'Styling…')}</span>` : ''}` : `<p class="s-procesando">${t('Quitando el fondo y reconociendo la prenda…', 'Removing the background and recognising the garment…')}</p>`}</div>
       ${listo && det.noPrenda && !det.siPrenda ? `<div class="s-aviso"><b>${t('Esta foto no parece una prenda', 'This photo does not look like a garment')}</b><span>${t('No coincide con ninguna categoría de ropa. Si es una captura, un texto u otra cosa, quítala.', 'It does not match any clothing category. If it is a screenshot, text or something else, remove it.')}</span><div><button class="boton" data-squita>${t('Quitarla', 'Remove it')}</button><button class="txt sub-l" data-ssi>${t('Sí es una prenda', 'It is a garment')}</button></div></div>` : ''}
       ${listo && det.dudoso && !(det.noPrenda && !det.siPrenda) ? `<div class="s-aviso"><b>${t('Revisa el recorte', 'Check the cut-out')}</b><span>${t('Si le falta un trozo o le sobra fondo, toca «Arreglar foto».', 'If a piece is missing or there is background left, tap “Fix photo”.')}</span></div>` : ''}
       ${listo && det.fondo && !det.dudoso && !(det.cv >= 3) && !(det.noPrenda && !det.siPrenda) ? `<p class="s-fondo">${t('El fondo no es liso: si el recorte sale con restos, toca «Arreglar foto».', 'The background is not plain: if the cut-out keeps bits of it, tap “Fix photo”.')}</p>${reglasFoto()}` : ''}
@@ -2744,12 +2744,12 @@ function pintarSubida() {
         if (!det.detalles?.length && !det.detaAbierto) return `<div class="gr"><p class="mini-et">${t('Detalles', 'Details')}</p>${bts}</div>`;
         return `<details class="gr s-deta" data-sdetabre${det.detaAbierto ? ' open' : ''}><summary><span class="mini-et">${t('Detalles', 'Details')}</span><span class="s-deta-l">${(det.detalles || []).map(k => t(k, DETALLES[k])).join(', ') || t('Ninguno', 'None')}</span></summary>${bts}</details>`; })()}
       <div class="gr"><p class="mini-et">${t('Estación', 'Season')}</p>${ops(ESTACIONES, det.estacion, 'est', estNombre)}</div>
-      <div class="fila2 s-cat s-compra"><label class="campo"><span>${t('Precio (si quieres)', 'Price (optional)')}</span><input data-sprecio inputmode="decimal" placeholder="29,95 €" value="${escH(det.precioTxt || '')}"></label><label class="campo"><span>${t('La compraste', 'Bought')}</span><select data-scompra>${opsCompra(det.compra || '')}</select></label></div>
+      <div class="fila2 s-cat s-compra"><label class="campo"><span>${t('Precio (opcional)', 'Price (optional)')}</span><input data-sprecio inputmode="decimal" placeholder="29,95 €" value="${escH(det.precioTxt || '')}"></label><label class="campo"><span>${t('La compraste', 'Bought')}</span><select data-scompra>${opsCompra(det.compra || '')}</select></label></div>
       ${det.recortada ? `<button class="txt sub-l" data-sorig>${det.usaOriginal ? t('Usar el fondo blanco', 'Use white background') : t('Usar la foto original', 'Use the original photo')}</button>` : ''}` : ''}
       <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo && !(det.noPrenda && !det.siPrenda) ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(t('Añadir más prendas', 'Add more garments'), 'txt sub-l')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button><button class="txt sub-l" data-squita>${t('Quitar esta prenda', 'Remove this garment')}</button>`}</div></div>`;
   } else {
     const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)).length, nop = E.subida.filter(i => i.noPrenda && !i.siPrenda).length;
-    raiz.innerHTML = `<div class="sb rv">${X}<div class="tit"><h1>${n} ${t('prendas', 'garments')}</h1><div class="mini-et">${E.subida.some(i => i.estado !== 'listo') ? t('Quitando los fondos…', 'Removing backgrounds…') : E.subida.some(i => i.catP) ? t('Estilizando…', 'Styling…') : E.subida.some(i => i.clasP) ? t('Afinando nombres y detalles…', 'Refining names and details…') : t('Revisa y guarda', 'Check and save')}</div>${E.subida.some(i => i.estado !== 'listo' || i.catP) ? `<p class="est-av est-sub" role="status"><span class="est-arm-c" style="--d:${retrasoEst(3.2)}">${ARMARIO_EST}</span><small>${frasesEspera(t('Le quito el fondo y la convierto en foto de catálogo.', 'I remove the background and turn it into a catalogue photo.'))}</small></p>` : ''}</div>
+    raiz.innerHTML = `<div class="sb rv">${X}<div class="tit"><h1>${n} ${t('prendas', 'garments')}</h1><div class="mini-et">${E.subida.some(i => i.estado !== 'listo') ? t('Quitando los fondos…', 'Removing backgrounds…') : E.subida.some(i => i.catP) ? t('Estilizando…', 'Styling…') : E.subida.some(i => i.clasP) ? t('Afinando nombres y detalles…', 'Refining names and details…') : t('Revisa y guarda', 'Check and save')}</div>${E.subida.some(i => i.estado !== 'listo' || i.catP) ? `<p class="est-av est-sub" role="status"><span class="est-arm-c" style="--d:${retrasoEst(3.2)}">${ARMARIO_EST}</span><small>${frasesEspera(t('Se quita el fondo y se convierte en foto de catálogo.', 'I remove the background and turn it into a catalogue photo.'))}</small></p>` : ''}</div>
       <div class="rej">${E.subida.map(it => `<button type="button" data-sdet="${it.id}"${it.catP ? ' class="est-p"' : it.estado !== 'listo' ? ' class="s-carga"' : ''}>${it.url ? `<img src="${(!it.usaOriginal && it.urlCat) || it.url}" alt="">` : ''}${it.catP || it.estado !== 'listo' ? cargaIco('tc-carga-c') : ''}${it.catP ? `<span class="s-est" role="status">${t('Estilizando…', 'Styling…')}</span>` : ''}${it.estado === 'listo' && it.noPrenda && !it.siPrenda ? `<p class="no">${t('No es una prenda', 'Not a garment')}<small>${t('Toca para revisarla', 'Tap to check')}</small></p>` : it.estado === 'listo' ? `<em></em><p>${it.nombre}<small>${it.dudoso ? t('Revisa el recorte', 'Check the cut-out') : `${catTxt(catDe(it))} · ${it.color}`}</small></p>` : `<p><small>${t('Quitando el fondo…', 'Removing the background…')}</small></p>`}</button>`).join('')}${n < 20 ? mas(`<svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><small>${t('Añadir más', 'Add more')}</small>`, 'mas') : ''}</div>
       ${E.subida.some(i => i.estado === 'listo' && i.dudoso && !(i.noPrenda && !i.siPrenda)) ? `<p class="s-aviso-l">${t('Las que dicen «Revisa el recorte» pueden haber salido mal: tócalas para verlas.', 'The ones that say «Check the cut-out» may have come out wrong: tap them to see.')}</p>` : ''}
       ${nop ? `<p class="s-aviso-l">${nop === 1 ? t('Hay 1 foto que no coincide con ninguna categoría de prenda: no se guardará.', '1 photo does not match any clothing category: it will not be saved.') : t(`Hay ${nop} fotos que no coinciden con ninguna categoría de prenda: no se guardarán.`, `${nop} photos do not match any clothing category: they will not be saved.`)}</p>` : ''}
@@ -2891,7 +2891,7 @@ function clasificarViejas() {
         if (o.es_prenda) { aplicarClas(p, o, null, false); n++; } else p.clas = 1;
       }
     } finally { clasificando = null; }
-    if (n) { await guardar(); programarNube(); E.propuestas = []; E.generados = []; cuandoQuieto(() => { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'hoy') pintarHoy(); }); toast(t(`He revisado ${n} ${n === 1 ? 'prenda' : 'prendas'}: nombre, color y detalles al día`, `I checked ${n} garment${n === 1 ? '' : 's'}: name, colour and details updated`)); }
+    if (n) { await guardar(); programarNube(); E.propuestas = []; E.generados = []; cuandoQuieto(() => { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'hoy') pintarHoy(); }); toast(t(`Prendas revisadas: ${n}. Nombre, color y detalles al día`, `I checked ${n} garment${n === 1 ? '' : 's'}: name, colour and details updated`)); }
     return n;
   })();
   return clasificando;
@@ -2945,7 +2945,7 @@ async function anadirFotos(files) {
   E.subida.push(...nuevos); pintarSubida();
   let k = 0; const obrera = async () => { for (let it; (it = nuevos[k++]);) { // 12/11: 3 a la vez (antes, de una en una)
     try { const r = await procesarPrenda(it.file); Object.assign(it, r, { estado: 'listo', url: URL.createObjectURL(r.blob), nombre: nombreReconocido(r.x, r.color) || (r.cat ? nombreSubida(r, r.cat) : nombreAuto(r.tipo, r.color)) }); it.estacion = estacionPorPrenda(it); delete it.file; clasificarSubida(it); estilizarSubida(it); }
-    catch (e) { E.subida = E.subida.filter(x => x !== it); toast(t('No he podido leer una de las fotos', 'Could not read one of the photos')); }
+    catch (e) { E.subida = E.subida.filter(x => x !== it); toast(t('No se ha podido leer una de las fotos', 'Could not read one of the photos')); }
     pintarSubida(); } };
   await Promise.all([obrera(), obrera(), obrera()]);
 }
@@ -2993,7 +2993,7 @@ function pintarHerr() {
   $('an-fondo').onclick = async () => {
     const b = await fotoActual(); if (!b) return; const bt = $('an-fondo'); bt.disabled = true; bt.textContent = t('Quitando el fondo…', 'Removing background…');
     try { const r = await procesarPrenda(b); if (!fotoOriginal && !E.editando?.original) fotoOriginal = b; fotoNueva = r.blob; pintarPrevia(URL.createObjectURL(r.blob)); toast(t('Fondo quitado. Guarda para conservarlo', 'Background removed. Save to keep it')); }
-    catch (e) { toast(t('No he podido quitar el fondo', 'Could not remove the background')); pintarHerr(); }
+    catch (e) { toast(t('No se ha podido quitar el fondo', 'Could not remove the background')); pintarHerr(); }
   };
   if ($('an-orig')) $('an-orig').onclick = () => { fotoNueva = orig; pintarPrevia(URL.createObjectURL(orig)); };
 }
@@ -3133,7 +3133,7 @@ function pintarPrevia(url) {
   $('f-prenda').onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
     try { const r = await procesarPrenda(f); fotoNueva = r.blob; fotoOriginal = r.original; pintarPrevia(URL.createObjectURL(r.blob)); if (!$('an-colores').dataset.sel) pintarColores(r.color); if (!$('an-nombre').value) $('an-nombre').value = $('an-sub').value ? nombreReconocido($('an-sub').value, r.color) : nombreAuto(TIPO_DE_CAT[$('an-tipo').value], r.color); }
-    catch (err) { toast(t('No he podido leer esa foto', 'Could not read that photo')); }
+    catch (err) { toast(t('No se ha podido leer esa foto', 'Could not read that photo')); }
   };
   pintarHerr();
 }
@@ -3174,8 +3174,8 @@ function abrirFicha(id) {
   $('f-datos').innerHTML = filas.map(([k, v]) => `<div><dt>${k}</dt><span class="pun"></span><dd>${String(v).replace(/</g, '&lt;')}</dd></div>`).join('');
   $('f-estado').classList.toggle('oculto', !p.estado); $('f-estado').textContent = estadoTxt(p.estado);
   const conAvatar = planDemo() === 'pro' ? conj.find(c => c.img) : null; const primero = conj[0];
-  $('f-asi').innerHTML = conAvatar ? `<div class="puesta"><img src="${conAvatar.img}" alt=""><div class="pie">${conAvatar.nombre}</div></div>` : primero ? `<div class="puesta">${maniqui(primero.ids.map(P).filter(Boolean))}<div class="pie">${primero.nombre}</div></div>` : `<div class="vacio">${t('Aún no está en ningún conjunto. Añádela a uno o pulsa «Hoy llevo esto».', 'Not in any outfit yet. Add it to one or tap “Wearing this today”.')}</div>`;
-  const acc = [['conjunto', t('Añadir a un conjunto', 'Add to an outfit')], ['lavar', p.estado === 'lavar' ? t('Ya está limpia', 'Clean again') : t('Está sucia: que no salga en los looks', 'In the wash: keep it out of looks')], ['guardada', p.estado === 'guardada' ? t('Volver a sacarla', 'Bring it back out') : t('Guardar hasta la próxima estación', 'Store until next season')], ['donar', p.estado === 'donar' ? t('Me la quedo', 'Keeping it') : t('Donar o vender', 'Donate or sell')]];
+  $('f-asi').innerHTML = conAvatar ? `<div class="puesta"><img src="${conAvatar.img}" alt=""><div class="pie">${conAvatar.nombre}</div></div>` : primero ? `<div class="puesta">${maniqui(primero.ids.map(P).filter(Boolean))}<div class="pie">${primero.nombre}</div></div>` : `<div class="vacio">${t('Aún no está en ningún look. Añádela a uno o pulsa «Me la pongo hoy».', 'Not in any outfit yet. Add it to one or tap “Wearing this today”.')}</div>`;
+  const acc = [['conjunto', t('Añadir a un look', 'Add to an outfit')], ['lavar', p.estado === 'lavar' ? t('Ya está limpia', 'Clean again') : t('Está sucia: que no salga en los looks', 'In the wash: keep it out of looks')], ['guardada', p.estado === 'guardada' ? t('Volver a sacarla', 'Bring it back out') : t('Guardar hasta la próxima estación', 'Store until next season')], ['donar', p.estado === 'donar' ? t('Me la quedo', 'Keeping it') : t('Donar o vender', 'Donate or sell')]];
   acc.splice(acc.findIndex(([k]) => k === 'donar') + 1, 0, ['donde', t('Dónde donarla cerca', 'Where to donate it nearby')]);
   if (p.tipo !== 'Accesorios' && planDemo() === 'pro') acc.unshift(['partido', t('Sácale partido', 'Make the most of it')]); // 0.107: en el Pro (Gabriela, 28/10: «sácale partido, sí»)
   if (p.foto) acc.push(['girar', t('Girar la foto', 'Rotate the photo')]);
@@ -3332,11 +3332,11 @@ function sacalePartido(p) {
   setTimeout(() => {
     const { ya, sug } = calcularPartido(p), mini = ps => ps.filter(x => x.id !== p.id && x.id !== 'virtual').map(x => `<img src="${urlFoto(x)}" alt="${x.nombre}" title="${x.nombre}">`).join('');
     cap.querySelector('.ay-nada').outerHTML = `<p class="mini-et">${t('Ya puedes ponértela así', 'You can already wear it like this')}</p>
-      ${ya.length ? `<div class="sp-ya">${ya.map(l => `<div class="lk-fig">${maniqui(l.ps, true)}</div>`).join('')}</div>` : `<p class="sp-txt">${t('Con lo que tienes ahora no sale ningún look que me convenza. Mira abajo qué le falta.', 'Nothing in your closet makes a look I am happy with yet. See below what it needs.')}</p>`}
+      ${ya.length ? `<div class="sp-ya">${ya.map(l => `<div class="lk-fig">${maniqui(l.ps, true)}</div>`).join('')}</div>` : `<p class="sp-txt">${t('Con lo que tienes ahora no sale ningún look recomendable. Abajo ves qué le falta.', 'Nothing in your closet makes a look I am happy with yet. See below what it needs.')}</p>`}
       <p class="mini-et">${t('Lo que le falta', 'What it needs')}</p>
       ${sug.length ? `<ol class="sp-sug">${sug.map(x => `<li><b>${x.v.nombre}</b><span>${x.n === 1 ? t('1 look nuevo', '1 new look') : t(`${x.n} looks nuevos`, `${x.n} new looks`)}</span>${mini(x.mejor.ps) ? `<div class="sp-con">${t('por ejemplo, con', 'for example, with')} ${mini(x.mejor.ps)}</div>` : ''}</li>`).join('')}</ol>
-        <p class="sp-txt">${t('Calculado con tus prendas y las reglas de la app: cada pieza se prueba en todos los colores y se cuenta cuántos looks buenos te abre. Solo te digo el tipo de prenda; dónde comprarla lo eliges tú.', 'Worked out from your garments and the app’s rules: each piece is tried in every colour and we count how many good looks it unlocks. Only the type of garment; where to buy it is up to you.')}</p>`
-        : `<p class="sp-txt">${t('No encuentro ninguna pieza que la mejore de verdad.', 'I could not find a piece that really improves it.')}</p>`}`;
+        <p class="sp-txt">${t('Se prueba cada pieza en todos los colores y se cuenta cuántos looks buenos abre. Solo se indica el tipo de prenda; dónde comprarla lo decides tú.', 'Worked out from your garments and the app’s rules: each piece is tried in every colour and we count how many good looks it unlocks. Only the type of garment; where to buy it is up to you.')}</p>`
+        : `<p class="sp-txt">${t('Ninguna pieza la mejora de verdad.', 'I could not find a piece that really improves it.')}</p>`}`;
   }, 30);
 }
 
@@ -3383,7 +3383,7 @@ function pintarLooks() {
     : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span>${zap(c)}<span class="lk-us">${usosTxt(c)}</span>`;
   const abre = c => ideas ? '' : ` data-look="${c.id}"`;
   let cuerpo;
-  if (!lista.length) cuerpo = ideas ? `<div class="hz-vacio lk-vacio">${(E.perfil?.ropa === 'hombre' ? t('Para proponerte looks necesito más prendas de esta estación: por ejemplo, una camiseta o una camisa y un pantalón.', 'To suggest looks I need more garments for this season: for example a T-shirt or a shirt and trousers.') : t('Para proponerte looks necesito más prendas de esta estación: por ejemplo, un top y un pantalón o una falda, o un vestido.', 'To suggest looks I need more garments for this season: for example a top and trousers or a skirt, or a dress.'))}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button></div>`
+  if (!lista.length) cuerpo = ideas ? `<div class="hz-vacio lk-vacio">${(E.perfil?.ropa === 'hombre' ? t('Para proponerte looks necesito más prendas de esta estación: por ejemplo, una camiseta o una camisa y un pantalón.', 'To suggest looks I need more garments for this season: for example a T-shirt or a shirt and trousers.') : t('Faltan prendas de esta estación: por ejemplo, un top y un pantalón o una falda, o un vestido.', 'To suggest looks I need more garments for this season: for example a top and trousers or a skirt, or a dress.'))}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button></div>`
     : `<div class="hz-vacio lk-vacio">${t('Aún no tienes looks guardados. Mira las ideas para hoy o crea uno con tu ropa.', 'No saved looks yet. See today’s ideas or create one with your clothes.')}<button class="hz-bt" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button></div>`;
   else if (v === '2') { E.lkI = Math.min(E.lkI, lista.length - 1); const c = lista[E.lkI];
     cuerpo = `<div class="lk-uno"><div class="lk-fig"${abre(c)}>${figLook(c)}</div><div class="lk-nav"><button data-lkmov="-1" aria-label="${t('Anterior', 'Previous')}" ${E.lkI ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><span>${E.lkI + 1} / ${lista.length}</span><button data-lkmov="1" aria-label="${t('Siguiente', 'Next')}" ${E.lkI < lista.length - 1 ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>${pie(c)}</div>`; }
@@ -3432,22 +3432,22 @@ function buscarEnCloset(lista, prendas) {
 function pintarNlFoto(msg, leyendo) {
   const z = $('nl-foto'); if (!z) return;
   z.innerHTML = `<label class="nl-foto-b${leyendo ? ' leyendo' : ''}"><input type="file" accept="image/*" id="nl-foto-f"${leyendo ? ' disabled' : ''}><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 7.5h3.6l1.6-2.5h5.6l1.6 2.5H19v10H3z"/><circle cx="11" cy="12" r="3.4"/></svg><span>${leyendo ? t('Leyendo tu foto…', 'Reading your photo…') : t('Súbelo con una foto', 'Add it from a photo')}</span></label>
-    <p class="nl-foto-t" role="status">${msg || t('¿Te has hecho un look que te encanta? Hazle una foto puesto y busco esas prendas en tu clóset. Así aprendo tu estilo. La foto no se guarda.', 'Made a look you love? Take a photo wearing it and I will find those clothes in your closet, so I learn your style. The photo is not kept.')}</p>`;
+    <p class="nl-foto-t" role="status">${msg || t('¿Tienes un look que te encanta? Hazle una foto puesto y se buscarán esas prendas en tu clóset. La app aprende tu estilo y no guarda la foto.', 'Made a look you love? Take a photo wearing it and I will find those clothes in your closet, so I learn your style. The photo is not kept.')}</p>`;
 }
 document.addEventListener('change', async e => {
   if (e.target.id !== 'nl-foto-f') return;
   const f = e.target.files?.[0]; if (!f) return;
   if (!cuenta()?.token) return pintarNlFoto(t('Para leer la foto necesitas entrar en tu cuenta.', 'Sign in to your account to read the photo.'));
   pintarNlFoto('', true); const r = await leerInspo(f);
-  if (r.sinRopa) return pintarNlFoto(t('No veo ropa en esa foto. Prueba con otra en la que se vea el look entero.', 'I can’t see clothes in that photo. Try one that shows the whole look.'));
-  if (r.error) return pintarNlFoto(['tope', 'tope-ia'].includes(r.error) ? t('Hoy ya no puedo leer más fotos. Prueba mañana.', 'I can’t read more photos today. Try tomorrow.') : t('No he podido leer la foto. Prueba otra vez.', 'I couldn’t read the photo. Try again.'));
+  if (r.sinRopa) return pintarNlFoto(t('No se ve ropa en esa foto. Prueba con otra en la que se vea el look entero.', 'I can’t see clothes in that photo. Try one that shows the whole look.'));
+  if (r.error) return pintarNlFoto(['tope', 'tope-ia'].includes(r.error) ? t('Has llegado al límite de fotos de hoy. Inténtalo mañana.', 'I can’t read more photos today. Try tomorrow.') : t('No se ha podido leer la foto. Inténtalo de nuevo.', 'I couldn’t read the photo. Try again.'));
   const { ids, faltan } = buscarEnCloset(r.prendas, activas());
   E.preseleccion = ids; E.nlFoto = { estilos: r.estilos || [], colores: r.colores || [], formalidad: r.formalidad || null }; pintarElegidas();
   document.querySelectorAll('#nl-prendas [data-sel]').forEach(b => b.classList.toggle('sel', ids.includes(b.dataset.sel)));
   if (OCASIONES.includes(r.ocasion)) { $('nl-ocasiones').dataset.sel = r.ocasion; $('nl-ocasiones').querySelectorAll('[data-oc]').forEach(b => b.classList.toggle('sel', b.dataset.oc === r.ocasion)); }
   const nom = x => [x.tipo, x.color ? adjColor(x.color) : ''].filter(Boolean).join(' ').toLowerCase();
-  const enc = ids.length ? (ids.length === 1 ? t('He marcado 1 prenda de tu clóset.', 'I’ve ticked 1 garment from your closet.') : t(`He marcado ${ids.length} prendas de tu clóset.`, `I’ve ticked ${ids.length} garments from your closet.`)) + ' ' + t('Revisa que sean las tuyas: toca una para quitarla o añadirla.', 'Check they are yours: tap one to remove or add it.') : t('No encuentro esa ropa en tu clóset. Elige tú las prendas abajo.', 'I can’t find those clothes in your closet. Pick them below.');
-  pintarNlFoto(enc + (faltan.length && ids.length ? ' ' + t('No encuentro', 'I can’t find') + ': ' + faltan.map(nom).join(', ') + '.' : ''));
+  const enc = ids.length ? (ids.length === 1 ? t('Se ha marcado 1 prenda de tu clóset.', 'I’ve ticked 1 garment from your closet.') : t(`Se han marcado ${ids.length} prendas de tu clóset.`, `I’ve ticked ${ids.length} garments from your closet.`)) + ' ' + t('Revisa que sean las tuyas: toca una para quitarla o añadirla.', 'Check they are yours: tap one to remove or add it.') : t('No se ha encontrado esa ropa en tu clóset. Elige las prendas abajo.', 'I can’t find those clothes in your closet. Pick them below.');
+  pintarNlFoto(enc + (faltan.length && ids.length ? ' ' + t('No se ha encontrado', 'Not found') + ': ' + faltan.map(nom).join(', ') + '.' : ''));
   $('nl-prendas').querySelector('.sel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 });
 function lookPropio(ids, c) { // lo que el motor aprende de un look que ella se ha hecho: cada pareja de prendas le gusta y, si vino de una foto, sus estilos y colores
@@ -3484,7 +3484,7 @@ function abrirLook(id) {
   $('lk-foto').innerHTML = c.img && planDemo() === 'pro' ? `<img src="${c.img}" alt="">` : maniqui(ps, false, COMP === 'simetrica' ? 'collage' : COMP);
   $('lk-piezas').innerHTML = ps.map(p => `<button data-ficha="${p.id}"><img src="${urlFoto(p)}" alt=""><span>${p.nombre}</span></button>`).join('');
   $('lk-pongo').onclick = () => ponerse(c.ids, c).then(() => abrirLook(id));
-  $('lk-borrar').onclick = async () => { if (await confirmar(t('¿Borrar este conjunto?', 'Delete this outfit?'), t('Las prendas se quedan en tu clóset.', 'The garments stay in your closet.'), t('Borrar', 'Delete'))) { if (E.perfil?.propios) E.perfil.propios = E.perfil.propios.filter(x => x.id !== id); E.conjuntos = E.conjuntos.filter(x => x.id !== id); await guardar(); E.propuestas = []; ir('looks'); } };
+  $('lk-borrar').onclick = async () => { if (await confirmar(t('¿Borrar este look?', 'Delete this outfit?'), t('Las prendas se quedan en tu clóset.', 'The garments stay in your closet.'), t('Borrar', 'Delete'))) { if (E.perfil?.propios) E.perfil.propios = E.perfil.propios.filter(x => x.id !== id); E.conjuntos = E.conjuntos.filter(x => x.id !== id); await guardar(); E.propuestas = []; ir('looks'); } };
   ir('look');
 }
 
@@ -3501,12 +3501,12 @@ const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no
   ['Hoy y looks', 'Cómo elige la app el look de hoy', 'Mira el tiempo de tu ciudad, tu plan del día, tus estilos y lo que menos te has puesto, y combina tus prendas con reglas de estilistas: ocasión, temperatura, colores y proporciones.'],
   ['Hoy y looks', 'Quiero otro look', 'Usa las flechas a los lados del look para ver más propuestas. Con el corazón lo guardas en tus favoritos.'],
   ['Hoy y looks', 'Para qué sirve «Me lo pongo»', 'Apunta que hoy llevas ese look: cuenta un uso de cada prenda y lo guarda en el calendario.'],
-  ['Hoy y looks', 'Cómo le digo a dónde voy', 'En Hoy, toca la ocasión bajo la fecha y elige otra. Para otro día, en Looks → Calendario, elige el día, toca + y «Añadir evento»: pon el plan, la hora y, si quieres, el enlace del sitio y una descripción. La app te propone looks con el tiempo de ese día.'],
-  ['Hoy y looks', 'Cómo planeo los looks de varios días', 'En Looks → Calendario, toca + y «Planear varios días»: pon el plan (trabajo, un congreso, un viaje corto…), la ocasión y hasta qué día dura. Te propongo un look para cada día con su tiempo; cambia el que quieras con «Otro» y toca «Guardar los looks». Cada día, su look sale el primero en Hoy.'],
+  ['Hoy y looks', 'Cómo indico adónde voy', 'En Hoy, toca la ocasión bajo la fecha y elige otra. Para otro día, en Looks → Calendario, elige el día, toca + y «Añadir evento»: pon el plan, la hora y, si quieres, el enlace del sitio y una descripción. La app te propone looks con el tiempo de ese día.'],
+  ['Hoy y looks', 'Cómo planeo los looks de varios días', 'En Looks → Calendario, toca + y «Planear varios días»: pon el plan (trabajo, un congreso, un viaje corto…), la ocasión y hasta qué día dura. Se propone un look para cada día con su tiempo; cambia el que quieras con «Otro» y toca «Guardar los looks». Cada día, su look sale el primero en Hoy.'],
   ['Hoy y looks', 'Me dice que me falta ropa para una ocasión', 'Si tu clóset no da para un plan (noche, evento, oficina, deporte), la app te lo dice y te propone qué tipo de prenda te vendría bien.'],
   ['Hoy y looks', 'Cómo creo y guardo un look', 'En Looks → Mis looks, toca + y elige las prendas. Los looks que te gustan de Hoy e Ideas se guardan con el corazón.'],
-  ['Hoy y looks', 'Quiero un look con una prenda concreta', 'En Looks → Ideas, toca «Con una prenda»: elige la prenda y, si quieres, un estilo. Todos los looks que te propongo la llevan.'],
-  ['Hoy y looks', 'Quiero copiar un look que he visto', 'En Looks, toca «Recrear un look» y sube la foto: te lo armo con tu ropa y te digo qué se parece y qué te faltaría. La foto no se guarda.'],
+  ['Hoy y looks', 'Quiero un look con una prenda concreta', 'En Looks → Ideas, toca «Con una prenda»: elige la prenda y, si quieres, un estilo. Todos los looks propuestos la llevan.'],
+  ['Hoy y looks', 'Quiero copiar un look que he visto', 'En Looks, toca «Recrear un look» y sube la foto: la app lo recrea con tu ropa e indica qué se parece y qué te faltaría. La foto no se guarda.'],
   ['Hoy y looks', 'Para qué sirve «Antes de comprar»', 'En Looks → Ideas: hazle una foto a una prenda en la tienda y la app te dice qué parte de tu clóset combina con ella, qué looks saldrían y si ya tienes algo parecido. No entra en tu clóset hasta que tocas «La he comprado».'],
   ['Hoy y looks', 'Qué es «Mi cápsula»', 'En Looks → Mis looks: elige el plan y cuántas prendas quieres llevar, y la app busca las que más looks dan entre sí.'],
   ['Mi prenda', 'Qué significan los iconos de la ficha', 'Hoy: llevarla hoy. Look: crear un look con ella. Ideas: looks con esa prenda. Cuidar: cómo lavarla. Sucia: que no salga en los looks hasta que la marques limpia. Guardar: fuera de temporada. Donar y Cerca: puntos para donarla o venderla cerca de ti.'],
@@ -3528,7 +3528,7 @@ function abrirAyuda() { // 0.114: con el panel de Yo; cada grupo en su bloque y,
     const n = x => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const pinta = q => { const b = n(q || ''), hay = AYUDA.filter(([, p, r]) => !b || n(p + ' ' + r).includes(b)), grupos = [...new Set(hay.map(h => h[0]))];
       cap.querySelector('.ay-lista').innerHTML = hay.length ? grupos.map(g => grupoP(g, hay.filter(h => h[0] === g).map(([, p, r]) => `<details class="pn-d"><summary>${p}<svg class="pn-fl" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><p>${r}</p></details>`).join(''))).join('')
-        : `<p class="ay-nada">${t('No encuentro nada con esas palabras. Prueba con otras, o escríbenos.', 'Nothing found. Try other words, or write to us.')}</p>`; };
+        : `<p class="ay-nada">${t('No hay resultados. Prueba con otras palabras o escríbenos.', 'Nothing found. Try other words, or write to us.')}</p>`; };
     pinta(''); cap.querySelector('.pn-busca input').oninput = e => pinta(e.target.value);
   });
 }
@@ -3654,8 +3654,8 @@ async function intercambiarClosets() {
   if (CLOSET_ACT) { CLOSET_ACT = ''; LS.set('tc_closet', ''); BD.cerrar(); E.perfil = (await BD.get('perfil')) || null; E.prendas = (await BD.get('prendas')) || []; E.conjuntos = (await BD.get('conjuntos')) || []; E.agenda = (await BD.get('agenda')) || {}; }
   if (cuenta()) {
     toast(t('Guardando tu cuenta…', 'Saving your account…'));
-    if (!await bajarNube().catch(() => false)) { dA.close(); dB.close(); return toast(t('Sin conexión con tu cuenta: no he cambiado nada. Prueba con internet.', 'Cannot reach your account: nothing changed. Try with internet.')); }
-    await subirNube(); if (E.nube.estado === 'error') { dA.close(); dB.close(); return toast(t('Sin conexión con tu cuenta: no he cambiado nada. Prueba con internet.', 'Cannot reach your account: nothing changed. Try with internet.')); }
+    if (!await bajarNube().catch(() => false)) { dA.close(); dB.close(); return toast(t('Sin conexión con tu cuenta: no se ha cambiado nada. Inténtalo con conexión.', 'Cannot reach your account: nothing changed. Try with internet.')); }
+    await subirNube(); if (E.nube.estado === 'error') { dA.close(); dB.close(); return toast(t('Sin conexión con tu cuenta: no se ha cambiado nada. Inténtalo con conexión.', 'Cannot reach your account: nothing changed. Try with internet.')); }
   }
   INTERCAMBIO = true; clearTimeout(nubeT); if (nubeEnCurso) await nubeEnCurso.catch(() => { }); await BD.set('perfil', E.perfil); BD.parar(true); BD.cerrar(); A = await kvLeer(dA); B = await kvLeer(dB);
   // 2. el cambio, base a base. Primero Mi ropa: si fallara Pruebas, lo de Pruebas sigue allí y lo de Mi ropa, en la cuenta
@@ -3732,7 +3732,7 @@ async function pintarAvisos(cap) {
       const r = await api('/api/push/clave', { tiempo: 15000 }); if (!r.ok) throw new Error('clave ' + r.status);
       const s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: deB64u((await r.json()).clave) });
       await guardarAviso(s, z.querySelector('#pn-av-hora').value || hora); toast(t('Avisos activados', 'Notifications on')); pintarAvisos(cap); pintarPanelYo();
-    } catch (x) { fallo(x, t('No se han podido activar. Prueba otra vez en un momento.', 'Could not turn them on. Try again in a moment.')); }
+    } catch (x) { fallo(x, t('No se han podido activar. Inténtalo de nuevo.', 'Could not turn them on. Try again in a moment.')); }
   };
   if (z.querySelector('#pn-av-prueba')) z.querySelector('#pn-av-prueba').onclick = async () => {
     try { const r = await api('/api/push/prueba', { method: 'POST', tiempo: 20000 }); if (!r.ok || !(await r.json()).ok) throw new Error('prueba ' + r.status); toast(t('Enviado: te llegará en unos segundos', 'Sent: it will arrive in a few seconds')); }
@@ -3740,7 +3740,7 @@ async function pintarAvisos(cap) {
   };
   if (z.querySelector('#pn-av-quitar')) z.querySelector('#pn-av-quitar').onclick = async () => {
     try { const ep = sub.endpoint; await sub.unsubscribe(); await api('/api/push', { method: 'DELETE', json: { endpoint: ep }, tiempo: 15000 }); LS.set('tc_avisos', null); toast(t('Avisos desactivados', 'Notifications off')); pintarAvisos(cap); pintarPanelYo(); }
-    catch (x) { fallo(x, t('No se han podido desactivar. Prueba otra vez en un momento.', 'Could not turn them off. Try again in a moment.')); }
+    catch (x) { fallo(x, t('No se han podido desactivar. Inténtalo de nuevo.', 'Could not turn them off. Try again in a moment.')); }
   };
 }
 /* 10/11, PAREJA (Gabriela, 08/11: «una opción de parejas»; eligió la 1: cada una con su cuenta y su clóset, enlazadas con un código): una crea el código en
@@ -3760,14 +3760,14 @@ async function pintarPareja(cap, codigo) {
   const intro = `<p class="pn-par-intro">${t('Enlaza tu clóset con el de tu pareja y, en Looks → Ideas, «En pareja» te propondrá a la vez un look para ti y otro para tu pareja que combinan.', 'Link your closet with your partner’s and, in Looks → Ideas, «As a couple» will suggest a look for you and one for your partner that go together.')}</p>`;
   if (!cuenta()) { z.innerHTML = intro + grupoP('', filaP({ attr: 'data-ir="cuenta"', ic: 'cuenta', tit: t('Entrar o crear tu cuenta', 'Sign in or create your account') }), t('Cada persona necesita su cuenta de TuCloset.', 'Each of you needs a TuCloset account.')); z.querySelector('[data-ir]').addEventListener('click', () => cap.remove()); return; }
   if (!codigo) z.innerHTML = `<p class="pn-nota pn-par-carga">${cargaIco()}${t('Un momento…', 'One moment…')}</p>`;
-  let d; try { d = await parejaDatos(true); } catch (e) { z.innerHTML = intro + `<p class="pn-error" role="alert">${t('Sin conexión. Prueba otra vez en un momento.', 'No connection. Try again in a moment.')}</p>`; return; }
+  let d; try { d = await parejaDatos(true); } catch (e) { z.innerHTML = intro + `<p class="pn-error" role="alert">${t('Sin conexión. Inténtalo de nuevo.', 'No connection. Try again in a moment.')}</p>`; return; }
   pintarPanelYo();
   if (d) {
     z.innerHTML = grupoP('', filaP({ tag: 'div', ic: 'pareja', tit: t('Pareja', 'Partner'), val: escH(d.nombre || t('tu pareja', 'your partner')), flecha: false })
       + filaP({ id: 'pn-par-fuera', ic: 'borrar', tit: t('Desenlazar', 'Unlink'), rojo: true, flecha: false }),
       t('Tu pareja ve tus prendas y sus fotos para combinar looks con los suyos, y tú las suyas. Vuestras medidas, fotos del diagnóstico y notas, no.', 'Your partner sees your garments and their photos to match looks with theirs, and you see theirs. Not your measurements, analysis photos or notes.'));
     z.querySelector('#pn-par-fuera').onclick = async () => {
-      if (!await confirmar(t('¿Desenlazar?', 'Unlink?'), t('Dejaréis de ver la ropa de la otra. Vuestros clósets no cambian.', 'You will stop seeing each other’s clothes. Your closets don’t change.'), t('Desenlazar', 'Unlink'))) return;
+      if (!await confirmar(t('¿Desenlazar?', 'Unlink?'), t('Dejaréis de ver la ropa de la otra persona. Vuestros clósets no cambian.', 'You will stop seeing each other’s clothes. Your closets don’t change.'), t('Desenlazar', 'Unlink'))) return;
       const r = await api('/api/pareja', { method: 'DELETE', tiempo: 15000 }).catch(() => null); if (!r?.ok) return toast(t('Sin conexión: no se ha desenlazado', 'No connection: not unlinked'));
       PAREJA.datos = false; LS.set('tc_pareja', null); toast(t('Enlace deshecho', 'Unlinked')); pintarPareja(cap);
     };
@@ -3783,7 +3783,7 @@ async function pintarPareja(cap, codigo) {
   if (z.querySelector('#pn-par-crear')) z.querySelector('#pn-par-crear').onclick = async e => {
     const bt = e.currentTarget; bt.disabled = true; const r = await api('/api/pareja/codigo', { method: 'POST', tiempo: 15000 }).catch(() => null);
     if (r?.status === 409) return pintarPareja(cap);
-    if (!r?.ok) { bt.disabled = false; err.textContent = t('Sin conexión. Prueba otra vez en un momento.', 'No connection. Try again in a moment.'); return; }
+    if (!r?.ok) { bt.disabled = false; err.textContent = t('Sin conexión. Inténtalo de nuevo.', 'No connection. Try again in a moment.'); return; }
     pintarPareja(cap, (await r.json()).codigo);
   };
   if (z.querySelector('#pn-par-copiar')) z.querySelector('#pn-par-copiar').onclick = async () => { try { await navigator.clipboard.writeText(codigo); toast(t('Código copiado', 'Code copied')); } catch (e) { toast(codigo); } };
@@ -3792,13 +3792,13 @@ async function pintarPareja(cap, codigo) {
     if (v.length !== 6) { err.textContent = t('El código tiene 6 letras y números.', 'The code has 6 letters and numbers.'); return; }
     const bt = e.currentTarget; bt.disabled = true; err.textContent = '';
     const r = await api('/api/pareja/unir', { method: 'POST', json: { codigo: v }, tiempo: 15000 }).catch(() => null), j = r ? await r.json().catch(() => ({})) : {};
-    if (r?.ok) { PAREJA.datos = null; toast(t(`Enlazadas${j.nombre ? ' con ' + j.nombre : ''}`, `Linked${j.nombre ? ' with ' + j.nombre : ''}`)); return pintarPareja(cap); }
+    if (r?.ok) { PAREJA.datos = null; toast(t(`Cuentas enlazadas${j.nombre ? ' con ' + j.nombre : ''}`, `Linked${j.nombre ? ' with ' + j.nombre : ''}`)); return pintarPareja(cap); }
     bt.disabled = false;
-    err.textContent = !r ? t('Sin conexión. Prueba otra vez en un momento.', 'No connection. Try again in a moment.')
+    err.textContent = !r ? t('Sin conexión. Inténtalo de nuevo.', 'No connection. Try again in a moment.')
       : j.error === 'tuyo' ? t('Ese código lo has creado tú: dáselo a tu pareja para que lo escriba en su app.', 'You created that code: give it to your partner to type in their app.')
       : j.error === 'ocupada' ? t('Esa cuenta ya está enlazada con otra persona.', 'That account is already linked with someone else.')
       : j.error === 'frenado' ? t('Demasiados intentos. Prueba dentro de 15 minutos.', 'Too many attempts. Try again in 15 minutes.')
-      : j.error === 'ya' ? t('Ya estás enlazada.', 'You are already linked.') : t('Ese código no vale o ha caducado. Pide uno nuevo.', 'That code isn’t valid or has expired. Ask for a new one.');
+      : j.error === 'ya' ? t('La cuenta ya está enlazada.', 'You are already linked.') : t('El código no es válido o ha caducado. Pide uno nuevo.', 'That code isn’t valid or has expired. Ask for a new one.');
   };
 }
 // las fotos de las prendas de la pareja: la de catálogo si la tiene; si no, la recortada. Solo en memoria (no se guardan en el móvil)
@@ -3846,7 +3846,7 @@ async function panelPrivacidad() {
       <li>${icY('percha')}<span>${t('Para quitar el fondo de tu ropa y hacer la foto de catálogo, la foto de la prenda pasa por nuestro servidor y por la IA de imagen de Google.', 'To remove the background of your clothes and make the catalogue photo, the garment photo goes through our server and Google’s image AI.')}</span></li>
       ${c && LS.get('tc_pareja') ? `<li>${icY('pareja')}<span>${t('Tu pareja ve tus prendas y sus fotos para combinar looks con los suyos. Tus medidas, tus fotos y tu diagnóstico, no. Lo quitas en Looks → Ideas → En pareja.', 'Your partner sees your garments and their photos to match looks with theirs. Not your measurements, photos or analysis. Turn it off in Looks → Ideas → As a couple.')}</span></li>` : ''}
       <li>${icY('ciudad')}<span>${t('Tu ciudad o tu ubicación solo se usan para darte el tiempo.', 'Your city or location is only used for the weather.')}</span></li>
-      <li>${icY('info')}<span>${t('Si llegas desde un enlace nuestro en una red social, contamos esa visita: solo el día y la red, sin cookies ni nada tuyo.', 'If you arrive from one of our links on social media, we count that visit: only the day and the network, with no cookies and nothing about you.')}</span></li></ul>`)
+      <li>${icY('info')}<span>${t('Si llegas desde un enlace nuestro en una red social, contamos esa visita: solo el día y la red, sin cookies ni datos personales.', 'If you arrive from one of our links on social media, we count that visit: only the day and the network, with no cookies and nothing about you.')}</span></li></ul>`)
     + grupoP(t('Lo que nos has permitido', 'What you have allowed'), filaP({ id: 'pv-pdiag', ic: 'camara', tit: t('Analizar tus fotos y medidas', 'Analyse your photos and measurements'), val: permiso('diag') ? t('Sí', 'Yes') : t('No', 'No') })
       + (planDemo() === 'pro' ? filaP({ id: 'pv-pavatar', ic: 'avatar', tit: t('Tu avatar', 'Your avatar'), val: permiso('avatar') ? t('Sí', 'Yes') : t('No', 'No') }) : '')
       + (c ? filaP({ id: 'pv-pfotos', ic: 'nube', tit: t('Tus fotos en tu cuenta', 'Your photos in your account'), val: E.perfil?.fotosCuenta ? t('Sí', 'Yes') : t('No', 'No') }) : ''),
@@ -3862,7 +3862,7 @@ async function panelPrivacidad() {
       cap.querySelector('#pv-pdiag').onclick = () => panelDiagFotos(); if (cap.querySelector('#pv-pfotos')) cap.querySelector('#pv-pfotos').onclick = () => panelDiagFotos();
       if (cap.querySelector('#pv-pavatar')) cap.querySelector('#pv-pavatar').onclick = () => { document.querySelectorAll('.pn-capa').forEach(x => x.remove()); ir('yo'); avatarAbierto = true; setTimeout(() => document.querySelector('.av-tarjeta')?.scrollIntoView({ block: 'center' }), 200); };
       cap.querySelector('#pv-importar input').onchange = e => e.target.files[0] && importar(e.target.files[0]);
-      cap.querySelector('#pv-borrar').onclick = async () => { if (await confirmar(t('¿Borrar todo?', 'Delete everything?'), t('Prendas, fotos, conjuntos y usos de este móvil. Lo que esté en tu cuenta no se borra.', 'Garments, photos, outfits and uses on this phone. What is in your account is not deleted.'), t('Borrar todo', 'Delete all'))) { for (const k of await BD.claves()) await BD.del(k); localStorage.removeItem('tc_tiempo'); location.reload(); } };
+      cap.querySelector('#pv-borrar').onclick = async () => { if (await confirmar(t('¿Borrar todo?', 'Delete everything?'), t('Prendas, fotos, looks y usos de este móvil. Lo que esté en tu cuenta no se borra.', 'Garments, photos, outfits and uses on this phone. What is in your account is not deleted.'), t('Borrar todo', 'Delete all'))) { for (const k of await BD.claves()) await BD.del(k); localStorage.removeItem('tc_tiempo'); location.reload(); } };
       if (cap.querySelector('#pv-cuenta')) cap.querySelector('#pv-cuenta').onclick = async () => { await borrarCuenta(); cap.remove(); pintarYo(); };
     });
 }
@@ -3944,7 +3944,7 @@ const textoProb = (R, k) => (R?.problemas?.[k] || R?.problemas?.error || ['', ''
 function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; en el Pro, las fotos o el resultado
   const pf = E.perfil || {}, dg = pf.diag, es = idioma() === 'en' ? 1 : 0, pro = planDemo() === 'pro';
   const mini = (k, ic) => `<span class="dg-mini${pf[k] ? ' hecha' : ''}">${pf[k] ? `<img src="${URL.createObjectURL(pf[k])}" alt="">` : `<svg><use href="#${ic}"/></svg>`}</span>`;
-  if (!pro) return `<section class="dg-tarjeta"><div class="dg-cab"><h2>${t('Tu asesora de imagen', 'Your image adviser')}</h2><span class="dg-pro">Pro</span></div><p>${t('Con tus mismas fotos, el Pro elige tus looks también según tu silueta y te dice qué prendas de tu clóset te favorecen.', 'With the same photos, Pro also picks your looks for your figure and shows which of your clothes suit you most.')}</p><button class="boton linea" data-diag="plan">${t('Ver el plan Pro', 'See the Pro plan')}</button></section>`;
+  if (!pro) return `<section class="dg-tarjeta"><div class="dg-cab"><h2>${t('Tu asesora de imagen', 'Your image adviser')}</h2><span class="dg-pro">Pro</span></div><p>${t('Con las mismas fotos, el Pro ajusta tus looks a tu silueta e indica qué prendas de tu clóset te favorecen.', 'With the same photos, Pro also picks your looks for your figure and shows which of your clothes suit you most.')}</p><button class="boton linea" data-diag="plan">${t('Ver el plan Pro', 'See the Pro plan')}</button></section>`;
   // 04/11 (Gabriela: «¿por qué me pide dos veces las fotos, en Mi silueta y Mis colores y otra en el diagnóstico del Pro? Debería ser solo una vez»):
   // en el Pro las fotos y el resultado viven solo en Mi silueta y Mis colores; la tarjeta queda para el Básico y la gratis
   if (pro) return '';
@@ -3954,7 +3954,7 @@ function tarjetaDiag() { // la tarjeta de Yo: en el Básico, con la marca Pro; e
   return `<section class="dg-tarjeta"><div class="dg-cab"><h2>${t('Tu diagnóstico', 'Your analysis')}</h2><span class="dg-pro">Pro</span></div>
     <div class="dg-fotos">${mini('selfie', 'ic-camara')}${mini('cuerpo', 'ic-cuerpo')}</div>
     <p>${AT ? t('Dos fotos para tus colores y tu silueta. El análisis se hace en tu móvil.', 'Two photos for your colours and figure. The analysis runs on your phone.') : t('Una foto de tu cara y otra de cuerpo entero: la app analiza tus colores, tu silueta y la ropa que te favorece. El análisis se hace en tu móvil.', 'A face photo and a full-body photo: the app analyses your colours, your figure and the clothes that suit you. The analysis runs on your phone.')}</p>
-    ${pf.selfie || pf.cuerpo ? `<p class="dg-d">${!permiso('diag') ? t('Falta tu permiso para analizarlas.', 'Your permission is needed to analyse them.') : diagPendiente() && !diagFallo ? cargaIco('tc-carga-i') + t('Analizando tus fotos…', 'Analysing your photos…') : t('No he podido leer tus fotos. Prueba con otras.', 'I could not read your photos. Try others.')}</p><button class="boton linea" data-diag="fotos">${t('Ver mis fotos', 'See my photos')}</button>` : `<button class="boton" data-diag="fotos">${t('Hacer las fotos', 'Take the photos')}</button>`}</section>`;
+    ${pf.selfie || pf.cuerpo ? `<p class="dg-d">${!permiso('diag') ? t('Falta tu permiso para analizarlas.', 'Your permission is needed to analyse them.') : diagPendiente() && !diagFallo ? cargaIco('tc-carga-i') + t('Analizando tus fotos…', 'Analysing your photos…') : t('No se han podido leer tus fotos. Prueba con otras.', 'I could not read your photos. Try others.')}</p><button class="boton linea" data-diag="fotos">${t('Ver mis fotos', 'See my photos')}</button>` : `<button class="boton" data-diag="fotos">${t('Hacer las fotos', 'Take the photos')}</button>`}</section>`;
 }
 // 07/11 (Gabriela: «con la foto que yo puse de mi cara y la foto del cuerpo con la que me hicieron el diagnóstico se puede hacer un avatar… el objetivo es que subiendo
 // dos fotos te hagan todo el análisis y el avatar»): el avatar sale de esas dos fotos. Se envían una vez al servidor (Gemini) y no se guardan allí; el avatar se queda
@@ -3981,11 +3981,11 @@ function siluetaTxt() {
   return x.join('; ');
 }
 // 14/11 (Sheila, 2322, el bikini): si Google filtra la foto (IMAGE_SAFETY), se dice tal cual en vez de «Prueba otra vez», que no sirve de nada
-const errorAvatar = (st, e, puesto) => e === 'filtro' ? t('Google no deja hacer esta foto. Prueba con otro look', 'Google won’t make this photo. Try another look') : e === 'permiso' ? t('Falta tu permiso: márcalo en Yo → Tu avatar', 'Your permission is needed: tick it in Me → Your avatar') : st === 403 ? t('El avatar aún está en pruebas', 'The avatar is still being tested')
-  : e === 'tope' ? (puesto ? t('Por hoy ya no quedan más. Vuelve mañana', 'No more for today. Come back tomorrow') : t('Por hoy ya no puedes crear más avatares. Vuelve mañana', 'No more avatars for today. Come back tomorrow'))
-  : e === 'tope-mes' ? t('Este mes ya no quedan. Vuelve el mes que viene', 'None left this month. Come back next month')
-  : e === 'pausa' ? t('Ahora mismo no se puede. Prueba más tarde', 'Not available right now. Try again later')
-  : st === 401 ? t('Entra en tu cuenta', 'Sign in') : t('No ha salido bien. Prueba otra vez', 'It didn’t work. Try again');
+const errorAvatar = (st, e, puesto) => e === 'filtro' ? t('Google no permite crear esta foto. Prueba con otro look', 'Google won’t make this photo. Try another look') : e === 'permiso' ? t('Falta tu permiso: márcalo en Yo → Tu avatar', 'Your permission is needed: tick it in Me → Your avatar') : st === 403 ? t('El avatar aún está en pruebas', 'The avatar is still being tested')
+  : e === 'tope' ? (puesto ? t('Has llegado al límite de hoy. Vuelve mañana', 'No more for today. Come back tomorrow') : t('Por hoy ya no puedes crear más avatares. Vuelve mañana', 'No more avatars for today. Come back tomorrow'))
+  : e === 'tope-mes' ? t('Has llegado al límite de este mes. Vuelve el mes que viene', 'None left this month. Come back next month')
+  : e === 'pausa' ? t('Ahora mismo no es posible. Inténtalo más tarde', 'Not available right now. Try again later')
+  : st === 401 ? t('Entra en tu cuenta', 'Sign in') : t('No ha salido bien. Inténtalo de nuevo', 'It didn’t work. Try again');
 // 10/11: si el servidor aún no tiene apuntado el permiso del avatar (se dio sin conexión), se le manda y se prueba una vez más
 async function apiAvatar(ruta, fd) {
   let r; for (let k = 0; k < 4; k++) { r = await api(ruta, { method: 'POST', body: fd, tiempo: 150000 }); if (!await siOcupado(r)) break; } // 13/11: Google ocupado, se espera y se vuelve a pedir
@@ -4048,7 +4048,7 @@ async function crearAvatar(nota, palabras, aunque, soloRopa) {
     const ya = new Date().toISOString(); if (pf.avatar instanceof Blob) Object.assign(E.perfil, { avatarAntes: pf.avatar, avatarAntesAR: pf.avatarAR, avatarAntesDe: pf.avatarDe, avatarAntesT: ya }); // 18/11: se guarda el de antes
     Object.assign(E.perfil, { avatar: fin.blob, avatarAR: fin.ar, avatarDe: soloRopa ? pf.avatarDe : firmaAvatar(), avatarF: ya });
     vaciarProbados(); await guardar(); avatarAbierto = true; toast(t('Tu avatar está listo', 'Your avatar is ready'), pf.avatarAntes instanceof Blob ? [t('Volver al anterior', 'Go back to the previous one'), volverAvatar] : undefined); setTimeout(preguntarFotosCuenta, 1200);
-  } catch (e) { toast(t('Sin conexión: prueba otra vez', 'No connection: try again')); }
+  } catch (e) { toast(t('Sin conexión. Inténtalo de nuevo', 'No connection: try again')); }
   finally { avatarEnCurso = false; if (E.pantalla === 'yo') pintarYo(); }
 }
 // 09/11 (Gabriela: «creo que se debería mejorar un poco más el parecido»): «No me parezco» dice a la IA en qué falla el avatar; se rehace desde tus dos fotos,
@@ -4056,12 +4056,12 @@ async function crearAvatar(nota, palabras, aunque, soloRopa) {
 // 12/11 (Gabriela: «¿cómo puedo cambiar que no me parezco de la cara, de la nariz para abajo?»): partes de la cara y, además, decirlo con sus palabras
 const PARECIDO = [['forma', 'La forma de la cara', 'The face shape'], ['ojos', 'Los ojos', 'The eyes'], ['nariz', 'La nariz', 'The nose'], ['boca', 'La boca', 'The mouth'], ['barbilla', 'Barbilla y mandíbula', 'Chin and jaw'], ['cara', 'La cara entera', 'The whole face'], ['pelo', 'El pelo', 'The hair'], ['cuerpo', 'El cuerpo', 'The body'], ['piel', 'El tono de piel', 'The skin tone'], ['altura', 'Las proporciones', 'The proportions'], ['edad', 'La edad', 'The age']];
 // 14/11: lo que ya dijo con sus palabras se ve aquí y se puede quitar (si se cortó el pelo, por ejemplo); va en cada avatar nuevo
-const notasAvatarHtml = () => { const n = E.perfil?.avatarNotas || []; return n.length ? `<div class="pr-ya" role="group" aria-label="${t('Lo que ya me has dicho', 'What you already told me')}"><p>${t('Ya me has dicho', 'You already told me')}</p>${n.map((x, i) => `<div class="pr-nota"><span>${escH(x)}</span><button type="button" data-prq="${i}" aria-label="${t('Quitar', 'Remove')}: ${escH(x)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('')}</div>` : ''; };
+const notasAvatarHtml = () => { const n = E.perfil?.avatarNotas || []; return n.length ? `<div class="pr-ya" role="group" aria-label="${t('Lo que ya has indicado', 'What you already told me')}"><p>${t('Ya me has dicho', 'You already told me')}</p>${n.map((x, i) => `<div class="pr-nota"><span>${escH(x)}</span><button type="button" data-prq="${i}" aria-label="${t('Quitar', 'Remove')}: ${escH(x)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`).join('')}</div>` : ''; };
 function panelParecido() {
   const pf = E.perfil || {}; if (!(pf.selfie instanceof Blob) || !(pf.cuerpo instanceof Blob)) return panelDiagFotos();
   abrirPanel(t('No me parezco', 'Not like me'), `<p class="pn-lema">${t('¿Qué no se parece?', 'What does not look like you?')}</p>
     <div class="an-deta pr-op" role="group" aria-label="${t('Lo que falla', 'What is wrong')}">${PARECIDO.map(([k, es, en]) => `<button type="button" data-par="${k}" aria-pressed="false">${t(es, en)}</button>`).join('')}${pf.avatar instanceof Blob ? `<button type="button" data-par="ropa" aria-pressed="false">${t('Solo la ropa', 'Just the clothes')}</button>` : ''}</div>
-    <textarea id="pr-pal" class="ag-desc pr-pal" rows="2" maxlength="200" aria-label="${t('Dímelo con tus palabras', 'Tell me in your own words')}" placeholder="${t('O dímelo: mi cara es más cuadrada, el pelo me llega a la cintura', 'Or tell me: my face is squarer, my hair reaches my waist')}"></textarea>
+    <textarea id="pr-pal" class="ag-desc pr-pal" rows="2" maxlength="200" aria-label="${t('Descríbelo con tus palabras', 'Tell me in your own words')}" placeholder="${t('O descríbelo: mi cara es más cuadrada, el pelo me llega a la cintura', 'Or tell me: my face is squarer, my hair reaches my waist')}"></textarea>
     <div id="pr-ya">${notasAvatarHtml()}</div>
     <button class="boton" id="pr-ok" disabled>${t('Rehacer mi avatar', 'Redo my avatar')}</button>`, cap => {
     const listo = () => { cap.querySelector('#pr-ok').disabled = !cap.querySelector('[data-par][aria-pressed="true"]') && !cap.querySelector('#pr-pal').value.trim(); };
@@ -4124,7 +4124,7 @@ async function puestoEnMi(ps, como, otra, soloGuardado, elegido) {
     if (!r.ok) { const j = await r.json().catch(() => ({})); return { error: errorAvatar(r.status, j.error === 'sin-imagen' && /SAFETY|PROHIBITED/.test(j.d || '') ? 'filtro' : j.error, true) }; }
     const fin = await afinarCat(await r.blob(), 1200); if (!fin) return { error: errorAvatar(502) };
     nuevoProbado(k, fin.blob); fijarPuesto(k); await BD.set('puestos', E.puestos).catch(() => { }); return { blob: fin.blob, k };
-  } catch (e) { return { error: t('Sin conexión: prueba otra vez', 'No connection: try again') }; }
+  } catch (e) { return { error: t('Sin conexión. Inténtalo de nuevo', 'No connection: try again') }; }
 }
 // la tarjeta de Yo, solo en el Pro: sin fotos, lleva a ponerlas; con fotos, «Crear mi avatar»; con avatar, el avatar (se toca para verlo), «Rehacer» y «Borrar»
 // 12/11 (Gabriela: «sale mucho texto debajo… evita el mayor texto posible, y las opciones de No me parezco, Rehacer y Borrar ponlas con iconos»)
@@ -4166,7 +4166,7 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-avat
   else if (k === 'fijar') { fijarPuesto(b.dataset.k); avatarAbierto = true; const c = b.closest('.av-tarjeta'); if (c) c.outerHTML = tarjetaAvatar(); }
   else if (k === 'quitar') { const kf = puestoFijo(); if (!kf) return; quitarProbado(kf); avatarAbierto = true; const c = b.closest('.av-tarjeta'); if (c) c.outerHTML = tarjetaAvatar(); toast(t('Quitado', 'Removed')); } });
 // 06/11 noche (Gabriela: «lo de cómo lo he medido sobra, o al menos ponlo más pequeña la explicación; y quita cambiar las medidas y las fotos si ya hay una opción para eso
-// en otra parte»): «Cómo lo he medido», en pequeño; fuera «Cambiar mis medidas y fotos» y «Apuntar mis medidas»: pasan a Yo → Ajustes → Medidas y fotos.
+// en otra parte»): «Cómo se ha medido», en pequeño; fuera «Cambiar mis medidas y fotos» y «Apuntar mis medidas»: pasan a Yo → Ajustes → Medidas y fotos.
 // 06/11 (Gabriela: «sigo esperando que rediseñes todo lo del perfil de tus medidas y fotos, tu diagnóstico, está horrible, lleno de texto, ya te expliqué cómo debe ser»;
 // «todo lo que favorece, la distribución espacial, la colorimetría, necesita un buen diseño de interface»): menos texto y gráficos. Medidas con una figura que enseña
 // dónde se mide; las fotos se tocan para verlas en grande y se cambian con su propio botón (antes el selector de fotos tapaba la lupa y en el iPhone abría «subir
@@ -4224,14 +4224,14 @@ function panelDiagFotos() {
         clearTimeout(medT); medT = setTimeout(guardar, 400); $('dg-analizar').disabled = !(permiso('diag') && (E.perfil.selfie || E.perfil.cuerpo || firmaMed()));
       };
     });
-    cap.querySelectorAll('[data-dgfoto]').forEach(inp => inp.onchange = async () => { const f = inp.files?.[0]; if (!f || !permiso('diag')) return; try { const r = await procesarFoto(f); E.perfil = E.perfil || {}; E.perfil[inp.dataset.dgfoto] = r.blob; diagFallo = 0; await guardar(); panelDiagFotos(); setTimeout(preguntarFotosCuenta, 400); } catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); } });
+    cap.querySelectorAll('[data-dgfoto]').forEach(inp => inp.onchange = async () => { const f = inp.files?.[0]; if (!f || !permiso('diag')) return; try { const r = await procesarFoto(f); E.perfil = E.perfil || {}; E.perfil[inp.dataset.dgfoto] = r.blob; diagFallo = 0; await guardar(); panelDiagFotos(); setTimeout(preguntarFotosCuenta, 400); } catch (e) { toast(t('No se ha podido leer esa foto', 'Could not read that photo')); } });
     $('dg-analizar').onclick = async () => {
       const b = $('dg-analizar'), est = $('dg-estado'); b.disabled = true;
       try { const { res, R } = await hacerDiagnostico(x => { est.textContent = x; });
         const malos = [...(res.avisos.cara || []).filter(p => p.fatal).map(p => ['cara', p.k]), ...(res.avisos.cuerpo || []).filter(p => p.fatal).map(p => ['cuerpo', p.k])];
         if (malos.length && !res.color && !res.cuerpo) { est.innerHTML = malos.map(([q, k]) => `<p class="dg-mal">${q === 'cara' ? t('Tu cara', 'Your face') : t('Cuerpo entero', 'Full body')}: ${textoProb(R, k)}</p>`).join(''); b.disabled = false; return; }
         cap.remove(); pintarYo(); panelDiag(malos.map(([q, k]) => `${q === 'cara' ? t('Tu cara', 'Your face') : t('Cuerpo entero', 'Full body')}: ${textoProb(R, k)}`));
-      } catch (e) { est.innerHTML = `<p class="dg-mal">${t('No he podido hacer el análisis en este móvil. Prueba otra vez con buena conexión.', 'I could not run the analysis on this phone. Try again with a good connection.')}</p>`; b.disabled = false; }
+      } catch (e) { est.innerHTML = `<p class="dg-mal">${t('No se ha podido hacer el análisis en este móvil. Inténtalo de nuevo con buena conexión.', 'I could not run the analysis on this phone. Try again with a good connection.')}</p>`; b.disabled = false; }
     };
   });
 }
@@ -4260,7 +4260,7 @@ async function panelDiag(pendientes = [], tab, solo) { // 17/11 (Sheila, 2744): 
   const favor = b && pro ? E.prendas.filter(p => ['Arriba', 'Abajo', 'Vestidos'].includes(p.tipo)).map(p => [p, puntosDiag([p])]).filter(x => x[1] > 0).sort((x, y) => y[1] - x[1]).slice(0, 6).map(x => x[0]) : [];
   const avisosC = (dg.avisos?.cara || []).filter(p => !p.fatal).map(p => textoProb(R, p.k)), avisosB = (dg.avisos?.cuerpo || []).filter(p => !p.fatal).map(p => textoProb(R, p.k));
   const falta = (txt) => `<div class="dx-falta"><p>${txt}</p><button class="boton linea" data-diag="fotos">${t('Añadir', 'Add')}</button></div>`;
-  let col = falta(t('Con una foto de tu cara, te digo qué colores te favorecen.', 'With a photo of your face, I tell you which colours suit you.'));
+  let col = falta(t('Con una foto de tu cara, descubre qué colores te favorecen.', 'With a photo of your face, I tell you which colours suit you.'));
   if (c) {
     const metales = METALES.filter(([k]) => c.metal.includes(k)).filter(([k], i, a) => !(k === 'oro' && a.some(x => x[0] === 'oro rosa') && !/oro(?! rosa)/.test(c.metal.replace('oro rosa', ''))));
     const rasgos = m ? [['piel', PIEL_N[m.pielN], t('Piel ', '') , t('', ' skin')], ['pelo', PELO_N[m.peloN], t('Pelo ', ''), t('', ' hair')], ['ojos', OJOS_N[m.ojosN], t('Ojos ', ''), t('', ' eyes')]].filter(([k]) => m[k]) : [];
@@ -4273,13 +4273,13 @@ async function panelDiag(pendientes = [], tab, solo) { // 17/11 (Sheila, 2744): 
       <section class="dx-sec"><h3 class="dx-h3">${t('Mejor lejos de la cara', 'Better away from your face')}</h3><div class="dx-lejos">${c.no.map(x => `<div><i style="background:${COLORES.find(q => q[0] === x)?.[1] || '#ccc'}"></i><span>${cap(colNom(x))}</span></div>`).join('')}</div></section>
       ${metales.length ? `<section class="dx-sec"><h3 class="dx-h3">${t('Tu metal', 'Your metal')}</h3><div class="dx-metal">${metales.map(([k, h, n]) => `<div><i style="background:radial-gradient(circle at 35% 30%,#fff 0,${h} 45%,${h} 100%)"></i><span>${n[es]}</span></div>`).join('')}</div>${!es && c.consejo ? `<p class="dx-consejo">${c.consejo}</p>` : ''}</section>` : ''}
       ${deMio.length ? `<section class="dx-sec"><h3 class="dx-h3">${t('De tu clóset, para la cara', 'From your closet, near your face')}</h3>${fotosCloset(deMio)}</section>` : ''}
-      <details class="dx-mas dx-peq"><summary>${t('Cómo lo he medido', 'How I measured it')}</summary><ul class="dx-det">
+      <details class="dx-mas dx-peq"><summary>${t('Cómo se ha medido', 'How I measured it')}</summary><ul class="dx-det">
         ${m?.fotos > 1 ? `<li>${t(`Media de tus ${m.fotos} fotos de cara`, `Average of your ${m.fotos} face photos`)}</li>` : ''}
         ${m ? `<li>${t('Contraste', 'Contrast')}: ${m.contraste >= 45 ? t('alto', 'high') : m.contraste >= 28 ? t('medio', 'medium') : t('bajo', 'low')}</li>` : ''}
         <li>${t('Fiabilidad', 'Confidence')}: ${conf(c.confianza)}</li>${avisosC.map(x => `<li>${x}</li>`).join('')}</ul>
         <button class="dx-enl" data-ir="colores">${t('Afinar con cuatro preguntas', 'Fine-tune with four questions')}</button></details>`;
   }
-  let sil = falta(t('Con tus medidas o una foto de cuerpo entero, te digo tu silueta.', 'With your measurements or a full-body photo, I tell you your figure.'));
+  let sil = falta(t('Con tus medidas o una foto de cuerpo entero, descubre tu silueta.', 'With your measurements or a full-body photo, I tell you your figure.'));
   if (b) {
     const pr = b.ratios?.pierna, fotoDice = b.foto && b.foto !== b.k && R ? R.silueta.tipos[b.foto].n[es].toLowerCase() : '';
     sil = `<div class="dx-cab"><span>${t('Tu silueta', 'Your figure')}</span><h2>${b.n[es]}</h2><p>${b.d[es]}</p></div>
@@ -4289,7 +4289,7 @@ async function panelDiag(pendientes = [], tab, solo) { // 17/11 (Sheila, 2744): 
       <section class="dx-sec"><h3 class="dx-h3">${t('Te favorece', 'Flatters you')}</h3>${listaFavor(b.favorece[es])}</section>
       ${favor.length ? `<section class="dx-sec"><h3 class="dx-h3">${t('De tu clóset, lo que más te favorece', 'From your closet, what suits you most')}</h3>${fotosCloset(favor)}</section>` : ''}
       <details class="dx-mas"><summary>${t('Mejor evitar', 'Better avoid')}</summary>${listaFavor(b.evitar[es], ' sin')}</details>
-      <details class="dx-mas dx-peq"><summary>${t('Cómo lo he medido', 'How I measured it')}</summary><ul class="dx-det">
+      <details class="dx-mas dx-peq"><summary>${t('Cómo se ha medido', 'How I measured it')}</summary><ul class="dx-det">
         <li>${b.fuente === 'medidas' ? t('Con tus medidas', 'With your measurements') : t('Con tu foto de cuerpo entero', 'With your full-body photo')}${b.altura ? ' (' + (b.altura / 100).toLocaleString(es ? 'en' : 'es', { minimumFractionDigits: 2 }) + ' m)' : ''}</li>
         ${fotoDice ? `<li>${t('Tu foto da ', 'Your photo says ') + fotoDice}</li>` : ''}
         <li>${t('Fiabilidad', 'Confidence')}: ${conf(b.confianza)}</li>${avisosB.map(x => `<li>${x}</li>`).join('')}</ul></details>`;
@@ -4498,7 +4498,7 @@ async function cargarEjemplo() {
   EJ_PRENDAS.forEach(([f, nombre, tipo, color, estacion, n], i) => { const usos = []; for (let k = 0; k < n; k++) { const d = new Date(); d.setDate(d.getDate() - 2 - k * 4); usos.unshift(d.toISOString().slice(0, 10)); } E.prendas.push({ id: ids[i], nombre, tipo, color, estacion, notas: 'Talla M', src: `../prendas/${f}.webp`, creada: '2026-10-12', usos, estado: '', ejemplo: true }); });
   EJ_LOOKS.forEach(([nombre, ocasion, img, idx], i) => E.conjuntos.push({ id: 'ejl' + i, nombre, ocasion, ids: idx.map(k => ids[k]), img: `../avatar/${img}-recorte.webp`, creada: '2026-10-14', usos: i === 0 ? ['2026-10-16'] : [], ejemplo: true }));
   E.perfil = Object.assign(E.perfil || {}, { alta: E.perfil?.alta || hoyISO(), idioma: idioma(), nombre: E.perfil?.nombre || 'Sheila' });
-  await guardar(); E.propuestas = []; toast(t('12 prendas y 4 conjuntos de ejemplo', '12 sample garments and 4 outfits')); ir('hoy');
+  await guardar(); E.propuestas = []; toast(t('12 prendas y 4 looks de ejemplo', '12 sample garments and 4 outfits')); ir('hoy');
 }
 async function quitarEjemplo() { E.prendas = E.prendas.filter(p => !p.ejemplo); E.conjuntos = E.conjuntos.filter(c => !c.ejemplo); await guardar(); E.propuestas = []; pintarYo(); toast(t('Ejemplo quitado', 'Sample removed')); }
 
@@ -4513,7 +4513,7 @@ function pintarInvitacion() { const c = $('a-inv-c'); if (!c) return; const guar
 async function guardarAlta() {
   const co = $('a-correo').value.trim(), cl = $('a-clave').value;
   if (INV_ON !== false && !cuenta()) { const cod = ($('a-inv').value || LS.get('tc_inv') || '').trim().toUpperCase(), j = await mirarInvitacion(cod || '-');
-    if (j?.on && !j.ok) { LS.set('tc_inv', null); $('a-inv-c').hidden = false; $('a-inv').focus(); return toast(cod ? t('Ese código de invitación no vale. TuCloset abre muy pronto.', 'That invitation code is not valid. TuCloset opens very soon.') : t('Escribe tu código de invitación', 'Enter your invitation code')); }
+    if (j?.on && !j.ok) { LS.set('tc_inv', null); $('a-inv-c').hidden = false; $('a-inv').focus(); return toast(cod ? t('El código de invitación no es válido.', 'That invitation code is not valid. TuCloset opens very soon.') : t('Escribe tu código de invitación', 'Enter your invitation code')); }
     if (j?.on) LS.set('tc_inv', cod); }
   if (co && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(co)) return toast(t('Escribe un correo válido', 'Enter a valid email'));
   if (co && cl.length < 8) return toast(t('La contraseña necesita al menos 8 caracteres', 'Password needs at least 8 characters'));
@@ -4532,9 +4532,9 @@ async function guardarFotoPerfil(k, file) {
   if (!permiso('diag')) return toast(t('Marca antes el permiso de debajo', 'First tick the permission below'));
   try { const r = await procesarFoto(file); E.perfil = E.perfil || {}; E.perfil[k] = r.blob; E.perfil[k + 'T'] = new Date().toISOString(); diagFallo = 0; await guardar(); pintarSilueta(); toast(k === 'selfie' ? t('Selfie guardada', 'Selfie saved') : t('Foto de cuerpo guardada', 'Body photo saved'));
     // 0.12: con las dos fotos del alta, el diagnóstico se hace solo, por detrás («no son cosas aisladas, las fotos del inicio con las opciones que pones en Yo»)
-    diagFallo = 0; diagHastaAlDia().then(r => { if (E.pantalla === 'cuerpo') pintarCuerpo(); if (r && (r.res.color || r.res.cuerpo)) toast(t('Listo: tus colores y tu tipo de cuerpo están en Yo', 'Done: your colours and body type are in Me')); });
+    diagFallo = 0; diagHastaAlDia().then(r => { if (E.pantalla === 'cuerpo') pintarCuerpo(); if (r && (r.res.color || r.res.cuerpo)) toast(t('Tus colores y tu silueta ya están en Yo', 'Done: your colours and body type are in Me')); });
     avatarTrasFoto(); }
-  catch (e) { toast(t('No he podido leer esa foto', 'Could not read that photo')); }
+  catch (e) { toast(t('No se ha podido leer esa foto', 'Could not read that photo')); }
 }
 
 /* ---------- visor de fotos (06/11, Gabriela: «la foto debería poder ampliarse para poder verla y acercarla») ----------
@@ -4592,7 +4592,7 @@ document.addEventListener('click', e => {
   else if (b.dataset.idioma) { localStorage.setItem('tc_idioma', b.dataset.idioma); if (E.perfil) { E.perfil.idioma = b.dataset.idioma; guardar(); } traducir(); }
   else if (b.dataset.color) { const de = $('an-colores')?.dataset.sel, enEd = !!b.closest('#an-colores'); pintarColores(b.dataset.color); if (enEd && $('an-nombre')) $('an-nombre').value = nombreConColor($('an-nombre').value, de, b.dataset.color); }
   else if (b.dataset.oc) { $('nl-ocasiones').dataset.sel = b.dataset.oc; $('nl-ocasiones').querySelectorAll('.chip').forEach(c => c.classList.toggle('sel', c.dataset.oc === b.dataset.oc)); }
-  else if (b.dataset.gguardar !== undefined) { const g = E.generados[+b.dataset.gguardar]; if (g) { E.conjuntos.unshift({ id: uid(), nombre: g.nombre, ocasion: g.ocasion, ids: g.ids, creada: hoyISO(), usos: [], ...(g.zspec ? { zspec: g.zspec } : {}), ...(g.como ? { como: g.como } : {}) }); E.generados.splice(+b.dataset.gguardar, 1); guardar(); E.propuestas = []; toast(t('Conjunto guardado', 'Outfit saved')); pintarLooks(); } }
+  else if (b.dataset.gguardar !== undefined) { const g = E.generados[+b.dataset.gguardar]; if (g) { E.conjuntos.unshift({ id: uid(), nombre: g.nombre, ocasion: g.ocasion, ids: g.ids, creada: hoyISO(), usos: [], ...(g.zspec ? { zspec: g.zspec } : {}), ...(g.como ? { como: g.como } : {}) }); E.generados.splice(+b.dataset.gguardar, 1); guardar(); E.propuestas = []; toast(t('Look guardado', 'Outfit saved')); pintarLooks(); } }
   else if (b.dataset.ghoy !== undefined) { const g = E.generados[+b.dataset.ghoy]; if (g) ponerse(g.ids); }
   else if (b.dataset.plan) { E.plan = b.dataset.plan; E.hoyIdx = 0; E.propuestas = []; pintarHoy(); }
   else if (b.dataset.sel) { const id = b.dataset.sel; const i = E.preseleccion.indexOf(id); i >= 0 ? E.preseleccion.splice(i, 1) : E.preseleccion.push(id); b.classList.toggle('sel', i < 0); pintarElegidas(); }
@@ -4604,7 +4604,7 @@ $('mc-grupos').onclick = e => { const b = e.target.closest('[data-fil]'); if (!b
 if ($('c-buscar')) $('c-buscar').onclick = () => { const c = $('busca-caja'); c.classList.toggle('oculto'); if (!c.classList.contains('oculto')) $('busca').focus(); else { E.busca = ''; $('busca').value = ''; pintarCloset(); } };
 $('a-seguir').onclick = guardarAlta;
 // «Ya tengo cuenta» (0.11): en esta versión el clóset vive en el móvil, así que entrar te lleva a él; las cuentas llegarán con la versión en la nube
-const entrarYa = async () => { if (!NUBE) { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } return ir('hoy'); } const b = $('e-entrar'), txt = b.textContent; b.disabled = true; b.textContent = t('Entrando y trayendo tu clóset…', 'Signing in and fetching your closet…'); const ok = await abrirCuenta('entrar', $('e-correo').value.trim(), $('e-clave').value); b.disabled = false; b.textContent = txt; if (!ok) return; if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } ir('closet'); toast(t('Dentro: tu clóset está al día', 'Signed in: your closet is up to date')); };
+const entrarYa = async () => { if (!NUBE) { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } return ir('hoy'); } const b = $('e-entrar'), txt = b.textContent; b.disabled = true; b.textContent = t('Entrando y trayendo tu clóset…', 'Signing in and fetching your closet…'); const ok = await abrirCuenta('entrar', $('e-correo').value.trim(), $('e-clave').value); b.disabled = false; b.textContent = txt; if (!ok) return; if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); await guardar(); } ir('closet'); toast(t('Has entrado. Tu clóset está al día', 'Signed in: your closet is up to date')); };
 $('e-entrar').onclick = entrarYa;
 // 0.94 (Gabriela, 24/10: «pon visible como opción la contraseña»): botón para ver u ocultar lo escrito
 // 06/11 (Gabriela: «que salga el icono clásico del ojo»): el ojo en vez de «Ver»; tachado cuando se ve, para volver a ocultarla
@@ -4646,7 +4646,7 @@ $('an-otra').onclick = () => guardarPrenda(true);
 // Sin conexión se quedan (el intercambio de clósets de las socias también usa «borradas» y no debe borrar fotos, así que no lo hace el servidor)
 function borrarFotosNube(p) { if (!cuenta() || !p || p.ejemplo) return; for (const k of ['', '-o', '-c']) api('/api/foto/' + p.id + k, { method: 'DELETE' }).catch(() => { }); }
 async function borrarPrenda(p) {
-  if (!p || !await confirmar(t('¿Borrar esta prenda?', 'Delete this garment?'), t('Se quita del clóset y de sus conjuntos.', 'It is removed from the closet and its outfits.'), t('Borrar', 'Delete'))) return;
+  if (!p || !await confirmar(t('¿Borrar esta prenda?', 'Delete this garment?'), t('Se quita del clóset y de sus looks.', 'It is removed from the closet and its outfits.'), t('Borrar', 'Delete'))) return;
   // 11/11 (análisis, punto 31): «Deshacer» durante 8 s; las fotos de la cuenta se borran a los 10 s, si no se ha deshecho
   const i = E.prendas.indexOf(p), looksAntes = E.conjuntos.map(c => ({ ...c, ids: [...c.ids] }));
   E.prendas = E.prendas.filter(x => x.id !== p.id); E.conjuntos.forEach(c => c.ids = c.ids.filter(id => id !== p.id)); E.conjuntos = E.conjuntos.filter(c => c.ids.length >= 1); await guardar(); E.propuestas = []; ir('closet');
@@ -4753,9 +4753,9 @@ function siluetaSVG([s, w, h]) {
 }
 function pintarCuerpo() { // 04/11: ya no se elige a mano; sale de la foto de cuerpo entero (Gabriela: «tú no puedes seleccionar tu tipo de cuerpo»)
   const pf = E.perfil || {}, b = pf.diag?.cuerpo, es = idioma() === 'en' ? 1 : 0, sil = $('tc-siluetas'), fav = $('tc-favorece'), sub = $('tc-sub'); sil.classList.add('uno');
-  if (!pf.cuerpo) { sub.textContent = t('Con la foto de cuerpo entero, la app te dice tu tipo de cuerpo. Puedes hacerla ahora o más tarde en Yo.', 'With the full-body photo, the app tells you your body type. Take it now or later in Me.'); sil.innerHTML = ''; fav.innerHTML = `<button class="boton linea" data-ir="silueta">${t('Hacer la foto', 'Take the photo')}</button>`; return; }
+  if (!pf.cuerpo) { sub.textContent = t('Con la foto de cuerpo entero se calcula tu silueta. Puedes hacerla ahora o más tarde en Yo.', 'With the full-body photo, the app tells you your body type. Take it now or later in Me.'); sil.innerHTML = ''; fav.innerHTML = `<button class="boton linea" data-ir="silueta">${t('Hacer la foto', 'Take the photo')}</button>`; return; }
   if (diagPendiente() && !diagFallo) { sub.textContent = t('Midiendo tu silueta en la foto…', 'Measuring your figure in the photo…'); sil.innerHTML = ''; fav.innerHTML = ''; diagHastaAlDia().then(() => { if (E.pantalla === 'cuerpo') pintarCuerpo(); }); return; }
-  if (!b) { sub.textContent = t('No he podido medir tu silueta en esa foto. Prueba con otra de pie, de frente y hasta los pies.', 'I could not measure your figure in that photo. Try another one standing, facing the camera, head to toe.'); sil.innerHTML = ''; fav.innerHTML = `<button class="boton linea" data-ir="silueta">${t('Cambiar la foto', 'Change the photo')}</button>`; return; }
+  if (!b) { sub.textContent = t('No se ha podido medir tu silueta en esa foto. Prueba con otra de pie, de frente y de cuerpo entero.', 'I could not measure your figure in that photo. Try another one standing, facing the camera, head to toe.'); sil.innerHTML = ''; fav.innerHTML = `<button class="boton linea" data-ir="silueta">${t('Cambiar la foto', 'Change the photo')}</button>`; return; }
   // 06/11 (Gabriela: «en tu tipo de cuerpo, el desglose de lo que te favorece está suelto en dos columnas y no se entiende bien, está regado»): las barras de la
   // silueta y una sola columna, como en el diagnóstico
   sub.textContent = b.fuente === 'medidas' ? t('Según tus medidas.', 'From your measurements.') : t('Medido en tu foto de cuerpo entero.', 'Measured in your full-body photo.');
@@ -4832,7 +4832,7 @@ const USOS_ROPA = () => [['variar', t('Variar', 'Mix it up'), t('Lo que te pusis
 function bloqueUso() {
   const v = E.perfil?.usoRopa || '';
   return `<div class="es-uso"><h3 class="es-tit" id="es-uso-t">${t('Cómo usas tu ropa', 'How you use your clothes')}</h3><div class="es-uso-l" role="group" aria-labelledby="es-uso-t">${USOS_ROPA().map(([k, n, d]) => `<button data-usoropa="${k}" aria-pressed="${v === k}" class="${v === k ? 'on' : ''}"><b>${n}</b><span>${d}</span></button>`).join('')}</div>
-    <span class="es-d">${v ? t('Toca otra vez para quitarlo.', 'Tap again to clear it.') : t('Si no eliges, varío un poco.', 'If you don’t choose, I mix it up a little.')}</span></div>`;
+    <span class="es-d">${v ? t('Toca otra vez para quitarlo.', 'Tap again to clear it.') : t('Si no eliges, se alternan varios estilos.', 'If you don’t choose, I mix it up a little.')}</span></div>`;
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-usoropa]'); if (!b || !E.perfil) return;
   E.perfil.usoRopa = E.perfil.usoRopa === b.dataset.usoropa ? '' : b.dataset.usoropa; guardar(); programarNube(); E.propuestas = []; E.generados = []; pintarEstilo(); });
@@ -4852,7 +4852,7 @@ function bloqueGusto() {
   if (!window.abrirGusto) return '';
   const r = E.perfil?.calib?.r || [], si = r.filter(x => x.si).length;
   return `<section class="es-inspo es-gusto" aria-labelledby="es-gusto-t"><h3 class="es-tit" id="es-gusto-t">${t('Tu gusto', 'Your taste')}</h3>`
-    + `<p class="es-insp-sub">${r.length ? t(`Me has dicho ${si} sí y ${r.length - si} no. Cuantos más looks me contestes, más acierto.`, `You’ve told me ${si} yes and ${r.length - si} no. The more you answer, the better I get.`) : t('Te enseño 10 looks con tu ropa y me dices si te los pondrías. Así acierto más.', 'I’ll show you 10 looks with your clothes and you tell me if you’d wear them. That way I get it right.')}</p>`
+    + `<p class="es-insp-sub">${r.length ? t(`Has indicado ${si} sí y ${r.length - si} no. Cuantos más looks valores, más se ajustarán a tu gusto.`, `You’ve told me ${si} yes and ${r.length - si} no. The more you answer, the better I get.`) : t('Te enseño 10 looks con tu ropa y me dices si te los pondrías. Así acierto más.', 'I’ll show you 10 looks with your clothes and you tell me if you’d wear them. That way I get it right.')}</p>`
     + `<p class="es-insp-sub"><button class="es-insp-entrar" data-gusto>${r.length ? t('Enséñame otros 10', 'Show me another 10') : t('Empezar', 'Start')}</button></p></section>`;
 }
 function bloqueInspo() {
@@ -4893,8 +4893,8 @@ document.addEventListener('change', async e => {
     if (E.pantalla === 'estilo') pintarEstilo();
   }));
   await guardar(); E.propuestas = [];
-  if (fallo) toast(fallo === 'tope-ia' ? t('Hoy ya no puedo leer más fotos. Prueba mañana.', 'I can’t read more photos today. Try tomorrow.') : fallo === 'tope' ? t('Ya has subido muchas fotos hoy. Prueba mañana.', 'You’ve added many photos today. Try tomorrow.') : t('No he podido leer la foto. Prueba otra vez.', 'I couldn’t read the photo. Try again.'));
-  else if (sinRopa) toast(t('No veo ropa en esa foto. Prueba con otra.', 'I can’t see clothes in that photo. Try another one.'));
+  if (fallo) toast(fallo === 'tope-ia' ? t('Has llegado al límite de fotos de hoy. Inténtalo mañana.', 'I can’t read more photos today. Try tomorrow.') : fallo === 'tope' ? t('Has llegado al límite de fotos de hoy. Inténtalo mañana.', 'You’ve added many photos today. Try tomorrow.') : t('No se ha podido leer la foto. Inténtalo de nuevo.', 'I couldn’t read the photo. Try again.'));
+  else if (sinRopa) toast(t('No se ve ropa en esa foto. Prueba con otra.', 'I can’t see clothes in that photo. Try another one.'));
   if (E.pantalla === 'estilo') { pintarEstilo(); document.getElementById('es-inspo-t')?.scrollIntoView({ block: 'nearest' }); }
 });
 document.addEventListener('click', async e => {
