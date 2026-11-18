@@ -989,7 +989,13 @@ if (AT) (() => {
     const guardados = E.conjuntos.filter(c => c.ids.every(id => P(id) && !['guardada', 'donar'].includes(P(id).estado)) && (E.plan === 'Todos' || (c.ocasion || 'Diario') === E.plan) && !props.some(y => clave(y.ids) === clave(c.ids)) && valeHoy(c)).sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));
     for (const c of guardados.slice(0, 4)) props.push({ tipo: 'conjunto', c, ids: c.ids, zspec: c.zspec, como: c.como });
     const fuera = x => x.tipo !== 'agenda' && (g?.fuera?.includes(clave(x.ids)) || (g?.hoy?.d === hoyISO() && g.hoy.k.includes(clave(x.ids))));
-    E.propuestas = props.filter(x => !fuera(x)); if (E.hoyIdx >= E.propuestas.length) E.hoyIdx = 0;
+    // 18/11 (Sheila, 2912: «hizo outfit ayer y le sigue saliendo hoy… tiene que estar más organizado»): lo que te pusiste en los 3 días anteriores descansa en Hoy,
+    // como lo que la app enseña (descanso del motor); salía entre los looks guardados (el que guarda «Me lo pongo»). Si no queda ninguno, se enseñan igual
+    const hace = i => new Date(Date.now() - i * 864e5), u3 = hace(3).toISOString().slice(0, 10), recien = new Set();
+    for (const i of [1, 2, 3]) for (const x of Object.values(E.agenda[diaISO(hace(i))]?.puestos || {})) recien.add(clave(x.ids));
+    for (const c of E.conjuntos) if ((c.usos || []).some(d => d >= u3 && d < hoyISO())) recien.add(clave(c.ids));
+    const sinRecien = props.filter(x => !fuera(x) && (x.tipo === 'agenda' || !recien.has(clave(x.ids))));
+    E.propuestas = sinRecien.length ? sinRecien : props.filter(x => !fuera(x)); if (E.hoyIdx >= E.propuestas.length) E.hoyIdx = 0;
   };
 
   // 18/11 (Sheila, 2749): mientras mira las ideas, las otras ocasiones de la fila se calculan de una en una en los ratos quietos (sin contarlas como vistas),
