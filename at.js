@@ -940,7 +940,10 @@ if (AT) (() => {
   generarLooks = (n, plan) => propuestasDe(plan || 'Todos', n).map(x => ({ ...x, prin: x.ids[0] }));
   // al guardar un look del motor, también su zapato y cómo se lleva la de arriba
   const datosLook = async x => { if (!x.zspec && !x.como) return; const k = claveLook(x.ids), cj = E.conjuntos.find(c => claveLook(c.ids) === k); if (cj && !cj.zspec && !cj.como) { cj.zspec = x.zspec; cj.como = x.como; await guardar(); } };
+  // 18/11 (Sheila, 2887: un bikini con zapatillas en Diario, «es totalmente imposible»): era un look suyo guardado como favorito el 13/11, antes de que la app reconociera
+  // la ropa de baño, y Hoy enseña los guardados de la ocasión. Un look guardado con bikini o bañador no sale en Hoy (sigue en Mis looks)
   const valeHoy = c => {
+    if (c.ids.some(id => esBano(P(id)))) return false;
     const o = { tiempo: E.tiempo, plan: c.ocasion || 'Diario', perfil: E.perfil, hoy: hoyISO(), hora: new Date().getHours() }, K = { Abajo: 'abajo', Vestidos: 'vestido', Abrigo: 'capa', Calzado: 'calzado', Bolsos: 'bolso' };
     for (const id of c.ids) { const p = P(id); if (!p) return false; if (p.tipo === 'Arriba') { if (esCapa(p) && !o.capa) o.capa = p; else if (!o.arriba) o.arriba = p; else o.base_interior = p; } else if (K[p.tipo]) o[K[p.tipo]] = p; }
     if (o.capa && !o.arriba) { o.arriba = o.capa; delete o.capa; }
