@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /control.html
+Disallow: /control-opciones.html
+Disallow: /comparar.html
+Disallow: /iconos.html
+
+Sitemap: https://tucloset.app/sitemap.xml
