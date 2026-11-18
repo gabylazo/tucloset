@@ -762,11 +762,14 @@ const Motor = (() => {
       return { grupo: g, tipo: String(t0).replace(/[\^$]/g, ''), n: c.n, frase: fr.replace('{tipo}', nombreTipo(t0)) };
     });
   }
+  // 18/11 (Sheila, 2827: descartaba un look y volvía): lo descartado se compara sin bolso ni accesorios. El cinturón y las joyas se ponen después de elegir,
+  // así que la clave guardada (con ellos) no casaba con la del motor; y la misma ropa con otro bolso tampoco es un look nuevo
+  const exclSet = o => { const compl = new Set((o.prendas || []).filter(p => ['bolso', 'accesorio'].includes(ficha(p, {}).cat)).map(p => p.id)), sinC = k => k.split(',').filter(id => !compl.has(id)).join(), ex = new Set((o.excluir || []).map(sinC)); return { has: k => ex.has(sinC(k)) }; };
   /* Entrada: { prendas, tiempo, plan, perfil, n, hoy, hora, excluir, pro, colorEstacion }. Salida: { looks, casi, falta, ctx }. */
   const NOCHE_SUBE = new Set(['V4', 'E7']);
   function looks(o) {
     const Sb = o.sub && SUBS.get(o.sub), sb = Sb && (!o.plan || o.plan === 'Todos' || o.plan === Sb.oc) ? Sb : null; // 15/11: la subocasión manda su ocasión; si no es de la ocasión pedida, no cuenta
-    const t0 = Date.now(), hoy = o.hoy || new Date().toISOString().slice(0, 10), plan = sb ? sb.oc : o.plan || 'Todos', n = o.n || 6, pf = perfilMotor(o.perfil, o), excluir = new Set(o.excluir || []);
+    const t0 = Date.now(), hoy = o.hoy || new Date().toISOString().slice(0, 10), plan = sb ? sb.oc : o.plan || 'Todos', n = o.n || 6, pf = perfilMotor(o.perfil, o), excluir = exclSet(o);
     const ctx0 = contexto(o.tiempo, plan, { hora: o.hora ?? sb?.hora, t_ref: o.t_ref, evento: o.evento || sb?.evento, lugar: o.lugar || sb?.lugar, sub: sb?.id });
     const ents = (o.prendas || []).filter(p => !p.noMeGusta).map(p => ({ id: p.id, p, _f: ficha(p, pf) }));
     // 18/11 (auditoría de hombre): a un hombre, en un cóctel, una boda, una gala o una ceremonia, si tiene americana, va con ella (salía «abrigo, camisa y pantalón»

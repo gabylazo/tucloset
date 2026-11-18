@@ -1251,6 +1251,7 @@ html.at.oscuro .at-lz .pz, html.at.oscuro .at-lz img, html.at.oscuro .at-bal img
 /* las fotos que aún no tienen la de catálogo (recorte sobre blanco) siguen sobre tarjeta clara hasta que se estilicen */
 html.at.oscuro .at-cel.sin-cat, html.at.oscuro .at-foto.sin-cat, html.at.oscuro #pared .at-cel.sin-cat { background: #ECE6DE; }
 html.at.oscuro .at-cel.sin-cat img, html.at.oscuro .at-foto.sin-cat img { mix-blend-mode: multiply; filter: none; }
+html.at.oscuro .at-cel.sin-cat i { color: #5E5249; } /* 18/11: «Sin foto» sobre la celda clara (axe, 1,52:1) */
 /* 07/11: el look puesto en el avatar, con el mismo filo de luz que las prendas */
 html.at.oscuro .at-puesto img, html.at.oscuro .av-img img { filter: drop-shadow(0 0 .7px rgba(241, 233, 222, .55)) drop-shadow(0 0 7px rgba(241, 233, 222, .07)); }
 /* 07/11 (Gabriela: «en el modo oscuro los fondos de la ropa son pésimos, hay que trabajar en varias alternativas, investiga»): se probaron cuatro (1 Foco, 2 Piedra,

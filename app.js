@@ -2016,16 +2016,29 @@ function puestosDeHoy() {
   E.conjuntos.forEach(c => { if ((c.usos || []).some(x => x === dl || x === du)) poner(c.ids, (c.usoT || '').slice(0, 10) >= du ? c.usoT : ''); });
   return l.map((x, i) => ({ ...x, i })).sort((x, y) => (y.t || '').localeCompare(x.t || '') || x.i - y.i).map(x => x.ids);
 }
-async function ponerse(ids, conj) {
+// 18/11 (Sheila, 2856 y 2858, sobre un probador: «puedes tocar ahí 4 o 5 veces como si te hubieras puesto todos esos looks… uno por ocasión»): un solo look
+// puesto por ocasión y día. Si ya había uno de esa ocasión hoy, se cambia por el nuevo: se quitan los usos de hoy de las prendas que no siguen (salvo las del
+// look de otra ocasión de hoy) y el uso de hoy de su look guardado; el que la app guardó sola al ponérselo («auto»), se borra si ya no tiene usos ni es favorito
+async function ponerse(ids, conj, oc) {
   const d = hoyISO(); let n = 0; anotarGusto(ids, 'si');
+  const ya = new Date().toISOString(), k = claveLook(ids); conj = conj || E.conjuntos.find(c => claveLook(c.ids) === k);
+  const ag = E.agenda[diaISO(new Date())] = E.agenda[diaISO(new Date())] || { planes: [] };
+  oc = oc || conj?.ocasion || ocasionDe(ids.map(P).filter(Boolean)) || 'Diario'; ag.puestos = ag.puestos || {};
+  const mismo = Object.entries(ag.puestos).find(([, x]) => claveLook(x.ids) === k); if (mismo) oc = mismo[0]; // el mismo look otra vez (Hoy lo enseña el primero): se queda en su ocasión
+  const prev = ids.length >= 2 ? ag.puestos[oc] : null, cambio = !!prev && claveLook(prev.ids) !== k; // una prenda sola (desde su ficha) no cambia el look del día
+  if (cambio) {
+    const otros = new Set(Object.entries(ag.puestos).filter(([o]) => o !== oc).flatMap(([, x]) => x.ids));
+    prev.ids.forEach(id => { if (ids.includes(id) || otros.has(id)) return; const p = P(id); if (p?.usos) p.usos = p.usos.filter(u => u !== d); });
+    const cp = E.conjuntos.find(c => claveLook(c.ids) === claveLook(prev.ids));
+    if (cp?.usos) { cp.usos = cp.usos.filter(u => u !== d); if (cp.auto && !cp.usos.length && !cp.fav && !esFav(cp.ids)) E.conjuntos = E.conjuntos.filter(c => c !== cp); }
+  }
   ids.forEach(id => { const p = P(id); if (!p) return; p.usos = p.usos || []; if (!p.usos.includes(d)) { p.usos.push(d); n++; } });
   // 11/11 (Gabriela: «sigo sin ver de primera opción el look que se elija para el día»): con la hora, para saber cuál es el último aunque te pongas dos
-  const ya = new Date().toISOString(), k = claveLook(ids); conj = conj || E.conjuntos.find(c => claveLook(c.ids) === k);
   if (conj) { conj.usos = conj.usos || []; if (!conj.usos.includes(d)) conj.usos.push(d); conj.usoT = ya; }
   // 11/11 (Gabriela): lo que te pones hoy, desde donde sea, sale el primero en Hoy. La agenda va por día local (la de los usos, por día UTC)
-  const ag = E.agenda[diaISO(new Date())] = E.agenda[diaISO(new Date())] || { planes: [] }; if (ids.length >= 2) { ag.puesto = [...ids]; ag.puestoT = ya; } if (E.pantalla !== 'hoy') { E.propuestas = []; E.hoyIdx = 0; }
-  else if (ids.length >= 2 && !conj) { E.conjuntos.unshift({ id: uid(), nombre: t('Hoy', 'Today') + ' ' + fecha(d, true), ocasion: ocasionDe(ids.map(P).filter(Boolean)), ids, creada: d, usos: [d], usoT: ya }); }
-  await guardar(); toast(n ? t(`Apuntado: ${n} prendas puestas hoy`, `Noted: ${n} garments worn today`) : t('Ya lo tenías apuntado hoy', 'Already noted today'));
+  if (ids.length >= 2) { ag.puesto = [...ids]; ag.puestoT = ya; ag.puestos[oc] = { ids: [...ids], t: ya }; } if (E.pantalla !== 'hoy') { E.propuestas = []; E.hoyIdx = 0; }
+  else if (ids.length >= 2 && !conj) { E.conjuntos.unshift({ id: uid(), nombre: t('Hoy', 'Today') + ' ' + fecha(d, true), ocasion: oc, ids, creada: d, usos: [d], usoT: ya, auto: 1 }); }
+  await guardar(); toast(cambio ? t('Cambiado: hoy llevas este look', 'Changed: this is today’s look') : n ? t(`Apuntado: ${n} prendas puestas hoy`, `Noted: ${n} garments worn today`) : t('Ya lo tenías apuntado hoy', 'Already noted today'));
 }
 
 /* ---------- CALENDARIO (0.40, 22/10; Sheila: «que la consumidora pueda ir guardando qué tiene cada día si quiere»; «si pone de lunes 23 a viernes 27
@@ -2165,6 +2178,8 @@ function pintarAgenda(raiz) {
   const filas = evs.map(ev => { const k = `${d}|${ev.id}`, lk = lookDe(d, ev), ab = E.cal.ev === k;
     return `<div class="ag-ev${ab ? ' ab' : ''}"><button class="ag-fila" data-agev="${k}" aria-expanded="${ab}">${lk ? `<span class="ag-mini"><span class="lk-fig">${figLook({ ids: lk }, true)}</span></span>` : d >= hoy ? `<span class="ag-mini vacio">${agIc('mas')}</span>` : ''}<span class="ag-txt"><b>${escH(nomEv(ev))}${ev.hora ? `<i>${ev.hora}</i>` : ''}</b><small>${escH([ev.nombre && ev.nombre.toLowerCase() !== ocNombre(ev.oc).toLowerCase() ? ocNombre(ev.oc) : '', ev.fijo ? ((f0 => f0.hasta ? rangoEv(f0) : diasTxt(f0.dias || []))(fijos.find(x => x.id === ev.id) || {})) : '', ev.lugar?.nombre || ''].filter(Boolean).join(' · '))}</small>${!lk && d >= hoy ? `<em class="ag-elegir">${t('Elegir look', 'Pick a look')}</em>` : ''}</span></button>${ab ? panelEvento(d, ev, hoy) : ''}</div>`; }).join('');
   const puesto = E.prendas.filter(p => (p.usos || []).includes(d));
+  // 18/11 (Sheila, 2858: «un registro de los looks que te vas poniendo… uno por ocasión»): desde hoy, lo puesto se guarda por ocasión y se enseña así; los días de antes, como antes
+  const pts = Object.entries(E.agenda[d]?.puestos || {}).filter(([, x]) => x.ids.some(P));
   raiz.innerHTML = `<div class="mc-cab lk-cab"><h1>${t('Looks', 'Looks')}</h1><button class="lk-mas" data-ir="nuevo-look" aria-label="${t('Crear un look', 'Create a look')}"><svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg></button></div>
     ${lkTabs('cal')}
     <div class="cal ag${f ? ' con-form' : ''}">${f ? '' : `<div class="ag-mes"><button data-agmes="-1" aria-label="${t('Mes anterior', 'Previous month')}"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><h2>${cap(m.toLocaleDateString(loc, { month: 'long', year: 'numeric' }))}</h2><button data-agmes="1" aria-label="${t('Mes siguiente', 'Next month')}"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>
@@ -2172,7 +2187,7 @@ function pintarAgenda(raiz) {
     <section class="ag-dia"><div class="ag-dia-cab"><h3${f ? ' role="heading" aria-level="2"' : ''}>${cap(sel.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' }))}</h3>${f ? `<button class="ag-mas" data-agcancela aria-label="${t('Cancelar', 'Cancel')}">${agIc('cerrar')}</button>` : d >= hoy ? `<button class="ag-mas" data-agmenu aria-expanded="${!!E.cal.menu}" aria-label="${t('Añadir', 'Add')}">${agIc('mas')}</button>` : ''}</div>
       ${E.cal.menu && !f && d >= hoy ? `<div class="ag-menu" role="group" aria-label="${t('Añadir', 'Add')}">${agMi('data-agnuevo', 'cal', t('Evento', 'Event'))}${agMi('data-agvarios', 'dias', t('Varios días', 'Several days'))}${typeof abrirViaje === 'function' ? agMi('data-agviaje', 'maleta', t('Viaje', 'Trip')) : ''}</div>` : ''}
       ${f ? formEvento() : filas || (d >= hoy ? '' : `<p class="cal-vacio">${t('Sin eventos.', 'No events.')}</p>`)}
-      ${puesto.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(puesto, true)}</div></div>` : ''}</section></div>`;
+      ${pts.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="cal-puestos">${pts.map(([o, x]) => `<div class="cal-p"><div class="lk-fig">${figLook({ ids: x.ids.filter(P) }, true)}</div><p class="mini-et">${ocNombre(o)}</p></div>`).join('')}</div></div>` : puesto.length ? `<div class="cal-look"><p class="mini-et">${t('Te pusiste', 'You wore')}</p><div class="lk-fig">${maniqui(puesto, true)}</div></div>` : ''}</section></div>`;
   // 15/11: el plan concreto se deduce del nombre mientras escribe («cóctel», «gala», «gimnasio»), dentro de su ocasión, hasta que ella lo elige a mano
   const pintaSub = () => { if (!conSubs()) return; if (!f.subTocada) f.sub = Motor.detectarSub(f.nombre || '', f.oc, parseInt(f.hora) || undefined) || ''; else if (f.sub && !Motor.subocasiones(f.oc).some(x => x.id === f.sub)) f.sub = '';
     const s = $('ag-sub'), v = $('ag-sub-v'); if (s) s.innerHTML = subOpciones(f.oc, f.sub); if (v) { v.textContent = subNom(f.sub) || t('Sin concretar', 'Not specified'); v.classList.toggle('no', !f.sub); } };

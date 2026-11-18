@@ -1967,3 +1967,6 @@ html.oscuro .pn-error{color:#E8776B}
 .nl-elegidas{display:flex;gap:6px;align-items:center;min-height:44px;margin-bottom:8px;overflow-x:auto}
 .nl-elegidas img{width:44px;height:44px;flex:none;object-fit:contain;border:1px solid var(--linea2);background:var(--fondo)}
 .nl-elegidas p{margin:0;font-size:14px;color:var(--sec)}
+
+/* 18/11: «Te pusiste» en el calendario, un look por ocasión (Sheila, 2858) */
+.cal-puestos{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}.cal-look .cal-puestos .cal-p{width:min(150px,40vw)}.cal-look .cal-puestos .lk-fig{width:100%;margin:4px auto}.cal-puestos .mini-et{margin:0}
