@@ -131,6 +131,11 @@ html.at .at-ico { width: 44px; height: 44px; display: flex; align-items: center;
 html.at .at-chips { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; }
 html.at .at-chips li { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--sec); }
 html.at .at-chips .at-ic { width: 16px; height: 16px; color: var(--tinta); }
+/* 18/11 (Sheila, 2908): «N veces» se toca y salen los días, cada uno con «Quitar» */
+html.at .at-usos-b { display: flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 2px; font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px solid var(--linea); cursor: pointer; }
+html.at .at-usos-l { list-style: none; margin: 8px auto 0; padding: 0; width: min(280px, 100%); align-self: center; }
+html.at .at-usos-l li { display: flex; align-items: center; justify-content: space-between; min-height: 44px; border-bottom: 1px solid var(--linea); font-size: 14px; color: var(--tinta); }
+html.at .at-usos-l button { min-height: 44px; padding: 0 4px; font: inherit; font-size: 13px; color: var(--sec); background: none; border: 0; text-decoration: underline; cursor: pointer; }
 html.at .at-mancha { width: 12px; height: 12px; border: 1px solid rgba(74, 53, 38, .3); }
 html.at .at-iconos { width: 100%; display: flex; flex-wrap: wrap; justify-content: center; row-gap: 16px; margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--raya); }
 html.at .at-ib { flex: 0 0 25%; display: flex; flex-direction: column; align-items: center; gap: 7px; min-height: 44px; font: 400 12px/1.2 var(--f); color: var(--sec); }
@@ -534,6 +539,9 @@ html.at .av-ico { width: 44px; height: 44px; display: inline-flex; align-items: 
 html.at .av-ico svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.4; }
 html.at .av-ico.av-aviso::after { content: ''; position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--oro); }
 html.at .at-puesto .at-como { flex-wrap: nowrap; gap: 0 4px; }
+/* 18/11 (Sheila, 2906): «Fuera · A medias · Dentro» y «Otra vez» en una sola fila, para que el avatar tenga más alto */
+html.at .at-puesto-pie { flex: none; display: flex; align-items: center; justify-content: center; gap: 0 2px; }
+html.at .at-puesto-pie .at-como { margin-top: 0; }
 html.at .at-puesto-otra.av-ico { flex: none; }
 html.at .pr-pal { width: 100%; margin: 0 0 18px; border: 1px solid var(--linea2, rgba(74,53,38,.3)); padding: 10px 12px; font-size: 15px; }
 /* 14/11: «No me parezco» recuerda lo que ya dijiste con tus palabras (se puede quitar); y en «Tus medidas y tus fotos», el aviso de la foto que no vale */

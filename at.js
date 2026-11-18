@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.305'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.309'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -273,6 +273,19 @@ if (AT) (() => {
   const COMOS = () => [['suelta', t('Fuera', 'Out')], ...(E.perfil?.ropa === 'hombre' ? [] : [['media', t('A medias', 'Half')]]), ['por dentro', t('Dentro', 'In')]];
   const comoAplica = ps => { const top = ps.filter(p => p.tipo === 'Arriba').pop(); if (!top || !ps.some(p => p.tipo === 'Abajo')) return false;
     const f = Motor.ficha(top); return !['body', 'top_corto', 'top_deportivo'].includes(f.subtipo) && top.est?.largo !== 'crop' && !/crop|\bcorto\b|body/i.test(top.nombre || ''); };
+  // 18/11 (Sheila, 2906: «el avatar sigue saliendo pequeño»): la foto de la IA trae blanco alrededor de la persona; se recorta, con un poco de aire, para que la persona
+  // llene el hueco (se busca lo que no es blanco en una copia de 240 px de alto). Si algo falla, la foto tal cual
+  const RECORTES = new WeakMap();
+  const sinBlanco = bl => { if (RECORTES.has(bl)) return RECORTES.get(bl); const pr = (async () => { try {
+    const bm = await createImageBitmap(bl), W = bm.width, H = bm.height, k = Math.min(1, 240 / H), w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const cx = c.getContext('2d', { willReadFrequently: true }); cx.drawImage(bm, 0, 0, w, h);
+    const d = cx.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) { const o = (y * w + i) * 4; if (Math.min(d[o], d[o + 1], d[o + 2]) < 236) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
+    if (x1 < 0 || (y1 - y0 + 1) / h > .97) return bl;
+    const m = .03 * H, X0 = Math.max(0, x0 / k - m), Y0 = Math.max(0, y0 / k - m), X1 = Math.min(W, (x1 + 1) / k + m), Y1 = Math.min(H, (y1 + 1) / k + m);
+    const cc = document.createElement('canvas'); cc.width = Math.round(X1 - X0); cc.height = Math.round(Y1 - Y0); cc.getContext('2d').drawImage(bm, X0, Y0, X1 - X0, Y1 - Y0, 0, 0, cc.width, cc.height);
+    return await new Promise(r => cc.toBlob(z => r(z || bl), 'image/jpeg', .92));
+  } catch (e) { return bl; } })(); RECORTES.set(bl, pr); return pr; };
   async function verPuesto(b, zona, ps, como, otra, auto, cambio) {
     let fig = zona?.querySelector('.at-look'); if (!fig) return;
     let capa = zona.querySelector('.at-puesto');
@@ -309,7 +322,8 @@ if (AT) (() => {
     if (r.error) { capa.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); LS.set('tc_ver_avatar', null); return toast(r.error); }
     if (b.classList.contains('at-puestob') && !b.classList.contains('probado')) { b.classList.add('probado'); b.setAttribute('aria-label', t('Verlo puesto en mí: ya te lo has probado', 'See it on me: already tried on')); }
     const ahora = el || como || 'suelta', opc = comoAplica(ps) ? `<div class="at-como" role="group" aria-label="${t('Cómo llevar la de arriba', 'How to wear the top')}">${COMOS().map(([v, l]) => `<button data-como="${v}" aria-pressed="${v === ahora}">${l}</button>`).join('')}</div>` : '';
-    capa.innerHTML = `<img src="${URL.createObjectURL(r.blob)}" alt="${t('Tú con este look', 'You wearing this look')}">${opc}<button class="at-puesto-otra av-ico" aria-label="${t('No se parece: otra vez', 'Not right: try again')}" title="${t('Otra vez', 'Try again')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/></svg></button>`;
+    const vis = await sinBlanco(r.blob); if (!capa.isConnected) return;
+    capa.innerHTML = `<img src="${URL.createObjectURL(vis)}" alt="${t('Tú con este look', 'You wearing this look')}"><div class="at-puesto-pie">${opc}<button class="at-puesto-otra av-ico" aria-label="${t('No se parece: otra vez', 'Not right: try again')}" title="${t('Otra vez', 'Try again')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/></svg></button></div>`;
     capa.querySelector('.at-puesto-otra').onclick = e => { e.stopPropagation(); verPuesto(b, zona, ps, como, true); };
     capa.querySelectorAll('[data-como]').forEach(x => { x.onclick = e => { e.stopPropagation(); if (x.dataset.como === ahora || b.classList.contains('cargando')) return;
       COMO_ELEGIDO.set(idsDe(ps), x.dataset.como); verPuesto(b, zona, ps, como, false, false, true); }; });
@@ -589,12 +603,15 @@ if (AT) (() => {
   const abrirFichaViejo = abrirFicha;
   const sinFoto = p => !p.ejemplo && !conCat(p) && (p.fotoRota || (!p.foto && !p.src)); // 04/11: foto perdida en el móvil y sin copia en la nube
   let cuidarAbierta = null; // id de la prenda con los cuidados abiertos
+  // 18/11 (Sheila, 2908: «editar el número de veces que te has puesto una prenda por si lo has hecho por error»): al tocar «N veces» salen los días, cada uno con «Quitar»
+  let usosAbierta = null;
+  const diaUso = d => new Date(d + 'T12:00:00Z').toLocaleDateString(loc(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }); // los usos van por día UTC
   abrirFicha = function (id) {
     // al marcarla (sucia, guardada…) se vuelve a pintar la misma ficha: se queda donde estaba, sin saltar arriba
     const pf = $('p-ficha'), y = E.pantalla === 'ficha' && $('at-ficha')?.dataset.id === id ? pf.scrollTop : 0;
     abrirFichaViejo(id); const p = P(id); if (!p) return; // deja hechos los datos, las acciones de siempre y la pantalla
     let r = $('at-ficha'); if (!r) { r = document.createElement('div'); r.id = 'at-ficha'; r.className = 'at-ficha'; $('p-ficha').append(r); }
-    r.dataset.id = id; if (cuidarAbierta !== id) cuidarAbierta = null;
+    r.dataset.id = id; if (cuidarAbierta !== id) cuidarAbierta = null; if (usosAbierta !== id) usosAbierta = null;
     const usos = p.usos || [], conj = E.conjuntos.filter(c => c.ids.includes(id));
     const sub = (NOM_X[p.x] || [])[en() ? 1 : 0] || catTxt(catDe(p));
     const fz = Motor.ficha(p), TIRO = { alto: t('Tiro alto', 'High rise'), medio: t('Tiro medio', 'Mid rise'), bajo: t('Tiro bajo', 'Low rise') }, LARGO = { crop: t('Corto, sobre el ombligo', 'Cropped, above the navel'), cintura: t('A la cintura', 'Waist length'), cadera: t('A la cadera', 'Hip length'), largo: t('Largo', 'Long') };
@@ -604,7 +621,7 @@ if (AT) (() => {
     const precio = p.precio ? `${dinero(p.precio)}${/^\d{4}-\d{2}$/.test(p.compra || '') ? ` · ${t('comprada en', 'bought in')} ${nomMes(p.compra)}` : ''}${usos.length ? ` · ${dinero(p.precio / usos.length)}/${t('puesta', 'wear')}` : ''}` : '';
     const hex = (COLORES.find(([c]) => c === p.color) || [])[1];
     const chips = [p.color && `<li><i class="at-mancha"${hex ? ` style="background:${hex}"` : ''}></i>${esc(nomColor(p.color))}</li>`, `<li>${I.cal}${esc(estNombre(p.estacion))}</li>`,
-      `<li>${I.percha}${usos.length ? veces(usos.length) : t('Sin estrenar', 'Not worn yet')}</li>`, precio && `<li>${esc(precio)}</li>`].filter(Boolean).join('');
+      usos.length ? `<li><button class="at-usos-b" data-atfacc="usos" aria-expanded="${usosAbierta === id}" aria-controls="at-usos-l">${I.percha}${veces(usos.length)}</button></li>` : `<li>${I.percha}${t('Sin estrenar', 'Not worn yet')}</li>`, precio && `<li>${esc(precio)}</li>`].filter(Boolean).join('');
     // sus looks; si aún no tiene, los dos que mejor le van con tu ropa (al tocarlos, se crean)
     let looks = conj.slice(0, 8).map(c => ({ ps: psDe(c), attr: ` data-look="${c.id}" aria-label="${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}"` }));
     if (!looks.length && p.tipo !== 'Accesorios') {
@@ -630,6 +647,7 @@ if (AT) (() => {
     r.innerHTML = `<div class="at-barra-sup"><button class="at-volver" data-ir="closet" aria-label="${t('Volver', 'Back')}">${I.iz}</button><span class="at-der2"><button class="at-ico" data-atfacc="editar" aria-label="${t('Editar', 'Edit')}">${I.lapiz}</button><button class="at-ico" data-atfacc="borrar" aria-label="${t('Borrar la prenda', 'Delete the garment')}">${I.papelera}</button></span></div>
       <div class="at-foto${conCat(p) ? '' : ' sin-cat'}"><img src="${urlCat(p)}" alt="${esc(p.nombre)}">${cargaIco('tc-carga-c')}<button type="button" class="at-ampliar" data-ampliar="${p.id}" aria-label="${t('Ampliar la foto', 'Enlarge the photo')}"></button></div><p class="est-av est-ficha" id="est-ficha" role="status"${E.estil?.id === p.id ? '' : ' hidden'}><span>${t('Estilizando esta foto: unos 15 segundos', 'Styling this photo: about 15 seconds')}</span></p>${p.catProp && !p.cat ? `<button class="at-rep-av" data-catver>${t('Foto de catálogo lista · Ver', 'Catalogue photo ready · View')}</button>` : ''}${sinFoto(p) ? `<p class="at-sin-foto">${t('La foto de esta prenda se ha perdido en este móvil. Toca el lápiz y vuelve a hacerla.', 'This garment’s photo was lost on this phone. Tap the pencil and take it again.')}</p>` : ''}
       ${p.estado ? `<p class="at-estado">${estadoTxt(p.estado)}</p>` : ''}<h1 class="at-h1">${esc(p.nombre)}</h1>${datos ? `<p class="at-datos">${datos}</p>` : ''}<ul class="at-chips">${chips}</ul>
+      ${usos.length ? `<ul class="at-usos-l" id="at-usos-l"${usosAbierta === id ? '' : ' hidden'}>${[...usos].sort().reverse().map(d => `<li><span>${esc(diaUso(d))}</span><button data-atfacc="quitauso" data-d="${esc(d)}" aria-label="${t('Quitar la puesta del', 'Remove the wear on')} ${esc(diaUso(d))}">${t('Quitar', 'Remove')}</button></li>`).join('')}</ul>` : ''}
       ${looks.length ? `<div class="at-minis${looks.length > 2 ? ' muchos' : ''}">${looks.map(x => baldosa(x.ps, MW, MH, x.attr)).join('')}</div>` : ''}
       <div class="at-iconos" role="group" aria-label="${t('Acciones de la prenda', 'Garment actions')}">${ACC.map(([k, ic, w, l]) => `<button class="at-ib${on(k) ? ' on' : ''}" data-atfacc="${k}" aria-label="${esc(nombre(w, l || largo(k)))}"${MARCA.includes(k) ? ` aria-pressed="${on(k)}"` : ''}><span class="at-ib-c">${ic}</span><span class="at-ib-t" aria-hidden="true">${esc(w)}</span></button>`).join('')}</div>
       <ul class="at-cuidar-l"${cuidarAbierta === id ? '' : ' hidden'}>${cuidados(p).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
@@ -649,6 +667,9 @@ if (AT) (() => {
         p.foto = q.blob; p.cv = q.cv; p.recMano = 1; delete p.caja; if (q.dudoso) p.dudoso = 1; else delete p.dudoso; urls.delete(p.id); alfa.delete(p.id); E.propuestas = []; E.generados = [];
         await guardar(); programarNube(); medirTodas(); abrirFicha(id); toast(t('Foto arreglada', 'Photo fixed')); }).catch(() => toast(t('No se ha podido arreglar. Inténtalo de nuevo', 'Could not fix it. Try again')));
       else if (k === 'parecido') noSeParece(p);
+      else if (k === 'usos') { usosAbierta = usosAbierta === id ? null : id; const l = r.querySelector('.at-usos-l'), a = usosAbierta === id; l.hidden = !a; b.setAttribute('aria-expanded', a); }
+      else if (k === 'quitauso') { const d = b.dataset.d; p.usos = (p.usos || []).filter(u => u !== d); E.propuestas = []; usosAbierta = p.usos.length ? id : null;
+        guardar().then(() => { abrirFicha(id); toast(t(`Quitada la puesta del ${diaUso(d)}`, `Removed the wear on ${diaUso(d)}`)); r.querySelector(p.usos.length ? '.at-usos-b' : '.at-chips')?.focus?.({ preventScroll: true }); }); }
       else if (k === 'cuidar') { cuidarAbierta = cuidarAbierta === id ? null : id; const l = r.querySelector('.at-cuidar-l'), a = cuidarAbierta === id; l.hidden = !a; b.classList.toggle('on', a); b.setAttribute('aria-pressed', a); if (a) l.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
       else $('f-acciones').querySelector(`[data-accion="${k}"]`)?.click();
     };

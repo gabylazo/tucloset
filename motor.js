@@ -564,7 +564,7 @@ const Motor = (() => {
           const [hb] = H('bolso'); if (hb && c) { const bs = cands(hb, ents).filter(p => !deDia(p)), bc = COMPL && bs.length > 1 ? complemento('bolso', { ...l2, estilos: formula.estilos || [] }, ents, ctx) : null, b = bc && bs.includes(bc) ? bc : bs[0]; if (b) l2.bolso = b; }
           const le = () => ({ ...l2, estilos: formula.estilos || [] });
           if (COMPL && c && !l2.bolso) { const b = complemento('bolso', le(), ents, ctx); if (b) l2.bolso = b; }
-          if (COMPL && c && !l2.accesorio) { const a = complemento('cinturon', { ...le(), como: comoDe(formula, l2), silueta: pf.silueta }, ents, ctx); if (a) l2.accesorio = a; }
+          if (COMPL && c && !l2.accesorio && pf.publico !== 'masculino') { const a = complemento('cinturon', { ...le(), como: comoDe(formula, l2), silueta: pf.silueta }, ents, ctx); if (a) l2.accesorio = a; }
           if (COMPL && c) { const pa = complemento('panuelo', le(), ents, ctx); if (pa) l2[l2.accesorio ? 'accesorio2' : 'accesorio'] = pa; const j = complemento('joyas', le(), ents, ctx); if (j) l2.joya = j; }
           salida.push(l2);
         }
@@ -862,8 +862,8 @@ const Motor = (() => {
         if (!m) continue; res.splice(1 + pon, 0, m); if (res.length > n) res.pop(); pon++; for (const k of PIEZAS) if (m[k]) en.add(m[k].id); }
       VIS = pf.vis; COMPL = !!o.complementos && plan !== 'Playa'; // la llamada de dentro los cambia
     }
-    // 18/11 (Sheila, 2842): a un hombre, el cinturón se pone después de elegir los looks (así no cambia cuáles salen ni la variedad; dentro de la nota la bajaba)
-    if (COMPL && pf.publico === 'masculino') for (const l of res) if (l.calzado && !l.accesorio && !l.vestido) { const a = complemento('cinturon', { ...l, estilos: l.formula?.estilos || [], silueta: pf.silueta, hombre: true }, ents, l.ctx || ctx0); if (a) l.accesorio = a; }
+    // 18/11 (Sheila, 2842): a un hombre, el cinturón se ponía después de elegir los looks. 18/11, 14:32 (Sheila, 2900: «en caso de los hombres, una pestaña de agregar
+    // accesorio… la IA recomienda un cinturón y se le agrega al outfit»): ya no se pone solo; lo propone «Eleva tu look» y se añade con «Añadir al look»
     const casi = res.length ? [] : elegir(cs.filter(l => l.casi).map(l => ({ ...l, veto: { ...l.veto, duros: [] }, casi: false, faltaCapa: true })), Math.min(n, 4), excluir);
     if (ctx0.h_americana && !res.length) return looks({ ...o, sinAmericana: true });
     // 18/11 (Sheila, 2848: a un probador, con zapatillas y sin zapatos de vestir, no le salía ningún look de noche): la noche sin matiz es la más exigente (sin vaquero

@@ -981,6 +981,9 @@ html.at.oscuro .at-nota-fin{color:var(--sec)}
 html.at.oscuro .at-ico{color:var(--tinta)}
 html.at.oscuro .at-chips li{color:var(--sec)}
 html.at.oscuro .at-chips .at-ic{color:var(--tinta)}
+html.at.oscuro .at-usos-b{color:inherit;background:none;border:0;border-bottom:1px solid var(--linea)}
+html.at.oscuro .at-usos-l li{border-bottom:1px solid var(--linea);color:var(--tinta)}
+html.at.oscuro .at-usos-l button{color:var(--sec);background:none;border:0;text-decoration:underline}
 html.at.oscuro .at-mancha{border:1px solid rgba(241,233,222, .3)}
 html.at.oscuro .at-iconos{border-top:1px solid var(--raya)}
 html.at.oscuro .at-ib{color:var(--sec)}
