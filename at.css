@@ -67,6 +67,12 @@ html.at .at-fila::-webkit-scrollbar { display: none; }
 html.at .at-fila button { flex: none; min-height: 48px; min-width: 44px; position: relative; font: 400 12px/1 var(--f); letter-spacing: .1em; text-transform: uppercase; color: var(--sec); }
 html.at .at-fila button.on { color: var(--tinta); font-weight: 500; }
 html.at .at-nota { min-height: 36px; font: 400 13px/1.3 var(--f); color: var(--sec); }
+/* 18/11 (Gabriela: que pregunte si quiere cambiar un look ya planeado porque hay ropa nueva): una línea encima del look, con su ✕ */
+html.at .at-nueva { display: flex; align-items: center; justify-content: center; gap: 2px; margin: 2px 16px 0; }
+html.at .at-nueva-t { min-height: 44px; padding: 0 4px; border: 0; background: none; font: 400 13.5px/1.3 var(--f); color: var(--tinta); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--oro); cursor: pointer; }
+html.at .at-nueva-x { flex: none; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--sec); cursor: pointer; }
+html.at .at-nueva-x svg { width: 14px; height: 14px; }
+html.at .at-nueva button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 html.at .at-hoy .cal-falta { font-size: 13px; color: var(--sec); }
 html.at .at-pie { flex: none; padding: 8px 0 6px; display: flex; flex-direction: column; align-items: center; }
 
@@ -362,6 +368,19 @@ html.at .at-vj-exb { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap:
 html.at .at-vj-exb button { min-height: 40px; padding: 0 14px; border: 1px solid var(--linea2, rgba(74,53,38,.28)); background: none; font: 300 14px/1 var(--f); color: var(--sec); }
 html.at .at-vj-exb button.on { border-color: var(--tinta); background: var(--tinta); color: #fff; }
 html.at .at-vj-exb button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+/* 18/11 (Gabriela: decir qué día sales de fiesta, cenas…): cada plan en su fila, el día y el plan con su control encima (transparente) y una ✕ para quitarlo */
+html.at .at-vj-pl { gap: 10px; cursor: default; }
+html.at .at-vj-pl:has(.ag-nat:focus-visible) { outline: 0; }
+html.at .at-vj-pp { position: relative; display: flex; align-items: center; gap: 6px; min-height: 44px; color: var(--tinta); white-space: nowrap; cursor: pointer; }
+html.at .at-vj-pp2 { flex: 1; min-width: 0; justify-content: space-between; }
+html.at .at-vj-pp2 > span { overflow: hidden; text-overflow: ellipsis; }
+html.at .at-vj-pp .ag-ic { flex: none; width: 16px; height: 16px; color: var(--sec); }
+html.at .at-vj-pp:has(.ag-nat:focus-visible) { outline: 2px solid var(--tinta); outline-offset: 2px; }
+html.at .at-vj-plx { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-right: -12px; padding: 0; border: 0; background: none; color: var(--sec); cursor: pointer; }
+html.at .at-vj-plx svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+html.at .at-vj-plx:focus-visible { outline: 2px solid var(--tinta); outline-offset: -2px; }
+html.at .at-vj-plmas { width: 100%; padding: 0; border: 0; border-bottom: 1px solid var(--linea); background: none; font: inherit; text-align: left; color: var(--tinta); }
+html.at .at-vj-plmas:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 html.at .at-vj-dias { padding: 18px 0 8px; }
 html.at .at-vj-dias figcaption { display: flex; align-items: center; justify-content: center; gap: 4px; }
 html.at .at-vj-plan figcaption { text-transform: capitalize; } /* 16/11 (auditoría): solo los días del viaje; en Con una prenda salía «Para Un Día De 21°» */
@@ -757,6 +776,19 @@ html.at .dx-enls { text-align: center; margin: 6px 0 0; } /* 16/11 (auditoría):
 /* 16/11, «Eleva tu look» (solo Pro): en Hoy, un icono en la esquina de arriba a la izquierda del look, frente a la ✕; la ventana, como la del viaje */
 html.at .at-elevab { position: absolute; top: 0; left: 4px; z-index: 3; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: var(--tinta); background: none; border: 0; padding: 0; }
 html.at .at-elevab svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; }
+/* 18/11 (Gabriela: «sustitúyelo por iconos; no podemos tratar ese tipo de botones de dos formas»): las opciones del look guardado y de las ideas, en una fila de iconos
+   como los de Hoy, centrada bajo «Me lo pongo»; cada uno de 44 px */
+html.at .at-acc-ic { display: flex; justify-content: center; gap: 12px; margin-top: 4px; }
+html.at .at-ic-acc { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; flex: none; padding: 0; border: 0; background: none; color: var(--tinta); cursor: pointer; }
+html.at .at-ic-acc svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
+html.at .at-ic-acc[aria-expanded="true"], html.at .at-ic-acc[aria-pressed="true"] { box-shadow: inset 0 -2px 0 var(--oro); }
+html.at .at-ic-acc:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+/* 18/11: las acciones del calendario, iguales que las del look (solo icono, 44 px) */
+html.at .ag-acc { gap: 12px; flex-wrap: wrap; }
+html.at .ag-ac { flex: none; width: 44px; height: 44px; min-height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 0; background: none; color: var(--tinta); cursor: pointer; }
+html.at .ag-ac svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
+html.at .ag-ac[aria-expanded="true"] { box-shadow: inset 0 -2px 0 var(--oro); }
+html.at .ag-ac:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 html.at .at-el-fig { display: flex; justify-content: center; margin: 4px 0 8px; }
 html.at .at-el-lista { list-style: none; padding: 0; margin: 0 auto 18px; max-width: 34ch; text-align: left; }
 html.at .at-el-lista li { padding: 12px 2px; border-top: 1px solid var(--linea); font-size: 15px; line-height: 1.4; color: var(--tinta); }

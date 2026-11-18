@@ -547,7 +547,10 @@ const Motor = (() => {
         for (const c of cs.length ? cs : [null]) {
           const l2 = { ...l }; if (c) l2.calzado = c; if (faltaHueco) l2.hueco_faltante = faltaHueco;
           // 15/11: si la fórmula pide bolso y hay varios que valen, el que elige complemento() (de noche, el de mano antes que la bandolera), no el primero de la lista
-          const [hb] = H('bolso'); if (hb && c) { const bs = cands(hb, ents), bc = COMPL && bs.length > 1 ? complemento('bolso', { ...l2, estilos: formula.estilos || [] }, ents, ctx) : null, b = bc && bs.includes(bc) ? bc : bs[0]; if (b) l2.bolso = b; }
+          // 18/11 (auditoría de hombre: «abrigo, camisa, pantalón, derby y mochila» en un evento): F89 admite bolsos de día y de noche; la mochila no va de noche, en un
+          // evento ni en la oficina, y la riñonera tampoco en un evento ni en la oficina
+          const deDia = p => (p._f.subtipo === 'mochila' && ['Noche', 'Evento', 'Oficina'].includes(ctx.ocasion)) || (p._f.subtipo === 'rinonera' && ['Evento', 'Oficina'].includes(ctx.ocasion));
+          const [hb] = H('bolso'); if (hb && c) { const bs = cands(hb, ents).filter(p => !deDia(p)), bc = COMPL && bs.length > 1 ? complemento('bolso', { ...l2, estilos: formula.estilos || [] }, ents, ctx) : null, b = bc && bs.includes(bc) ? bc : bs[0]; if (b) l2.bolso = b; }
           const le = () => ({ ...l2, estilos: formula.estilos || [] });
           if (COMPL && c && !l2.bolso) { const b = complemento('bolso', le(), ents, ctx); if (b) l2.bolso = b; }
           if (COMPL && c && !l2.accesorio) { const a = complemento('cinturon', { ...le(), como: comoDe(formula, l2), silueta: pf.silueta }, ents, ctx); if (a) l2.accesorio = a; }
@@ -1016,14 +1019,22 @@ const Motor = (() => {
   function planViaje(o) {
     const N = o.dias.length, ocio = o.motivo !== 'Oficina', lugar = o.lugar || 'ciudad', fecha = i => diaMas(o.desde, i), extras = o.extras || [];
     const byId = new Map((o.prendas || []).map(p => [p.id, p])), T = Math.max(2, Math.min(Math.ceil(N / 2), 5)), usos = new Map(), usosDia = new Map(), hechos = new Set(), plan = [];
-    const deDia = (i, w) => !ocio ? { plan: o.motivo, oc: o.motivo } : N === 1 ? { plan: 'Viaje', sub: 'V2', oc: o.motivo } : i === 0 || i === N - 1 ? { plan: 'Viaje', sub: 'V1', oc: o.motivo }
+    // 18/11 (Gabriela, panel: «que le puedas decir si vas a salir de fiesta qué día, si vas a cenar y ese tipo de planes y lo tenga en cuenta»): los planes con su día
+    // (o.planes = [{ i, sub }]): los de noche (N*, E1, E3, E4, V4) son una noche fija ese día; los de día (D*, E2, E6, V3, «Playa») cambian el plan de ese día
+    const SUBN = /^(N\d|E[134]|V4)$/, nomSub = id => { const x = SUBS.get(id); return x ? { nombre: x.nombre, en: x.en || x.nombre } : {}; };
+    const ocSub = id => id === 'Playa' ? 'Playa' : /^N/.test(id) ? 'Noche' : /^E/.test(id) ? 'Evento' : /^D/.test(id) ? 'Diario' : 'Viaje';
+    const suyos = (o.planes || []).filter(x => x && x.sub && x.i >= 0 && x.i < N), deDiaSuyo = new Map(suyos.filter(x => !SUBN.test(x.sub)).map(x => [x.i, x]));
+    const deDia = (i, w) => deDiaSuyo.has(i) ? (s => s === 'Playa' ? { plan: 'Playa', oc: 'Playa' } : { plan: ocSub(s), sub: s, oc: ocSub(s) === 'Viaje' ? o.motivo : ocSub(s), ...nomSub(s) })(deDiaSuyo.get(i).sub)
+      : !ocio ? { plan: o.motivo, oc: o.motivo } : N === 1 ? { plan: 'Viaje', sub: 'V2', oc: o.motivo } : i === 0 || i === N - 1 ? { plan: 'Viaje', sub: 'V1', oc: o.motivo }
       : lugar === 'playa' && w.max >= 25 ? ((i - 1) % 3 < 2 ? { plan: 'Playa', oc: 'Playa' } : { plan: 'Viaje', sub: 'V2', oc: o.motivo })
       : lugar === 'campo' ? { plan: 'Viaje', sub: (i - 1) % 3 < 2 ? 'V3' : 'V2', oc: o.motivo } : { plan: 'Viaje', sub: 'V2', oc: o.motivo };
     // las noches: las señaladas en su fecha; el evento que se marca sin fecha señalada, el penúltimo día; las libres, lejos de las demás
     const noches = [];
-    for (let i = 0; i < N - 1; i++) { const s = SENALADAS.find(x => x.md === fecha(i).slice(5)); if (s) noches.push({ i, plan: s.sub === 'E7' ? 'Evento' : 'Viaje', sub: s.sub, oc: s.sub === 'E7' ? 'Evento' : 'Noche', nombre: s.nombre, en: s.en, K: .001, senal: 1 }); }
-    const sen = noches.length;
-    if (extras.includes('Evento') && !sen) noches.push({ i: Math.max(0, N - 2), plan: 'Evento', oc: 'Evento', K: .01 });
+    for (const x of suyos.filter(x => SUBN.test(x.sub))) { if (noches.some(y => y.i === x.i)) continue; const oc = ocSub(x.sub);
+      noches.push({ i: x.i, plan: oc === 'Viaje' ? 'Viaje' : oc, sub: x.sub, oc: oc === 'Viaje' ? 'Noche' : oc, ...nomSub(x.sub), K: .01, suyo: 1 }); }
+    for (let i = 0; i < N - 1; i++) { const s = SENALADAS.find(x => x.md === fecha(i).slice(5)); if (s && !noches.some(y => y.i === i)) noches.push({ i, plan: s.sub === 'E7' ? 'Evento' : 'Viaje', sub: s.sub, oc: s.sub === 'E7' ? 'Evento' : 'Noche', nombre: s.nombre, en: s.en, K: .001, senal: 1 }); }
+    const sen = noches.filter(x => x.senal).length;
+    if (extras.includes('Evento') && !sen && !suyos.length) noches.push({ i: Math.max(0, N - 2), plan: 'Evento', oc: 'Evento', K: .01 });
     const tot = N <= 2 ? 0 : lugar === 'playa' ? Math.min(3, Math.ceil((N - 1) / 4)) : lugar === 'campo' ? (N >= 8 ? 2 : N >= 4 ? 1 : 0) : Math.min(4, Math.ceil((N - 1) / 3));
     let libres = !extras.includes('Noche') ? 0 : ocio ? Math.max(0, tot - noches.length) : 0;
     if (extras.includes('Noche') && !libres && !noches.length && (o.nocheMano || !ocio)) libres = 1; // si ella la marca a mano (o es de trabajo, como antes), al menos una
@@ -1060,7 +1071,9 @@ const Motor = (() => {
       return mejor;
     };
     // si el plan no da ningún look (sin bañador para la playa, nada de fiesta), el de siempre: turismo a pie, el día de diario o la noche de salir
-    const reserva = q => q.plan === 'Playa' ? { ...q, plan: 'Viaje', sub: 'V2', oc: o.motivo } : q.sub === 'E7' || q.plan === 'Evento' ? { ...q, plan: 'Evento', sub: null, senal: 0 } : q.sub === 'V4' ? { ...q, plan: 'Noche', sub: null, senal: 0 } : q.sub ? { ...q, plan: ocio ? 'Diario' : o.motivo, sub: null } : null;
+    const reserva = q => q.plan === 'Playa' ? { ...q, plan: 'Viaje', sub: 'V2', oc: o.motivo } : q.sub && (q.sub === 'E7' || q.plan === 'Evento') ? { ...q, plan: 'Evento', sub: null, senal: 0 }
+      : q.sub === 'V4' || (q.sub && q.plan === 'Noche') ? { ...q, plan: 'Noche', sub: null, senal: 0 } : q.sub ? { ...q, plan: ocio ? 'Diario' : o.motivo, sub: null }
+      : q.plan === 'Evento' ? { ...q, plan: 'Noche' } : null; // 18/11: antes, un evento sin sub volvía a sí mismo y, sin ningún look, no salía del bucle
     const poner = (i, q, hora) => {
       let m = elegir(i, q, hora); for (let r = reserva(q); !m && r; r = reserva(r)) m = elegir(i, r, hora);
       if (!m) return; const w = o.dias[i], noche = hora >= 19;

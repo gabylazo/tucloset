@@ -250,9 +250,12 @@ h2{font-weight:650;font-size:21px;line-height:1.15}
 .piezas button{width:64px;text-align:center}
 .piezas img{width:64px;height:64px;object-fit:contain;background:#fff;border:1px solid var(--linea);padding:6px}
 .piezas span{display:block;font-size:12px;font-weight:600;color:var(--sec);margin-top:4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.elegir{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-.elegir button{border:1px solid var(--linea2);aspect-ratio:1;position:relative;background:#fff;padding:6px}
-.elegir button img{width:100%;height:100%;object-fit:contain}
+/* 18/11 (Gabriela: «sigue estando la ropa tirada hacia la derecha… cuando das bajar se cortan los zapatos»): con 1fr, Safari deja que una columna crezca hasta el ancho
+   natural de la foto (las de zapatos son anchas) y la rejilla se sale por la derecha; minmax(0, 1fr) y min-width: 0 la dejan en tres tercios exactos */
+.elegir{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.elegir button{border:1px solid var(--linea2);aspect-ratio:1;position:relative;background:#fff;padding:6px;min-width:0;overflow:hidden}
+.cab h1.et{margin:0;font-size:inherit;font-weight:inherit;line-height:inherit}
+.elegir button img{width:100%;height:100%;min-width:0;object-fit:contain;display:block}
 .elegir button.sel{border:2px solid var(--acento)}
 .elegir button.sel::after{content:"✓";position:absolute;right:4px;top:4px;width:22px;height:22px;background:var(--acento);color:#fff;font-size:13px;display:grid;place-items:center}
 .elegir .et{grid-column:1/-1;margin-top:8px}
