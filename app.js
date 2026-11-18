@@ -206,9 +206,17 @@ function portadaPronto() {
   const q = new URLSearchParams(location.search);
   if (!(q.get('pronto') === '1' || (PRONTO && /^(ig|tt|pin)/.test(ORIGEN) && !LS.get('tc_cuenta')))) return;
   const ab = $('p-inicio')?.querySelector('.abajo'); if (!ab) return;
-  ab.innerHTML = `<p class="pronto">${t('Abrimos muy pronto', 'Opening very soon')}</p>
+  // 18/11 (formación «Primeras pantallas»; Gabriela, panel: «sí, me parece bien que prepares lo que has aprendido»): antes de pedir nada, un look de verdad del clóset
+  // de muestra, tal cual sale en Hoy, y una línea. Apagada hasta el sí de Sheila (MUESTRA_PORTADA); se prueba con ?pronto=1&muestra=1
+  const muestra = MUESTRA_PORTADA || q.get('muestra') === '1';
+  if (muestra) $('p-inicio').classList.add('con-muestra');
+  ab.innerHTML = `${muestra ? `<figure class="muestra"><img src="muestra/look-hoy.webp" width="480" height="611" alt="${t('Un look de ejemplo: jersey de cuello alto crudo, americana negra, pantalón ancho gris, bandolera negra y botines negros', 'A sample outfit: cream turtleneck, black blazer, wide grey trousers, black crossbody bag and black ankle boots')}"><figcaption>${t('Cada día, un look con la ropa que ya tienes', 'Every day, an outfit from the clothes you already own')}</figcaption></figure>` : ''}<p class="pronto">${t('Abrimos muy pronto', 'Opening very soon')}</p>
     <a class="boton" href="https://www.instagram.com/tucloset.app/" rel="noopener">${t('Síguenos en Instagram', 'Follow us on Instagram')}</a>`;
+  // y cuántas visitas de cada red tocan «Síguenos» (solo el día y la red, como las visitas), para comparar la semana antes y la de después
+  // (keepalive y texto plano: llega aunque la página se vaya a Instagram, sin consulta previa del navegador)
+  ab.querySelector('a.boton').addEventListener('click', () => { if (/^(ig|tt|pin)$/.test(ORIGEN)) try { fetch(API + '/api/visita', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ o: 'sigue-' + ORIGEN }), keepalive: true }).catch(() => { }); } catch (e) { } });
 }
+const MUESTRA_PORTADA = false;
 let ORIGEN = ''; // 09/11: la red desde la que llegó esta visita (?o=ig|tt|pin…); vive solo mientras la página está abierta
 const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.parse(LS.get('tc_cuenta') || 'null'); } catch (e) { return null; } };
 // 09/11 (Gabriela: «acabo de abrir el perfil de Sheila desde mi móvil… se ha unido al mío y ha sumado sus prendas a mi clóset; una cuenta enlazada a un clóset, no
@@ -2752,7 +2760,7 @@ const INVARIABLE = /^(Beige|Crema|Camel|Burdeos|Mostaza|Caqui|Nude|Terracota|Fuc
 const plColor = (c, fem) => { let pl = PLURAL_COLOR[c] || (INVARIABLE.test(c) ? c.toLowerCase() : /[aeo]$/i.test(c) ? c.toLowerCase() + 's' : c.toLowerCase()); return fem ? pl.replace(/os$/, 'as') : pl; };
 const nomEstampado = (x, e, c2) => `${NOM_X[x][0]} ${ESTAMPADOS[e][0]}${c2 && ['Rayas', 'Cuadros', 'Lunares', 'Flores'].includes(e) ? ' ' + plColor(c2, e === 'Rayas' || e === 'Flores') : ''}`;
 // 06/11 (Gabriela: «hay también piezas de encaje, transparentes… hay que tener ese tipo de detalles»): se marcan al subir; van a la ficha y a las notas (los cuidados las leen)
-const DETALLES = { Deporte: 'Sport', Vaquero: 'Denim', Encaje: 'Lace', Transparente: 'Sheer', Volantes: 'Ruffles', Satén: 'Satin', Lentejuelas: 'Sequins', Terciopelo: 'Velvet', Piel: 'Leather', Punto: 'Knit', 'Hombros al aire': 'Off-shoulder' }; // Vaquero (Gabriela: «¿qué hacemos con la mezclilla, una falda de mezclilla larga?»)
+const DETALLES = { Deporte: 'Sport', Vaquero: 'Denim', Encaje: 'Lace', Transparente: 'Sheer', Volantes: 'Ruffles', Satén: 'Satin', Lentejuelas: 'Sequins', Terciopelo: 'Velvet', Piel: 'Leather', Punto: 'Knit', 'Hombros al aire': 'Off-shoulder', Oversize: 'Oversized' }; // Vaquero (Gabriela: «¿qué hacemos con la mezclilla, una falda de mezclilla larga?»)
 function prepararSubir() { E.subida = []; E.sDet = null; pintarSubida(); }
 // Subir (Gabriela, 20/10): una sola prenda → su ficha (3B); varias → rejilla (3A) con lo general a la vista y, al tocar una, su ficha
 function pintarSubida() {
@@ -2853,7 +2861,11 @@ function aplicarClas(p, o, antes, subida) {
     const x = xDeNombre(o.nombre, o.categoria); p.x = x;
     p.nombre = idioma() === 'en' ? (nombreReconocido(x, p.color) || nombreAuto(p.tipo, p.color)) : o.nombre;
   }
-  if (libre('detalles')) pon(p, 'detalles', (o.detalles || []).filter(k => k in DETALLES).length ? o.detalles.filter(k => k in DETALLES) : null);
+  // 18/11 (Sheila, 2757): «oversize» llega aparte y se guarda como un detalle más (el motor ya lo lee del nombre y los detalles)
+  const detIA = [...(o.detalles || []).filter(k => k in DETALLES), ...(o.oversize && ['Arriba', 'Abrigo', 'Vestidos'].includes(p.tipo) ? ['Oversize'] : [])];
+  if (libre('detalles')) pon(p, 'detalles', detIA.length ? detIA : null);
+  // 18/11 (Sheila, 2755): si se abre entera por delante (botones o cremallera), la ficha deja elegir si la lleva cerrada o abierta (Motor.ficha: f.abrochable, f.cierre)
+  if (['Arriba', 'Abrigo', 'Vestidos'].includes(p.tipo)) pon(p, 'abrocha', ['botones', 'cremallera'].includes(o.abrocha) ? o.abrocha : null);
   if (libre('estacion') && ESTACIONES.includes(o.estacion)) p.estacion = o.estacion;
   const est = { ...(p.est || {}) };
   if (p.tipo === 'Abajo' && o.categoria === 'Pantalones' && ['alto', 'medio', 'bajo'].includes(o.tiro) && !est.tiro) est.tiro = o.tiro;
@@ -2862,7 +2874,7 @@ function aplicarClas(p, o, antes, subida) {
   if (['Arriba', 'Abrigo', 'Vestidos'].includes(p.tipo) && ['larga', 'corta', 'sin_mangas'].includes(o.manga)) { p.manga = o.manga; p.mangaV = 1; }
   if (subida) { if (o.es_prenda) p.noPrenda = false; else if (!p.siPrenda) p.noPrenda = true; p.rec = 1; }
   else { p.rec = 3; p.rev = 1; p.estAuto = 1; } // que los repasos viejos del reconocedor del móvil no lo deshagan
-  p.clas = 1;
+  p.clas = 1; p.clas2 = 1;
 }
 function clasificarSubida(it) {
   if (clasParado || !cuenta()?.token) return;
@@ -2972,6 +2984,35 @@ function mangasViejas() {
     return n;
   })();
   return mangueando;
+}
+// 18/11 (Sheila, 2755 y 2757): las prendas de arriba, abrigos y vestidos que se subieron antes de que la clasificación dijera si se abrochan y si son oversize se
+// miran una vez, solas, como las mangas. Solo se añade: si se abrochan (p.abrocha), «Oversize» y, en las que nunca pasaron por la clasificación, «Transparente».
+// Lo que ella marque o quite en la ficha (est.cierre, detalles) no se toca. ≈ 0,002 $ por prenda, una vez
+let cerrando = null;
+function cierresViejos() {
+  if (cerrando) return cerrando;
+  if (clasParado || !cuenta()?.token || window.top !== window || !E.nubeBajada) return Promise.resolve(0);
+  cerrando = (async () => {
+    let n = 0, m = 0;
+    try {
+      for (const p of E.prendas.filter(p => ['Arriba', 'Abrigo', 'Vestidos'].includes(p.tipo) && !p.clas2 && !p.ejemplo && !p.src && !p.fotoRota && (p.cat instanceof Blob || p.foto instanceof Blob))) {
+        await new Promise(r => (window.requestIdleCallback || setTimeout)(r, { timeout: 800 }));
+        const o = await clasificarIA(p.cat instanceof Blob ? p.cat : p.foto); if (clasParado) break; if (!o) continue;
+        if (o.es_prenda) {
+          const ab = ['botones', 'cremallera'].includes(o.abrocha) ? o.abrocha : null; if ((p.abrocha || null) !== ab) { pon(p, 'abrocha', ab); n++; }
+          const det = new Set(p.detalles || []), d0 = det.size;
+          if (o.oversize && !p.detaMano) det.add('Oversize');
+          if (!p.clas && !p.detaMano && (o.detalles || []).includes('Transparente')) det.add('Transparente');
+          if (det.size !== d0) { p.detalles = [...det]; n++; }
+        }
+        p.clas2 = 1; m++;
+      }
+    } finally { cerrando = null; }
+    if (m) { await guardar(); programarNube(); }
+    if (n) { E.propuestas = []; E.generados = []; cuandoQuieto(() => { if (E.pantalla === 'closet') pintarCloset(); else if (E.pantalla === 'hoy') pintarHoy(); }); }
+    return n;
+  })();
+  return cerrando;
 }
 async function anadirFotos(files) {
   const nuevos = files.slice(0, Math.max(0, 20 - E.subida.length)).map(f => ({ id: uid(), estado: 'procesando', file: f }));
@@ -3177,6 +3218,7 @@ async function guardarPrenda(otra) {
   if (!nombre) return toast(t('Ponle un nombre', 'Give it a name'));
   const tipo = TIPO_DE_CAT[$('an-tipo').value], x = $('an-sub').value || null;
   if (!p && enGratis() && E.prendas.length >= TOPE_GRATIS) return toast(t(`En la versión gratis caben ${TOPE_GRATIS} prendas.`, `The free version holds ${TOPE_GRATIS} garments.`));
+  if (p && JSON.stringify(p.detalles || []) !== JSON.stringify(detaEd() || [])) p.detaMano = 1; // 18/11: los detalles que ella cambia a mano no los vuelve a poner el repaso (cierresViejos)
   if (p) { if (fotoOriginal && !p.original) p.original = fotoOriginal; Object.assign(p, { rec: 3, estAuto: 1, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), compra: (precioDe($('an-precio').value) && $('an-compra').value) || undefined, detalles: detaEd() }); if (fotoNueva) { quitarCat(p); p.foto = fotoNueva; delete p.src; delete p.fotoRota; delete p.caja; urls.delete(p.id), alfa.delete(p.id); for (const k of ['catProp', 'catPropAR', 'catNo', 'catOtra', 'catFallos']) delete p[k]; p.catAuto = 1; p.catPregunta = 1; } }
   else E.prendas.unshift({ id: uid(), creadaT: Date.now(), rec: 3, estAuto: 1, catAuto: 1, original: fotoOriginal || undefined, nombre, color, tipo, x, catM: $('an-tipo').value, estacion: $('an-estacion').value, notas: $('an-notas').value.trim(), precio: precioDe($('an-precio').value), compra: (precioDe($('an-precio').value) && $('an-compra').value) || undefined, detalles: detaEd(), foto: fotoNueva, creada: hoyISO(), usos: [], estado: '' });
   const tiro = tipo === 'Abajo' && $('an-tiro').dataset.sel, pr = p || E.prendas[0]; if (tiro) pr.est = { ...(pr.est || {}), tiro };
@@ -3887,7 +3929,9 @@ async function panelPrivacidad() {
       t('Se dan y se retiran en Yo → Mi silueta y en Tu avatar. Al retirarlos, borramos lo que salió de ellos.', 'You give and withdraw them in Me → My figure and in Your avatar. When you withdraw one, we delete what came from it.'))
     + grupoP(t('Permisos del móvil', 'Phone permissions'), filaP({ tag: 'div', ic: 'ciudad', tit: t('Ubicación', 'Location'), val: ubic, flecha: false }) + filaP({ tag: 'div', ic: 'camara', tit: t('Cámara', 'Camera'), val: t('Solo al subir fotos', 'Only when uploading'), flecha: false }),
       t('Los permisos se cambian en los ajustes del navegador o del móvil.', 'Permissions are changed in your browser or phone settings.'))
-    + grupoP(t('Tus datos', 'Your data'), filaP({ id: 'pv-exportar', ic: 'bajar', tit: t('Descargar una copia', 'Download a copy'), flecha: false })
+    // 18/11 (Gabriela, panel: «la política de privacidad ok»): el texto entero, en su página
+    + grupoP(t('Tus datos', 'Your data'), filaP({ tag: 'a', ic: 'info', tit: t('Política de privacidad', 'Privacy policy'), attr: 'href="privacidad.html" target="_blank" rel="noopener"' })
+      + filaP({ id: 'pv-exportar', ic: 'bajar', tit: t('Descargar una copia', 'Download a copy'), flecha: false })
       + filaP({ tag: 'label', ic: 'subir', tit: t('Recuperar una copia', 'Restore a copy'), flecha: false, attr: 'id="pv-importar"' }).replace('</label>', '<input type="file" accept="application/json,.json" hidden></label>')
       + filaP({ id: 'pv-borrar', ic: 'borrar', tit: t('Borrar todo de este móvil', 'Delete everything from this phone'), rojo: true, flecha: false })
       + (c ? filaP({ id: 'pv-cuenta', ic: 'borrar', tit: t('Borrar mi cuenta', 'Delete my account'), rojo: true, flecha: false }) : '')),
@@ -4133,7 +4177,9 @@ const puestoFijo = () => { const k = E.perfil?.avatarFijo; return k && E.puestos
 const ORDEN_PUESTO = ['Vestidos', 'Arriba', 'Abajo', 'Abrigo', 'Calzado', 'Bolsos', 'Accesorios'];
 const selLook = ps => ps.filter(p => !p.muestra && (p.cat instanceof Blob || p.foto instanceof Blob)).sort((a, b) => ORDEN_PUESTO.indexOf(a.tipo) - ORDEN_PUESTO.indexOf(b.tipo)).slice(0, 6);
 // 12/11: si ella elige otra manera de llevar la de arriba que la del look («~media», «~por dentro»), es otra prueba con su propia foto; lo de después de la última «|» sigue siendo el avatar
-const clavePuesto = (ps, cm) => { const sel = selLook(ps); return sel.length ? sel.map(p => p.id).sort().join('+') + (cm ? '~' + cm : '') + '|' + (E.perfil?.avatarF || '') : ''; };
+const clavePuesto = (ps, cm) => { const sel = selLook(ps); return sel.length ? sel.map(p => p.id + (p.est?.cierre ? '.' + p.est.cierre[0] : '')).sort().join('+') + (cm ? '~' + cm : '') + '|' + (E.perfil?.avatarF || '') : ''; };
+// 18/11 (Sheila, 2755): a la IA del «Verlo puesto» se le dice si la prenda va cerrada o abierta (el servidor lo lee del nombre, puestoCapas); la clave cambia solo si ella lo eligió
+const nombrePuesto = p => { const n = p.nombre || ''; if (typeof Motor === 'undefined') return n; const f = Motor.ficha(p); return f.abrochable && f.cierre ? `${n} (${f.cierre})` : n; };
 // 10/11 (Gabriela: «los conjuntos que ya tengan avatar se quedan así… distinguiéndolo con el maniquí que indica avatar coloreado, como que ya tienes esa prueba»)
 const yaProbado = ps => { if (planDemo() !== 'pro' || !tieneAvatar()) return false; const k = clavePuesto(ps); return !!k && (E.puestos?.[k] instanceof Blob || (E.perfil?.probados || []).some(x => x.k === k && x.s)); };
 async function puestoEnMi(ps, como, otra, soloGuardado, elegido) {
@@ -4151,7 +4197,7 @@ async function puestoEnMi(ps, como, otra, soloGuardado, elegido) {
   try {
     const fd = new FormData(); fd.append('avatar', await jpegBlanco(pf.avatar), 'avatar.jpg'); if (pf.ropa === 'hombre') fd.append('ropa', 'hombre');
     for (const [i, p] of sel.entries()) fd.append('p' + i, await jpegBlanco(p.cat instanceof Blob ? p.cat : p.foto, 768), `p${i}.jpg`);
-    fd.append('nombres', JSON.stringify(sel.map(p => p.nombre || ''))); const cmo = cm || como || (sel.some(p => p.tipo === 'Arriba') && sel.some(p => p.tipo === 'Abajo') ? 'suelta' : ''); if (cmo) fd.append('como', cmo); // 12/11 (Sheila, 2095): siempre se dice la manera; sin ella la IA hacía lo que quería y debajo se marcaba «Por fuera»
+    fd.append('nombres', JSON.stringify(sel.map(nombrePuesto))); const cmo = cm || como || (sel.some(p => p.tipo === 'Arriba') && sel.some(p => p.tipo === 'Abajo') ? 'suelta' : ''); if (cmo) fd.append('como', cmo); // 12/11 (Sheila, 2095): siempre se dice la manera; sin ella la IA hacía lo que quería y debajo se marcaba «Por fuera»
     // 11/11 (Gabriela: «sigo teniendo dos avatares en mi cuenta»): ya no va la selfie. Con dos caras de referencia (el avatar y la selfie, que había cambiado
     // después), la IA copiaba unas veces una y otras la otra, y salían dos personas. La cara sale solo del avatar; el parecido se arregla en el avatar («No me parezco»)
     const r = await apiAvatar('/api/avatar?que=puesto' + (otra ? '&otra=1' : ''), fd);
@@ -4764,7 +4810,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
-  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => window.viajesAlCalendario?.()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
+  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => cierresViejos()).catch(() => 0).then(() => window.viajesAlCalendario?.()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente

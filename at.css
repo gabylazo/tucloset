@@ -159,7 +159,9 @@ html.at .at-enlaces { display: flex; gap: 6px; justify-content: center; }
 html.at .at-dias { justify-content: flex-start; margin-top: 4px; }
 
 /* ---------- Looks (rejilla de 2: con 3, cada look medía 73 × 105 px y no se reconocía la ropa) ---------- */
-html.at .at-tit { text-align: center; padding: 26px 20px 4px; }
+html.at .at-tit { position: relative; text-align: center; padding: 26px 20px 4px; }
+html.at .at-papelera { position: absolute; top: 14px; right: 12px; min-width: 44px; height: 44px; padding: 0 4px; display: inline-flex; align-items: center; justify-content: center; gap: 2px; color: var(--tinta); background: none; border: 0; font-size: 13px; }
+html.at .at-papelera svg { width: 22px; height: 22px; }
 html.at .at-tit h1 { font: 400 28px/1 var(--f-marca); }
 html.at .at-rej2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 12px; padding: 12px 20px calc(var(--tabs) + 24px); justify-items: center; }
 html.at .at-t { margin: 0; display: flex; flex-direction: column; align-items: center; min-width: 0; width: 100%; }
@@ -816,6 +818,12 @@ html.at .at-el-con img { width: 56px; height: 56px; object-fit: contain; backgro
 html.at .at-lk-fil { margin: 4px 0 10px; }
 /* 18/11 (Sheila, 2817, 2862 y 2827): tipos dentro de Camisetas y Accesorios en el Clóset; «Descartados» al final de Ideas */
 html.at #p-closet .at-subs-closet { margin: 0 0 6px; }
-html.at .at-descartados { text-align: center; margin: 22px 0 10px; }
 html.at .at-descs .at-rej2 figure { margin: 0; }
 html.at .at-descs figcaption { text-align: center; }
+/* 18/11 (Sheila, 2755, 2757 y 2759): cómo la llevas, en la ficha de la prenda: cerrada o abierta, oversize y si transparenta */
+html.at .at-lleva { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px 0 2px; }
+html.at .at-lleva-seg { display: flex; }
+html.at .at-lleva button { min-height: 40px; padding: 0 14px; border: 1px solid var(--linea2, rgba(74, 53, 38, .28)); border-radius: 0; background: none; font: 400 13px/1 var(--f); color: var(--sec); cursor: pointer; }
+html.at .at-lleva-seg button + button { border-left: 0; }
+html.at .at-lleva button[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--fondo); font-weight: 500; }
+html.at .at-lleva button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }

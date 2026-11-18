@@ -17,6 +17,25 @@ const Motor = (() => {
   const SUB_EST = { pantalon_de_vestir: 'pantalon_vestir', camiseta_sin_mangas: 'camiseta_tirantes' }; // el vocabulario de la ficha de la estilista (28/10)
   const COLOR_FINO = ['Mostaza', 'Burdeos', 'Terracota', 'Camel', 'Crema', 'Caqui', 'Verde menta', 'Verde salvia', 'Verde oliva', 'Verde botella', 'Azul marino', 'Azul petróleo', 'Azul eléctrico', 'Turquesa', 'Fucsia', 'Coral', 'Chocolate', 'Antracita', 'Nude', 'Melocotón', 'Mantequilla']; // 11/11: más colores (sin Dorado ni Plateado: «bolso con cadena dorada» sigue siendo del color del bolso) // si el nombre lo dice, manda sobre el color general de la app («body mostaza» guardado como Amarillo)
   const VOL = { ajuste: { regular: 1 }, corte: {} };
+  // 18/11: abierta o cerrada. CIERRE.cerrada: el papel que hace cerrada cada capa ligera; CIERRE.abierta: el que hace abierta cada prenda de arriba que se abrocha
+  // Moda 18/11 (cierre-oversize-1811, C6): la vaquera cerrada es una cazadora de tela gruesa, no una camisa (como camisa entraba en looks de oficina); los chalecos
+  // acolchado y de punto no tienen modo; la americana y la chaqueta de un hombre no se cierran sin nada debajo (siguen siendo capa); una camisa abierta, form 3 como mucho
+  const CIERRE = { cerrada: { cardigan: 'jersey', sobrecamisa: 'camisa', chaqueta_vaquera: 'sudadera', americana: 'blusa', chaqueta: 'blusa', cazadora_cuero: 'sudadera', bomber: 'sudadera', forro_polar: 'sudadera', chaqueta_tecnica: 'sudadera', chaqueta_deportiva: 'sudadera', chaleco_acolchado: null, chaleco_punto: null, chaleco_traje: null },
+    abierta: { camisa: 'sobrecamisa', blusa: 'sobrecamisa', sudadera: 'chaqueta_deportiva' } };
+  function cierre(f, p, est, nom, perfil) {
+    const ab = !!p.abrocha, sub = f.subtipo;
+    f.abrochable = (f.cat === 'capa' && f.rol !== 'abrigo' && !['kimono', 'chaleco_acolchado', 'chaleco_punto'].includes(sub)) || f.rol === 'abrigo' || (f.cat === 'arriba' && (sub === 'camisa' || (ab && ['blusa', 'sudadera'].includes(sub)) || (sub === 'sudadera' && /cremallera|\bzip/.test(nom))));
+    if (!f.abrochable) { delete f.cierre; return; }
+    const hombre = perfil?.publico === 'masculino' && ['americana', 'chaqueta'].includes(sub); // la app no le ofrece «Cerrada» (at.js); si la tenía de antes, abierta
+    f.cierre = hombre ? 'abierta' : est.cierre === 'abierta' || est.cierre === 'cerrada' ? est.cierre : f.cat === 'arriba' || (sub === 'chaleco_traje' && f.rol === 'base') ? 'cerrada' : 'abierta';
+    if (f.rol === 'abrigo') return; // un abrigo, cerrado o abierto, es el abrigo
+    const m = CIERRE[f.cierre];
+    if (f.cierre === 'cerrada' && f.cat === 'capa') {
+      if (sub === 'chaleco_traje') { f.rol = 'base'; return; } // como «usoSolo»
+      if (!(sub in m) || !m[sub]) return; // un chaleco acolchado o de punto cerrado sigue yendo encima
+      f.subtipo_real = sub; f.subtipo = m[sub]; f.cat = 'arriba'; f.rol = 'base';
+    } else if (f.cierre === 'abierta' && f.cat === 'arriba' && m[sub]) { f.subtipo_real = sub; f.subtipo = m[sub]; f.cat = 'capa'; f.rol = 'capa_ligera'; if (sub !== 'sudadera') f.form = Math.min(f.form, 3); }
+  }
   const CONTRARIOS = [['minimalista', 'eclectico'], ['oldmoney', 'urbano'], ['glam', 'casual']];
   // los zapatos de muestra de la app (prototipo/app/zapatos/): solo salen si la usuaria no ha subido ninguno
   const ZAPS = [['zapatillas-blancas', 'zapatillas', 'Blanco', 'plano'], ['zapatillas-negras', 'zapatillas', 'Negro', 'plano'], ['botines-negros-planos', 'botines', 'Negro', 'plano'], ['botines-negros-plataforma', 'botines', 'Negro', 'bajo'], ['botines-camel-plataforma', 'botines', 'Camel', 'bajo'], ['botines-negros-tacon', 'botines', 'Negro', 'medio'], ['mocasines-negros', 'mocasines', 'Negro', 'plano'], ['bailarinas-negras', 'bailarinas', 'Negro', 'plano'], ['sandalias-negras-planas', 'sandalias_planas', 'Negro', 'plano'], ['sandalias-marrones-planas', 'sandalias_planas', 'Marrón', 'plano'], ['sandalias-beige-plataforma', 'sandalias_planas', 'Beige', 'bajo'], ['sandalias-negras-tacon', 'sandalias_tacon', 'Negro', 'medio']];
@@ -131,13 +150,23 @@ const Motor = (() => {
     if (f.tacon) f.tacon_num = TACON[f.tacon];
     if ((f.tejido === 'denim' && f.cat === 'abajo') || f.subtipo === 'chaqueta_vaquera') f.color_clase = 'neutro';
     if (f.subtipo === 'chaleco_traje') f.rol = est.usoSolo || perfil.usoSolo?.has?.(p.id) ? 'base' : 'capa_ligera'; // solo cuenta como prenda de arriba si ella lo lleva solo
+    // 18/11 (Sheila, 2755: «si es una prenda abierta sería una capa de una prenda principal, y si es cerrada, solo una prenda principal… la persona la puede ir
+    // cambiando»): lo que se abre entero por delante (botones o cremallera: p.abrocha de la clasificación, o su tipo) tiene f.abrochable y f.cierre, que ella
+    // cambia en la ficha (est.cierre). Cerrada, una capa ligera pasa a prenda principal con el papel de la de arriba que más se le parece; abierta, una camisa o
+    // una sudadera con cremallera pasa a capa. Los abrigos siguen siendo abrigo. Tabla de Moda: CIERRE (equipo/moda/cierre-oversize-1811)
+    cierre(f, p, est, nom, perfil);
+    // 18/11 (Sheila, 2759: «sugerir una camiseta básica o sin mangas debajo de ciertas camisas, sobre todo a los hombres… una opción de “transparenta”»; Moda, C1):
+    // f.transparenta, lo que ella marca en la ficha (detalle «Transparente»); f.fina_clara, una camisa o blusa clara y fina o de lino, que a un hombre se le
+    // sugiere con camiseta debajo aunque no la marque (TR03). Siempre true o false: en las reglas, un campo sin valor hace falsa cualquier condición
+    f.transparenta = (p.detalles || []).includes('Transparente') || /transparen/.test(norm(p.nombre || ''));
+    f.fina_clara = ['camisa', 'blusa'].includes(f.subtipo) && f.valor === 'claro' && (f.grosor === 'fino' || f.tejido === 'lino');
     f.conf_corte = f.conf.corte || 'defecto'; f.conf_tiro = f.conf.tiro || 'defecto';
     f.estilos = est.estilos || [];
     return f;
   }
   const CACHE = new WeakMap();
   function ficha(p, perfil) {
-    const sig = [p.nombre, p.tipo, p.color, p.estacion, p.x, JSON.stringify(p.est || 0), (p.detalles || []).join(), p.manga || '', perfil.usoSolo?.has?.(p.id) ? 1 : 0, p.catM || ''].join('|'), c = CACHE.get(p);
+    const sig = [p.nombre, p.tipo, p.color, p.estacion, p.x, JSON.stringify(p.est || 0), (p.detalles || []).join(), p.manga || '', p.abrocha || '', perfil.usoSolo?.has?.(p.id) ? 1 : 0, p.catM || '', perfil.publico === 'masculino' && p.est?.cierre === 'cerrada' ? 'm' : ''].join('|'), c = CACHE.get(p);
     if (c && c.sig === sig) return c.f;
     const f = inferir(p, perfil); CACHE.set(p, { sig, f }); return f;
   }
@@ -238,10 +267,13 @@ const Motor = (() => {
   function camposLook(l, ctx, pf, hoy) {
     const ps = PIEZAS.map(k => l[k]).filter(Boolean), ropaP = ps.filter(p => !['calzado', 'bolso', 'accesorio'].includes(p._f.cat)), ropa = ropaP.map(p => p._f);
     const prA = l.arriba || l.vestido, A = prA?._f, B = l.abajo?._f, C = l.capa?._f;
-    const forms = ropa.map(f => f.form ?? 3), media = forms.reduce((s, x) => s + x, 0) / (forms.length || 1), fmax = Math.max(...forms), fmin = Math.min(...forms);
+    // 18/11 (Moda, TR01–TR03): la camiseta o el top liso debajo de una camisa o una blusa no se ve: no cuenta en el arreglo del look y abriga como una camiseta interior
+    // (unos 0,08 clo, ISO 9920); si no, una camisa de lino con su camiseta en la oficina perdía O40 y se salía del rango de clima
+    const interior = !!(l.base_interior && l.arriba && ['camisa', 'blusa'].includes(l.arriba._f.subtipo) && BASE_LISA.includes(l.base_interior._f.subtipo));
+    const forms = ropa.filter(f => !(interior && f === l.base_interior._f)).map(f => f.form ?? 3), media = forms.reduce((s, x) => s + x, 0) / (forms.length || 1), fmax = Math.max(...forms), fmin = Math.min(...forms);
     const acentos = [...new Set(ropa.filter(f => !['neutro', 'neutro_suave', 'estampado'].includes(f.color_clase)).map(f => f.color))];
     const estamp = ropaP.filter(p => p._f.estampado !== 'liso'), hayConjunto = estamp.length === 2 && (estamp[0]._f.conjunto === estamp[1].id || estamp[1]._f.conjunto === estamp[0].id);
-    const clo = .2 + ps.reduce((s, p) => s + (p._f.clo || 0), 0), fuera = clo < ctx.clo_min ? ctx.clo_min - clo : clo > ctx.clo_max ? clo - ctx.clo_max : 0;
+    const clo = .2 + ps.reduce((s, p) => s + (interior && p === l.base_interior ? Math.min(p._f.clo || 0, .08) : p._f.clo || 0), 0), fuera = clo < ctx.clo_min ? ctx.clo_min - clo : clo > ctx.clo_max ? clo - ctx.clo_max : 0;
     const claros = c => R.color.colores[c]?.valor === 'claro';
     const pares = acentos.flatMap((x, i) => acentos.slice(i + 1).map(y => [x, y])), esPar = (lista, a, b) => lista.some(q => (q[0] === a && q[1] === b) || (q[0] === b && q[1] === a));
     const colores = [...new Set(ropa.map(f => f.color))];
@@ -253,7 +285,8 @@ const Motor = (() => {
     const texturas = new Set([A, B, C].filter(Boolean).map(f => f.tejido).filter(x => x && x !== 'desconocido'));
     const denim = ropa.filter(f => f.tejido === 'denim');
     let bases = (l.arriba && l.arriba._f.rol === 'base') ? 1 : 0;
-    if (l.base_interior && l.base_interior._f.rol === 'base' && !(l.arriba && (R.grupos['@punto'].includes(l.arriba._f.subtipo) || ['cardigan', 'sudadera', 'chaleco_punto', 'chaleco_traje'].includes(l.arriba._f.subtipo)))) bases++;
+    if (l.base_interior && l.base_interior._f.rol === 'base' && !(l.arriba && (R.grupos['@punto'].includes(l.arriba._f.subtipo) || ['cardigan', 'sudadera', 'chaleco_punto', 'chaleco_traje'].includes(l.arriba._f.subtipo)
+      || (['camisa', 'blusa'].includes(l.arriba._f.subtipo) && BASE_LISA.includes(l.base_interior._f.subtipo))))) bases++; // Moda 18/11 (C3): la camiseta bajo la camisa que transparenta
     const ids = ropaP.map(p => p.id), parK = []; for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) if (!ps[i].muestra && !ps[j].muestra) parK.push([ps[i].id, ps[j].id].sort().join('|'));
     // 14/11 (Gabriela, 2293: «Diario, salen siempre las mismas combinaciones, no veo cosas diferentes»): un look descartado apunta TODAS sus parejas, también
     // las del bolso y el calzado, y con tres descartes la pareja quedaba vetada para siempre: su bolso marrón o la camisa blanca dejaban fuera 1.662 de 1.697 looks.
@@ -294,7 +327,7 @@ const Motor = (() => {
       inspo_estilos: pf.inspo ? (l.formula?.estilos || []).slice(0, 2).filter(e => pf.inspo.estilos[e]).length : 0, inspo_colores_pct: pf.inspo ? colores.filter(c => pf.inspo.colores.has(c)).length / (colores.length || 1) : 0,
       inspo_form_dif: pf.inspo?.form != null ? Math.abs(media - pf.inspo.form) : 0,
       calib_estilos: pf.calib ? (l.formula?.estilos || []).slice(0, 2).reduce((s, e, i) => s + Math.max(-2, Math.min(2, pf.calib.est[e] || 0)) * (i ? .5 : 1), 0) : 0,
-      calib_formula: pf.calib && l.formula?.id ? Math.max(-2, Math.min(2, pf.calib.f[l.formula.id] || 0)) : 0, ids };
+      calib_formula: pf.calib && l.formula?.id ? Math.max(-2, Math.min(2, pf.calib.f[l.formula.id] || 0)) : 0, sin_base: !l.base_interior, ids }; // sin_base: Moda 18/11 (C2), TR01–TR03
   }
   function entorno(l, campos, ctx, pf) {
     const e = { look: campos, ctx, perfil: pf, formula: l.formula || {} };
@@ -488,6 +521,22 @@ const Motor = (() => {
   // Moda 17/11 (Z9): debajo del abrigo, lo de arriba de manga larga no tiene mínimo propio (un jersey de entretiempo bajo un abrigo de lana a −2 °C): lo decide el clo del conjunto (V11)
   const vaHoy = (p, ctx) => { const f = p._f, fr = (ctx.frio_capas && (f.cat === 'arriba' || f.cat === 'abajo')) || (ctx.bajo_techo && f.cat === 'capa') ? 9 : 3; if (ctx.frio_capas && f.cat === 'arriba' && f.manga === 'larga' && !(f.tmax != null && ctx.t_ref > f.tmax + 3)) return true; return !((f.tmin != null && ctx.t_ref < f.tmin - fr) || (f.tmax != null && (ctx.t_ref > f.tmax + 3 || (ctx.t_max ?? ctx.t_ref) > f.tmax + (f.cat === 'capa' ? 7 : 6)))); };
   const BLUSA_NO_DEBAJO = /volant|encaje|transparen|abullon|peplum|campana|acampanad|fruncid|drapead|cruzad|asimetric|lentejuel|brillo|saten|un hombro/;
+  // 18/11 (Sheila, 2759; Moda, cierre-oversize-1811, C4): lo que transparenta lleva debajo algo liso de su clóset. Mujer: camiseta, de tirantes, top o body, en la
+  // oficina blanco o negro (nunca nude: Corporette); hombre: camiseta, la de tirantes solo en Diario y por dentro (Real Men Real Style; Gentleman's Gazette la
+  // desaconseja bajo camisa de vestir). Obligatorio en la oficina (TR01); en lo demás, opcional, y TR02 y TR03 puntúan. A una mujer, de noche o en un evento, no se le
+  // pone: la transparencia puede ser el diseño. Sin base en el clóset, el look sale sin ella (o no sale en la oficina) y no se inventa nada (N6)
+  const BASE_LISA = ['camiseta', 'camiseta_tirantes', 'top', 'body'];
+  function baseTransparencia(par, ents, ctx, pf) {
+    const fA = par.arriba?._f; if (!fA || fA.cat !== 'arriba' || ['Viaje', 'Deporte'].includes(ctx.ocasion)) return null;
+    const hombre = pf.publico === 'masculino', trans = fA.transparenta, fina = !trans && hombre && fA.fina_clara && ['Oficina', 'Evento', 'Noche'].includes(ctx.ocasion);
+    if (!trans && !fina) return null;
+    if (trans && !hombre && ['Noche', 'Evento'].includes(ctx.ocasion)) return null;
+    const ofi = ctx.ocasion === 'Oficina', tipos = hombre ? ['camiseta', ...(ctx.ocasion === 'Diario' && par.como === 'por_dentro' ? ['camiseta_tirantes'] : [])] : BASE_LISA;
+    const pool = ents.filter(p => { const f = p._f; return p !== par.arriba && f.cat === 'arriba' && tipos.includes(f.subtipo) && !f.subtipo_real && f.estampado === 'liso' && f.grosor !== 'grueso' && f.largo !== 'crop'
+      && !f.hombros && !f.transparenta && !soloDeporte(f) && !BLUSA_NO_DEBAJO.test(norm(p.p.nombre || '')) && !(f.tmax != null && ctx.t_ref > f.tmax + 3) && !(ofi && !hombre && f.color === 'Nude'); });
+    const orden = p => (ofi && !hombre && ['Blanco', 'Negro'].includes(p._f.color) ? 2 : 0) + (['neutro', 'neutro_suave'].includes(p._f.color_clase) ? 1 : 0) + (p._f.color === fA.color ? .5 : 0);
+    return { rol: 'base_interior', tipos, opcional: !(trans && ofi), virtual: pool.sort((a, b) => orden(b) - orden(a)).slice(0, 2) };
+  }
   function rellenar(formula, ents, zapatos, ctx, pf, hoy, cacheP) {
     const dep = formula.ocasiones.includes('Deporte');
     // 15/11 (Gabriela, 2367: «en las bodas y las ceremonias, ¿por qué no pones vestido largo? Yo tengo vestido largo»): en un plan de etiqueta (cóctel, boda,
@@ -495,7 +544,7 @@ const Motor = (() => {
     const bajoTecho = !!ctx.bajo_techo, dentro = { ...ctx, t_ref: Math.max(ctx.t_ref, 20) };
     // 16/11 (capas): la prenda de debajo va bajo un jersey o un vestido y con abrigo, así que su mínimo de temperatura no cuenta (una blusa es de 14° si va sola);
     // solo que no sea de calor (tmax)
-    const paraDebajo = formula.huecos.some(h => h.rol === 'base_interior') ? ents.filter(p => p._f.cat === 'arriba' && !soloDeporte(p._f) && !(p._f.tmax != null && ctx.t_ref > p._f.tmax + 3)
+    const paraDebajo = formula.huecos.some(h => h.rol === 'base_interior') ? ents.filter(p => p._f.cat === 'arriba' && !p._f.subtipo_real && !soloDeporte(p._f) && !(p._f.tmax != null && ctx.t_ref > p._f.tmax + 3)
       && !(p._f.tejido === 'lino' && ctx.t_ref < (p._f.tmin ?? 20) - 6)) : []; // 17/11: el lino es de verano: debajo de otras capas, sí en entretiempo, con frío no (clóset de demostración de hombre, 7°)
     const ents0 = ents;
     ents = ents.filter(p => (vaHoy(p, ctx) || (bajoTecho && p._f.cat === 'vestido' && p._f.form >= 3 && vaHoy(p, dentro))) && (dep ? aptoDeporte(p) : !soloDeporte(p._f)));
@@ -523,7 +572,7 @@ const Motor = (() => {
       const par = { ...par0, formula }; delete par.n; par.como = comoDe(formula, par);
       let looks = [par], faltaHueco = null;
       for (const r of ['capa', 'base_interior', 'bano']) {
-        const [hc] = H(r); if (!hc) continue;
+        const [hc] = r === 'base_interior' && !H(r).length ? [baseTransparencia(par, ents0, ctx, pf)] : H(r); if (!hc) continue;
         // lo de debajo: una camisa que asoma, o una prenda neutra si de verdad hace frío (una camiseta roja bajo un jersey de rayas no aporta nada)
         // y lo de encima tiene que admitirlo: con mangas, sin hombros al aire y que sea de punto, sudadera o chaleco (07/11, Gabriela: el jersey de hombros abiertos con una camisa debajo «no tiene sentido»)
         const fA = par.arriba?._f, encima = !fA || (!fA.hombros && (String(fA.subtipo).startsWith('chaleco') || !['sin_mangas', 'tirantes'].includes(fA.manga)) && (R.grupos['@punto'].includes(fA.subtipo) || ['cardigan', 'sudadera', 'chaleco_punto', 'chaleco_traje', 'americana'].includes(fA.subtipo))); // 18/11: la americana de arriba (H-01, el traje bajo el abrigo)
@@ -539,7 +588,7 @@ const Motor = (() => {
         const cuelloArriba = fA?.subtipo === 'jersey_cuello_alto';
         const debajo = p => r !== 'base_interior' || (encima && p._f.largo !== 'crop' && !(cuelloArriba && ['camisa', 'blusa', 'polo'].includes(p._f.subtipo)) && (bajoOk(p) || (ents.includes(p) && !p._f.hombros && !BLUSA_NO_DEBAJO.test(norm(p.p.nombre || ''))
           && ['T5', 'T6', 'T7'].includes(ctx.tramo.id) && ['neutro', 'neutro_suave'].includes(p._f.color_clase))));
-        const cs = cands(hc, r === 'base_interior' ? paraDebajo : ents).filter(p => !PIEZAS.some(k => par[k] === p) && debajo(p)).sort((a, b) => cercania(b, par, ctx) + AF.capa * afin(b) - cercania(a, par, ctx) - AF.capa * afin(a)).slice(0, r === 'bano' ? 4 : 2); // del bañador, hasta 4: decide el color
+        const cs = hc.virtual || cands(hc, r === 'base_interior' ? paraDebajo : ents).filter(p => !PIEZAS.some(k => par[k] === p) && debajo(p)).sort((a, b) => cercania(b, par, ctx) + AF.capa * afin(b) - cercania(a, par, ctx) - AF.capa * afin(a)).slice(0, r === 'bano' ? 4 : 2); // del bañador, hasta 4: decide el color
         if (!cs.length && !hc.opcional) { if (r === 'bano') { looks = []; break; } faltaHueco = { rol: r, h: hc }; continue; } // sin bañador no hay look de playa
         looks = looks.flatMap(l => cs.map(c => ({ ...l, [r]: c })).concat(hc.opcional ? [l] : []));
       }

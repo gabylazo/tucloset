@@ -254,7 +254,9 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .lst li .status { grid-column: 2; grid-row: 1 / span 2; }
 .cuerpo { padding: 0 0 16px; font-size: .9rem; overflow-x: auto; }
 .cuerpo h1, .cuerpo h2 { font-size: 1.05rem; margin: 16px 0 6px; } .cuerpo h3, .cuerpo h4 { font-size: .95rem; margin: 14px 0 4px; }
-.cuerpo p, .cuerpo li { max-width: 70ch; } .cuerpo ul, .cuerpo ol { padding-left: 20px; }
+.cuerpo p, .cuerpo li { max-width: 70ch; }
+/* 18/11 (Gabriela: «todas las redacciones de texto, con alineación justificada»): los documentos y los textos de «Lo que os toca», justificados; tablas, cifras y etiquetas, no */
+.cuerpo p, .cuerpo li, .toca p { text-align: justify; -webkit-hyphens: auto; hyphens: auto; } .cuerpo ul, .cuerpo ol { padding-left: 20px; }
 .cuerpo th, .cuerpo td { white-space: normal; text-align: left; vertical-align: top; }
 
 /* infraestructura por fase */
