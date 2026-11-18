@@ -120,7 +120,7 @@ function traducir() {
   document.querySelectorAll('[data-ph]').forEach(el => { const v = T[el.dataset.ph]; if (v) el.placeholder = l === 'en' ? v[1] : v[0]; });
   document.querySelectorAll('[data-idioma]').forEach(b => b.classList.toggle('activo', b.dataset.idioma === l));
 }
-const tipoNombre = tp => ({ Arriba: ['Tops', 'Tops'], Abajo: ['Pantalones y faldas', 'Trousers and skirts'], // 0.77 (Gabriela: «una de arriba, una de abajo: esto es feo decirlo así»)
+const tipoNombre = tp => ({ Arriba: ['Tops', 'Tops'], Abajo: E.perfil?.ropa === 'hombre' ? ['Pantalones', 'Trousers'] : ['Pantalones y faldas', 'Trousers and skirts'], // 0.77 (Gabriela: «una de arriba, una de abajo: esto es feo decirlo así»)
   Vestidos: ['Vestidos', 'Dresses'], Abrigo: ['Abrigo', 'Outerwear'], Calzado: ['Calzado', 'Shoes'], Bolsos: ['Bolsos', 'Bags'], Accesorios: ['Accesorios', 'Accessories'], Todo: ['Todo', 'All'] }[tp] || [tp, tp])[idioma() === 'en' ? 1 : 0];
 const estNombre = e => ({ 'Todo el año': ['Todo el año', 'All year'], Verano: ['Verano', 'Summer'], Entretiempo: ['Entretiempo', 'In-between'], Invierno: ['Invierno', 'Winter'] }[e] || [e, e])[idioma() === 'en' ? 1 : 0];
 const ocNombre = o => ({ Diario: ['Diario', 'Everyday'], Oficina: ['Oficina', 'Office'], Noche: ['Noche', 'Night'], Deporte: ['Deporte', 'Sport'], Evento: ['Evento', 'Event'], Viaje: ['Viaje', 'Travel'], Playa: ['Playa', 'Beach'] }[o] || [o, o])[idioma() === 'en' ? 1 : 0];
@@ -172,7 +172,7 @@ function pintarMisColores() {
   const es = idioma() === 'en' ? 1 : 0, c = E.perfil?.colores || {}, r = c.r || {}, listo = PREG_COLOR.every(([k]) => r[k]);
   const est = listo ? estacionColor(r) : null, e = EST_COLOR[est];
   const mios = e ? [...new Set(E.prendas.filter(p => e.si.includes(p.color) && ['Arriba', 'Vestidos', 'Abrigo'].includes(p.tipo)).map(p => p.id))].slice(0, 6) : [];
-  $('co-raiz').innerHTML = `<p class="co-sub">${t('Cuatro preguntas para saber qué colores te favorecen cerca de la cara. Mírate a la luz del día, sin maquillaje fuerte.', 'Four questions to find the colours that suit you near your face. Look in daylight, without heavy make-up.')}</p>`
+  $('co-raiz').innerHTML = `<p class="co-sub">${E.perfil?.ropa === 'hombre' ? t('Cuatro preguntas para saber qué colores te favorecen cerca de la cara. Mírate a la luz del día.', 'Four questions to find the colours that suit you near your face. Look at yourself in daylight.') : t('Cuatro preguntas para saber qué colores te favorecen cerca de la cara. Mírate a la luz del día, sin maquillaje fuerte.', 'Four questions to find the colours that suit you near your face. Look in daylight, without heavy make-up.')}</p>`
     + PREG_COLOR.map(([k, q, ops]) => `<div class="co-preg"><b>${q[es]}</b><div class="co-ops">${ops.map(([v, a, b]) => `<button class="${r[k] === v ? 'on' : ''}" aria-pressed="${r[k] === v}" data-copreg="${k}" data-coval="${v}">${es ? b : a}</button>`).join('')}</div></div>`).join('')
     // 06/11: con la foto de la cara, las respuestas afinan el diagnóstico (no dan otra estación aparte)
     + (E.perfil?.selfie && E.perfil?.diag?.color ? (listo ? `<div class="co-res dx-volver"><p>${t('Tus respuestas ya cuentan en tu diagnóstico.', 'Your answers now count in your analysis.')}</p><button class="boton" data-diag="ver-color">${t('Ver mis colores', 'See my colours')}</button></div>` : '') : e ? `<div class="co-res"><span class="mini-et">${t('Tu estación', 'Your season')}</span><h2>${e.n[es]}</h2><p>${e.d[es]}</p>
@@ -1969,7 +1969,7 @@ function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin me
   if (!pr) {
     const hay = activas().length;
     const rechazos = E.perfil?.gustos?.fuera?.length || (E.perfil?.gustos?.hoy?.d === hoyISO() && E.perfil.gustos.hoy.k.length);
-    pant.innerHTML = cab + `<div class="hz-vacio">${hay && rechazos ? t('Por hoy no me quedan combinaciones nuevas con tu ropa. Sube más prendas y te propongo otras.', 'No new combinations left for today. Upload more garments and I’ll suggest others.') : hay ? t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.') : t('Tu conjunto de hoy aparecerá aquí en cuanto tengas tres prendas: una de arriba, una de abajo y unos zapatos.', 'Your outfit of the day will appear here once you have three garments: a top, a bottom and shoes.')}
+    pant.innerHTML = cab + `<div class="hz-vacio">${hay && rechazos ? t('Por hoy no me quedan combinaciones nuevas con tu ropa. Sube más prendas y te propongo otras.', 'No new combinations left for today. Upload more garments and I’ll suggest others.') : hay ? (E.perfil?.ropa === 'hombre' ? t('Me falta una parte de arriba y una de abajo para este tiempo.', 'I need a top and a bottom for this weather.') : t('Me falta una parte de arriba y una de abajo, o un vestido, para este tiempo.', 'I need a top and a bottom, or a dress, for this weather.')) : t('Tu conjunto de hoy aparecerá aquí en cuanto tengas tres prendas: una de arriba, una de abajo y unos zapatos.', 'Your outfit of the day will appear here once you have three garments: a top, a bottom and shoes.')}
       <button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button>${hay || PUBLICA ? '' : `<button class="hz-bt" id="hoy-ejemplo" style="border:0;margin-top:4px">${t('Ver un ejemplo', 'See an example')}</button>`}</div>`;
     const ej = $('hoy-ejemplo'); if (ej) ej.onclick = cargarEjemplo;
     return;
@@ -2252,7 +2252,9 @@ let catPor = p => esBano(p) ? 'Baño' : null; // y desde el 03/11 clasifica todo
 const CAT_ES = { 'Baño': 'Ropa de baño' }; // los nombres en español que cambia el diseño nuevo (Tops → Tops y bodies…)
 const catDe = p => catPor(p) || (p.tipo === 'Abajo' ? (/falda|skirt/i.test(p.nombre) ? 'Faldas' : 'Pantalones') : p.tipo === 'Arriba' ? catArriba(p) : ({ Abrigo: 'Abrigos', Vestidos: 'Vestidos', Calzado: 'Zapatos', Bolsos: 'Bolsos', Accesorios: 'Accesorios' }[p.tipo] || p.tipo));
 const CATS_ORDEN = ['Tops', 'Pantalones', 'Faldas', 'Vestidos', 'Baño', 'Abrigos', 'Zapatos', 'Bolsos', 'Accesorios'];
-const catTxt = c => idioma() === 'en' ? ({ Todo: 'All', Tops: 'Tops', Camisetas: 'T-shirts', 'Camisas y blusas': 'Shirts & blouses', Punto: 'Knitwear', Pantalones: 'Trousers', Faldas: 'Skirts', Vestidos: 'Dresses', Abrigos: 'Outerwear', 'Baño': 'Swimwear', Zapatos: 'Shoes', Bolsos: 'Bags', Accesorios: 'Accessories', Sudaderas: 'Sweatshirts', Vaqueros: 'Jeans', Shorts: 'Shorts' }[c] || c) : (CAT_ES[c] || c);
+// 18/11 (auditoría de hombre): con ropa de hombre, sin «blusas», «bodies» ni «faldas» en los nombres de las categorías
+const CAT_H = { 'Camisas y blusas': ['Camisas', 'Shirts'], Tops: ['Tops', 'Tops'], Bolsos: ['Mochilas y bolsos', 'Bags'], Punto: ['Jerséis y punto', 'Jumpers & knitwear'] }; // Punto: Sheila, 2817
+const catTxt = c => E.perfil?.ropa === 'hombre' && CAT_H[c] ? CAT_H[c][idioma() === 'en' ? 1 : 0] : idioma() === 'en' ? ({ Todo: 'All', Tops: 'Tops', Camisetas: 'T-shirts', 'Camisas y blusas': 'Shirts & blouses', Punto: 'Knitwear', Pantalones: 'Trousers', Faldas: 'Skirts', Vestidos: 'Dresses', Abrigos: 'Outerwear', 'Baño': 'Swimwear', Zapatos: 'Shoes', Bolsos: 'Bags', Accesorios: 'Accessories', Sudaderas: 'Sweatshirts', Vaqueros: 'Jeans', Shorts: 'Shorts' }[c] || c) : (CAT_ES[c] || c);
 E.f = { ocasion: [], estacion: [], color: [], uso: [], estado: [] };
 const FILTROS = () => [
   ['ocasion', t('Ocasión', 'Occasion'), OCASIONES.map(o => [o, ocNombre(o)])],
@@ -2658,8 +2660,10 @@ const SUBCATS = {
   Accesorios: ['a belt', 'a scarf', 'a hat', 'a cap', 'a sunglasses', 'sunglasses', 'a necklace', 'earrings', 'a bracelet', 'a watch', 'gloves'].filter(x => NOM_X[x])
 };
 const subDe = (cat, x, nombre) => SUBCATS[cat]?.includes(x) ? x : SUBCATS[cat]?.find(k => (nombre || '').toLowerCase().startsWith(NOM_X[k][0].toLowerCase() + ' ')) || '';
-const opsCat = sel => CATS_ORDEN.map(c => `<option value="${c}"${c === sel ? ' selected' : ''}>${catTxt(c)}</option>`).join('');
-const opsSub = (cat, sel) => `<option value="">${t('Elige…', 'Choose…')}</option>` + (SUBCATS[cat] || []).map(k => `<option value="${k}"${k === sel ? ' selected' : ''}>${NOM_X[k][idioma() === 'en' ? 1 : 0]}</option>`).join('');
+const opsCat = sel => CATS_ORDEN.filter(c => c === sel || !(E.perfil?.ropa === 'hombre' && ['Faldas', 'Vestidos'].includes(c))).map(c => `<option value="${c}"${c === sel ? ' selected' : ''}>${catTxt(c)}</option>`).join('');
+// 18/11 (auditoría de hombre): con ropa de hombre, el tipo sin las prendas de mujer (blusa, crop top, body, tacones, bailarinas, clutch…), salvo la que ya tenga
+const SUB_MUJER = new Set(['a blouse', 'a crop top', 'a halter bodysuit', 'a peplum top', 'a sleeveless top', 'wide leg pants', 'leggings', 'a bikini', 'a pair of knee high boots', 'a pair of high heels', 'a pair of ballet flats', 'a handbag', 'a clutch bag', 'a necklace', 'earrings']);
+const opsSub = (cat, sel) => `<option value="">${t('Elige…', 'Choose…')}</option>` + (SUBCATS[cat] || []).filter(k => k === sel || !(E.perfil?.ropa === 'hombre' && SUB_MUJER.has(k))).map(k => `<option value="${k}"${k === sel ? ' selected' : ''}>${NOM_X[k][idioma() === 'en' ? 1 : 0]}</option>`).join('');
 function adjColor(c, f, pl) {
   if (INVARIABLE.test(c)) return c.toLowerCase(); // «falda crema», «vestidos verde menta» (antes «cremas», «burdeoses»)
   let a = c.toLowerCase(); if (f && /o$/.test(a)) a = a.slice(0, -1) + 'a';
@@ -3379,7 +3383,7 @@ function pintarLooks() {
     : `<span class="lk-oc">${ocNombre(c.ocasion || 'Diario')}</span>${zap(c)}<span class="lk-us">${usosTxt(c)}</span>`;
   const abre = c => ideas ? '' : ` data-look="${c.id}"`;
   let cuerpo;
-  if (!lista.length) cuerpo = ideas ? `<div class="hz-vacio lk-vacio">${t('Para proponerte looks necesito más prendas de esta estación: por ejemplo, un top y un pantalón o una falda, o un vestido.', 'To suggest looks I need more garments for this season: for example a top and trousers or a skirt, or a dress.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button></div>`
+  if (!lista.length) cuerpo = ideas ? `<div class="hz-vacio lk-vacio">${(E.perfil?.ropa === 'hombre' ? t('Para proponerte looks necesito más prendas de esta estación: por ejemplo, una camiseta o una camisa y un pantalón.', 'To suggest looks I need more garments for this season: for example a T-shirt or a shirt and trousers.') : t('Para proponerte looks necesito más prendas de esta estación: por ejemplo, un top y un pantalón o una falda, o un vestido.', 'To suggest looks I need more garments for this season: for example a top and trousers or a skirt, or a dress.'))}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button></div>`
     : `<div class="hz-vacio lk-vacio">${t('Aún no tienes looks guardados. Mira las ideas para hoy o crea uno con tu ropa.', 'No saved looks yet. See today’s ideas or create one with your clothes.')}<button class="hz-bt" data-lktab="ideas">${t('Ideas para hoy', 'Ideas for today')}</button></div>`;
   else if (v === '2') { E.lkI = Math.min(E.lkI, lista.length - 1); const c = lista[E.lkI];
     cuerpo = `<div class="lk-uno"><div class="lk-fig"${abre(c)}>${figLook(c)}</div><div class="lk-nav"><button data-lkmov="-1" aria-label="${t('Anterior', 'Previous')}" ${E.lkI ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><span>${E.lkI + 1} / ${lista.length}</span><button data-lkmov="1" aria-label="${t('Siguiente', 'Next')}" ${E.lkI < lista.length - 1 ? '' : 'disabled'}><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button></div>${pie(c)}</div>`; }
@@ -3895,14 +3899,16 @@ async function hacerDiagnostico(estado) {
   }
   // 06/11 (Gabriela: «te debe primero preguntar características físicas… y las fotos son para clasificar tu silueta»): con pecho, cintura y cadera manda la cinta
   // (es más exacta); la foto la confirma y da el largo de las piernas si salen los pies
+  // 18/11 (auditoría de hombre): con ropa de hombre, los tipos, consejos y umbrales de hombre de Moda (`silueta_hombre`); antes le salían escote barco y pantalón palazzo
+  const hom = pf.ropa === 'hombre' && !!R.silueta_hombre, RS = hom ? { ...R, silueta: R.silueta_hombre } : R;
   const md = pf.medidas || {}, cinta = md.pecho > 0 && md.cintura > 0 && md.cadera > 0; let si = null;
   if (pf.cuerpo) {
     estado(t('Midiendo tu silueta…', 'Measuring your figure…')); const b = await D.analizarCuerpo(pf.cuerpo); res.avisos.cuerpo = b.prob.map(p => ({ k: p.k, fatal: p.fatal }));
-    if (b.ok) si = { ...D.silueta(b, R), fuente: 'foto' };
+    if (b.ok) si = { ...D.silueta(b, RS), fuente: 'foto' };
   }
-  if (cinta) { const sc = D.siluetaCinta(md, R); si = { ...sc, prop: si?.prop || null, ratios: { ...(si?.ratios || {}), ...sc.ratios }, fuente: 'medidas', foto: si?.k || null }; if (res.avisos.cuerpo) res.avisos.cuerpo = res.avisos.cuerpo.filter(p => !p.fatal); }
-  if (si) { const T = R.silueta.tipos[si.k], Pp = si.prop ? R.silueta.proporciones[si.prop] : null;
-    res.cuerpo = { k: si.k, prop: si.prop, ratios: si.ratios, confianza: si.confianza, fuente: si.fuente, foto: si.foto || null, altura: md.altura || null, n: T.n, d: T.d, favorece: T.favorece, evitar: T.evitar, propN: Pp ? Pp.n : null, propD: Pp ? Pp.d : null, puntos: [...T.puntos, ...(Pp ? Pp.puntos : [])] }; }
+  if (cinta) { const sc = D.siluetaCinta(md, RS); si = { ...sc, prop: si?.prop || null, ratios: { ...(si?.ratios || {}), ...sc.ratios }, fuente: 'medidas', foto: si?.k || null }; if (res.avisos.cuerpo) res.avisos.cuerpo = res.avisos.cuerpo.filter(p => !p.fatal); }
+  if (si) { const T = RS.silueta.tipos[si.k], Pp = si.prop ? RS.silueta.proporciones[si.prop] : null;
+    res.cuerpo = { k: si.k, h: hom || undefined, prop: si.prop, ratios: si.ratios, confianza: si.confianza, fuente: si.fuente, foto: si.foto || null, altura: md.altura || null, n: T.n, d: T.d, favorece: T.favorece, evitar: T.evitar, propN: Pp ? Pp.n : null, propD: Pp ? Pp.d : null, puntos: [...T.puntos, ...(Pp ? Pp.puntos : [])] }; }
   E.perfil = E.perfil || {}; const ant = E.perfil.diag || {};
   E.perfil.diag = { ...ant, ...res, color: res.color || (pf.selfie ? null : ant.color), cuerpo: res.cuerpo || (pf.cuerpo || cinta ? null : ant.cuerpo) };
   if (res.color) E.perfil.colores = { ...(E.perfil.colores || { r: {} }), est: res.color.familia, sub: res.color.k, fuente: 'foto' };
@@ -3928,7 +3934,7 @@ function carasGuardadas(c) {
 //  4, 06/11: en la silueta ya no cuentan el brazo que sujeta el móvil, los bolsos ni la mano en la cadera;
 //  5, 06/11: con la 4 Gabriela seguía saliendo con hombros más anchos que la cadera; la cadera se mide más abajo y sin recortar las caderas anchas)
 const DIAG_V = 5;
-const diagPendiente = () => { if (!permiso('diag')) return false; const d = E.perfil?.diag, f = d?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo) || (a.med && a.med !== f.med) || (a.selfie && f.resp != null && a.resp !== f.resp) || ((a.selfie || a.cuerpo || a.med) && (d?.v || 1) < DIAG_V)); };
+const diagPendiente = () => { if (!permiso('diag')) return false; const d = E.perfil?.diag, f = d?.fotos || {}, a = firmaFotos(); return !!((a.selfie && a.selfie !== f.selfie) || (a.cuerpo && a.cuerpo !== f.cuerpo) || (a.med && a.med !== f.med) || (a.selfie && f.resp != null && a.resp !== f.resp) || ((a.selfie || a.cuerpo || a.med) && (d?.v || 1) < DIAG_V) || (!!d?.cuerpo && !!d.cuerpo.h !== (E.perfil?.ropa === 'hombre'))); }; // 18/11: si cambia la ropa (de mujer a hombre o al revés), la silueta se vuelve a sacar
 let diagCorriendo = null, diagFallo = 0;
 const diagAuto = () => diagCorriendo || (diagCorriendo = hacerDiagnostico(() => { }).catch(() => { diagFallo++; return null; }).finally(() => { diagCorriendo = null; }));
 // 10/11: si tras los tres intentos sigue pendiente (el análisis terminó sin resultado y sin error), cuenta como fallo. Si no, Yo y Tu tipo de cuerpo volvían a
@@ -4763,20 +4769,20 @@ document.addEventListener('click', async e => {
 
 /* ---------- tu estilo (0.36, 22/10, Sheila): el perfil lleva uno o dos estilos y los looks se ordenan según ellos.
    Los seis nombres son los de Sheila. Cada estilo suma o resta a la puntuación de puntuar(); no quita looks, los ordena. ---------- */
-const ESTILOS = [ // 0.52 (22/10): los 13 estilos de la Dirección de Moda, aprobados por Gabriela («sí a todos»); diseño C, muestras de color («me gusta con las paletas de colores»). b = reglas de puntos que usa mientras se programan las suyas (orden de Moda: los estilos van al final)
+const ESTILOS = [ // dh (18/11, Sheila, 2819): la descripción con ropa de hombre, sin tacones, tops ni vestidos. 0.52 (22/10): los 13 estilos de la Dirección de Moda, aprobados por Gabriela («sí a todos»); diseño C, muestras de color («me gusta con las paletas de colores»). b = reglas de puntos que usa mientras se programan las suyas (orden de Moda: los estilos van al final)
   { k: 'oldmoney', f: 0, n: ['Old money', 'Old money'], d: ['camel, tejidos nobles, sin logos', 'camel, fine fabrics, no logos'], c: ['#f4ecdf', '#c8a77c', '#ffffff', '#24324d'], b: ['basico', 'formal'] },
   { k: 'clasico', f: 0, n: ['Clásico', 'Classic'], d: ['americana, camisa, bien cortado', 'blazer, shirt, well cut'], c: ['#24324d', '#ffffff', '#8d8f93', '#1f1f1f'], b: ['formal'] },
   { k: 'minimalista', f: 0, n: ['Minimalista', 'Minimalist'], d: ['neutros, líneas limpias, poco', 'neutrals, clean lines, less'], c: ['#ffffff', '#e8e2d8', '#9a9a96', '#1f1f1f'], b: ['basico'] },
   { k: 'frances', f: 0, n: ['Francés', 'French'], d: ['rayas, vaquero, sin esfuerzo', 'stripes, denim, effortless'], c: ['#ffffff', '#24324d', '#b3202a', '#6f8fb5'], b: ['basico', 'normal'] },
   { k: 'casual', f: 1, n: ['Casual', 'Casual'], d: ['vaqueros, punto, zapatillas', 'jeans, knits, trainers'], c: ['#6f8fb5', '#efe6d6', '#9a9a96', '#ffffff'], b: ['normal'] },
-  { k: 'deportivo', f: 1, n: ['Deportivo chic', 'Athleisure'], d: ['mallas, sudadera, americana', 'leggings, sweatshirt, blazer'], c: ['#1f1f1f', '#e8e2d8', '#9a9a96', '#ffffff'], b: ['normal'] },
+  { k: 'deportivo', f: 1, n: ['Deportivo chic', 'Athleisure'], d: ['mallas, sudadera, americana', 'leggings, sweatshirt, blazer'], dh: ['sudadera, jogger, zapatillas limpias', 'sweatshirt, joggers, clean trainers'], c: ['#1f1f1f', '#e8e2d8', '#9a9a96', '#ffffff'], b: ['normal'] },
   { k: 'urbano', f: 1, n: ['Urbano', 'Streetwear'], d: ['holgado, sudadera, actitud', 'loose, hoodie, attitude'], c: ['#1f1f1f', '#3e5a3a', '#6f8fb5', '#c0c0c8'], b: ['normal'] },
-  { k: 'rock', f: 2, n: ['Rock', 'Rock'], d: ['negro, cuero, botas', 'black, leather, boots'], c: ['#1f1f1f', '#3a3a3a', '#c0c0c8', '#7a1f24'], b: ['atrevido'] },
-  { k: 'glam', f: 2, n: ['Glam', 'Glam'], d: ['brillo, tacón, noche', 'shine, heels, night'], c: ['#1f1f1f', '#c9a24b', '#b3202a', '#c0c0c8'], b: ['atrevido'] },
-  { k: 'retro', f: 2, n: ['Retro', 'Retro'], d: ['años 2000, color, top corto', 'the 2000s, colour, crop top'], c: ['#e3a6a8', '#6f8fb5', '#f2c230', '#ffffff'], b: ['extravagante'] },
+  { k: 'rock', f: 2, n: ['Rock', 'Rock'], d: ['negro, cuero, botas', 'black, leather, boots'], dh: ['negro, cuero, cazadora', 'black, leather, jacket'], c: ['#1f1f1f', '#3a3a3a', '#c0c0c8', '#7a1f24'], b: ['atrevido'] },
+  { k: 'glam', f: 2, n: ['Glam', 'Glam'], d: ['brillo, tacón, noche', 'shine, heels, night'], dh: ['terciopelo, satén, noche', 'velvet, satin, night'], c: ['#1f1f1f', '#c9a24b', '#b3202a', '#c0c0c8'], b: ['atrevido'] },
+  { k: 'retro', f: 2, n: ['Retro', 'Retro'], d: ['años 2000, color, top corto', 'the 2000s, colour, crop top'], dh: ['años 90 y 2000, color, holgado', 'the 90s and 2000s, colour, loose'], c: ['#e3a6a8', '#6f8fb5', '#f2c230', '#ffffff'], b: ['extravagante'] },
   { k: 'eclectico', f: 2, n: ['Ecléctico', 'Eclectic'], d: ['mezcla, estampado, color', 'mix, print, colour'], c: ['#e94b3c', '#f2c230', '#3b7dd8', '#6e8b5e'], b: ['extravagante'] },
-  { k: 'romantico', f: 3, n: ['Romántico', 'Romantic'], d: ['vestidos, flores, tonos suaves', 'dresses, florals, soft tones'], c: ['#f3d9dc', '#efe3cc', '#ffffff', '#b9a3c9'], b: ['romantico'] },
-  { k: 'boho', f: 3, n: ['Boho', 'Boho'], d: ['tierra, capas, botines', 'earth tones, layers, boots'], c: ['#c99a6b', '#8a5a3b', '#e9dcc5', '#6d7a4f'], b: ['romantico'] },
+  { k: 'romantico', f: 3, n: ['Romántico', 'Romantic'], d: ['vestidos, flores, tonos suaves', 'dresses, florals, soft tones'], dh: ['lino, tonos suaves, camisa', 'linen, soft tones, shirts'], c: ['#f3d9dc', '#efe3cc', '#ffffff', '#b9a3c9'], b: ['romantico'] },
+  { k: 'boho', f: 3, n: ['Boho', 'Boho'], d: ['tierra, capas, botines', 'earth tones, layers, boots'], dh: ['tierra, capas, lino', 'earth tones, layers, linen'], c: ['#c99a6b', '#8a5a3b', '#e9dcc5', '#6d7a4f'], b: ['romantico'] },
 ];
 const FAMILIAS = [['Elegante', 'Elegant'], ['De diario', 'Everyday'], ['Con carácter', 'Bold'], ['Suave y libre', 'Soft and free']];
 const ESTILO_VIEJO = { basico: 'minimalista', formal: 'clasico', atrevido: 'glam', extravagante: 'eclectico', normal: 'casual' }; // los 6 de la 0.36 pasan a los 13 (Moda, punto 2)
@@ -4812,7 +4818,7 @@ function pintarEstilo() {
   sg.textContent = yo ? t('Guardar', 'Save') : t('Seguir', 'Continue'); sg.dataset.ir = yo ? 'yo' : 'planes'; lu.style.display = yo ? 'none' : ''; at.dataset.ir = yo ? 'yo' : 'cuerpo';
   document.querySelector('#p-estilo .ac-pasos')?.toggleAttribute('hidden', yo);
   // 0.74 (Gabriela, 23/10: «hay 4 estilos solamente, ¿no debería haber más?»): los 13 a la vista, por familias, sin pestañas
-  $('es-lista').innerHTML = FAMILIAS.map((f, i) => `<h3 class="es-tit">${f[es]}</h3><div class="es-rej">${ESTILOS.filter(x => x.f === i).map(x => `<button class="${el.includes(x.k) ? 'on' : ''}" data-estilo="${x.k}"><span class="es-tela">${x.c.map(c => `<i style="background:${c}"></i>`).join('')}</span><b>${x.n[es]}</b><span class="es-d">${x.d[es]}</span></button>`).join('')}</div>`).join('')
+  $('es-lista').innerHTML = FAMILIAS.map((f, i) => `<h3 class="es-tit">${f[es]}</h3><div class="es-rej">${ESTILOS.filter(x => x.f === i).map(x => `<button class="${el.includes(x.k) ? 'on' : ''}" data-estilo="${x.k}"><span class="es-tela">${x.c.map(c => `<i style="background:${c}"></i>`).join('')}</span><b>${x.n[es]}</b><span class="es-d">${(E.perfil?.ropa === 'hombre' && x.dh || x.d)[es]}</span></button>`).join('')}</div>`).join('')
     + `<p class="es-cuenta" aria-live="polite">${el.length ? `<b>${el.length} ${t('de', 'of')} ${MAX_ESTILOS}</b>${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(', ')}` : '&nbsp;'}</p>`
     // 0.108 · «Enseñar la cintura» (Gabriela, 28/10: «12. sí»): preferencia de estilo, saltable, guardada solo en este móvil
     + `<div class="es-cint"><h3 class="es-tit">${t('Un detalle más', 'One more thing')}</h3><p>${t('¿Te gusta enseñar la cintura?', 'Do you like showing your waist?')}</p><div>${[['1', t('Sí', 'Yes')], ['0', t('No', 'No')]].map(([v, n]) => `<button data-cintura="${v}" class="${cinturaPref() === v ? 'on' : ''}">${n}</button>`).join('')}</div><span class="es-d">${t('Así sabemos si proponerte tops cortos con pantalones de tiro bajo.', 'So we know whether to suggest crop tops with low-rise trousers.')}</span></div>`

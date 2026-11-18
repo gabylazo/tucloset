@@ -978,5 +978,365 @@
    "No he podido analizar esta foto: prueba con otra.",
    "I couldn’t analyse this photo: try another."
   ]
+ },
+ "silueta_hombre": {
+  "umbrales": {
+   "ovalo_wh": 0.97,
+   "ovalo_ws": 0.85,
+   "invertido_sh": 1.3,
+   "triangulo_sh": 1.05,
+   "reloj_wh": 0.88,
+   "pierna_larga": 0.5,
+   "pierna_corta": 0.44
+  },
+  "tipos": {
+   "reloj": {
+    "n": [
+     "Trapecio",
+     "Trapezoid"
+    ],
+    "d": [
+     "Hombros algo más anchos que la cintura y caderas en proporción.",
+     "Shoulders a little wider than the waist, hips in proportion."
+    ],
+    "favorece": [
+     [
+      "Americanas entalladas que sigan el torso",
+      "Camisa clara sobre pantalón más oscuro",
+      "Prendas ajustadas sin apretar, por dentro o por fuera",
+      "Pantalón con el largo justo, que roce el zapato"
+     ],
+     [
+      "Fitted jackets that follow the torso",
+      "A light shirt over darker trousers",
+      "Close-fitting but not tight pieces, tucked in or out",
+      "Trousers at the right length, just touching the shoe"
+     ]
+    ],
+    "evitar": [
+     [
+      "Prendas muy anchas que esconden el torso"
+     ],
+     [
+      "Very boxy pieces that hide the torso"
+     ]
+    ],
+    "puntos": [
+     {
+      "donde": "arriba",
+      "campo": "ajuste",
+      "valor": [
+       "ceñido",
+       "regular"
+      ],
+      "p": 0.3
+     },
+     {
+      "donde": "arriba",
+      "campo": "ajuste",
+      "valor": "oversize",
+      "p": -0.4
+     },
+     {
+      "donde": "look",
+      "campo": "como",
+      "valor": "por dentro",
+      "p": 0.2
+     }
+    ]
+   },
+   "invertido": {
+    "n": [
+     "Triángulo invertido",
+     "Inverted triangle"
+    ],
+    "d": [
+     "Hombros y pecho más anchos que la cadera.",
+     "Shoulders and chest wider than the hips."
+    ],
+    "favorece": [
+     [
+      "Chaquetas y americanas sin hombreras ni estructura marcada",
+      "Pantalón recto, sin pinzas ni vuelta",
+      "Un cinturón que defina la cintura",
+      "Prendas que no sumen volumen en los hombros"
+     ],
+     [
+      "Jackets and blazers without shoulder pads or heavy structure",
+      "Straight trousers, without pleats or cuffs",
+      "A belt that defines the waist",
+      "Pieces that add no volume at the shoulders"
+     ]
+    ],
+    "evitar": [
+     [
+      "Hombreras marcadas y pantalones muy ceñidos a la pierna"
+     ],
+     [
+      "Strong shoulder pads and very tight trousers"
+     ]
+    ],
+    "puntos": [
+     {
+      "donde": "abajo",
+      "campo": "corte",
+      "valor": [
+       "recto",
+       "ancho"
+      ],
+      "p": 0.4
+     },
+     {
+      "donde": "abajo",
+      "campo": "corte",
+      "valor": "pitillo",
+      "p": -0.3
+     },
+     {
+      "donde": "arriba",
+      "campo": "ajuste",
+      "valor": "oversize",
+      "p": -0.3
+     }
+    ]
+   },
+   "rectangulo": {
+    "n": [
+     "Rectángulo",
+     "Rectangle"
+    ],
+    "d": [
+     "Hombros, cintura y cadera casi al mismo ancho.",
+     "Shoulders, waist and hips of almost the same width."
+    ],
+    "favorece": [
+     [
+      "Hombreras ligeras y solapas anchas",
+      "Capas: un cárdigan bajo la americana",
+      "Cuello alto, que da presencia al torso",
+      "Tejidos con textura y estampados que den volumen"
+     ],
+     [
+      "Light shoulder padding and wide lapels",
+      "Layers: a cardigan under the blazer",
+      "High necks, which add presence to the torso",
+      "Textured fabrics and prints that add volume"
+     ]
+    ],
+    "evitar": [
+     [
+      "Prendas muy ajustadas y sin capas en el torso"
+     ],
+     [
+      "Very tight pieces and no layers on the torso"
+     ]
+    ],
+    "puntos": [
+     {
+      "donde": "look",
+      "campo": "capa",
+      "valor": true,
+      "p": 0.3
+     },
+     {
+      "donde": "arriba",
+      "campo": "estampado",
+      "valor": "no_liso",
+      "p": 0.2
+     },
+     {
+      "donde": "arriba",
+      "campo": "ajuste",
+      "valor": "ceñido",
+      "p": -0.2
+     }
+    ]
+   },
+   "triangulo": {
+    "n": [
+     "Triángulo",
+     "Triangle"
+    ],
+    "d": [
+     "La cadera es algo más ancha que los hombros.",
+     "The hips are a little wider than the shoulders."
+    ],
+    "favorece": [
+     [
+      "Americanas con hombro marcado que den anchura arriba",
+      "Tonos claros o estampado en la parte de arriba",
+      "Pantalón recto o con una ligera apertura abajo",
+      "Pantalón liso y oscuro"
+     ],
+     [
+      "Blazers with defined shoulders that add width on top",
+      "Light tones or a print on top",
+      "Straight trousers or a slight opening at the hem",
+      "Plain, dark trousers"
+     ]
+    ],
+    "evitar": [
+     [
+      "Pantalones muy ceñidos y con estampado"
+     ],
+     [
+      "Very tight or patterned trousers"
+     ]
+    ],
+    "puntos": [
+     {
+      "donde": "arriba",
+      "campo": "estampado",
+      "valor": "no_liso",
+      "p": 0.3
+     },
+     {
+      "donde": "abajo",
+      "campo": "estampado",
+      "valor": "no_liso",
+      "p": -0.3
+     },
+     {
+      "donde": "abajo",
+      "campo": "corte",
+      "valor": [
+       "recto",
+       "acampanado"
+      ],
+      "p": 0.3
+     },
+     {
+      "donde": "abajo",
+      "campo": "corte",
+      "valor": "pitillo",
+      "p": -0.3
+     },
+     {
+      "donde": "look",
+      "campo": "capa",
+      "valor": true,
+      "p": 0.3
+     }
+    ]
+   },
+   "ovalo": {
+    "n": [
+     "Óvalo",
+     "Oval"
+    ],
+    "d": [
+     "La zona central del torso es lo más ancho.",
+     "The middle of the torso is the widest part."
+    ],
+    "favorece": [
+     [
+      "Una sola hilera de botones y cuello en V",
+      "Rayas verticales",
+      "Tono sobre tono, en marino o antracita",
+      "Camisas y polos por fuera en casual"
+     ],
+     [
+      "A single row of buttons and a V neck",
+      "Vertical stripes",
+      "Tone on tone, in navy or charcoal",
+      "Shirts and polos untucked when casual"
+     ]
+    ],
+    "evitar": [
+     [
+      "Cuello alto y cinturón apretado"
+     ],
+     [
+      "High necks and a tight belt"
+     ]
+    ],
+    "puntos": [
+     {
+      "donde": "arriba",
+      "campo": "largo",
+      "valor": [
+       "cadera",
+       "largo"
+      ],
+      "p": 0.3
+     },
+     {
+      "donde": "arriba",
+      "campo": "ajuste",
+      "valor": "ceñido",
+      "p": -0.3
+     },
+     {
+      "donde": "look",
+      "campo": "mismo_color",
+      "valor": true,
+      "p": 0.3
+     }
+    ]
+   }
+  },
+  "proporciones": {
+   "piernas_largas": {
+    "n": [
+     "Piernas largas",
+     "Long legs"
+    ],
+    "d": [
+     "Tus piernas son largas para tu altura: te sientan bien tiros medios y prendas por fuera.",
+     "Your legs are long for your height: mid-rise and untucked pieces work well."
+    ],
+    "puntos": [
+     {
+      "donde": "abajo",
+      "campo": "tiro",
+      "valor": "medio",
+      "p": 0.2
+     }
+    ]
+   },
+   "torso_largo": {
+    "n": [
+     "Torso largo",
+     "Long torso"
+    ],
+    "d": [
+     "Tu torso es largo: el tiro alto y las prendas por dentro equilibran.",
+     "Your torso is long: high rise and tucked-in pieces balance it."
+    ],
+    "puntos": [
+     {
+      "donde": "abajo",
+      "campo": "tiro",
+      "valor": "alto",
+      "p": 0.4
+     },
+     {
+      "donde": "abajo",
+      "campo": "tiro",
+      "valor": "bajo",
+      "p": -0.4
+     }
+    ]
+   },
+   "equilibrada": {
+    "n": [
+     "Proporción equilibrada",
+     "Balanced proportions"
+    ],
+    "d": [
+     "Torso y piernas en equilibrio: te sienta bien casi cualquier tiro.",
+     "Torso and legs in balance: almost any rise works."
+    ],
+    "puntos": []
+   }
+  },
+  "cinta": {
+   "fuente": "convención de sastrería: caída de la americana 15 cm estándar, 18–20 cm atlético, 10 cm o menos más lleno (visto solo en el buscador, wessi.com, no leído); valores de Moda, a calibrar con medidas reales de probadores",
+   "dif": 8,
+   "reloj_pecho": 15,
+   "reloj_cadera": 99,
+   "ovalo": 0.9
+  },
+  "nota": "18/11/2026, auditoría de hombre (Moda, equipo/moda/hombre-1811/INFORME.md, parte 2): con ropa de hombre, la app usa este bloque. Los umbrales de la foto son valores de arranque sin fuente, a calibrar con fotos de probadores con su consentimiento; los de la cinta, convención de sastrería (caída de la americana)"
  }
 }

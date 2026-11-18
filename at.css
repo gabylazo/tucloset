@@ -60,6 +60,10 @@ html.at .at-sep { margin: 0 2px; }
 html.at .at-hoy { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
 html.at .at-flecha { position: absolute; top: 44%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--sec); z-index: 2; }
 html.at .at-flecha.iz { left: 2px; } html.at .at-flecha.de { right: 2px; }
+/* 18/11 (Sheila, 2846: las flechas de un look a otro se confundían con la ropa): en un círculo del color del fondo, fuera de la ropa y en nogal */
+html.at .at-hoy .at-flecha { border-radius: 50%; background: var(--fondo); color: var(--tinta); box-shadow: 0 0 0 1px var(--linea2, rgba(74, 53, 38, .28)), 0 1px 4px rgba(0, 0, 0, .1); }
+html.at .at-hoy .at-flecha svg { stroke-width: 2.2; }
+html.at .at-hoy .at-flecha.iz { left: 0; } html.at .at-hoy .at-flecha.de { right: 0; }
 html.at .at-oc { font: 400 22px/1 var(--f-marca); min-height: 44px; padding: 0 8px; display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; color: var(--tinta); }
 html.at .at-oc .at-ic { width: 14px; height: 14px; color: var(--sec); }
 html.at .at-fila { display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; padding: 0 20px; max-width: 100%; }
@@ -793,6 +797,9 @@ html.at .at-el-fig { display: flex; justify-content: center; margin: 4px 0 8px; 
 html.at .at-el-lista { list-style: none; padding: 0; margin: 0 auto 18px; max-width: 34ch; text-align: left; }
 html.at .at-el-lista li { padding: 12px 2px; border-top: 1px solid var(--linea); font-size: 15px; line-height: 1.4; color: var(--tinta); }
 html.at .at-el-lista li:last-child { border-bottom: 1px solid var(--linea); }
+/* 18/11 (Sheila, 2823): «Con lo que tienes», con la foto de cada prenda */
+html.at .at-el-lista li.at-el-con { display: flex; align-items: center; gap: 12px; padding: 8px 2px; }
+html.at .at-el-con img { width: 56px; height: 56px; object-fit: contain; background: var(--baldosa); flex: none; }
 
 /* 17/11 (D5): «Todos · Favoritos» dentro de Mis looks, debajo de «Mi cápsula» */
 html.at .at-lk-fil { margin: 4px 0 10px; }

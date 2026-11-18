@@ -943,6 +943,7 @@ html.at.oscuro .at-marca span{color:var(--oro)}
 html.at.oscuro .at-fecha{color:var(--sec)}
 html.at.oscuro .at-fecha svg{fill:none;stroke:currentColor}
 html.at.oscuro .at-flecha{color:var(--sec)}
+html.at.oscuro .at-hoy .at-flecha{border-radius:50%;background:var(--o-fondo);color:var(--tinta);box-shadow:0 0 0 1px var(--linea2, rgba(241,233,222, .28)), 0 1px 4px rgba(0, 0, 0, .1)}
 html.at.oscuro .at-oc{color:var(--tinta)}
 html.at.oscuro .at-oc .at-ic{color:var(--sec)}
 html.at.oscuro .at-fila button{color:var(--sec)}
@@ -1216,6 +1217,7 @@ html.at.oscuro .ag-ac[aria-expanded="true"]{box-shadow:inset 0 -2px 0 var(--oro)
 html.at.oscuro .ag-ac:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
 html.at.oscuro .at-el-lista li{border-top:1px solid var(--linea);color:var(--tinta)}
 html.at.oscuro .at-el-lista li:last-child{border-bottom:1px solid var(--linea)}
+html.at.oscuro .at-el-con img{background:var(--baldosa)}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz

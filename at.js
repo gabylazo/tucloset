@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.300'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.301'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -52,7 +52,7 @@ if (AT) (() => {
     corazon: svg('<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>'),
     // 06/11: los de la ficha de prenda
     lapiz: svg('<path d="M4.5 19.5l1-4.5L15.8 4.7a1.8 1.8 0 0 1 2.5 0l1 1a1.8 1.8 0 0 1 0 2.5L9 18.5z"/><path d="M13.8 6.7l3.5 3.5"/>'),
-    papelera: svg('<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7M10.5 10.5v6M13.5 10.5v6"/>'),
+    papelera: svg('<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7M10.5 10.5v6M13.5 10.5v6"/>'), // 18/11 (Sheila, 2830): también para descartar un look o una idea (la ✕ parecía «cerrar»)
     cesto: svg('<path d="M4 9.5h16l-1.6 10H5.6z"/><path d="M8 9.5l2.5-5M16 9.5l-2.5-5M9.5 13v3.5M14.5 13v3.5"/>'),
     caja: svg('<path d="M3.5 7.5h17v3h-17zM5 10.5v9h14v-9M10 14h4"/>'),
     bolsa: svg('<path d="M5.5 8h13l-1 12h-11z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/><path d="M12 17.4s-2.6-1.6-2.6-3.4a1.4 1.4 0 0 1 2.6-.8 1.4 1.4 0 0 1 2.6.8c0 1.8-2.6 3.4-2.6 3.4z"/>'),
@@ -269,7 +269,8 @@ if (AT) (() => {
   // Sale lo que dice el look; otra manera es otra prueba (≈ 0,03 $), que se guarda aparte. Lo elegido se recuerda para ese look mientras la app está abierta
   const COMO_ELEGIDO = new Map(), idsDe = ps => ps.map(p => p.id).sort().join('+');
   // 12/11 (Gabriela: «mucho texto… muy mal hechos, sin alineación»): palabras cortas en una fila
-  const COMOS = () => [['suelta', t('Fuera', 'Out')], ['media', t('A medias', 'Half')], ['por dentro', t('Dentro', 'In')]];
+  // 18/11 (Sheila, 2836): con ropa de hombre, sin «A medias» (por dentro o por fuera, lo clásico; el motor tampoco se la propone)
+  const COMOS = () => [['suelta', t('Fuera', 'Out')], ...(E.perfil?.ropa === 'hombre' ? [] : [['media', t('A medias', 'Half')]]), ['por dentro', t('Dentro', 'In')]];
   const comoAplica = ps => { const top = ps.filter(p => p.tipo === 'Arriba').pop(); if (!top || !ps.some(p => p.tipo === 'Abajo')) return false;
     const f = Motor.ficha(top); return !['body', 'top_corto', 'top_deportivo'].includes(f.subtipo) && top.est?.largo !== 'crop' && !/crop|\bcorto\b|body/i.test(top.nombre || ''); };
   async function verPuesto(b, zona, ps, como, otra, auto, cambio) {
@@ -368,13 +369,16 @@ if (AT) (() => {
       .sort((a, b) => (a.duro - b.duro) || (b.nota - a.nota));
     const celda = x => `<button class="at-cel${conCat(x.q) ? '' : ' sin-cat'}${x.duro ? ' no' : ''}" data-otrapz="${x.q.id}" aria-label="${esc(x.q.nombre)}${x.duro ? ', ' + (idioma() === 'en' || !x.por ? t('pega menos con este look', 'goes less well with this look') : esc(x.por.replace(/\.$/, '').toLowerCase())) : ''}"><img src="${urlCat(x.q)}" alt=""></button>`;
     const bien = cands.filter(x => !x.duro), menos = cands.filter(x => x.duro);
-    const html = `<div class="at-cam-actual"><img src="${urlCat(p)}" alt=""><div><p>${esc(p.nombre)}</p><button class="at-enlace" data-camficha>${t('Ver su ficha', 'See its details')}</button></div></div>`
+    const compl = ['Accesorios', 'Bolsos'].includes(p.tipo) && pr.ids.includes(id); // 18/11 (Sheila, 2842): un complemento (cinturón, bolso, gafas…) se puede quitar del look
+    const html = `<div class="at-cam-actual"><img src="${urlCat(p)}" alt=""><div><p>${esc(p.nombre)}</p><button class="at-enlace" data-camficha>${t('Ver su ficha', 'See its details')}</button>${compl ? `<button class="at-enlace" data-quitapz>${t('Quitar del look', 'Remove from the look')}</button>` : ''}</div></div>`
       + (cands.length ? `<p class="at-con-txt">${t('Elige otra: primero las que mejor van con el resto del look.', 'Pick another: the ones that go best with the rest of the look come first.')}</p>`
         + (bien.length ? `<div class="at-con-rej">${bien.map(celda).join('')}</div>` : '')
         + (menos.length ? `<h2 class="at-cam-sub">${t('Pegan menos con este look', 'Go less well with this look')}</h2><div class="at-con-rej">${menos.map(celda).join('')}</div>` : '')
         : `<p class="at-con-txt">${t('No tienes otra prenda de este tipo en tu clóset.', 'You have no other garment of this kind in your closet.')}</p>`);
     abrirPanel(t('Cambiar esta prenda', 'Swap this garment'), html, cap => {
       cap.querySelector('[data-camficha]').onclick = () => { cap.remove(); abrirFicha(id); };
+      const qz = cap.querySelector('[data-quitapz]'); if (qz) qz.onclick = () => { cap.remove(); const nuevo = { ...pr, ids: pr.ids.filter(x => x !== id), cambiada: 1 }; if (nuevo.tipo === 'conjunto') { delete nuevo.tipo; delete nuevo.c; }
+        const i = E.propuestas.indexOf(pr); if (i >= 0) E.propuestas[i] = nuevo; else { E.propuestas.unshift(nuevo); E.hoyIdx = 0; } pintarHoy(); toast(t(`Sin ${p.nombre.toLowerCase()}`, `Without ${p.nombre.toLowerCase()}`)); };
       cap.addEventListener('click', e => { const b = e.target.closest('[data-otrapz]'); if (!b) return; cap.remove();
         const q = P(b.dataset.otrapz), ids = pr.ids.includes(id) ? pr.ids.map(x => x === id ? q.id : x) : [...pr.ids, q.id];
         anotarCambio(pr.ids.includes(id) ? id : null, q.id, pr.ids); guardar();
@@ -419,12 +423,12 @@ if (AT) (() => {
     }
     if (!pr) {
       const hay = activas().length, rech = E.perfil?.gustos?.fuera?.length || (E.perfil?.gustos?.hoy?.d === hoyISO() && E.perfil.gustos.hoy.k.length);
-      pant.innerHTML = `<div class="at-pant">${cab}<div class="at-vacio"><p>${hay && rech ? t('Por hoy no me quedan combinaciones nuevas con tu ropa. Sube más prendas y te propongo otras.', 'No new combinations left for today. Upload more garments and I’ll suggest others.') : hay ? t('Para este tiempo me falta una prenda de arriba y una de abajo, o un vestido.', 'For this weather I need a top and a bottom, or a dress.') : t('Tu look de hoy aparecerá aquí cuando tengas una prenda de arriba, una de abajo y unos zapatos.', 'Your look of the day will appear here once you have a top, a bottom and shoes.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>${hay || PUBLICA ? '' : `<button class="at-enlace" id="at-ejemplo">${t('Ver un ejemplo', 'See an example')}</button>`}</div></div>`;
+      pant.innerHTML = `<div class="at-pant">${cab}<div class="at-vacio"><p>${hay && rech ? t('Por hoy no me quedan combinaciones nuevas con tu ropa. Sube más prendas y te propongo otras.', 'No new combinations left for today. Upload more garments and I’ll suggest others.') : hay ? (E.perfil?.ropa === 'hombre' ? t('Para este tiempo me falta una prenda de arriba y una de abajo.', 'For this weather I need a top and a bottom.') : t('Para este tiempo me falta una prenda de arriba y una de abajo, o un vestido.', 'For this weather I need a top and a bottom, or a dress.')) : t('Tu look de hoy aparecerá aquí cuando tengas una prenda de arriba, una de abajo y unos zapatos.', 'Your look of the day will appear here once you have a top, a bottom and shoes.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>${hay || PUBLICA ? '' : `<button class="at-enlace" id="at-ejemplo">${t('Ver un ejemplo', 'See an example')}</button>`}</div></div>`;
       const ej = $('at-ejemplo'); if (ej) ej.onclick = cargarEjemplo;
       return;
     }
     const ps = psDe(pr), oc = pr.tipo === 'con' ? pr.ocasion : planHoy && E.plan === planHoy && !E.hoyFalta && pr.tipo !== 'conjunto' && pr.tipo !== 'agenda' ? planHoy : (pr.c && pr.c.ocasion) || pr.ocasion || ocasionDe(ps);
-    const [ancho, alto] = caja(), W = Math.min(440, ancho - 72), H = Math.max(240, alto - 300);
+    const [ancho, alto] = caja(), W = Math.min(440, ancho - (lista.length > 1 ? 104 : 72)), H = Math.max(240, alto - 300); // 18/11 (Sheila, 2846): con flechas, el look deja sitio a cada lado para que no caigan encima de la ropa
     const muestra = ps.some(p => p.muestra);
     const flechas = lista.length > 1 ? `<button class="at-flecha iz" data-atmov="-1" aria-label="${t('Look anterior', 'Previous look')}">${I.iz}</button><button class="at-flecha de" data-atmov="1" aria-label="${t('Look siguiente', 'Next look')}">${I.de}</button>` : '';
     const ocs = ocsDe(oc);
@@ -435,7 +439,7 @@ if (AT) (() => {
     // 13/11 (Gabriela: «el look con una prenda, esa función, debería estar en Looks → Ideas por lógica»): en Hoy queda solo la ocasión
     const ocB = `<div class="at-cab-fila">${ocBoton(oc)}</div>`;
     const av = avisoNueva(), avH = !av ? '' : `<div class="at-nueva" role="group" aria-label="${av.viaje ? esc(av.viaje.destino) : esc(av.ev.nombre || ocNombre(av.ev.oc))}"><button class="at-nueva-t" data-nuevaver>${av.viaje ? t('Ropa nueva: ¿rehago la maleta?', 'New clothes: repack?') : av.d === hoyISO() ? t('Ropa nueva: ¿cambias el look de hoy?', 'New clothes: change today’s look?') : t('Ropa nueva: ¿cambias el look de mañana?', 'New clothes: change tomorrow’s look?')}</button><button class="at-nueva-x" data-nuevano aria-label="${t('No, gracias', 'No, thanks')}" title="${t('No, gracias', 'No, thanks')}">${I.cerrar}</button></div>`;
-    pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocB + '</header>')}${ocs}${avH}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}${nota}<button class="at-desc" id="at-desc" aria-label="${t('Descartar este look: no volverá a salir', 'Discard this look: it won’t come back')}">${I.cerrar}</button>${conElevar(pr.ids, oc) ? `<button class="at-elevab" id="at-elevab" aria-label="${t('Eleva tu look', 'Elevate your look')}">${IC_ELEVAR}</button>` : ''}</div>
+    pant.innerHTML = `<div class="at-pant">${cab.replace('</header>', ocB + '</header>')}${ocs}${avH}<div class="at-hoy" id="at-hoy">${flechas}${figura(ps, W, H, true)}${nota}<button class="at-desc" id="at-desc" aria-label="${t('Descartar este look: no volverá a salir', 'Discard this look: it won’t come back')}">${I.papelera}</button>${conElevar(pr.ids, oc) ? `<button class="at-elevab" id="at-elevab" aria-label="${t('Eleva tu look', 'Elevate your look')}">${IC_ELEVAR}</button>` : ''}</div>
       <div class="at-pie"><button class="at-fav${fav ? ' on' : ''}" id="at-fav" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-btn${puesto ? ' hecho' : ''}" id="at-pongo" aria-pressed="${puesto}">${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button>${botonPuesto(ps)}</div></div>`;
     // el look ocupa el hueco que de verdad queda entre la cabecera y el botón (en cada móvil es distinto)
     const z = $('at-hoy'), ajustar = () => { const fig = z.querySelector('.at-look'); if (!fig || !z.clientHeight) return;
@@ -644,7 +648,7 @@ if (AT) (() => {
   const ACC_NOM = [['pendientes', /pendiente|arete|\baros?\b|zarcillo|earring/], ['collar', /collar|cadena|gargantilla|colgante|choker|necklace/], ['pulsera', /pulsera|brazalete|bracelet/], ['anillo', /anillo|\bsello\b|\bring\b/], ['reloj', /reloj|watch/]];
   const tipoAcc = p => { if (p.tipo === 'Bolsos') return 'bolso'; if (p.tipo !== 'Accesorios') return null; const f = Motor.ficha(p); if (['cinturon', 'panuelo', 'gafas', 'gorro', 'bufanda', 'guantes', 'paraguas'].includes(f.subtipo)) return f.subtipo; return ACC_NOM.find(([, r]) => r.test(sinTilde(p.nombre)))?.[0] || 'otro'; };
   const ELEVA_OC = { Diario: ['pendientes', 'cinturon', 'bolso', 'gafas', 'panuelo', 'pulsera'], Oficina: ['reloj', 'pendientes', 'cinturon', 'bolso'], Noche: ['pendientes', 'bolso', 'anillo'], Evento: ['pendientes', 'bolso', 'pulsera'], Viaje: ['bolso', 'gafas', 'panuelo', 'reloj'] };
-  const ELEVA_OC_H = { Diario: ['cinturon', 'reloj', 'gafas'], Oficina: ['reloj', 'cinturon'], Noche: ['reloj'], Evento: ['reloj'], Viaje: ['gafas', 'reloj'] }; // con ropa de hombre, sin joyas ni bolso
+  const ELEVA_OC_H = { Diario: ['cinturon', 'reloj', 'gafas'], Oficina: ['reloj', 'cinturon'], Noche: ['reloj', 'cinturon'], Evento: ['reloj', 'cinturon'], Viaje: ['gafas', 'reloj'] }; // con ropa de hombre, sin joyas ni bolso; 18/11 (Moda, auditoría de hombre): el cinturón también de noche y en eventos, del color del zapato
   const NEUTROS_EL = ['negro', 'blanco', 'gris', 'beige', 'crema', 'camel', 'marron', 'azul marino', 'dorado', 'plateado'];
   function metalDe(ps) {
     const dc = E.perfil?.diag?.color, m = sinTilde(dc?.metal), tt = dc?.ejes?.t, est = E.perfil?.colores?.est;
@@ -657,9 +661,9 @@ if (AT) (() => {
     const z = ps.find(p => p.tipo === 'Calzado'), cz = z?.color && !/dorad|platead/.test(sinTilde(z.color)) ? z.color.toLowerCase() : '', ma = g => m ? (m === 'oro' ? ' dorad' : ' platead') + g : '';
     const pal = (E.perfil?.diag?.color?.si || EST_COLOR[E.perfil?.colores?.est]?.si || []).map(x => typeof x === 'string' ? x : x?.n || x?.nombre || '').find(x => x && !NEUTROS_EL.includes(sinTilde(x)) && !ps.some(p => sinTilde(p.color) === sinTilde(x)));
     if (en()) { const g = m ? (m === 'oro' ? 'gold ' : 'silver ') : '';
-      return { pendientes: `thin ${g}hoop earrings`, collar: `fine ${g}chain with a small pendant`, pulsera: `fine ${g}bracelet`, anillo: `thin ${g}ring`, reloj: 'small-face watch with a leather strap', cinturon: 'thin leather belt', bolso: ['Noche', 'Evento'].includes(oc) ? 'small clutch' : oc === 'Oficina' ? 'structured leather bag' : 'small leather crossbody bag', gafas: 'tortoiseshell sunglasses', panuelo: 'plain silk scarf' }[k]; }
+      return { pendientes: `thin ${g}hoop earrings`, collar: `fine ${g}chain with a small pendant`, pulsera: `fine ${g}bracelet`, anillo: `thin ${g}ring`, reloj: 'small-face watch with a leather strap', cinturon: E.perfil?.ropa === 'hombre' ? 'leather belt' : 'thin leather belt', bolso: ['Noche', 'Evento'].includes(oc) ? 'small clutch' : oc === 'Oficina' ? 'structured leather bag' : 'small leather crossbody bag', gafas: 'tortoiseshell sunglasses', panuelo: 'plain silk scarf' }[k]; }
     return { pendientes: `pendientes de aro${ma('os')} finos`, collar: `cadena${ma('a')} fina con colgante pequeño`, pulsera: `pulsera fina${ma('a')}`, anillo: `anillo fino${ma('o')}`,
-      reloj: `reloj de esfera pequeña con correa de piel${cz ? ' en ' + cz : ''}`, cinturon: `cinturón fino de piel${cz ? ' en ' + cz : ''}`,
+      reloj: `reloj de esfera pequeña con correa de piel${cz ? ' en ' + cz : ''}`, cinturon: `cinturón ${E.perfil?.ropa === 'hombre' ? '' : 'fino '}de piel${cz ? ' en ' + cz : ''}`,
       bolso: ['Noche', 'Evento'].includes(oc) ? 'bolso de mano pequeño' : oc === 'Oficina' ? `bolso estructurado de piel${cz ? ' en ' + cz : ''}` : `bandolera pequeña de piel${cz ? ' en ' + cz : ''}`,
       gafas: 'gafas de sol de carey', panuelo: `pañuelo de seda${pal ? ' en ' + pal.toLowerCase() : ' liso'}` }[k];
   }
@@ -675,7 +679,8 @@ if (AT) (() => {
     const V = F.find(f => f.cat === 'vestido'), A = F.find(f => f.cat === 'arriba'), B = F.find(f => f.cat === 'abajo'), C = F.find(f => f.cat === 'capa');
     const nomV = sinTilde(ropa.find(p => p.tipo === 'Vestidos')?.nombre), arriba = ropa.find(p => p.tipo === 'Arriba' && Motor.ficha(p).cat === 'arriba');
     const silueta = E.perfil?.tipoCuerpo || E.perfil?.diag?.cuerpo?.k;
-    const cintura = () => silueta !== 'ovalo' && C?.largo !== 'largo' && (V ? !/cruzad|envolvente|fajin|cintur|tubo|cenid|ajustad|camiseta|tirante/.test(nomV) : !!(A && B && B.tiro !== 'bajo' && B.uso !== 'deporte' && (['crop', 'cintura'].includes(A.largo) || /camisa|blusa|body/.test(A.subtipo || '')) && !/jersey|sudadera|cardigan|chaleco|polo/.test(A.subtipo || '')));
+    // 18/11 (auditoría de hombre): a un hombre el cinturón no le marca la cintura: va con el pantalón (que no sea de deporte), lleve lo que lleve arriba
+    const cintura = () => E.perfil?.ropa === 'hombre' ? silueta !== 'ovalo' && !!B && B.uso !== 'deporte' : silueta !== 'ovalo' && C?.largo !== 'largo' && (V ? !/cruzad|envolvente|fajin|cintur|tubo|cenid|ajustad|camiseta|tirante/.test(nomV) : !!(A && B && B.tiro !== 'bajo' && B.uso !== 'deporte' && (['crop', 'cintura'].includes(A.largo) || /camisa|blusa|body/.test(A.subtipo || '')) && !/jersey|sudadera|cardigan|chaleco|polo/.test(A.subtipo || '')));
     const cuelloAlto = /cuello alto|cisne|halter|volante|lazo|barco/.test(sinTilde(arriba?.nombre || nomV));
     const sol = ['sol', 'solnube'].includes(E.tiempo?.clave);
     const vale = k => !lleva.includes(k) && (k !== 'gafas' || sol) && (k !== 'panuelo' || !foco) && (k !== 'cinturon' || cintura()) && (k !== 'collar' || (!foco && !cuelloAlto && !lleva.includes('pendientes'))) && (k !== 'pendientes' || !lleva.includes('collar'));
@@ -697,7 +702,7 @@ if (AT) (() => {
     const mios = r.out.filter(x => x.p), faltan = r.out.filter(x => !x.p), [ancho] = caja(), W = Math.min(280, ancho - 96), H = Math.round(W * 1.15);
     const vacio = r.completo ? t('Este look ya va completo.', 'This look is already complete.') : !r.out.length ? t('Este look no necesita nada más.', 'This look needs nothing more.') : '';
     cap.innerHTML = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button><h1 id="at-el-t" tabindex="-1">${t('Eleva tu look', 'Elevate your look')}</h1>
-      <div class="at-el-fig">${figura([...ids.map(P).filter(Boolean), ...mios.map(x => x.p)], W, H)}</div>${vacio ? `<p class="at-vj-sub">${vacio}</p>` : `${mios.length ? `<h2 class="at-vj-h2">${t('Con lo que tienes', 'With what you have')}</h2><ul class="at-el-lista">${mios.map(x => `<li>${esc(x.p.nombre)}</li>`).join('')}</ul>` : ''}
+      <div class="at-el-fig">${figura([...ids.map(P).filter(Boolean), ...mios.map(x => x.p)], W, H)}</div>${vacio ? `<p class="at-vj-sub">${vacio}</p>` : `${mios.length ? `<h2 class="at-vj-h2">${t('Con lo que tienes', 'With what you have')}</h2><ul class="at-el-lista">${mios.map(x => `<li class="at-el-con">${urlCat(x.p) ? `<img src="${urlCat(x.p)}" alt="">` : ''}<span>${esc(x.p.nombre)}</span></li>`).join('')}</ul>` : ''}
       ${faltan.length ? `<h2 class="at-vj-h2">${t('Te iría bien', 'It would suit it')}</h2><ul class="at-el-lista">${faltan.map(x => `<li>${esc(mayus(x.nombre))}</li>`).join('')}</ul>` : ''}
       ${mios.length && aplicar ? `<div class="at-ropa-ops"><button class="at-btn" data-elsi>${t('Añadir al look', 'Add to the look')}</button></div>` : ''}`}`;
     cap.scrollTop = 0; $('at-el-t').focus({ preventScroll: true });
@@ -938,7 +943,7 @@ if (AT) (() => {
     const lista = E.ideas = sinHoy.length ? sinHoy : todas;
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     const fila = ['Todos', 'Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].map(o => `<button class="${o === oc ? 'on' : ''}" data-ideaoc="${o}"${o === oc ? ' aria-current="true"' : ''}>${o === 'Todos' ? t('Todas', 'All') : ocNombre(o)}${DOS}</button>`).join('');
-    const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-desc at-desc-t" data-ideadesc="${i}" aria-label="${t('Descartar esta idea: no volverá a salir', 'Discard this idea: it won’t come back')}">${I.cerrar}</button></figure>`; };
+    const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-desc at-desc-t" data-ideadesc="${i}" aria-label="${t('Descartar esta idea: no volverá a salir', 'Discard this idea: it won’t come back')}">${I.papelera}</button></figure>`; };
     // 14/11 (Gabriela: «la función sigue apareciendo donde mismo, debe sugerirte lo que le falta o lo que le vendría bien a tu clóset»): sale de aquí; ahora es
     // «Qué le falta a tu clóset» en Yo, debajo de los colores de su clóset (faltasCloset en app.js)
     const vendria = false && r.falta?.length && !en() && activas().length ? `<button class="at-enlace at-vendria" data-ideavendria aria-expanded="${!!E.ideaVendria}">${t('Qué te vendría bien', 'What would help')}</button>${E.ideaVendria ? `<ul class="at-faltas">${r.falta.map(f => `<li>${esc(f.frase)}</li>`).join('')}</ul>` : ''}` : '';

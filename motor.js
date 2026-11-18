@@ -232,6 +232,7 @@ const Motor = (() => {
 
   /* ---------- 4. los campos del look ---------- */
   // 16/11 (Sheila, 2432: su bikini en los looks de playa): «bano» es el bañador o el bikini que va debajo en las fórmulas de playa (PLA-01 y PLA-02), solo en «Tu viaje»
+  const TRAJE_SUB = new Set(['E1', 'E2', 'E3', 'E4', 'E5']); // 18/11: los planes en los que un hombre va con americana
   const PIEZAS = ['arriba', 'base_interior', 'abajo', 'vestido', 'capa', 'calzado', 'bolso', 'accesorio', 'bano'];
   const diasDesde = (iso, hoy) => Math.round((Date.parse(hoy) - Date.parse(iso)) / 864e5);
   function camposLook(l, ctx, pf, hoy) {
@@ -384,7 +385,7 @@ const Motor = (() => {
       const ok = grupo(ctx.sub_bolso === 'noche' || (ctx.sub_bolso !== 'dia' && ['Noche', 'Evento'].includes(ctx.ocasion)) ? '@bolso_noche' : '@bolso_dia');
       // 15/11 (Gabriela, 2355: «el look de oficina sale como diario, solo con un bolso»): de noche, el bolso de mano o el clutch antes que la bandolera de diario (Moda, R.ocasiones.Noche.preferido)
       const deNoche = ok === grupo('@bolso_noche') ? p => ['clutch', 'bolso_mano'].includes(p._f.subtipo) ? .3 : 0 : () => 0;
-      return elegir(ents.filter(p => p._f.cat === 'bolso' && ok.includes(p._f.subtipo) && !(p._f.subtipo === 'mochila' && (media >= 3 || ctx.ocasion === 'Oficina'))), p => deNoche(p) - Math.min(.15, (VIS?.compl.get(p.id) || 0) * .01));
+      return elegir(ents.filter(p => p._f.cat === 'bolso' && ok.includes(p._f.subtipo) && !(p._f.subtipo === 'mochila' && (media >= 3 || ['Oficina', 'Noche', 'Evento'].includes(ctx.ocasion))) /* 18/11: tampoco de noche ni en un evento, aunque el plan sea informal (salía en «cena informal o copas») */), p => deNoche(p) - Math.min(.15, (VIS?.compl.get(p.id) || 0) * .01));
     }
     if (tipo === 'panuelo') {
       if (ctx.ocasion === 'Evento' || media >= 4 || ropa.some(f => f.foco)) return null;
@@ -404,6 +405,11 @@ const Motor = (() => {
     // cinturón
     const A = l.arriba?._f, B = l.abajo?._f, V = l.vestido?._f;
     if (l.capa?._f.largo === 'largo' || (l.capa && grupo('@abrigo_frio').includes(l.capa._f.subtipo)) || est.includes('deportivo')) return null;
+    // 18/11 (Sheila, 2842: un probador subió varios cinturones y no le salía ninguno): a un hombre el cinturón va con el pantalón (chino, vaquero, de vestir) aunque
+    // la de arriba vaya por fuera, no con lo de deporte ni con sudadera; del color del zapato si es de piel; con zapatillas no hace falta que vaya a juego
+    if (l.hombre && !V) { if (!A || !B || B.uso === 'deporte' || ['jogger', 'malla'].includes(B.subtipo) || /sudadera/.test(A.subtipo || '')) return null;
+      const juego = p => !!p._f.familia && p._f.familia === z.familia, casual = ['zapatillas', 'nauticos', 'alpargatas'].includes(z.subtipo);
+      return elegir(ents.filter(p => p._f.subtipo === 'cinturon' && (juego(p) || casual)), p => juego(p) ? .1 : 0, casual ? .05 : .25); }
     if (V && !A && !B) { if (NO_CINTURON.has(V.subtipo) || /cruzad|envolvente|lazo|fajin|cintur|fruncid|drapead|tubo|ajustad|ceñid|lencer|tirante|camiseta/i.test(l.vestido.nombre || '')) return null; }
     else {
       if (!A || !B || B.uso === 'deporte' || NO_CINTURON.has(B.subtipo) || B.tiro === 'bajo') return null;
@@ -489,7 +495,10 @@ const Motor = (() => {
     // solo que no sea de calor (tmax)
     const paraDebajo = formula.huecos.some(h => h.rol === 'base_interior') ? ents.filter(p => p._f.cat === 'arriba' && !soloDeporte(p._f) && !(p._f.tmax != null && ctx.t_ref > p._f.tmax + 3)
       && !(p._f.tejido === 'lino' && ctx.t_ref < (p._f.tmin ?? 20) - 6)) : []; // 17/11: el lino es de verano: debajo de otras capas, sí en entretiempo, con frío no (clóset de demostración de hombre, 7°)
+    const ents0 = ents;
     ents = ents.filter(p => (vaHoy(p, ctx) || (bajoTecho && p._f.cat === 'vestido' && p._f.form >= 3 && vaHoy(p, dentro))) && (dep ? aptoDeporte(p) : !soloDeporte(p._f)));
+    // 18/11 (H-01): la americana que va debajo del abrigo no tiene mínimo propio, como lo de arriba con frío (Z9); solo que no sea de calor
+    if (formula.huecos.some(h => h.rol === 'arriba' && h.tipos.includes('americana'))) ents = [...ents, ...ents0.filter(p => p._f.subtipo === 'americana' && !ents.includes(p) && !(p._f.tmax != null && ctx.t_ref > p._f.tmax + 3))];
     // bajo techo, también sus sandalias de tacón (sin lluvia), pero solo si no tiene un zapato de vestir cerrado que valga con el frío de hoy (16/11, Gabriela: «con frío,
     // teniendo tacones cerrados, me propone los abiertos»)
     const cerrado = zapatos.some(p => !p.muestra && vaHoy(p, ctx) && !p._f.abierto && !p._f.deportiva && p._f.form >= 3.5 && !(ctx.sub_calzado_no || []).includes(p._f.subtipo));
@@ -515,7 +524,7 @@ const Motor = (() => {
         const [hc] = H(r); if (!hc) continue;
         // lo de debajo: una camisa que asoma, o una prenda neutra si de verdad hace frío (una camiseta roja bajo un jersey de rayas no aporta nada)
         // y lo de encima tiene que admitirlo: con mangas, sin hombros al aire y que sea de punto, sudadera o chaleco (07/11, Gabriela: el jersey de hombros abiertos con una camisa debajo «no tiene sentido»)
-        const fA = par.arriba?._f, encima = !fA || (!fA.hombros && (String(fA.subtipo).startsWith('chaleco') || !['sin_mangas', 'tirantes'].includes(fA.manga)) && (R.grupos['@punto'].includes(fA.subtipo) || ['cardigan', 'sudadera', 'chaleco_punto', 'chaleco_traje'].includes(fA.subtipo)));
+        const fA = par.arriba?._f, encima = !fA || (!fA.hombros && (String(fA.subtipo).startsWith('chaleco') || !['sin_mangas', 'tirantes'].includes(fA.manga)) && (R.grupos['@punto'].includes(fA.subtipo) || ['cardigan', 'sudadera', 'chaleco_punto', 'chaleco_traje', 'americana'].includes(fA.subtipo))); // 18/11: la americana de arriba (H-01, el traje bajo el abrigo)
         // 16/11 (sí de Gabriela al punto 3; lo pidió Sheila, 2192: looks con capas): además de la camisa, una blusa lisa de manga larga (sin volantes, encaje,
         // transparencias ni mangas de volumen, que no caben bajo un jersey) y un cuello alto que no sea grueso, este solo bajo un cárdigan, un chaleco, un vestido
         // o una americana (dos jerséis o dos cuellos, no)
@@ -542,7 +551,7 @@ const Motor = (() => {
         cs = cs.map(c => [puntosCalzado(c, l, ctx, pf, hz) + AF.zapato * afin(c) - sube(c), c]).sort((a, b) => b[0] - a[0]).map(x => x[1]);
         const sirven = []; for (const c of cs) { if (sirven.length >= 3) break; const lz = { ...l, calzado: c }; if (!vetar(entorno(lz, camposLook(lz, ctx, pf, hoy), ctx, pf)).duros.some(v => VETA_ZAPATO.has(v.id))) sirven.push(c); } // los tres mejores que el par admite
         // Moda 17/11 (propuesta Z1): con un plan con matiz, si ningún zapato suyo vale para ESTE look (p. ej. sus únicos tacones cerrados son marrones y el vestido es negro de gala), el de muestra que pide el plan, con «Lo ideal para este plan»
-        if (!sirven.length && ctx.sub) for (const c of ZV_SUB) { const lz = { ...l, calzado: c }; if (!(ctx.sub_calzado_no || []).includes(c._f.subtipo) && !vetar(entorno(lz, camposLook(lz, ctx, pf, hoy), ctx, pf)).duros.some(v => VETA_ZAPATO.has(v.id))) { sirven.push(c); break; } }
+        if (!sirven.length && ctx.sub) for (const c of ZV_SUB) { if (pf.publico === 'masculino' && SOLO_MUJER.test(c._f.subtipo)) continue; /* 18/11: a un hombre, nunca «tacones de muestra» */ const lz = { ...l, calzado: c }; if (!(ctx.sub_calzado_no || []).includes(c._f.subtipo) && !vetar(entorno(lz, camposLook(lz, ctx, pf, hoy), ctx, pf)).duros.some(v => VETA_ZAPATO.has(v.id))) { sirven.push(c); break; } }
         cs = sirven.length ? sirven : cs.slice(0, 1);
         for (const c of cs.length ? cs : [null]) {
           const l2 = { ...l }; if (c) l2.calzado = c; if (faltaHueco) l2.hueco_faltante = faltaHueco;
@@ -668,6 +677,7 @@ const Motor = (() => {
   }
   function evaluar(l, ctx, pf, hoy) {
     const c = camposLook(l, ctx, pf, hoy), e = entorno(l, c, ctx, pf), veto = vetar(e), pts = puntuar(l, c, e), uso = ajusteUso(l, pts, pf, hoy);
+    if (ctx.h_americana && !l.vestido && ![l.capa, l.arriba].some(p => p && !p.muestra && p._f.subtipo === 'americana')) veto.duros = [...veto.duros, { id: 'H01', porque: 'a un cóctel, una boda, una gala o una ceremonia, con americana' }];
     // un look puesto ayer no es la primera idea: el peso del grupo «variedad» solo no lo baja lo bastante
     const ayer = uso.ayer && (c.dias_desde_ultimo_uso === 1 || c.dias_desde_ultimo_uso === 0) ? (c.es_favorito ? .05 : .15) : 0;
     const nota0 = pts.total + veto.p / 2, gusto = pf.ap ? gustoLook(l, pf.ap, nota0, veto) : 0, vm = pf.uso ? 0 : variedadModa(l, c, pf, hoy, nota0); // con «Cómo usas tu ropa» elegido, manda ajusteUso
@@ -759,6 +769,9 @@ const Motor = (() => {
     const t0 = Date.now(), hoy = o.hoy || new Date().toISOString().slice(0, 10), plan = sb ? sb.oc : o.plan || 'Todos', n = o.n || 6, pf = perfilMotor(o.perfil, o), excluir = new Set(o.excluir || []);
     const ctx0 = contexto(o.tiempo, plan, { hora: o.hora ?? sb?.hora, t_ref: o.t_ref, evento: o.evento || sb?.evento, lugar: o.lugar || sb?.lugar, sub: sb?.id });
     const ents = (o.prendas || []).filter(p => !p.noMeGusta).map(p => ({ id: p.id, p, _f: ficha(p, pf) }));
+    // 18/11 (auditoría de hombre): a un hombre, en un cóctel, una boda, una gala o una ceremonia, si tiene americana, va con ella (salía «abrigo, camisa y pantalón»
+    // para una gala); con frío, el abrigo encima (fórmula H-01). Sin americana en su clóset no se le quita ningún look
+    if (!o.sinAmericana && pf.publico === 'masculino' && sb && TRAJE_SUB.has(sb.id) && ents.some(x => x._f.subtipo === 'americana')) ctx0.h_americana = 1; // si con ella no sale ningún look (calor), se repite sin pedirla (al final)
     // 17/11 (Gabriela, 2678 y 2688: «si conocieras mi estilo de verdad»; Moda, maleta-viaje C3): de noche (la cena del viaje y Nochevieja) el tacón que marcó en el alta sube
     // hasta el más alto del que tiene al menos dos pares: dos son una costumbre (Moda lo pedía de un punto; con «bajo» marcado y tres pares de sandalias de tacón alto,
     // como Gabriela, un punto no llegaba a ninguno). De día manda lo que marcó; quien marcó «plano» no sube
@@ -789,6 +802,7 @@ const Motor = (() => {
     // 16/11 (Gabriela: «¿cómo para diario me propones un pantalón, tacones, gabardina y camisa?»): Diario sin matiz va sin tacones; el tacón es de Cena con amigos o de una comida formal
     // Moda 17/11 (Z4): las alpargatas de cuña son de día (esparto, cuña cómoda): no cuentan como tacón en Diario
     if (plan === 'Diario' && !sb) { const pl = p => p._f.subtipo === 'alpargatas' || (!['tacones', 'sandalias_tacon'].includes(p._f.subtipo) && !(p._f.tacon_num >= 2)), suyos = zapatos.filter(pl); zapatos = suyos.length ? suyos : ZV.filter(pl); }
+    if (pf.publico === 'masculino') zapatos = zapatos.filter(x => !x.muestra || !SOLO_MUJER.test(x._f.subtipo)); // 18/11 (Sheila, sobre un probador): a un hombre, ningún zapato de muestra de mujer (salían «tacones de muestra» en un cóctel)
     if (ents.length > 150) { // clóset enorme: se forman parejas con lo menos puesto últimamente
       const reciente = x => (x.p.usos || []).reduce((m, u) => u > m ? u : m, ''), poco = (tipo, n) => ropa.filter(x => x.p.tipo === tipo).sort((a, b) => reciente(a).localeCompare(reciente(b))).slice(0, n);
       ropa = [...poco('Arriba', 40), ...poco('Abajo', 25), ...ropa.filter(x => !['Arriba', 'Abajo'].includes(x.p.tipo))];
@@ -843,7 +857,14 @@ const Motor = (() => {
         if (!m) continue; res.splice(1 + pon, 0, m); if (res.length > n) res.pop(); pon++; for (const k of PIEZAS) if (m[k]) en.add(m[k].id); }
       VIS = pf.vis; COMPL = !!o.complementos && plan !== 'Playa'; // la llamada de dentro los cambia
     }
+    // 18/11 (Sheila, 2842): a un hombre, el cinturón se pone después de elegir los looks (así no cambia cuáles salen ni la variedad; dentro de la nota la bajaba)
+    if (COMPL && pf.publico === 'masculino') for (const l of res) if (l.calzado && !l.accesorio && !l.vestido) { const a = complemento('cinturon', { ...l, estilos: l.formula?.estilos || [], silueta: pf.silueta, hombre: true }, ents, l.ctx || ctx0); if (a) l.accesorio = a; }
     const casi = res.length ? [] : elegir(cs.filter(l => l.casi).map(l => ({ ...l, veto: { ...l.veto, duros: [] }, casi: false, faltaCapa: true })), Math.min(n, 4), excluir);
+    if (ctx0.h_americana && !res.length) return looks({ ...o, sinAmericana: true });
+    // 18/11 (Sheila, 2848: a un probador, con zapatillas y sin zapatos de vestir, no le salía ningún look de noche): la noche sin matiz es la más exigente (sin vaquero
+    // con zapatillas, nada que sea de deporte); si da menos de 3 looks, se completa con los de «Cena informal o copas» (N1), que es el plan de noche más corriente
+    if (plan === 'Noche' && !sb && res.length < 3 && !o._n1) { const r1 = looks({ ...o, sub: 'N1', _n1: true }), mas = r1.looks.filter(l => l.calzado && !l.calzado.muestra && !(l.abajo?._f.tejido === 'denim' && l.calzado._f.subtipo === 'zapatillas') && !res.some(r => claveRopa(r) === claveRopa(l))); // solo con zapato suyo y sin vaquero con zapatillas (V48 de Moda para la noche sin matiz)
+      if (mas.length) return { ...r1, looks: [...res, ...mas].slice(0, n), sub: null, casi: [], falta: faltas(ctx0, plan, ropa, propios, pf), ctx: ctx0 }; }
     return { looks: res, casi, falta: faltas(ctx0, plan, ropa, propios, pf), ctx: ctx0, sub: sb ? { id: sb.id, nombre: sb.nombre, en: sb.en, oc: sb.oc } : null, subCorto, ms: Date.now() - t0, candidatos: cs.length, todos: o.depurar ? cs : undefined };
   }
   /* 17/11 (Gabriela, 2618: «¿qué función tiene entonces poner ocasiones diferentes?»): con un plan concreto, los mejores looks se ordenan también por lo que
