@@ -4425,6 +4425,7 @@ document.addEventListener('click', e => { if (!e.target.closest('[data-yo-inspo]
 // 15/11 (Gabriela, 2347: «ponlo primero, que sea para desplegar y de una forma más profesional, con otro nombre, y agrega las ocasiones que dijo Sheila»):
 // «Análisis de tu clóset», arriba del todo en Yo y plegado; prueba también los planes con matiz que pidió Sheila (2135) y, si para uno ningún zapato suyo vale,
 // cuenta el que pone el motor como el que le falta (tacones para una gala).
+// 18/11 (Sheila, 2886: a un probador no le quedó claro «Botines · 9 de 14 planes…»): dice que son piezas que faltan y para qué planes darían looks, sin «9 de 14».
 const FALTA_PLANES = [['Diario', '', 'el día a día', 'every day'], ['Oficina', '', 'la oficina', 'the office'], ['Noche', '', 'salir de noche', 'nights out'], ['Evento', '', 'eventos', 'events'],
   ['', 'D2', 'una cena con amigos', 'dinner with friends'], ['', 'D3', 'una merienda', 'afternoon coffee'], ['', 'D4', 'una comida formal', 'a formal lunch'], ['', 'N4', 'el teatro o la ópera', 'theatre or opera'],
   ['', 'E1', 'un cóctel', 'a cocktail party'], ['', 'E2', 'una boda de día', 'a daytime wedding'], ['', 'E3', 'una boda de noche', 'an evening wedding'], ['', 'E4', 'una gala', 'a gala'],
@@ -4457,12 +4458,12 @@ async function pintarFaltasYo() {
   if (!v.length) { sec.innerHTML = ''; return; }
   const y = l => l.length > 1 ? l.slice(0, -1).join(', ') + (en ? ' and ' : ' y ') + l[l.length - 1] : l[0];
   const nomP = id => { const p = FALTA_PLANES.find(x => (x[1] || x[0]) === id); return p ? p[en ? 3 : 2] : id; };
-  const planes = f => { const l = FALTA_PLANES.map(p => p[1] || p[0]).filter(id => f.ocs.has(id)).map(nomP); return l.length > 4 ? l.slice(0, 3).join(', ') + t(` y ${l.length - 3} más`, ` and ${l.length - 3} more`) : y(l); };
+  const planes = f => { const l = FALTA_PLANES.map(p => p[1] || p[0]).filter(id => f.ocs.has(id)).map(nomP); return l.length > 4 ? l.slice(0, 3).join(', ') + t(` y ${l.length - 3} planes más`, ` and ${l.length - 3} more plans`) : y(l); };
   sec.innerHTML = `<details class="yo-an" id="yo-an"${E.yoAn ? ' open' : ''}><summary><span class="yo-an-cab"><span class="yo-an-t">${t('Análisis de tu clóset', 'Closet analysis')}</span>
-    <small>${t('Las piezas que más looks te abrirían', 'The pieces that would open up the most looks')}</small></span><svg class="yo-an-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
-    <p class="yo-an-i">${t(`Tu ropa, probada en ${v.tot} planes, del día a día a una gala, con el tiempo de ahora y el de las próximas semanas.`, `Your clothes, tried in ${v.tot} plans, from every day to a gala, with today’s weather and the weeks ahead.`)}</p>
+    <small>${t('Lo que te falta para tener más looks', 'What you’re missing to get more looks')}</small></span><svg class="yo-an-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+    <p class="yo-an-i">${t(`Tu ropa, probada en ${v.tot} planes, del día a día a una gala. Si añades una de estas piezas, tendrás más looks.`, `Your clothes, tried in ${v.tot} plans, from every day to a gala. Add one of these pieces and you’ll have more looks.`)}</p>
     <ol class="yo-falta-l">${v.map((f, i) => { const nom = nomFalta(f.tipo);
-      return `<li><span class="yo-an-n" aria-hidden="true">${i + 1}</span><span class="yo-an-x"><b>${escH(nom.charAt(0).toUpperCase() + nom.slice(1))}</b><small>${t(`${f.ocs.size} de ${v.tot} planes`, `${f.ocs.size} of ${v.tot} plans`)}: ${planes(f)}</small></span></li>`; }).join('')}</ol>
+      return `<li><span class="yo-an-n" aria-hidden="true">${i + 1}</span><span class="yo-an-x"><b>${escH(nom.charAt(0).toUpperCase() + nom.slice(1))}</b><small>${t('Para', 'For')} ${planes(f)}</small></span></li>`; }).join('')}</ol>
     <p class="yo-falta-n">${t('Antes de comprar, mira si ya tienes algo parecido: Looks → Antes de comprar.', 'Before buying, check whether you already have something similar: Looks → Before you buy.')}</p></details>`;
 }
 document.addEventListener('toggle', e => { if (e.target.id === 'yo-an') E.yoAn = e.target.open; }, true);
