@@ -511,7 +511,7 @@ if (AT) (() => {
   const rejCats = () => $('cats');
   // 18/11 (Sheila, 2817 y 2862, sobre un probador): dentro de Camisetas, por manga; dentro de Accesorios, por tipo. Solo lo que tenga y si hay más de un tipo
   const SUB_ACC = [[/reloj|watch/i, 'relojes', ['Relojes', 'Watches']], [/pulsera|bracelet/i, 'pulseras', ['Pulseras', 'Bracelets']], [/collar|cadena|colgante|necklace/i, 'collares', ['Collares', 'Necklaces']], [/pendiente|aretes|earring/i, 'pendientes', ['Pendientes', 'Earrings']], [/anillo/i, 'anillos', ['Anillos', 'Rings']]];
-  const SUB_ACC_T = { cinturon: ['Cinturones', 'Belts'], bufanda: ['Bufandas', 'Scarves'], panuelo: ['Pañuelos', 'Neckerchiefs'], gorro: ['Gorros', 'Beanies'], guantes: ['Guantes', 'Gloves'], gorra: ['Gorras', 'Caps'], sombrero: ['Sombreros', 'Hats'], gafas: ['Gafas', 'Glasses'], paraguas: ['Paraguas', 'Umbrellas'], corbata: ['Corbatas', 'Ties'], joyas: ['Joyas', 'Jewellery'] };
+  const SUB_ACC_T = { cinturon: ['Cinturones', 'Belts'], bufanda: ['Bufandas', 'Scarves'], panuelo: ['Pañuelos', 'Neckerchiefs'], gorro: ['Gorros', 'Beanies'], guantes: ['Guantes', 'Gloves'], gorra: ['Gorras', 'Caps'], sombrero: ['Sombreros', 'Hats'], gafas: ['Gafas', 'Glasses'], gafas_vista: ['Gafas de ver', 'Eyeglasses'], paraguas: ['Paraguas', 'Umbrellas'], corbata: ['Corbatas', 'Ties'], joyas: ['Joyas', 'Jewellery'] };
   const subCloset = p => { const c = catDe(p), f = Motor.ficha(p);
     if (c === 'Camisetas') return f.manga === 'corta' ? ['1corta', t('Manga corta', 'Short sleeve')] : f.manga === 'larga' ? ['2larga', t('Manga larga', 'Long sleeve')] : ['3sin', t('Sin mangas', 'Sleeveless')];
     if (c === 'Accesorios') { for (const [re, k, w] of SUB_ACC) if (re.test(p.nombre || '')) return [k, t(...w)]; const w = SUB_ACC_T[f.subtipo]; return w ? [f.subtipo, t(...w)] : ['~otros', t('Otros', 'Other')]; }
@@ -661,9 +661,11 @@ if (AT) (() => {
      metal (el de su estación; con subtono neutro, el que ya lleve el look). No toca el motor ni el look hasta que ella dice «Añadir al look» ---------- */
   const sinTilde = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const ACC_NOM = [['pendientes', /pendiente|arete|\baros?\b|zarcillo|earring/], ['collar', /collar|cadena|gargantilla|colgante|choker|necklace/], ['pulsera', /pulsera|brazalete|bracelet/], ['anillo', /anillo|\bsello\b|\bring\b/], ['reloj', /reloj|watch/]];
-  const tipoAcc = p => { if (p.tipo === 'Bolsos') return 'bolso'; if (p.tipo !== 'Accesorios') return null; const f = Motor.ficha(p); if (['cinturon', 'panuelo', 'gafas', 'gorro', 'bufanda', 'guantes', 'paraguas'].includes(f.subtipo)) return f.subtipo; return ACC_NOM.find(([, r]) => r.test(sinTilde(p.nombre)))?.[0] || 'otro'; };
+  const tipoAcc = p => { if (p.tipo === 'Bolsos') return 'bolso'; if (p.tipo !== 'Accesorios') return null; const f = Motor.ficha(p); if (['cinturon', 'panuelo', 'gafas', 'gafas_vista', 'gorro', 'gorra', 'sombrero', 'bufanda', 'guantes', 'paraguas'].includes(f.subtipo)) return f.subtipo; return ACC_NOM.find(([, r]) => r.test(sinTilde(p.nombre)))?.[0] || 'otro'; }; // 18/11: gorra, sombrero y gafas de ver (Moda, A3 y A5)
   const ELEVA_OC = { Diario: ['pendientes', 'cinturon', 'bolso', 'gafas', 'panuelo', 'pulsera'], Oficina: ['reloj', 'pendientes', 'cinturon', 'bolso'], Noche: ['pendientes', 'bolso', 'anillo'], Evento: ['pendientes', 'bolso', 'pulsera'], Viaje: ['bolso', 'gafas', 'panuelo', 'reloj'] };
-  const ELEVA_OC_H = { Diario: ['cinturon', 'reloj', 'gafas'], Oficina: ['reloj', 'cinturon'], Noche: ['reloj', 'cinturon'], Evento: ['reloj', 'cinturon'], Viaje: ['gafas', 'reloj'] }; // con ropa de hombre, sin joyas ni bolso; 18/11 (Moda, auditoría de hombre): el cinturón también de noche y en eventos, del color del zapato
+  // 18/11 (Sheila, 2854: «siempre le propone exactamente el mismo accesorio… que proponga más variedad: pulsera, gorra, collar»): con ropa de hombre también pulsera, gorra y
+  // collar, en el orden de los pesos de Moda por ocasión (equipo/moda/pareja-1811); lo enseñado los días anteriores descansa (descansoEl) y así rotan
+  const ELEVA_OC_H = { Diario: ['cinturon', 'reloj', 'pulsera', 'gorra', 'gafas', 'collar'], Oficina: ['reloj', 'cinturon', 'pulsera'], Noche: ['reloj', 'cinturon', 'pulsera', 'collar'], Evento: ['reloj', 'cinturon'], Viaje: ['gafas', 'gorra', 'reloj', 'pulsera'] }; // con ropa de hombre, sin bolso; 18/11 (Moda, auditoría de hombre): el cinturón también de noche y en eventos, del color del zapato
   const NEUTROS_EL = ['negro', 'blanco', 'gris', 'beige', 'crema', 'camel', 'marron', 'azul marino', 'dorado', 'plateado'];
   function metalDe(ps) {
     const dc = E.perfil?.diag?.color, m = sinTilde(dc?.metal), tt = dc?.ejes?.t, est = E.perfil?.colores?.est;
@@ -673,14 +675,29 @@ if (AT) (() => {
     return ['verano', 'invierno'].includes(est) ? 'plata' : ['primavera', 'otono'].includes(est) ? 'oro' : delLook();
   }
   function nombreFalta(k, oc, ps, m) {
+    const H = E.perfil?.ropa === 'hombre', calor = (E.tiempo?.t ?? 15) >= 20; // 18/11 (Sheila, 2854; Moda, A6): el reloj ya no es siempre el mismo
     const z = ps.find(p => p.tipo === 'Calzado'), cz = z?.color && !/dorad|platead/.test(sinTilde(z.color)) ? z.color.toLowerCase() : '', ma = g => m ? (m === 'oro' ? ' dorad' : ' platead') + g : '';
     const pal = (E.perfil?.diag?.color?.si || EST_COLOR[E.perfil?.colores?.est]?.si || []).map(x => typeof x === 'string' ? x : x?.n || x?.nombre || '').find(x => x && !NEUTROS_EL.includes(sinTilde(x)) && !ps.some(p => sinTilde(p.color) === sinTilde(x)));
     if (en()) { const g = m ? (m === 'oro' ? 'gold ' : 'silver ') : '';
-      return { pendientes: `thin ${g}hoop earrings`, collar: `fine ${g}chain with a small pendant`, pulsera: `fine ${g}bracelet`, anillo: `thin ${g}ring`, reloj: 'small-face watch with a leather strap', cinturon: E.perfil?.ropa === 'hombre' ? 'leather belt' : 'thin leather belt', bolso: ['Noche', 'Evento'].includes(oc) ? 'small clutch' : oc === 'Oficina' ? 'structured leather bag' : 'small leather crossbody bag', gafas: 'tortoiseshell sunglasses', panuelo: 'plain silk scarf' }[k]; }
-    return { pendientes: `pendientes de aro${ma('os')} finos`, collar: `cadena${ma('a')} fina con colgante pequeño`, pulsera: `pulsera fina${ma('a')}`, anillo: `anillo fino${ma('o')}`,
-      reloj: `reloj de esfera pequeña con correa de piel${cz ? ' en ' + cz : ''}`, cinturon: `cinturón ${E.perfil?.ropa === 'hombre' ? '' : 'fino '}de piel${cz ? ' en ' + cz : ''}`,
+      return { pendientes: `thin ${g}hoop earrings`, collar: H ? `fine ${g}chain` : `fine ${g}chain with a small pendant`, pulsera: H ? (oc === 'Noche' ? `thin ${g}bracelet` : 'thin leather or bead bracelet') : `fine ${g}bracelet`, anillo: `thin ${g}ring`, gorra: 'plain cotton cap in navy, grey or beige',
+        reloj: oc === 'Noche' ? 'dark-dial watch with a leather or mesh strap' : oc === 'Diario' && calor ? 'watch with a NATO or metal strap' : oc === 'Diario' ? 'watch with a leather strap' : 'small-face watch with a leather strap', cinturon: E.perfil?.ropa === 'hombre' ? 'leather belt' : 'thin leather belt', bolso: ['Noche', 'Evento'].includes(oc) ? 'small clutch' : oc === 'Oficina' ? 'structured leather bag' : 'small leather crossbody bag', gafas: 'tortoiseshell sunglasses', panuelo: 'plain silk scarf' }[k]; }
+    return { pendientes: `pendientes de aro${ma('os')} finos`, collar: H ? `cadena${ma('a')} fina` : `cadena${ma('a')} fina con colgante pequeño`, anillo: `anillo fino${ma('o')}`,
+      pulsera: H && oc !== 'Noche' ? 'pulsera fina de cuero o de cuentas' : `pulsera fina${ma('a')}`, gorra: 'gorra lisa de algodón en azul marino, gris o beige',
+      reloj: oc === 'Noche' ? 'reloj de esfera oscura con correa de piel o malla metálica' : oc === 'Diario' && calor ? 'reloj con correa NATO o metálica' : `reloj ${oc === 'Diario' ? '' : 'de esfera pequeña '}con correa de piel${cz ? ' en ' + cz : ''}`, cinturon: `cinturón ${E.perfil?.ropa === 'hombre' ? '' : 'fino '}de piel${cz ? ' en ' + cz : ''}`,
       bolso: ['Noche', 'Evento'].includes(oc) ? 'bolso de mano pequeño' : oc === 'Oficina' ? `bolso estructurado de piel${cz ? ' en ' + cz : ''}` : `bandolera pequeña de piel${cz ? ' en ' + cz : ''}`,
       gafas: 'gafas de sol de carey', panuelo: `pañuelo de seda${pal ? ' en ' + pal.toLowerCase() : ' liso'}` }[k];
+  }
+  function descansoEl() {
+    const hoy = hoyISO(), m = new Map(), dias = d => Math.round((new Date(hoy) - new Date(d)) / 864e5), peso = { 1: .6, 2: .4, 3: .2 };
+    for (const x of E.perfil?.vistos || []) { const w = peso[dias(x.d)]; if (w) for (const id of x.c || []) m.set(id, Math.max(m.get(id) || 0, w)); }
+    return m;
+  }
+  // lo que enseña Eleva queda apuntado en vistos (lo suyo por su id; lo que le falta, «el:<tipo>») para que mañana descanse
+  function apuntarEleva(out) {
+    const pf = E.perfil, hoy = hoyISO(); if (!pf || !out?.length) return;
+    const v = (pf.vistos || []).filter(x => x.d <= hoy).slice(-4); let h = v.find(x => x.d === hoy); if (!h) { h = { d: hoy, k: [], c: [] }; v.push(h); }
+    let nuevo = false; for (const x of out) { const id = x.p ? x.p.id : 'el:' + x.k; if (!h.c.includes(id)) { h.c.push(id); nuevo = true; } }
+    if (!nuevo) return; h.c = h.c.slice(-60); pf.vistos = v.slice(-4); BD.set('perfil', pf).catch(() => { });
   }
   function elevar(ids, oc) {
     oc = oc || 'Diario'; const ps = ids.map(P).filter(Boolean), lista = (E.perfil?.ropa === 'hombre' ? ELEVA_OC_H : ELEVA_OC)[oc];
@@ -698,21 +715,23 @@ if (AT) (() => {
     const cintura = () => E.perfil?.ropa === 'hombre' ? silueta !== 'ovalo' && !!B && B.uso !== 'deporte' : silueta !== 'ovalo' && C?.largo !== 'largo' && (V ? !/cruzad|envolvente|fajin|cintur|tubo|cenid|ajustad|camiseta|tirante/.test(nomV) : !!(A && B && B.tiro !== 'bajo' && B.uso !== 'deporte' && (['crop', 'cintura'].includes(A.largo) || /camisa|blusa|body/.test(A.subtipo || '')) && !/jersey|sudadera|cardigan|chaleco|polo/.test(A.subtipo || '')));
     const cuelloAlto = /cuello alto|cisne|halter|volante|lazo|barco/.test(sinTilde(arriba?.nombre || nomV));
     const sol = ['sol', 'solnube'].includes(E.tiempo?.clave);
-    const vale = k => !lleva.includes(k) && (k !== 'gafas' || sol) && (k !== 'panuelo' || !foco) && (k !== 'cinturon' || cintura()) && (k !== 'collar' || (!foco && !cuelloAlto && !lleva.includes('pendientes'))) && (k !== 'pendientes' || !lleva.includes('collar'));
+    const americana = F.some(f => ['americana', 'blazer', 'traje'].includes(f.subtipo) || /americana|blazer/.test(sinTilde(ps.find(p => Motor.ficha(p) === f)?.nombre)));
+    const vale = k => !lleva.includes(k) && (k !== 'gafas' || sol) && (k !== 'gorra' || !americana) && (k !== 'pulsera' || !lleva.includes('pulsera')) && (k !== 'panuelo' || !foco) && (k !== 'cinturon' || cintura()) && (k !== 'collar' || (!foco && !cuelloAlto && !lleva.includes('pendientes'))) && (k !== 'pendientes' || !lleva.includes('collar'));
     const bolsoVale = p => { const s = Motor.ficha(p).subtipo; return ['Noche', 'Evento'].includes(oc) ? ['clutch', 'bolso_mano'].includes(s) : oc === 'Oficina' ? !['mochila', 'rinonera', 'clutch'].includes(s) : s !== 'clutch'; };
     const mios = activas().filter(p => !ids.includes(p.id)), m = metalDe(ps);
     const deTipo = k => mios.filter(p => tipoAcc(p) === k && (k !== 'bolso' || bolsoVale(p)));
     const nota = p => { const c = sinTilde(p.color), metal = /dorad/.test(c) ? 'oro' : /platead/.test(c) ? 'plata' : ''; return (metal && metal === m ? 1 : metal ? -1 : 0) + (NEUTROS_EL.includes(c) ? .3 : 0) - Math.min(.5, (p.usos || []).length * .02); };
-    const cands = lista.filter(vale).map(k => { let k2 = k, cs = deTipo(k); if (k === 'pendientes' && !cs.length && vale('collar') && deTipo('collar').length) { k2 = 'collar'; cs = deTipo('collar'); }
-      const p = cs.sort((a, b) => nota(b) - nota(a))[0]; return p ? { k: k2, p } : { k: k2, nombre: nombreFalta(k2, oc, ps, m) }; });
-    const out = [...cands.filter(x => x.p), ...cands.filter(x => !x.p)].slice(0, n); // primero lo que ya tiene (R1)
+    // 18/11: lo que enseñó Eleva o salió en un look los 3 días anteriores descansa (ayer −0,6, hace 2 días −0,4, hace 3 −0,2; Moda, pareja-1811), y así no sale cada día lo mismo
+    const desc = descansoEl(), cands = lista.filter(vale).map((k, i) => { let k2 = k, cs = deTipo(k); if (k === 'pendientes' && !cs.length && vale('collar') && deTipo('collar').length) { k2 = 'collar'; cs = deTipo('collar'); }
+      const p = cs.sort((a, b) => nota(b) - (desc.get(b.id) || 0) - nota(a) + (desc.get(a.id) || 0))[0], o = -i * .15; return p ? { k: k2, p, o: o - (desc.get(p.id) || 0) } : { k: k2, nombre: nombreFalta(k2, oc, ps, m), o: o - (desc.get('el:' + k2) || 0) }; }); // el orden de la ocasión pesa menos que el descanso: lo que no salió ayer pasa delante
+    const ord = xs => xs.sort((a, b) => b.o - a.o), out = [...ord(cands.filter(x => x.p)), ...ord(cands.filter(x => !x.p))].slice(0, n); // primero lo que ya tiene (R1)
     return { plano, out };
   }
   // el botón solo en el Pro y donde hay algo que decir (no en Deporte ni en la playa)
   const IC_ELEVAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l1.9 5.6 5.6 1.9-5.6 1.9L12 18.5l-1.9-5.6L4.5 11l5.6-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>';
   const conElevar = (ids, oc) => planDemo() === 'pro' && !!elevar(ids, oc);
   function abrirElevar(ids, oc, aplicar) {
-    const r = elevar(ids, oc); if (!r) return;
+    const r = elevar(ids, oc); if (!r) return; apuntarEleva(r.out);
     let cap = $('at-elevar'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-elevar'; cap.className = 'ay-capa at-vj at-el'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'at-el-t'); document.body.append(cap); }
     const mios = r.out.filter(x => x.p), faltan = r.out.filter(x => !x.p), [ancho] = caja(), W = Math.min(280, ancho - 96), H = Math.round(W * 1.15);
     const vacio = r.completo ? t('Este look ya va completo.', 'This look is already complete.') : !r.out.length ? t('Este look no necesita nada más.', 'This look needs nothing more.') : '';
@@ -805,7 +824,7 @@ if (AT) (() => {
   function apuntarVistos(ls, hoy) {
     const pf = E.perfil; if (!pf || !ls.length || !Motor.claveRopa) return;
     const v = (pf.vistos || []).filter(x => x.d <= hoy).slice(-4); let h = v.find(x => x.d === hoy), nuevo = false; if (!h) { h = { d: hoy, k: [], c: [] }; v.push(h); }
-    for (const l of ls) { const k = Motor.claveRopa(l); if (!k || h.k.includes(k)) continue; h.k.push(k); nuevo = true; for (const x of [l.calzado, l.bolso]) if (x && !x.muestra) h.c.push(x.id); }
+    for (const l of ls) { const k = Motor.claveRopa(l); if (!k || h.k.includes(k)) continue; h.k.push(k); nuevo = true; for (const x of [l.calzado, l.bolso, l.accesorio, l.accesorio2, l.joya]) if (x && !x.muestra) h.c.push(x.id); } // 18/11: también los complementos, para que descansen (Moda, A4)
     if (!nuevo) return; h.k = h.k.slice(-30); h.c = h.c.slice(-60); pf.vistos = v.slice(-4); BD.set('perfil', pf).catch(() => { });
   }
   // 06/11 (Gabriela: «mañana tengo un plan y el domingo otro, me gustaría ponerlo con el link de los lugares y una pequeña descripción para que planifique los outfits»):
@@ -1320,31 +1339,64 @@ if (AT) (() => {
      para la ocasión elegida, el motor saca tus looks con tu ropa y los de tu pareja con la suya (con su «¿Qué ropa llevas?» y sus estilos) y se emparejan
      los que mejor combinan entre sí: un color vivo en común, o los dos en neutros; dos colores vivos distintos compiten. Tres parejas, sin repetir look.
      La ropa de la pareja no se guarda en este móvil: se pide a su cuenta al abrir y sus fotos viven solo en memoria. ---------- */
-  const NEUTROS = new Set(['Negro', 'Blanco', 'Gris', 'Beige', 'Crema', 'Camel', 'Marrón', 'Azul marino', 'Vaquero', 'Denim', 'Topo', 'Arena', 'Hueso', 'Crudo']);
-  function combinanPareja(a, b) {
-    const col = ps => [...new Set(ps.filter(p => p.tipo !== 'Calzado').map(p => p.color).filter(Boolean))], ca = col(a), cb = col(b);
-    const viva = c => !NEUTROS.has(c), va = ca.filter(viva), vb = cb.filter(viva), comun = ca.filter(c => cb.includes(c)), cv = comun.filter(viva);
-    const nom = c => c === 'Estampado' ? t('estampado', 'print') : c.toLowerCase();
-    if (cv.length) return { n: 2, por: t(`Los dos con ${nom(cv[0])}`, `Both with ${nom(cv[0])}`) };
-    if (!va.length && !vb.length) return { n: comun.length ? 1.4 : 1.1, por: t('Los dos en tonos neutros', 'Both in neutral tones') };
-    if (va.length && vb.length) return { n: comun.length ? .2 : -.8, por: '' };
-    return { n: comun.length ? 1 : .6, por: comun.length ? t(`Los dos con ${nom(comun[0])}`, `Both with ${nom(comun[0])}`) : t('Un solo color vivo entre los dos', 'A single bright colour between you') };
+  // 18/11 (Sheila, 2834: «la idea es tener looks similares que sean como un conjunto; yo tengo un vestido gris que no lo sugeriste mientras el outfit era
+  // completamente gris»; Moda, equipo/moda/pareja-1811): antes contaba los colores por su nombre (Antracita o Gris claro eran «vivos») y con el bolso y los accesorios.
+  // Ahora solo la ropa (vestido 2, arriba y abajo 1, capa 0,5), con la familia de color del motor: un hilo entre los dos (un color vivo en común 1,3; la misma familia
+  // dominante 1; una familia en alguna pieza 0,6; los dos en neutros de la misma calidez 0,3), el mismo nivel de arreglo (fmedia: a 2 o más de distancia no van juntos),
+  // un tejido en común (+0,15, el algodón no cuenta) y sin ir de uniforme (dos piezas gemelas −0,5; todas, fuera)
+  const PESO_PAR = { vestido: 2, arriba: 1, abajo: 1, capa: .5 };
+  const FAM_PAR = { tierra: ['tonos tierra', 'earth tones'], metal: ['metalizado', 'metallic'], gris: ['gris', 'grey'], negro: ['negro', 'black'], blanco: ['blanco', 'white'], azul: ['azul', 'blue'], verde: ['verde', 'green'], rojo: ['rojo', 'red'], rosa: ['rosa', 'pink'], amarillo: ['amarillo', 'yellow'], naranja: ['naranja', 'orange'], violeta: ['violeta', 'purple'] };
+  function tonoPar(ps) {
+    const fs = ps.map(p => Motor.ficha(p)).filter(f => PESO_PAR[f.cat]), peso = {};
+    for (const f of fs) if (f.familia && f.familia !== 'estampado') peso[f.familia] = (peso[f.familia] || 0) + PESO_PAR[f.cat];
+    const dom = Object.entries(peso).sort((a, b) => b[1] - a[1])[0]?.[0] || null, neutro = f => String(f.color_clase).startsWith('neutro');
+    return { fs, dom, fams: new Set(Object.keys(peso)), vivos: [...new Set(fs.filter(f => !neutro(f) && f.color_clase !== 'estampado').map(f => f.color))], todoNeutro: fs.length > 0 && fs.every(neutro),
+      calidez: new Set(fs.map(f => f.calidez)), tejidos: new Set(fs.map(f => f.tejido).filter(x => x && x !== 'algodon')) };
+  }
+  function combinanPareja(a, b, xa = {}, xb = {}) {
+    const A = tonoPar(a), B = tonoPar(b), famN = k => t(...(FAM_PAR[k] || [k, k])), col = c => c.toLowerCase();
+    const cv = A.vivos.find(c => B.vivos.includes(c)), famC = [...A.fams].find(k => B.fams.has(k) && k !== 'negro' && k !== 'blanco') || [...A.fams].find(k => B.fams.has(k));
+    let hilo = 0, por = '';
+    if (cv) { hilo = 1.3; por = t(`Los dos con ${col(cv)}`, `Both with ${col(cv)}`); }
+    else if (A.dom && A.dom === B.dom) { hilo = 1; por = t(`Los dos en ${famN(A.dom)}`, `Both in ${famN(A.dom)}`); }
+    else if (famC) { hilo = .6; por = t(`Los dos con ${famN(famC)}`, `Both with ${famN(famC)}`); }
+    else if (A.todoNeutro && B.todoNeutro && [...A.calidez].some(c => B.calidez.has(c))) { hilo = .3; por = t('Los dos en tonos neutros', 'Both in neutral tones'); }
+    if (A.todoNeutro && B.todoNeutro && hilo >= .3 && hilo < 1) por = t('Los dos en tonos neutros', 'Both in neutral tones');
+    const inten = A.vivos.length && B.vivos.length && !hilo ? -.8 : 0;
+    const df = xa.fmedia != null && xb.fmedia != null ? Math.abs(xa.fmedia - xb.fmedia) : 0; if (df >= 2) return { n: -9, por: '', fuera: true, hilo };
+    const arreglo = df <= .5 ? .4 : df <= 1 ? .2 : df <= 1.5 ? 0 : -.6;
+    const tejido = [...A.tejidos].some(x => B.tejidos.has(x)) ? .15 : 0;
+    const gem = A.fs.filter(f => f.cat !== 'vestido' && B.fs.some(g => g.cat === f.cat && g.subtipo === f.subtipo && g.color === f.color)).length;
+    if (gem && gem >= Math.min(A.fs.length, B.fs.length)) return { n: -9, por: '', fuera: true, hilo };
+    return { n: hilo + inten + arreglo + tejido + (gem >= 2 ? -.5 : 0), por, hilo };
   }
   function hacerPares(d, oc) {
     if (PAREJA.base !== d) { PAREJA.base = d; PAREJA.ps = new Map(d.prendas.map(p => [p.id, { ...p, usos: [], estado: '', detalles: p.detalles || [] }])); }
     const opc = { tiempo: E.tiempo, plan: oc, n: 8, hoy: hoyISO(), ...(oc === 'Noche' ? { hora: 20 } : {}) };
     const lista = r => (r.looks.length ? r.looks : r.casi || []).map(Motor.aPropuesta);
-    const mios = deVerdad(oc, lista(Motor.looks({ ...opc, prendas: activas(), perfil: E.perfil, excluir: E.perfil?.gustos?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est] }))).slice(0, 6);
-    const suyosPs = [...PAREJA.ps.values()], suyos = lista(Motor.looks({ ...opc, prendas: suyosPs, perfil: { ropa: d.ropa || '', estilos: d.estilos || [] } }))
-      .filter(x => oc !== 'Deporte' || x.ids.some(id => esDeporte(PAREJA.ps.get(id) || {}))).slice(0, 6);
-    const A = mios.map(x => ({ x, ps: psDe(x) })), B = suyos.map(x => { const ps = x.ids.map(id => PAREJA.ps.get(id)).filter(Boolean); if (x.como) ps.como = x.como; return { x, ps }; });
-    const todos = [];
-    A.forEach((a, i) => B.forEach((b, j) => { const c = combinanPareja(a.ps, b.ps); todos.push({ a, b, por: c.por, n: c.n - (i + j) * .12 }); }));
-    todos.sort((p, q) => q.n - p.n);
+    const suyosPs = [...PAREJA.ps.values()], miOpc = { ...opc, prendas: activas(), perfil: E.perfil, excluir: E.perfil?.gustos?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est] };
+    const suOpc = { ...opc, prendas: suyosPs, perfil: { ropa: d.ropa || '', estilos: d.estilos || [] } };
+    const misLooks = r => deVerdad(oc, lista(r)), susLooks = r => lista(r).filter(x => oc !== 'Deporte' || x.ids.some(id => esDeporte(PAREJA.ps.get(id) || {})));
+    const mios = misLooks(Motor.looks(miOpc)).slice(0, 6), suyos = susLooks(Motor.looks(suOpc)).slice(0, 6);
+    const conPs = (x, m) => { if (m) return { x, ps: psDe(x) }; const ps = x.ids.map(id => PAREJA.ps.get(id)).filter(Boolean); if (x.como) ps.como = x.como; return { x, ps }; }; // tuyos como antes (con el zapato de muestra si falta)
+    // 18/11: además de las dos listas hechas por separado, el motor busca los looks de uno a partir de los dos primeros del otro (lo de su familia de color,
+    // un poco por delante; nunca un look que el motor no enseñaría: nota ≥ la mejor − 0,10). Primero los tuyos como punto de partida; si nada hace conjunto, al revés
+    const desde = (semillas, mias, o, sel) => semillas.slice(0, 2).flatMap(s => {
+      const T = tonoPar(s.ps), afin = f => ['calzado', 'bolso', 'accesorio', 'joya'].includes(f.cat) ? 0 : f.familia && f.familia === T.dom ? 1 : T.todoNeutro && String(f.color_clase).startsWith('neutro') ? .3 : 0;
+      const r = Motor.looks({ ...o, n: 14, afin }), ls = r.looks.length ? r.looks : r.casi || [], top = Math.max(...ls.map(l => l.nota ?? 0));
+      return sel({ looks: ls.filter(l => (l.nota ?? 0) >= top - .1), casi: [] }).map(x => conPs(x, mias));
+    });
+    const junta = (base, extra) => { const ks = new Set(base.map(z => z.x.ids.slice().sort().join())); for (const z of extra) { const k = z.x.ids.slice().sort().join(); if (!ks.has(k)) { ks.add(k); base.push(z); } } return base; };
+    const A = mios.map(x => conPs(x, true)), B = suyos.map(x => conPs(x, false));
+    const puntuar = () => { const todos = []; A.forEach((a, i) => B.forEach((b, j) => { const c = combinanPareja(a.ps, b.ps, a.x, b.x); if (!c.fuera) todos.push({ a, b, por: c.por, hilo: c.hilo, n: c.n + .5 * ((a.x.nota || 0) + (b.x.nota || 0)) - .03 * (i + j) }); })); return todos.sort((p, q) => q.n - p.n); };
+    if (A.length && suyosPs.length) junta(B, desde(A, false, suOpc, susLooks));
+    let todos = puntuar();
+    if (!todos.some(p => p.hilo >= .6) && B.length) { junta(A, desde(B, true, miOpc, misLooks)); todos = puntuar(); }
     const usados = new Set(), pares = [];
-    for (const p of todos) { if (pares.length >= 3) break; if (usados.has('a' + mios.indexOf(p.a.x)) || usados.has('b' + suyos.indexOf(p.b.x))) continue; usados.add('a' + mios.indexOf(p.a.x)); usados.add('b' + suyos.indexOf(p.b.x)); pares.push(p); }
+    for (const p of todos) { if (pares.length >= 3) break; const ka = 'a' + A.indexOf(p.a), kb = 'b' + B.indexOf(p.b); if (usados.has(ka) || usados.has(kb)) continue; usados.add(ka); usados.add(kb); pares.push(p); }
     return { pares, mios: mios.length, suyos: suyos.length, suyasPrendas: suyosPs.length };
   }
+  window.atPrueba && Object.assign(window.atPrueba, { hacerPares: (d, oc) => hacerPares(d, oc), abrirPareja: () => abrirPareja() }); // para herramientas/pruebas/probar-pareja-eleva.mjs
   async function abrirPareja() {
     const cap = capaDe('at-pareja', 'at-cp at-par', t('En pareja', 'As a couple')), S = E.parS = E.parS || { oc: 'Diario' };
     const cab = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button><h1>${t('En pareja', 'As a couple')}</h1>`;

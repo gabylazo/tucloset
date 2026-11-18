@@ -379,8 +379,10 @@ const Motor = (() => {
       return todoNeutro && !ya.some(x => !neutro(x)) ? .1 : -1; // un único toque de color en un look neutro
     };
     const nivel = f => Math.abs((f.form ?? 3) - media);
+    // 18/11 (Sheila, 2854: «siempre le propone exactamente el mismo accesorio»; Moda, pareja-1811): el cinturón, el pañuelo y las joyas enseñados los 3 días anteriores
+    // descansan como el bolso (−0,05 por vez, hasta −0,15); ordena después del mínimo, no veta (nunca quita el único que vale)
     const elegir = (cs, extra = () => 0, min = .1) => cs.map(p => [armonia(p._f) - nivel(p._f) * .15 + extra(p) + huella(clave + p.id) * .12, p])
-      .filter(x => x[0] >= min && nivel(x[1]._f) <= 1.2).sort((a, b) => b[0] - a[0])[0]?.[1] || null;
+      .filter(x => x[0] >= min && nivel(x[1]._f) <= 1.2).map(x => [x[0] - (tipo === 'bolso' ? 0 : Math.min(.15, (VIS?.compl.get(x[1].id) || 0) * .05)), x[1]]).sort((a, b) => b[0] - a[0])[0]?.[1] || null;
     if (tipo === 'bolso') {
       const ok = grupo(ctx.sub_bolso === 'noche' || (ctx.sub_bolso !== 'dia' && ['Noche', 'Evento'].includes(ctx.ocasion)) ? '@bolso_noche' : '@bolso_dia');
       // 15/11 (Gabriela, 2355: «el look de oficina sale como diario, solo con un bolso»): de noche, el bolso de mano o el clutch antes que la bandolera de diario (Moda, R.ocasiones.Noche.preferido)
