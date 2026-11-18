@@ -482,6 +482,7 @@ if (AT) (() => {
     let x0 = null;
     z.ontouchstart = e => { x0 = e.touches[0].clientX; };
     z.ontouchend = e => { if (x0 == null || lista.length < 2) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) mover(dx < 0 ? 1 : -1); };
+    setTimeout(() => precalcularHoy()); // 18/11: después de que at.js termine de cargar
   };
 
   /* ---------- Estilos (Sheila, 03/11, m. 1702: «más visuales, para que las personas se identifiquen con outfits que les gustan»): cada estilo con un look en foto, hecho
@@ -790,13 +791,14 @@ if (AT) (() => {
   let ultima = {};
   // 15/11: el plan concreto de hoy en esa ocasión (el elegido en Hoy, el de su evento o el que dice su texto); solo lo usa Hoy (proponer), no Ideas
   const subHoy = plan => { const ev = eventoAhora(); return ev && ev.oc === plan ? subPlan(ev) : null; };
-  const pedirMotor = (plan, n, sub) => {
+  // 18/11: con pre, solo calcula y guarda (lo que se precalcula en Ideas no cuenta como visto hasta que se enseña)
+  const pedirMotor = (plan, n, sub, pre) => {
     const g = E.perfil?.gustos, hoy = hoyISO(), excluir = [...(g?.fuera || []), ...(g?.hoy?.d === hoy ? g.hoy.k : [])], ins = insHoy(plan), pr = quitarPor(ins, activas()), ev = sub && eventoAhora()?.oc === plan ? eventoAhora() : null, hora = ev?.hora && !ev.deHoy ? parseInt(ev.hora) : undefined;
     const firma = JSON.stringify([plan, n, sub, hora, hoy, ins?.firma, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), pr.map(p => [p.nombre, p.tipo, p.color, p.estacion, p.catM, p.detalles, p.est?.sub].join('·')).join('|'), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
     const kc = plan + n + (sub || '');
-    if (ultima[kc]?.firma === firma) { if (sub) E.subCorto = ultima[kc].r.subCorto ? ultima[kc].r.sub : null; return ultima[kc].r; }
+    const u = ultima[kc]; if (u?.firma === firma) { if (pre) return u.r; if (!u.visto) { u.visto = true; apuntarVistos(u.r.looks, hoy); } if (sub) E.subCorto = u.r.subCorto ? u.r.sub : null; return u.r; }
     const r = Motor.looks({ prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true, ...(sub ? { sub, hora } : {}) });
-    ultima[kc] = { firma, r }; apuntarVistos(r.looks, hoy); if (sub) E.subCorto = r.subCorto ? r.sub : null; return r;
+    ultima[kc] = { firma, r, visto: !pre }; if (pre) return r; apuntarVistos(r.looks, hoy); if (sub) E.subCorto = r.subCorto ? r.sub : null; return r;
   };
   // 14/11 (Gabriela, 2293: «Diario, salen siempre las mismas combinaciones»): lo que la app enseña cada día se apunta en el perfil (hoy y los 3 días de antes;
   // la ropa de cada look y, aparte, su calzado y su bolso) para que mañana el motor lo deje descansar. Solo en el móvil; sube a la nube con el siguiente guardado.
@@ -915,7 +917,7 @@ if (AT) (() => {
   const deVerdad = (plan, l) => plan !== 'Deporte' ? l : l.filter(x => x.ids.some(id => P(id) && esDeporte(P(id))));
   const propuestasDe = (plan, n, sub) => { const r = pedirMotor(plan, n, sub); return cumplen(insHoy(plan), deVerdad(plan, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta))); };
   // una ocasión sale en los filtros solo si con tu ropa hay al menos un look para ella
-  const hayOcasion = o => o === 'Todos' || propuestasDe(o, 4).length > 0;
+  const hayOcasion = o => o === 'Todos' || propuestasDe(o, 8).length > 0; // 18/11: con 8, como proponer, para que el motor calcule una vez (antes, 4 y luego 8)
   generarLooks = (n, plan) => propuestasDe(plan || 'Todos', n).map(x => ({ ...x, prin: x.ids[0] }));
   // al guardar un look del motor, también su zapato y cómo se lleva la de arriba
   const datosLook = async x => { if (!x.zspec && !x.como) return; const k = claveLook(x.ids), cj = E.conjuntos.find(c => claveLook(c.ids) === k); if (cj && !cj.zspec && !cj.como) { cj.zspec = x.zspec; cj.como = x.como; await guardar(); } };
@@ -947,6 +949,19 @@ if (AT) (() => {
     E.propuestas = props.filter(x => !fuera(x)); if (E.hoyIdx >= E.propuestas.length) E.hoyIdx = 0;
   };
 
+  // 18/11 (Sheila, 2749): mientras mira las ideas, las otras ocasiones de la fila se calculan de una en una en los ratos quietos (sin contarlas como vistas),
+  // para que cambiar de una a otra sea al instante. Un toque en la pantalla aplaza el siguiente cálculo; al salir de Ideas, se para
+  let preT = 0, prePaso = null;
+  document.addEventListener('pointerdown', () => { if (prePaso) { clearTimeout(preT); preT = setTimeout(prePaso, 1500); } }, { capture: true, passive: true });
+  // En Hoy, lo mismo mientras está abierta la fila de ocasiones (los 8 looks que pide Hoy, sin plan concreto, como al tocar una ocasión)
+  function precalcular(oc, n, sigue, subDe) {
+    clearTimeout(preT); const orden = ['Diario', 'Oficina', 'Noche', 'Evento'], i = orden.indexOf(oc), pend = [...orden.slice(i + 1), ...orden.slice(0, Math.max(i, 0))];
+    prePaso = () => { if (!sigue() || document.hidden || !pend.length || !E.prendas.length) { prePaso = null; return; }
+      const o = pend.shift(); pedirMotor(o, n, subDe(o), true); preT = setTimeout(prePaso, 400); };
+    preT = setTimeout(prePaso, 1200);
+  }
+  const precalcularIdeas = oc => precalcular(oc, 12, () => E.pantalla === 'looks' && E.lkTab === 'ideas', o => { const ss = Motor.subocasiones(o); return ss.some(x => x.id === E.ideaSub?.[o]) ? E.ideaSub[o] : null; });
+  const precalcularHoy = () => E.hzPreg && E.plan !== 'Todos' && precalcular(E.plan, 8, () => E.pantalla === 'hoy' && E.hzPreg, () => null);
   /* ---------- IDEAS: lo que el motor saca de su ropa para el tiempo de hoy, en rejilla como Pinterest; el corazón guarda sin abrir; sin frases a la vista ---------- */
   function pintarIdeas(raiz) {
     // 17/11 (Sheila, 2589: «aquí no te deja personalizar»): debajo de la ocasión, sus planes concretos, como en Hoy (opcional; otra vez el mismo, se quita).
@@ -972,7 +987,7 @@ if (AT) (() => {
       + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio">${activas().length ? `<p>${oc === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte. Cuando la subas, tus looks saldrán aquí.', 'No sportswear yet. Once you add some, your looks will appear here.')) : t('Con lo que tienes aún no sale un look completo para esta ocasión. Cuando subas más, saldrá aquí.', 'What you have doesn’t make a complete look for this occasion yet.')}</p>` : `<p>${t('Sube tu ropa y aquí saldrán tus ideas.', 'Add your clothes and your ideas will appear here.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>`}</div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
     // 18/11 (Sheila, 2827: «una papelera de reciclaje donde se guarden todos los descartes»): al final, los descartados, para verlos y recuperarlos
     const nd = descartados().length; if (nd) raiz.insertAdjacentHTML('beforeend', `<p class="at-descartados"><button class="at-enlace" data-descartados>${t('Descartados', 'Discarded')} (${nd})</button></p>`);
-    deslizable(raiz.querySelector('.at-ocs-ideas')); if (filaSub) deslizable(raiz.querySelector('.at-subs-ideas'));
+    deslizable(raiz.querySelector('.at-ocs-ideas')); if (filaSub) deslizable(raiz.querySelector('.at-subs-ideas')); setTimeout(() => precalcularIdeas(oc));
     raiz.onclick = async e => {
       const b = e.target.closest('[data-descartados],[data-lktab],[data-ideaoc],[data-ideasub],[data-idea],[data-ideafav],[data-ideadesc],[data-ideavendria],[data-viaje],[data-inspira],[data-recrear],[data-conprenda],[data-compra],[data-pareja]'); if (!b) return;
       if (b.dataset.descartados != null) return abrirDescartados();
@@ -983,8 +998,9 @@ if (AT) (() => {
       if (b.dataset.compra != null) return abrirCompra();
       if (b.dataset.inspira != null) return abrirInspira();
       if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkTocado = true; return pintarLooks(); }
-      if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; return pintarLooks(); }
-      if (b.dataset.ideasub) { const o = E.ideaOc || 'Todos'; E.ideaSub = E.ideaSub || {}; E.ideaSub[o] = E.ideaSub[o] === b.dataset.ideasub ? null : b.dataset.ideasub; pintarLooks(); return raiz.querySelector(`[data-ideasub="${b.dataset.ideasub}"]`)?.focus({ preventScroll: true }); }
+      const velo = () => raiz.querySelector('.at-rej-ideas, .at-vacio');
+      if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; marcarYa(b, velo()); await trasPintar(); if (E.ideaOc !== b.dataset.ideaoc) return; pintarLooks(); return raiz.querySelector(`[data-ideaoc="${b.dataset.ideaoc}"]`)?.focus({ preventScroll: true }); }
+      if (b.dataset.ideasub) { const o = E.ideaOc || 'Todos'; E.ideaSub = E.ideaSub || {}; E.ideaSub[o] = E.ideaSub[o] === b.dataset.ideasub ? null : b.dataset.ideasub; marcarYa(b, velo()); await trasPintar(); pintarLooks(); return raiz.querySelector(`[data-ideasub="${b.dataset.ideasub}"]`)?.focus({ preventScroll: true }); }
       if (b.dataset.ideavendria != null) { E.ideaVendria = !E.ideaVendria; return pintarLooks(); }
       if (b.dataset.ideadesc != null) return descartarIdea(lista[+b.dataset.ideadesc], +b.dataset.ideadesc);
       if (b.dataset.ideafav != null) { const x = lista[+b.dataset.ideafav]; await alternarFav(x.ids, x.ocasion); await datosLook(x); const on = esFav(x.ids); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); return; }

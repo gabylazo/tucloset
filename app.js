@@ -1937,21 +1937,32 @@ function preguntaHoy(planHoy) {
   if (planHoy) return `<button class="hz-plan" data-hzpreg>${t('Hoy', 'Today')}: ${ocNombre(planHoy).toLowerCase()}</button>${E.hzPreg ? opcionesHoy(planHoy) : ''}`;
   return `<button class="hz-preg" data-hzpreg>${t('¿Qué planes tienes hoy?', 'What are your plans today?')}</button>${E.hzPreg ? opcionesHoy() : ''}`;
 }
+// 18/11 (Sheila, 2749: «aprieta la pestaña de oficina y se te queda como cargando en la de diario»): al tocar una ocasión o un plan, el botón se marca al instante
+// y lo de debajo se vela con el indicador de carga; el motor calcula después de pintar (antes, la pestaña vieja seguía marcada hasta que el motor terminaba)
+function marcarYa(b, zona) {
+  const her = [...b.parentElement.children].filter(x => x.tagName === 'BUTTON'), quita = b.getAttribute('aria-pressed') === 'true', cur = her.some(x => x.hasAttribute('aria-current'));
+  for (const x of her) { const on = x === b && !quita; x.classList.toggle('on', on); if (x.hasAttribute('aria-pressed')) x.setAttribute('aria-pressed', on); x.removeAttribute('aria-current'); if (on && cur) x.setAttribute('aria-current', 'true'); }
+  if (zona && !zona.classList.contains('tc-velo')) { zona.classList.add('tc-velo'); zona.setAttribute('aria-busy', 'true'); zona.insertAdjacentHTML('afterbegin', cargaIco('tc-carga-c')); }
+}
+const trasPintar = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 const opcionesHoy = sel => `<div class="hz-ops">${OCASIONES.map(o => `<button class="${o === sel ? 'on' : ''}" data-hzoc="${o}">${ocNombre(o)}</button>`).join('')}</div>`;
 document.addEventListener('click', async e => {
   const b = e.target.closest('#p-hoy [data-hzpreg],#p-hoy [data-hzoc],#p-hoy [data-hzsub],#p-looks [data-hzpreg],#p-looks [data-hzoc]'); if (!b) return;
   const k = diaISO(new Date()), h = new Date().getHours(), fr = h < 14 ? 'Mañana' : h < 20 ? 'Tarde' : 'Noche';
   if (b.dataset.hzoc) {
+    marcarYa(b, $('at-hoy'));
     E.agenda[k] = E.agenda[k] || { planes: [] }; E.agenda[k].planes = [{ id: uid(), oc: b.dataset.hzoc, fr, deHoy: 1 }, ...E.agenda[k].planes.filter(p => p.oc !== b.dataset.hzoc)];
     // 15/11: en Hoy (Atelier) la fila sigue abierta para elegir, si quiere, el plan concreto debajo (segunda fila); en Looks se cierra como antes
     E.hzPreg = E.pantalla !== 'looks' && document.documentElement.classList.contains('at') && Motor.subocasiones(b.dataset.hzoc).length > 0; E.hoyDiario = false; E.propuestas = []; E.hoyIdx = 0; E.hoySalto = 'oc'; await guardar();
   } else if (b.dataset.hzsub) {
+    marcarYa(b, $('at-hoy'));
     // el plan concreto se apunta en el plan de hoy de esa ocasión (el que eligió en Hoy o su evento suelto de hoy); otra vez el mismo, se quita
     const x = Motor.subocasiones().find(s => s.id === b.dataset.hzsub); if (!x) return;
     const a = E.agenda[k] = E.agenda[k] || { planes: [] }, ev = eventoAhora(), pl = a.planes.find(p => p.deHoy && p.oc === x.oc) || (ev && !ev.fijo && ev.oc === x.oc ? ev.ref : null);
     if (pl) pl.sub = subPlan({ ...pl, oc: x.oc }) === x.id ? '' : x.id; else a.planes.unshift({ id: uid(), oc: x.oc, sub: x.id, fr, deHoy: 1 });
     E.hzPreg = false; E.hoyDiario = false; E.propuestas = []; E.hoyIdx = 0; E.hoySalto = 'sub'; await guardar();
   } else E.hzPreg = !E.hzPreg;
+  if (b.dataset.hzoc || b.dataset.hzsub) await trasPintar();
   if (E.pantalla === 'looks') pintarLooks(); else pintarHoy();
 });
 function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin menú arriba, el tiempo una vez junto a la fecha, debajo solo la ocasión

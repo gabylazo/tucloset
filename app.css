@@ -1970,3 +1970,6 @@ html.oscuro .pn-error{color:#E8776B}
 
 /* 18/11: «Te pusiste» en el calendario, un look por ocasión (Sheila, 2858) */
 .cal-puestos{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}.cal-look .cal-puestos .cal-p{width:min(150px,40vw)}.cal-look .cal-puestos .lk-fig{width:100%;margin:4px auto}.cal-puestos .mini-et{margin:0}
+
+/* 18/11 (Sheila, 2749): mientras el motor calcula la ocasión nueva, los looks se velan y sale el indicador de carga */
+.tc-velo{position:relative}.tc-velo>:not(.tc-carga){opacity:.3;transition:opacity .12s}.tc-velo>.tc-carga-c{top:min(50%,140px)}
