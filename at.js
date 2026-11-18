@@ -1393,29 +1393,40 @@ if (AT) (() => {
   // un tejido en común (+0,15, el algodón no cuenta) y sin ir de uniforme (dos piezas gemelas −0,5; todas, fuera)
   const PESO_PAR = { vestido: 2, arriba: 1, abajo: 1, capa: .5 };
   const FAM_PAR = { tierra: ['tonos tierra', 'earth tones'], metal: ['metalizado', 'metallic'], gris: ['gris', 'grey'], negro: ['negro', 'black'], blanco: ['blanco', 'white'], azul: ['azul', 'blue'], verde: ['verde', 'green'], rojo: ['rojo', 'red'], rosa: ['rosa', 'pink'], amarillo: ['amarillo', 'yellow'], naranja: ['naranja', 'orange'], violeta: ['violeta', 'purple'] };
+  // 18/11 (Sheila, 2939: «sigue sin hacer match»): «Los dos en …» solo si ese color es más de la mitad de la ropa de cada uno (antes bastaba una prenda beige en cada uno);
+  // compartir un neutro en una sola prenda es «un toque» y pesa menos; el arreglo, a 1 o más de distancia, ya no va junto (salir de noche frente a diario); y los zapatos
+  // de los dos cuentan: del mismo registro (nada de botín de tacón con zapatillas) y sin negro frente a marrón. Al elegir las tres parejas, los zapatos no se repiten si hay otros
+  const FAM_NEUTRA = { tierra: ['tierra', 'earthy'], gris: ['gris', 'grey'], negro: ['negro', 'black'], blanco: ['blanco', 'white'] };
   function tonoPar(ps) {
-    const fs = ps.map(p => Motor.ficha(p)).filter(f => PESO_PAR[f.cat]), peso = {};
-    for (const f of fs) if (f.familia && f.familia !== 'estampado') peso[f.familia] = (peso[f.familia] || 0) + PESO_PAR[f.cat];
-    const dom = Object.entries(peso).sort((a, b) => b[1] - a[1])[0]?.[0] || null, neutro = f => String(f.color_clase).startsWith('neutro');
-    return { fs, dom, fams: new Set(Object.keys(peso)), vivos: [...new Set(fs.filter(f => !neutro(f) && f.color_clase !== 'estampado').map(f => f.color))], todoNeutro: fs.length > 0 && fs.every(neutro),
+    const fs = ps.map(p => Motor.ficha(p)).filter(f => PESO_PAR[f.cat]), peso = {}; let total = 0;
+    for (const f of fs) { total += PESO_PAR[f.cat]; if (f.familia && f.familia !== 'estampado') peso[f.familia] = (peso[f.familia] || 0) + PESO_PAR[f.cat]; }
+    const [dom = null, pd = 0] = Object.entries(peso).sort((a, b) => b[1] - a[1])[0] || [], neutro = f => String(f.color_clase).startsWith('neutro');
+    return { fs, dom, manda: total > 0 && pd / total > .5, zap: ps.map(p => Motor.ficha(p)).find(f => f.cat === 'calzado') || null, fams: new Set(Object.keys(peso)), vivos: [...new Set(fs.filter(f => !neutro(f) && f.color_clase !== 'estampado').map(f => f.color))], todoNeutro: fs.length > 0 && fs.every(neutro),
       calidez: new Set(fs.map(f => f.calidez)), tejidos: new Set(fs.map(f => f.tejido).filter(x => x && x !== 'algodon')) };
+  }
+  function parZapatos(a, b) {
+    if (!a || !b) return { n: 0 };
+    const zapa = f => f.deportiva || f.subtipo === 'zapatillas', tacon = f => f.tacon_num >= 1, fam = new Set([a.familia, b.familia]);
+    if (Math.abs(a.form - b.form) >= 2 || (tacon(a) && zapa(b)) || (tacon(b) && zapa(a))) return { n: -1.2, choca: true };
+    return { n: a.familia === b.familia ? .25 : fam.has('negro') && fam.has('tierra') ? -.25 : 0 };
   }
   function combinanPareja(a, b, xa = {}, xb = {}) {
     const A = tonoPar(a), B = tonoPar(b), famN = k => t(...(FAM_PAR[k] || [k, k])), col = c => c.toLowerCase();
     const cv = A.vivos.find(c => B.vivos.includes(c)), famC = [...A.fams].find(k => B.fams.has(k) && k !== 'negro' && k !== 'blanco') || [...A.fams].find(k => B.fams.has(k));
     let hilo = 0, por = '';
     if (cv) { hilo = 1.3; por = t(`Los dos con ${col(cv)}`, `Both with ${col(cv)}`); }
-    else if (A.dom && A.dom === B.dom) { hilo = 1; por = t(`Los dos en ${famN(A.dom)}`, `Both in ${famN(A.dom)}`); }
+    else if (A.dom && A.dom === B.dom && A.manda && B.manda) { hilo = 1; por = t(`Los dos en ${famN(A.dom)}`, `Both in ${famN(A.dom)}`); }
+    else if (famC && FAM_NEUTRA[famC]) { hilo = .45; por = t(`Un toque ${FAM_NEUTRA[famC][0]} en los dos`, `A ${FAM_NEUTRA[famC][1]} touch on both`); }
     else if (famC) { hilo = .6; por = t(`Los dos con ${famN(famC)}`, `Both with ${famN(famC)}`); }
     else if (A.todoNeutro && B.todoNeutro && [...A.calidez].some(c => B.calidez.has(c))) { hilo = .3; por = t('Los dos en tonos neutros', 'Both in neutral tones'); }
     if (A.todoNeutro && B.todoNeutro && hilo >= .3 && hilo < 1) por = t('Los dos en tonos neutros', 'Both in neutral tones');
     const inten = A.vivos.length && B.vivos.length && !hilo ? -.8 : 0;
-    const df = xa.fmedia != null && xb.fmedia != null ? Math.abs(xa.fmedia - xb.fmedia) : 0; if (df >= 2) return { n: -9, por: '', fuera: true, hilo };
-    const arreglo = df <= .5 ? .4 : df <= 1 ? .2 : df <= 1.5 ? 0 : -.6;
+    const df = xa.fmedia != null && xb.fmedia != null ? Math.abs(xa.fmedia - xb.fmedia) : 0; if (df >= 1) return { n: -9, por: '', fuera: true, hilo };
+    const arreglo = df <= .5 ? .4 : -.3, Z = parZapatos(A.zap, B.zap);
     const tejido = [...A.tejidos].some(x => B.tejidos.has(x)) ? .15 : 0;
     const gem = A.fs.filter(f => f.cat !== 'vestido' && B.fs.some(g => g.cat === f.cat && g.subtipo === f.subtipo && g.color === f.color)).length;
     if (gem && gem >= Math.min(A.fs.length, B.fs.length)) return { n: -9, por: '', fuera: true, hilo };
-    return { n: hilo + inten + arreglo + tejido + (gem >= 2 ? -.5 : 0), por, hilo };
+    return { n: hilo + inten + arreglo + Z.n + tejido + (gem >= 2 ? -.5 : 0), por, hilo, choca: !!Z.choca };
   }
   function hacerPares(d, oc) {
     if (PAREJA.base !== d) { PAREJA.base = d; PAREJA.ps = new Map(d.prendas.map(p => [p.id, { ...p, usos: [], estado: '', detalles: p.detalles || [] }])); }
@@ -1429,19 +1440,25 @@ if (AT) (() => {
     // 18/11: además de las dos listas hechas por separado, el motor busca los looks de uno a partir de los dos primeros del otro (lo de su familia de color,
     // un poco por delante; nunca un look que el motor no enseñaría: nota ≥ la mejor − 0,10). Primero los tuyos como punto de partida; si nada hace conjunto, al revés
     const desde = (semillas, mias, o, sel) => semillas.slice(0, 2).flatMap(s => {
-      const T = tonoPar(s.ps), afin = f => ['calzado', 'bolso', 'accesorio', 'joya'].includes(f.cat) ? 0 : f.familia && f.familia === T.dom ? 1 : T.todoNeutro && String(f.color_clase).startsWith('neutro') ? .3 : 0;
-      const r = Motor.looks({ ...o, n: 14, afin }), ls = r.looks.length ? r.looks : r.casi || [], top = Math.max(...ls.map(l => l.nota ?? 0));
+      const T = tonoPar(s.ps), afin = f => f.cat === 'calzado' ? (T.zap ? (z => z.choca ? -1 : Math.sign(z.n))(parZapatos(f, T.zap)) : 0) : ['bolso', 'accesorio', 'joya'].includes(f.cat) ? 0 : f.familia && f.familia === T.dom ? 1 : T.todoNeutro && String(f.color_clase).startsWith('neutro') ? .3 : 0;
+      const zOk = T.zap ? o.prendas.filter(p => { const f = Motor.ficha(p); return f.cat === 'calzado' && !parZapatos(f, T.zap).choca; }) : []; // con los zapatos que casan con los del otro, si tiene alguno
+      const r = Motor.looks({ ...o, n: 14, afin, ...(zOk.length ? { prendas: o.prendas.filter(p => Motor.ficha(p).cat !== 'calzado' || zOk.includes(p)) } : {}) }), ls = r.looks.length ? r.looks : r.casi || [], top = Math.max(...ls.map(l => l.nota ?? 0));
       return sel({ looks: ls.filter(l => (l.nota ?? 0) >= top - .1), casi: [] }).map(x => conPs(x, mias));
     });
     const junta = (base, extra) => { const ks = new Set(base.map(z => z.x.ids.slice().sort().join())); for (const z of extra) { const k = z.x.ids.slice().sort().join(); if (!ks.has(k)) { ks.add(k); base.push(z); } } return base; };
     const A = mios.map(x => conPs(x, true)), B = suyos.map(x => conPs(x, false));
-    const puntuar = () => { const todos = []; A.forEach((a, i) => B.forEach((b, j) => { const c = combinanPareja(a.ps, b.ps, a.x, b.x); if (!c.fuera) todos.push({ a, b, por: c.por, hilo: c.hilo, n: c.n + .5 * ((a.x.nota || 0) + (b.x.nota || 0)) - .03 * (i + j) }); })); return todos.sort((p, q) => q.n - p.n); };
+    const puntuar = () => { const todos = []; A.forEach((a, i) => B.forEach((b, j) => { const c = combinanPareja(a.ps, b.ps, a.x, b.x); if (!c.fuera) todos.push({ a, b, por: c.por, hilo: c.hilo, choca: c.choca, n: c.n + .5 * ((a.x.nota || 0) + (b.x.nota || 0)) - .03 * (i + j) }); })); return todos.sort((p, q) => q.n - p.n); };
     if (A.length && suyosPs.length) junta(B, desde(A, false, suOpc, susLooks));
     let todos = puntuar();
-    if (!todos.some(p => p.hilo >= .6) && B.length) { junta(A, desde(B, true, miOpc, misLooks)); todos = puntuar(); }
-    const usados = new Set(), pares = [];
-    for (const p of todos) { if (pares.length >= 3) break; const ka = 'a' + A.indexOf(p.a), kb = 'b' + B.indexOf(p.b); if (usados.has(ka) || usados.has(kb)) continue; usados.add(ka); usados.add(kb); pares.push(p); }
-    return { pares, mios: mios.length, suyos: suyos.length, suyasPrendas: suyosPs.length };
+    if (todos.filter(p => p.hilo >= .6 && !p.choca).length < 3 && B.length) { junta(A, desde(B, true, miOpc, misLooks)); todos = puntuar(); }
+    const usados = new Set(), pares = [], zU = new Set(), zid = (k, ps) => (z => z ? k + z : '')(ps.find(p => Motor.ficha(p).cat === 'calzado')?.id);
+    while (pares.length < 3) { // las tres mejores sin repetir look y, si se puede, sin repetir zapatos (−0,5 por cada par que ya ha salido)
+      let mejor = null, mv = -Infinity;
+      for (const p of todos) { if (usados.has('a' + A.indexOf(p.a)) || usados.has('b' + B.indexOf(p.b))) continue; const v = p.n - .5 * (zU.has(zid('a', p.a.ps)) + zU.has(zid('b', p.b.ps))); if (v > mv) { mv = v; mejor = p; } }
+      if (!mejor) break; usados.add('a' + A.indexOf(mejor.a)); usados.add('b' + B.indexOf(mejor.b)); [zid('a', mejor.a.ps), zid('b', mejor.b.ps)].filter(Boolean).forEach(z => zU.add(z)); pares.push(mejor);
+    }
+    const nz = L => new Set(L.map(z => z.ps.find(p => Motor.ficha(p).cat === 'calzado')?.id).filter(Boolean)).size;
+    return { pares, mios: mios.length, suyos: suyos.length, suyasPrendas: suyosPs.length, zapatos: [nz(A), nz(B)], candidatas: todos };
   }
   window.atPrueba && Object.assign(window.atPrueba, { hacerPares: (d, oc) => hacerPares(d, oc), abrirPareja: () => abrirPareja() }); // para herramientas/pruebas/probar-pareja-eleva.mjs
   async function abrirPareja() {
