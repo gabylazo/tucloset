@@ -2158,7 +2158,9 @@ function accionesEv(ev, fut, antes = '') {
 }
 function panelEvento(d, ev, hoy) {
   const lk = lookDe(d, ev), fut = d >= hoy;
-  if (lk && !E.cal.cambia) return `<div class="ag-panel"><div class="lk-fig">${figLook({ ids: lk }, true)}</div>${accionesEv(ev, fut, (fut ? agAc('data-agcambia', 'girar', t('Cambiar', 'Change'), t('Cambiar el look', 'Change the look')) : '') + agAc('data-agquitalook', 'cerrar', t('Quitar', 'Remove'), t('Quitar el look', 'Remove the look')))}</div>`;
+  // 19/11 (Sheila, 2983: «aquí te debería dejar probarlo en un avatar antes de dejar guardado para esa ocasión»): «Verlo puesto» también en el look de un plan
+  const pu = window.atPuesto && planDemo() === 'pro' && tieneAvatar() ? `<button class="ag-ac${window.atPuesto.probado(lk) ? ' probado' : ''}" data-agpuesto="${lk.join(',')}" aria-pressed="false" aria-label="${t('Verlo puesto', 'See it on me')}" title="${t('Verlo puesto', 'See it on me')}">${IC_PUESTO}</button>` : '';
+  if (lk && !E.cal.cambia) return `<div class="ag-panel"><div class="lk-fig">${figLook({ ids: lk }, true)}</div>${accionesEv(ev, fut, pu + (fut ? agAc('data-agcambia', 'girar', t('Cambiar', 'Change'), t('Cambiar el look', 'Change the look')) : '') + agAc('data-agquitalook', 'cerrar', t('Quitar', 'Remove'), t('Quitar el look', 'Remove the look')))}</div>`;
   if (!fut) return `<div class="ag-panel">${accionesEv(ev, false)}</div>`;
   let ideas, falta = false, info = '';
   if (typeof looksEvento === 'function') {
@@ -2230,7 +2232,7 @@ function pintarAgenda(raiz) {
   const recogerForm = () => { f.nombre = $('ag-nom')?.value ?? f.nombre; f.hora = $('ag-hora')?.value ?? f.hora; f.url = $('ag-url')?.value ?? f.url; f.desc = $('ag-desc')?.value ?? f.desc; f.hasta = $('ag-hasta')?.value || f.hasta || diaMas(d, 4); };
   const rp = $('ag-rep'); if (rp) rp.onchange = () => { recogerForm(); f.rep = rp.value; pintarAgenda(raiz); $('ag-rep')?.focus({ preventScroll: true }); };
   raiz.onclick = async e => {
-    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agedita],[data-agquitalook],[data-agquita],[data-agbfijo],[data-agbviaje],[data-agvarios],[data-agviaje],[data-agplan],[data-agmenu],[data-agborra]'); if (!b) { if (E.cal.menu) { E.cal.menu = false; pintarAgenda(raiz); } return; }
+    const b = e.target.closest('[data-lktab],[data-agmes],[data-agdia],[data-agnuevo],[data-agdow],[data-agguarda],[data-agcancela],[data-agev],[data-agpon],[data-cotra],[data-agmios],[data-agmio],[data-agcambia],[data-agedita],[data-agquitalook],[data-agquita],[data-agbfijo],[data-agbviaje],[data-agvarios],[data-agviaje],[data-agplan],[data-agmenu],[data-agborra],[data-agpuesto]'); if (b?.dataset.agpuesto) return window.atPuesto?.ver(b, b.dataset.agpuesto.split(',')); if (!b) { if (E.cal.menu) { E.cal.menu = false; pintarAgenda(raiz); } return; }
     const menuAb = E.cal.menu, borraAb = E.cal.borra; E.cal.menu = E.cal.borra = false;
     const q = b.dataset, [dia, evId] = (E.cal.ev || '|').split('|'), ag = k => (E.agenda[k] = E.agenda[k] || { planes: [] }); let planear = null;
     if (q.lktab) { E.lkTab = q.lktab; E.lkTocado = true; E.lkI = 0; return pintarLooks(); }

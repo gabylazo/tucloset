@@ -263,6 +263,11 @@ if (AT) (() => {
   const IC_CAL = svg('<rect x="4" y="5.5" width="16" height="14.5" rx="1.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>'), IC_INFO = svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>');
   const icoAcc = (attr, ic, nombre, cls = '') => `<button class="at-ic-acc${cls}" ${attr} aria-label="${nombre}" title="${nombre}">${ic}</button>`;
   const icoPuesto = ps => { const pr = yaProbado(ps); return icoAcc('data-atl="puesto" data-puesto aria-pressed="false"', IC_PUESTO, pr ? t('Verlo puesto: ya te lo has probado', 'See it on me: already tried on') : t('Verlo puesto', 'See it on me'), ' at-puestob' + (pr ? ' probado' : '')); };
+  // 19/11 (Sheila, 2983): para el «Verlo puesto» del look de un plan del calendario (app.js, panelEvento); la imagen sale en el sitio del look
+  // (el look del calendario es un lienzo de app.js: se envuelve en .at-look, que es lo que verPuesto esconde y sustituye)
+  window.atPuesto = { probado: ids => yaProbado(ids.map(P).filter(Boolean)), ver: (b, ids) => { const z = b.closest('.ag-panel')?.querySelector('.lk-fig'); if (!z) return;
+    if (!z.querySelector('.at-look')) { const w = document.createElement('div'); w.className = 'at-look'; w.append(...z.childNodes); z.append(w); }
+    return verPuesto(b, z, ids.map(P).filter(Boolean)); } };
   const botonPuesto = ps => planDemo() === 'pro' && tieneAvatar() ? `<button class="at-puestob${ps && yaProbado(ps) ? ' probado' : ''}" data-puesto aria-pressed="false" aria-label="${ps && yaProbado(ps) ? t('Verlo puesto en mí: ya te lo has probado', 'See it on me: already tried on') : t('Verlo puesto en mí', 'See it on me')}">${IC_PUESTO}</button>` : '';
   // 07/11 (Gabriela: «quiero que el avatar, cuando se pruebe una ropa, se quede ahí fijo»): si lo dejas puesto, al pasar de look sigue puesto; lo ya probado sale del
   // móvil al momento y lo que no te has probado se queda en collage hasta que toques la figura (no se pide solo, para no gastar). Lo último probado se queda en Yo → Tu avatar
