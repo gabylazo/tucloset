@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#FFFFFF">
 <title>Borrar tu cuenta · TuCloset</title>
 <!-- 09/11/2026 (Legal, T2): borrar la cuenta sin abrir la app, con copia antes. La citan el aviso legal y la privacidad, y las tiendas de apps la piden.
@@ -40,6 +40,7 @@ button:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
 .nota{font-size:14px;margin-top:24px}
 .nota a,.nota a:visited{color:var(--sec);text-underline-offset:3px}
 .estado{margin-top:16px;font-size:14px}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
 </style>
 </head>
 <body>
@@ -153,5 +154,6 @@ button:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
   };
 })();
 </script>
+<script>/* 19/11, noche (Gabriela: «que todas las app sean estáticas, no se aumente el zoom»): sin pellizco ni doble toque en iPhone */['gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}))</script>
 </body>
 </html>

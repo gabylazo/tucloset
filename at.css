@@ -876,3 +876,19 @@ html.at .at-par-dia label { display: flex; flex-direction: column; gap: 4px; fon
 html.at .at-par-dia input { min-height: 44px; padding: 0 10px; border: 1px solid var(--linea, rgba(74,53,38,.3)); border-radius: 0; background: var(--fondo, #fff); color: var(--tinta); font: inherit; }
 html.at .at-par-dia .at-btn { flex: 1 1 160px; }
 html.at .at-par-subs { margin-top: 2px; }
+/* 19/11, noche (Gabriela): en «En pareja», debajo de cada look, aceptar el tuyo (✓) o pedir otro (↻); lo aceptado lleva la raya dorada */
+html.at .at-par-acc { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 44px; margin-top: 2px; }
+html.at .ag-ac[data-parsi][aria-pressed="true"] { box-shadow: inset 0 -2px 0 var(--oro); }
+html.at .ag-ac[data-parsi][aria-pressed="true"] svg { stroke-width: 2.2; }
+html.at .at-par-si { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; color: var(--sec); }
+html.at .at-par-si .ag-ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+html.at .at-par-comb { font-weight: 600; color: var(--tinta); }
+
+/* 19/11, noche (Gabriela, Recrear: «tu versión 3 de 4, no entiendo»): debajo de «Tu versión», cuántas prendas de la foto tiene iguales */
+html.at .at-rc-cuenta { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.3; color: var(--sec); }
+/* 19/11, noche (Sheila, 3116): en Ideas, «Más ideas» (↻) a la derecha de «Con el tiempo de hoy» */
+html.at .at-ideas-cab { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 0 16px; }
+
+/* 19/11, noche (Gabriela: «que todas las app sean estáticas, no se aumente el zoom que se desestabiliza»): en iPhone, tocar un campo con letra de menos de 16 px
+   amplía la página y se queda ampliada. Los campos de escribir que tenían menos, a 16 px (con «Letra grande», más) */
+html.at #p-closet .mc-busca input, html.at .cal-hasta input, html.at .s-cat select, html.at .ag-hora input, html.at .at-par-dia input { font-size: 16px; }

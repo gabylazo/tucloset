@@ -1988,3 +1988,5 @@ html.oscuro .pn-error{color:#E8776B}
 
 /* 18/11 (Sheila, 2749): mientras el motor calcula la ocasión nueva, los looks se velan y sale el indicador de carga */
 .tc-velo{position:relative}.tc-velo>:not(.tc-carga){opacity:.3;transition:opacity .12s}.tc-velo>.tc-carga-c{top:min(50%,140px)}
+/* 19/11, noche (Gabriela: «que todas las app sean estáticas»): campos de escribir a 16 px como mínimo, para que iPhone no amplíe al tocarlos */
+.mc-busca input,.cal-hasta input,.s-cat select,.ag-hora input{font-size:16px}

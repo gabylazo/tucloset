@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="color-scheme" content="only light">
 <title>Política de privacidad · TuCloset</title>
 <!-- 17/11/2026: la política de privacidad para publicar en tucloset.app/privacidad.html. Sale del borrador de Legal (equipo/legal/2026-11-09-privacidad.md),
@@ -53,6 +53,7 @@ a:focus-visible { outline: 2px solid var(--dorado); outline-offset: 2px; }
 p, li, dd { text-align: justify; -webkit-hyphens: auto; hyphens: auto; }
 .fecha { text-align: left; }
 .pie { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--raya); font-size: 15px; color: var(--gris); text-align: center; }
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
 </style>
 </head>
 <body>
@@ -335,5 +336,6 @@ p, li, dd { text-align: justify; -webkit-hyphens: auto; hyphens: auto; }
 
 <p class="pie"><a href="./">tucloset.app</a> · <a href="mailto:app@tucloset.app">app@tucloset.app</a></p>
 </main>
+<script>/* 19/11, noche (Gabriela: «que todas las app sean estáticas, no se aumente el zoom»): sin pellizco ni doble toque en iPhone */['gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}))</script>
 </body>
 </html>

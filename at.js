@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.321'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.322'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -1099,7 +1099,14 @@ if (AT) (() => {
     const oc = E.ideaOc || 'Todos', subs = Motor.subocasiones(oc), sub = subs.some(x => x.id === E.ideaSub?.[oc]) ? E.ideaSub[oc] : null, sc0 = E.subCorto, r = pedirMotor(oc, 12, sub), w = E.tiempo; E.subCorto = sc0;
     // 16/11 (auditoría, Gabriela «3 sí»): Ideas no repite el look que está en Hoy (si no queda otro, se deja)
     const deHoy = (E.propuestas || [])[E.hoyIdx || 0], k0 = deHoy ? claveLook(deHoy.ids) : '', todas = deVerdad(oc, (r.looks.length ? r.looks : r.casi).map(Motor.aPropuesta)), sinHoy = todas.filter(x => claveLook(x.ids) !== k0);
-    const lista = E.ideas = sinHoy.length ? sinHoy : todas;
+    let lista = E.ideas = sinHoy.length ? sinHoy : todas;
+    // 19/11, noche (Sheila, 3116: «mi usuaria propone que en look haya un botón de refresh para ver más combinaciones… si dices que son posibles un montón, el usuario
+    // se queda con ganas de más»): ↻ «Más ideas» enseña las 12 siguientes de esa ocasión y ese plan, sin repetir las ya vistas; al acabarse, vuelve a las primeras.
+    // Solo lo que se enseña cuenta como visto (para que descanse en Hoy los días siguientes)
+    const kMas = oc + '|' + (sub || '') + '|' + hoyISO(), M = E.ideaMas?.k === kMas ? E.ideaMas : null;
+    if (M?.pag) { const rr = pedirMotor(oc, 12 * (M.pag + 1), sub, true), nuevas = deVerdad(oc, (rr.looks.length ? rr.looks : rr.casi).map(Motor.aPropuesta)).filter(x => !M.vistas.has(claveLook(x.ids)) && claveLook(x.ids) !== k0).slice(0, 12);
+      if (nuevas.length) { lista = E.ideas = nuevas; const ks = new Set(nuevas.map(x => claveLook(x.ids))); apuntarVistos((rr.looks.length ? rr.looks : rr.casi).filter(l => ks.has(claveLook(Motor.aPropuesta(l).ids))), hoyISO()); }
+      else { E.ideaMas = null; toast(t('No hay más ideas con tu ropa para esto: vuelven las primeras', 'No more ideas with your clothes for this: back to the first ones')); } }
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     const fila = ['Todos', 'Diario', 'Oficina', 'Noche', 'Evento', 'Viaje', 'Deporte'].map(o => `<button class="${o === oc ? 'on' : ''}" data-ideaoc="${o}"${o === oc ? ' aria-current="true"' : ''}>${o === 'Todos' ? t('Todas', 'All') : ocNombre(o)}${DOS}</button>`).join('');
     const t1 = (x, i) => { const fav = esFav(x.ids); return `<figure class="at-t at-idea">${baldosa(psDe(x), TW, TH, ` data-idea="${i}" aria-label="${esc(ocNombre(x.ocasion))}"`)}<button class="at-fav at-fav-t${fav ? ' on' : ''}" data-ideafav="${i}" aria-pressed="${fav}" aria-label="${t('Favorito', 'Favourite')}">${I.corazon}</button><button class="at-desc at-desc-t" data-ideadesc="${i}" aria-label="${t('Descartar esta idea: no volverá a salir', 'Discard this idea: it won’t come back')}">${I.papelera}</button></figure>`; };
@@ -1113,12 +1120,14 @@ if (AT) (() => {
     const insp = oc === 'Todos' ? `<div class="at-iconos at-ideas-acc" role="group" aria-label="${t('Más formas de buscar looks', 'More ways to find looks')}">${ibI('data-ir="nuevo-look"', I.mas, t('Crear un look', 'Create a look'))}${ibI('data-recrear', I.recrear, t('Recrear un look', 'Recreate a look'))}${ibI('data-conprenda', I.percha, t('Con una prenda', 'With one garment'))}${ibI('data-compra', I.bolsa, t('Antes de comprar', 'Before you buy'))}${ibI('data-inspira', I.chispa, t('Inspírate en…', 'Get inspired by…'), planDemo() !== 'pro')}${NUBE ? ibI('data-pareja', I.pareja, t('En pareja', 'As a couple')) : ''}</div>` : '';
     const vj = oc === 'Viaje' ? `<div class="at-vj-entrada"><button class="at-enlace" data-viaje>${t('Planear un viaje', 'Plan a trip')}${planDemo() === 'pro' ? '' : '<span class="dg-pro">Pro</span>'}</button>${viajes().map(v => `<button class="at-enlace" data-viaje="${v.id}">${esc(v.destino)} · ${rango(v)}</button>`).join('')}</div>` : '';
     const filaSub = subs.length ? `<div class="at-fila at-subs at-subs-ideas" role="group" aria-label="${t('Qué plan es', 'What kind of plan')} (${t('opcional', 'optional')})">${subs.map(x => `<button class="${x.id === sub ? 'on' : ''}" data-ideasub="${x.id}" aria-pressed="${x.id === sub}">${t(x.nombre, x.en)}</button>`).join('')}</div>` : '';
-    raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${filaSub}${insp}${vj}${w && !vj ? `<p class="at-para">${t('Con el tiempo de hoy', 'For today’s weather')}, ${Math.round(w.t)}°</p>` : ''}`
+    raiz.innerHTML = filaLooks('ideas') + `<nav class="at-fila at-ocs-ideas" aria-label="${t('Ocasión', 'Occasion')}">${fila}</nav>${filaSub}${insp}${vj}${(w && !vj) || lista.length > 1 ? `<div class="at-ideas-cab"><span></span>${w && !vj ? `<p class="at-para">${t('Con el tiempo de hoy', 'For today’s weather')}, ${Math.round(w.t)}°</p>` : '<span></span>'}${lista.length > 1 ? agAc('data-ideamas', 'girar', t('Más ideas', 'More ideas')) : '<span></span>'}</div>` : ''}`
       + (lista.length ? `<div class="at-rej2 at-rej-ideas">${lista.map(t1).join('')}</div>` : `<div class="at-vacio">${activas().length ? `<p>${oc === 'Deporte' ? (activas().some(esDeporte) ? t('Con tu ropa de deporte y el tiempo de hoy aún no sale un look completo.', 'Your sportswear doesn’t make a complete look for today’s weather yet.') : t('Aún no tienes ropa de deporte. Cuando la subas, tus looks saldrán aquí.', 'No sportswear yet. Once you add some, your looks will appear here.')) : t('Con lo que tienes aún no sale un look completo para esta ocasión. Cuando subas más, saldrá aquí.', 'What you have doesn’t make a complete look for this occasion yet.')}</p>` : `<p>${t('Sube tu ropa y aquí saldrán tus ideas.', 'Add your clothes and your ideas will appear here.')}</p><button class="at-btn" data-ir="subir">${t('Subir prendas', 'Add garments')}</button>`}</div>`) + `<div class="at-ideas-pie">${vendria}</div>`;
     deslizable(raiz.querySelector('.at-ocs-ideas')); if (filaSub) deslizable(raiz.querySelector('.at-subs-ideas')); setTimeout(() => precalcularIdeas(oc));
     raiz.onclick = async e => {
-      const b = e.target.closest('[data-descartados],[data-lktab],[data-ideaoc],[data-ideasub],[data-idea],[data-ideafav],[data-ideadesc],[data-ideavendria],[data-viaje],[data-inspira],[data-recrear],[data-conprenda],[data-compra],[data-pareja]'); if (!b) return;
+      const b = e.target.closest('[data-descartados],[data-ideamas],[data-lktab],[data-ideaoc],[data-ideasub],[data-idea],[data-ideafav],[data-ideadesc],[data-ideavendria],[data-viaje],[data-inspira],[data-recrear],[data-conprenda],[data-compra],[data-pareja]'); if (!b) return;
       if (b.dataset.descartados != null) return abrirDescartados();
+      if (b.dataset.ideamas != null) { const k = (E.ideaOc || 'Todos') + '|' + (sub || '') + '|' + hoyISO(), M0 = E.ideaMas?.k === k ? E.ideaMas : { k, pag: 0, vistas: new Set() };
+        lista.forEach(x => M0.vistas.add(claveLook(x.ids))); M0.pag++; E.ideaMas = M0; marcarYa(b, raiz.querySelector('.at-rej-ideas')); await trasPintar(); pintarLooks(); return raiz.querySelector('[data-ideamas]')?.focus({ preventScroll: true }); }
       if (b.dataset.recrear != null) return abrirRecrear();
       if (b.dataset.conprenda != null) return abrirConPrenda();
       if (b.dataset.pareja != null) return abrirPareja();
@@ -1127,8 +1136,8 @@ if (AT) (() => {
       if (b.dataset.inspira != null) return abrirInspira();
       if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkTocado = true; return pintarLooks(); }
       const velo = () => raiz.querySelector('.at-rej-ideas, .at-vacio');
-      if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; marcarYa(b, velo()); await trasPintar(); if (E.ideaOc !== b.dataset.ideaoc) return; pintarLooks(); return raiz.querySelector(`[data-ideaoc="${b.dataset.ideaoc}"]`)?.focus({ preventScroll: true }); }
-      if (b.dataset.ideasub) { const o = E.ideaOc || 'Todos'; E.ideaSub = E.ideaSub || {}; E.ideaSub[o] = E.ideaSub[o] === b.dataset.ideasub ? null : b.dataset.ideasub; marcarYa(b, velo()); await trasPintar(); pintarLooks(); return raiz.querySelector(`[data-ideasub="${b.dataset.ideasub}"]`)?.focus({ preventScroll: true }); }
+      if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; E.ideaMas = null; marcarYa(b, velo()); await trasPintar(); if (E.ideaOc !== b.dataset.ideaoc) return; pintarLooks(); return raiz.querySelector(`[data-ideaoc="${b.dataset.ideaoc}"]`)?.focus({ preventScroll: true }); }
+      if (b.dataset.ideasub) { const o = E.ideaOc || 'Todos'; E.ideaSub = E.ideaSub || {}; E.ideaMas = null; E.ideaSub[o] = E.ideaSub[o] === b.dataset.ideasub ? null : b.dataset.ideasub; marcarYa(b, velo()); await trasPintar(); pintarLooks(); return raiz.querySelector(`[data-ideasub="${b.dataset.ideasub}"]`)?.focus({ preventScroll: true }); }
       if (b.dataset.ideavendria != null) { E.ideaVendria = !E.ideaVendria; return pintarLooks(); }
       if (b.dataset.ideadesc != null) return descartarIdea(lista[+b.dataset.ideadesc], +b.dataset.ideadesc);
       if (b.dataset.ideafav != null) { const x = lista[+b.dataset.ideafav]; await alternarFav(x.ids, x.ocasion); await datosLook(x); const on = esFav(x.ids); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); return; }
@@ -1492,21 +1501,26 @@ if (AT) (() => {
     if (gem && gem >= Math.min(A.fs.length, B.fs.length)) return { n: -9, por: '', fuera: true, hilo };
     return { n: hilo + inten + arreglo + Z.n + tejido + (gem >= 2 ? -.5 : 0), por, hilo, choca: !!Z.choca };
   }
-  function hacerPares(d, oc, sub) {
+  function parOpc(d, oc, sub) {
     if (PAREJA.base !== d) { PAREJA.base = d; PAREJA.ps = new Map(d.prendas.map(p => [p.id, { ...p, usos: [], estado: '', detalles: p.detalles || [] }])); }
     const opc = { tiempo: E.tiempo, plan: oc, n: 8, hoy: hoyISO(), ...(oc === 'Noche' ? { hora: 20 } : {}), ...(sub ? { sub } : {}) }; // 19/11: con el plan concreto, si lo hay
     const lista = r => (r.looks.length ? r.looks : r.casi || []).map(Motor.aPropuesta);
     const suyosPs = [...PAREJA.ps.values()], miOpc = { ...opc, prendas: activas(), perfil: E.perfil, excluir: E.perfil?.gustos?.fuera || [], pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est] };
     const suOpc = { ...opc, prendas: suyosPs, perfil: { ropa: d.ropa || '', estilos: d.estilos || [] } };
     const misLooks = r => deVerdad(oc, lista(r)), susLooks = r => lista(r).filter(x => oc !== 'Deporte' || x.ids.some(id => esDeporte(PAREJA.ps.get(id) || {})));
-    const mios = misLooks(Motor.looks(miOpc)).slice(0, 6), suyos = susLooks(Motor.looks(suOpc)).slice(0, 6);
     const conPs = (x, m) => { if (m) return { x, ps: psDe(x) }; const ps = x.ids.map(id => PAREJA.ps.get(id)).filter(Boolean); if (x.como) ps.como = x.como; return { x, ps }; }; // tuyos como antes (con el zapato de muestra si falta)
+    // los looks de uno a partir de un look del otro: lo de su familia de color, un poco por delante, y con los zapatos que casan con los suyos si tiene alguno
+    const afinDe = T => f => f.cat === 'calzado' ? (T.zap ? (z => z.choca ? -1 : Math.sign(z.n))(parZapatos(f, T.zap)) : 0) : ['bolso', 'accesorio', 'joya'].includes(f.cat) ? 0 : f.familia && f.familia === T.dom ? 1 : T.todoNeutro && String(f.color_clase).startsWith('neutro') ? .3 : 0;
+    const conZap = (o, T) => { const zOk = T.zap ? o.prendas.filter(p => { const f = Motor.ficha(p); return f.cat === 'calzado' && !parZapatos(f, T.zap).choca; }) : []; return zOk.length ? { prendas: o.prendas.filter(p => Motor.ficha(p).cat !== 'calzado' || zOk.includes(p)) } : {}; };
+    return { suyosPs, miOpc, suOpc, misLooks, susLooks, conPs, afinDe, conZap };
+  }
+  function hacerPares(d, oc, sub) {
+    const { suyosPs, miOpc, suOpc, misLooks, susLooks, conPs, afinDe, conZap } = parOpc(d, oc, sub);
+    const mios = misLooks(Motor.looks(miOpc)).slice(0, 6), suyos = susLooks(Motor.looks(suOpc)).slice(0, 6);
     // 18/11: además de las dos listas hechas por separado, el motor busca los looks de uno a partir de los dos primeros del otro (lo de su familia de color,
     // un poco por delante; nunca un look que el motor no enseñaría: nota ≥ la mejor − 0,10). Primero los tuyos como punto de partida; si nada hace conjunto, al revés
     const desde = (semillas, mias, o, sel) => semillas.slice(0, 2).flatMap(s => {
-      const T = tonoPar(s.ps), afin = f => f.cat === 'calzado' ? (T.zap ? (z => z.choca ? -1 : Math.sign(z.n))(parZapatos(f, T.zap)) : 0) : ['bolso', 'accesorio', 'joya'].includes(f.cat) ? 0 : f.familia && f.familia === T.dom ? 1 : T.todoNeutro && String(f.color_clase).startsWith('neutro') ? .3 : 0;
-      const zOk = T.zap ? o.prendas.filter(p => { const f = Motor.ficha(p); return f.cat === 'calzado' && !parZapatos(f, T.zap).choca; }) : []; // con los zapatos que casan con los del otro, si tiene alguno
-      const r = Motor.looks({ ...o, n: 14, afin, ...(zOk.length ? { prendas: o.prendas.filter(p => Motor.ficha(p).cat !== 'calzado' || zOk.includes(p)) } : {}) }), ls = r.looks.length ? r.looks : r.casi || [], top = Math.max(...ls.map(l => l.nota ?? 0));
+      const T = tonoPar(s.ps), r = Motor.looks({ ...o, n: 14, afin: afinDe(T), ...conZap(o, T) }), ls = r.looks.length ? r.looks : r.casi || [], top = Math.max(...ls.map(l => l.nota ?? 0));
       return sel({ looks: ls.filter(l => (l.nota ?? 0) >= top - .1), casi: [] }).map(x => conPs(x, mias));
     });
     const junta = (base, extra) => { const ks = new Set(base.map(z => z.x.ids.slice().sort().join())); for (const z of extra) { const k = z.x.ids.slice().sort().join(); if (!ks.has(k)) { ks.add(k); base.push(z); } } return base; };
@@ -1525,6 +1539,43 @@ if (AT) (() => {
     return { pares, mios: mios.length, suyos: suyos.length, suyasPrendas: suyosPs.length, zapatos: [nz(A), nz(B)], candidatas: todos };
   }
   window.atPrueba && Object.assign(window.atPrueba, { hacerPares: (d, oc) => hacerPares(d, oc), abrirPareja: () => abrirPareja() }); // para herramientas/pruebas/probar-pareja-eleva.mjs
+  // 19/11, noche (Gabriela: «cada look de cada pareja que vamos a verlo los dos se puede editar, puede poner como el icono de reintentar y volver a tener otra
+  // combinación, aceptar o no, y cuando los dos aceptemos, pues vamos combinados… que cada reintentar siga funcionando de lo que aceptó el otro»). La pareja de looks
+  // que alguno toca se guarda en el servidor (/api/pareja/combo) y la ven igual los dos: cada uno acepta su look (✓) o pide otro (↻), el suyo o el del otro mientras
+  // el otro no haya aceptado el suyo; el look nuevo se busca para que combine con el que se queda. Con los dos aceptados, «Combinados»
+  const claveL = x => x.ids.slice().sort().join();
+  function otroLook(d, S, fijo, mio, vistos) {
+    const { miOpc, suOpc, misLooks, susLooks, conPs, afinDe, conZap } = parOpc(d, S.oc, S.sub), o = mio ? miOpc : suOpc, sel = mio ? misLooks : susLooks, T = tonoPar(fijo.ps);
+    for (const extra of [{ afin: afinDe(T), ...conZap(o, T) }, { afin: afinDe(T) }]) { // primero con los zapatos que casan con los del otro
+      const r = Motor.looks({ ...o, n: 24, ...extra });
+      for (const g of [{ looks: r.looks, casi: [] }, { looks: [], casi: r.casi || [] }]) {
+        const c = sel(g).map(x => conPs(x, mio)).filter(z => z.ps.length && !vistos.has(claveL(z.x)))
+          .map(z => ({ z, c: mio ? combinanPareja(z.ps, fijo.ps, z.x, fijo.x) : combinanPareja(fijo.ps, z.ps, fijo.x, z.x) })).filter(q => !q.c.fuera)
+          .sort((p, q) => (q.c.n + .5 * (q.z.x.nota || 0)) - (p.c.n + .5 * (p.z.x.nota || 0)));
+        if (c.length) return c[0].z;
+      }
+    }
+    return null;
+  }
+  const combosPareja = async S => { try { const r = await api(`/api/pareja/combos?oc=${encodeURIComponent(S.oc)}&sub=${encodeURIComponent(S.sub || '')}`, { tiempo: 12000 }); return r.ok ? (await r.json()).combos || [] : null; } catch (e) { return null; } };
+  async function cambiarCombo(p, S, cambio) { // true: volver a pintar (guardado, o la otra persona lo acaba de cambiar)
+    const cuerpo = { id: p.cid, v: p.c?.v || 0, oc: S.oc, sub: S.sub || '', ...cambio };
+    if (!p.c) { cuerpo.yo = { ids: p.a.x.ids, ...(cambio.yo || {}) }; cuerpo.el = { ids: p.b.x.ids, ...(cambio.el || {}) }; } // nueva: con los dos looks
+    const r = await api('/api/pareja/combo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo), tiempo: 15000 }).catch(() => null);
+    if (r?.ok) return true;
+    toast(r?.status === 409 ? t(`${E.parR.quien} acaba de cambiarlo`, `${E.parR.quien} has just changed it`) : t('Sin conexión. Inténtalo de nuevo.', 'No connection. Try again.')); return r?.status === 409;
+  }
+  function colocarPares(calc, C, S) { // las guardadas en su sitio (el de esta sesión, si lo tienen) y las calculadas en los huecos, sin repetir looks
+    const pos = E.parPos = E.parPos || {}, L = [null, null, null];
+    const deC = c => { const x = { ids: c.yo.ids, ocasion: S.oc }, a = { x, ps: psDe(x) }, y = { ids: c.el.ids, ocasion: S.oc }, b = { x: y, ps: y.ids.map(id => PAREJA.ps.get(id)).filter(Boolean) };
+      if (!a.ps.length || !b.ps.length) return null; const k = combinanPareja(a.ps, b.ps, a.x, b.x); return { a, b, por: k.por, c, cid: c.id }; };
+    const gs = C.map(deC).filter(Boolean);
+    gs.forEach(p => { if (pos[p.cid] != null && !L[pos[p.cid]]) L[pos[p.cid]] = p; });
+    gs.forEach(p => { const i = L.indexOf(null); if (!L.includes(p) && i >= 0) L[i] = p; });
+    const usados = new Set(L.filter(Boolean).flatMap(p => ['a' + claveL(p.a.x), 'b' + claveL(p.b.x)]));
+    for (const p of calc) { const i = L.indexOf(null); if (i < 0) break; if (usados.has('a' + claveL(p.a.x)) || usados.has('b' + claveL(p.b.x))) continue; L[i] = p; usados.add('a' + claveL(p.a.x)); usados.add('b' + claveL(p.b.x)); }
+    return L.filter(Boolean).map(p => (p.cid = p.cid || 'cmb' + uid(), p));
+  }
   // 19/11 (Gabriela: «quizás se pueda también poner el plan en común, para que ambos vayan en conjunto → móntalo de la mejor forma que consideres»): cada pareja de looks
   // se apunta para los dos en un día; tu look va a tu calendario y el suyo, por el servidor, al de tu pareja, que lo recoge al abrir la app (recogerPlanesPareja de app.js)
   async function planParaDos(p, fecha, quien, S) {
@@ -1540,7 +1591,7 @@ if (AT) (() => {
     const cab = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button><h1>${t('En pareja', 'As a couple')}</h1>`;
     const enlazar = txt => `${cab}<p class="at-vj-sub">${txt}</p><button class="boton linea at-par-enl" data-parajustes>${t('Enlazar con mi pareja', 'Link with my partner')}</button>`;
     cap.onclick = e => {
-      const b = e.target.closest('.x,[data-paroc],[data-parsub],[data-parplan],[data-parok],[data-parlook],[data-parajustes],[data-parotra]'); if (!b) return;
+      const b = e.target.closest('.x,[data-paroc],[data-parsub],[data-parplan],[data-parok],[data-parlook],[data-parajustes],[data-parotra],[data-parre],[data-parsi]'); if (!b) return;
       if (b.classList.contains('x')) return cap.remove();
       if (b.dataset.parajustes != null) { cap.remove(); return panelPareja(); }
       if (b.dataset.paroc) { S.oc = b.dataset.paroc; S.sub = null; return abrirPareja(); }
@@ -1551,6 +1602,20 @@ if (AT) (() => {
       if (b.dataset.parok) { const f = b.closest('.at-par-dia').querySelector('[data-pardia]').value; if (!/^\d{4}-\d\d-\d\d$/.test(f) || f < hoyISO()) return toast(t('Elige un día de hoy en adelante', 'Choose today or a later day'));
         b.disabled = true; return planParaDos(E.parR.pares[+b.dataset.parok], f, E.parR.quien, S).then(() => { b.closest('.at-par-dia')?.remove(); }); }
       if (b.dataset.parotra != null) { PAREJA.datos = null; return abrirPareja(); }
+      if (b.dataset.parre != null || b.dataset.parsi != null) { // aceptar tu look, o pedir otro (el tuyo o el suyo)
+        const i = +(b.dataset.parre ?? b.dataset.parsi), p = E.parR?.pares[i]; if (!p || cap.dataset.ocupado) return;
+        E.parPos = E.parPos || {}; E.parPos[p.cid] = i; E.parFoco = b.dataset.parsi != null ? `[data-parsi="${i}"]` : `[data-parre="${i}"][data-lado="${b.dataset.lado}"]`;
+        let cambio;
+        if (b.dataset.parsi != null) cambio = { yo: { ok: p.c?.yo.ok ? 0 : 1 } };
+        else {
+          const mio = b.dataset.lado === 'yo', V = E.parVistos = E.parVistos || {}, vist = V[p.cid + b.dataset.lado] = V[p.cid + b.dataset.lado] || new Set([claveL((mio ? p.a : p.b).x)]);
+          const z = otroLook(E.parR.d, S, mio ? p.b : p.a, mio, vist);
+          if (!z) return toast(t('No hay otro look que combine. Prueba otro plan.', 'No other look goes with it. Try another plan.'));
+          vist.add(claveL(z.x)); cambio = mio ? { yo: { ids: z.x.ids } } : { el: { ids: z.x.ids } };
+        }
+        cap.dataset.ocupado = 1; b.disabled = true;
+        return cambiarCombo(p, S, cambio).then(re => { delete cap.dataset.ocupado; if (re) abrirPareja(); else b.disabled = false; });
+      }
       if (b.dataset.parlook) { const x = E.parLooks[+b.dataset.parlook]; cap.remove(); return abrirIdea(x); }
     };
     if (!cuenta()) { cap.innerHTML = enlazar(t('Entra en tu cuenta y enlázala con la de tu pareja para ver a la vez un look para ti y otro para tu pareja.', 'Sign in and link your account with your partner’s: here you’ll see a look for you and one for your partner that go together.')); return; }
@@ -1559,25 +1624,35 @@ if (AT) (() => {
     if (!cap.isConnected) return;
     if (!d) { cap.innerHTML = enlazar(t('Enlaza tu clóset con el de tu pareja para ver a la vez un look para ti y otro para tu pareja. Cada persona conserva su cuenta y su ropa.', 'Link your closet with your partner’s and here you’ll see a look for you and one for your partner that go together. Each keeps their own account and clothes.')); return; }
     const subs = Motor.subocasiones(S.oc); if (S.sub && !subs.some(x => x.id === S.sub)) S.sub = null;
-    const R = hacerPares(d, S.oc, S.sub), quien = d.nombre || t('Tu pareja', 'Your partner'), Q = escH(quien); E.parR = { pares: R.pares, quien };
-    await fotosPareja([...new Set(R.pares.flatMap(p => p.b.ps))]);
+    const R = hacerPares(d, S.oc, S.sub), quien = d.nombre || t('Tu pareja', 'Your partner'), Q = escH(quien), C = await combosPareja(S);
+    if (!cap.isConnected) return;
+    const pares = colocarPares(R.pares, C || [], S); E.parR = { pares, quien, d, C };
+    await fotosPareja([...new Set(pares.flatMap(p => p.b.ps))]);
     if (!cap.isConnected) return;
     const [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     const chip = k => `<button class="${S.oc === k ? 'on' : ''}" data-paroc="${k}" aria-pressed="${S.oc === k}">${ocNombre(k)}${DOS}</button>`;
-    E.parLooks = R.pares.map(p => p.a.x);
+    E.parLooks = pares.map(p => p.a.x);
     const vacio = !R.suyasPrendas ? t(`${Q} aún no tiene ropa en su clóset. Cuando suba la suya, aquí saldrán vuestros looks.`, `${Q} has no clothes in their closet yet. Once they add some, your looks will appear here.`)
       : !R.mios ? t('Con tu ropa aún no sale un look para esta ocasión. Prueba otra.', 'Your clothes don’t make a look for this occasion yet. Try another.')
       : !R.suyos ? t(`Con la ropa de ${Q} aún no sale un look para esta ocasión. Prueba otra.`, `${Q}’s clothes don’t make a look for this occasion yet. Try another.`) : '';
-    cap.innerHTML = `${cab}<p class="at-vj-sub">${t(`Un look para ti y otro para ${Q} que combinan.`, `A look for you and one for ${Q} that go together.`)}</p>
+    cap.innerHTML = `${cab}<p class="at-vj-sub">${t(`Un look para ti y otro para ${Q}. Cuando aceptéis los dos, vais combinados.`, `A look for you and one for ${Q}. Once you both accept, you’re matched.`)}</p>
       <nav class="at-fila at-cp-est at-par-ocs" aria-label="${t('Ocasión para los dos', 'Occasion for both')}">${OCASIONES.map(chip).join('')}</nav>
       ${subs.length ? `<div class="at-fila at-subs at-par-subs" role="group" aria-label="${t('Qué plan es', 'What kind of plan')} (${t('opcional', 'optional')})">${subs.map(x => `<button class="${x.id === S.sub ? 'on' : ''}" data-parsub="${x.id}" aria-pressed="${x.id === S.sub}">${t(x.nombre, x.en)}</button>`).join('')}</div>` : ''}
-      ${vacio ? `<p class="at-vj-sub">${vacio}</p>` : `<div class="at-par-pares">${R.pares.map((p, i) => `<section class="at-par-par" aria-label="${t('Pareja de looks', 'Pair of looks')} ${i + 1}">
-        <div class="at-rej2"><figure class="at-t">${baldosa(p.a.ps, TW, TH, ` data-parlook="${i}" aria-label="${t('Tu look', 'Your look')}"`)}<figcaption>${t('Tú', 'You')}</figcaption></figure>
-        <figure class="at-t">${baldosaFija(p.b.ps, TW, TH, t(`Look de ${quien}`, `${quien}’s look`))}<figcaption>${Q}</figcaption></figure></div>
-        <div class="at-par-pie">${p.por ? `<p class="at-par-por">${p.por}</p>` : '<span></span>'}${agAc(`data-parplan="${i}" aria-expanded="false"`, 'cal', t('Apuntar este plan para los dos', 'Add this plan for both'))}</div></section>`).join('')}</div>`}
+      ${vacio && !pares.length ? `<p class="at-vj-sub">${vacio}</p>` : `<div class="at-par-pares">${pares.map((p, i) => { const yoOk = !!p.c?.yo.ok, elOk = !!p.c?.el.ok; return `<section class="at-par-par" aria-label="${t('Pareja de looks', 'Pair of looks')} ${i + 1}">
+        <div class="at-rej2"><figure class="at-t">${baldosa(p.a.ps, TW, TH, ` data-parlook="${i}" aria-label="${t('Tu look', 'Your look')}"`)}<figcaption>${t('Tú', 'You')}</figcaption>
+          <div class="at-par-acc">${yoOk ? '' : agAc(`data-parre="${i}" data-lado="yo"`, 'girar', t('Otro look para ti', 'Another look for you'))}<button class="ag-ac" data-parsi="${i}" aria-pressed="${yoOk}" aria-label="${t('Me quedo con este look', 'I’ll take this look')}" title="${t('Me quedo con este look', 'I’ll take this look')}">${agIc('si')}</button></div></figure>
+        <figure class="at-t">${baldosaFija(p.b.ps, TW, TH, t(`Look de ${quien}`, `${quien}’s look`))}<figcaption>${Q}</figcaption>
+          <div class="at-par-acc">${elOk ? `<span class="at-par-si">${agIc('si')}${t('Aceptado', 'Accepted')}</span>` : agAc(`data-parre="${i}" data-lado="el"`, 'girar', t(`Otro look para ${Q}`, `Another look for ${Q}`))}</div></figure></div>
+        <div class="at-par-pie">${yoOk && elOk ? `<p class="at-par-por"><b class="at-par-comb">${t('Combinados.', 'Matched.')}</b> ${p.por || ''}</p>` : p.por ? `<p class="at-par-por">${p.por}</p>` : '<span></span>'}${agAc(`data-parplan="${i}" aria-expanded="false"`, 'cal', t('Apuntar este plan para los dos', 'Add this plan for both'))}</div></section>`; }).join('')}</div>`}
       <p class="at-enlaces"><button class="at-enlace" data-parajustes>${t('Gestionar el enlace', 'Manage the link')}</button></p>`; // 16/11 (Gabriela: «lo de pareja ya sale en Looks, ¿por qué ponerlo de nuevo en Ajustes?»): se gestiona desde aquí
     deslizable(cap.querySelector('.at-par-ocs')); if (cap.querySelector('.at-par-subs')) deslizable(cap.querySelector('.at-par-subs'));
     const on = cap.querySelector('.at-par-ocs .on'); if (on) requestAnimationFrame(() => on.scrollIntoView({ block: 'nearest', inline: 'center' }));
+    if (E.parFoco) { cap.querySelector(E.parFoco)?.focus({ preventScroll: true }); E.parFoco = null; }
+    // mientras está abierta, mira cada 20 s si la otra persona ha aceptado o cambiado algo
+    clearTimeout(E.parT); const firma = L => (L || []).map(x => x.id + ':' + x.v).join(), vigila = () => { E.parT = setTimeout(async () => {
+      if (!cap.isConnected || E.parR?.C == null) return; if (document.hidden || cap.dataset.ocupado || cap.querySelector('.at-par-dia')) return vigila();
+      const C2 = await combosPareja(S); if (!cap.isConnected) return; if (C2 && firma(C2) !== firma(E.parR.C)) return abrirPareja(); vigila(); }, 20000); };
+    if (C) vigila();
   }
 
   /* ---------- ¿ME LO COMPRO?, en Looks → Ideas (08/11, Gabriela: «uno escanea piezas en tiendas y que la app le diga un porcentaje de utilidad, es decir, si
@@ -2017,10 +2092,13 @@ if (AT) (() => {
         lluvia: t('Hoy llueve: guárdalo para un día seco.', 'It’s raining today: save it for a dry day.'), estacion: t('Es de otra temporada: guárdalo para entonces.', 'It’s for another season: save it for then.') };
       const nota = [v.aviso ? avisos[v.aviso] : v.adaptado ? t('Se ha cambiado alguna prenda por el tiempo de hoy.', 'I swapped a piece for today’s weather.') : '', v.faltaCapa ? t('Con este tiempo, con tu abrigo encima.', 'In this weather, with your coat on top.') : ''].filter(Boolean).join(' ');
       const puesto = C.puesto === C.i, guardado = C.guardado[C.i];
+      // 19/11, noche (Gabriela, por Coordinación: «al lado dice tu versión 3 de 4, no entiendo… son 5 piezas las que tiene la foto… solo tienes una gabardina similar,
+      // lo demás es con cosas tuyas que no son iguales»): debajo de «Tu versión», cuántas prendas de la foto tienes iguales, en vez del número de la versión (3 de 4)
+      const total = det.length + C.r.faltan.length, cuentaRc = total ? t(`${se.length} de ${total} como en la foto`, `${se.length} of ${total} as in the photo`) : ''; // como «Se parece… Como en la foto» de debajo
       cap.innerHTML = `${X}${h1}
         <div class="at-rc-par">
           <figure class="at-rc-f"><img src="${C.url}" alt="${t('Tu foto', 'Your photo')}" style="width:${TW}px;height:${TH}px"><figcaption>${t('La foto', 'The photo')}</figcaption></figure>
-          <figure class="at-t at-rc-v" style="width:${TW}px">${baldosaFija(psDe(v), TW, TH, t('Tu versión, con tu ropa', 'Your version, with your clothes'))}<figcaption>${t('Tu versión', 'Your version')}${n > 1 ? ` (${C.i + 1} ${t('de', 'of')} ${n})` : ''}</figcaption></figure>
+          <figure class="at-t at-rc-v" style="width:${TW}px">${baldosaFija(psDe(v), TW, TH, t('Tu versión, con tu ropa', 'Your version, with your clothes'))}<figcaption>${t('Tu versión', 'Your version')}<small class="at-rc-cuenta">${cuentaRc}</small></figcaption></figure>
         </div>
         ${nota ? `<p class="at-vj-nota at-rc-nota">${nota}</p>` : ''}
         ${se.length ? `<h2 class="at-vj-h2">${t('Se parece', 'Close match')}</h2><ul class="at-rc-l">${se.map(d => fila(P(d.id), P(d.id).nombre, t('Como en la foto', 'As in the photo'))).join('')}</ul>` : ''}

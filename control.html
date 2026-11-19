@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="only light">
 <meta name="theme-color" content="#FFFFFF">
@@ -282,6 +282,7 @@ a.trow { min-height: 48px; }
 #tip b { display: block; font-size: .9rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { #tip { transition: none; } }
 
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
 </style>
 </head>
 <body>
@@ -647,5 +648,6 @@ a.trow { min-height: 48px; }
 })();
 
 </script>
+<script>/* 19/11, noche (Gabriela: «que todas las app sean estáticas, no se aumente el zoom»): sin pellizco ni doble toque en iPhone */['gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}))</script>
 </body>
 </html>
