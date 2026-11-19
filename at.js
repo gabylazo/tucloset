@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.312'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.316'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -66,6 +66,7 @@ if (AT) (() => {
     recorte: svg('<path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/>'),
     deshacer: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'),
     cerrar: svg('<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>'),
+    info: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>'), // 19/11: «Ver su ficha»
   };
 
   /* ---------- barra de abajo: cinco secciones, en mayúsculas pequeñas; la activa, en nogal y con los dos agujeros ---------- */
@@ -389,7 +390,7 @@ if (AT) (() => {
     const celda = x => `<button class="at-cel${conCat(x.q) ? '' : ' sin-cat'}${x.duro ? ' no' : ''}" data-otrapz="${x.q.id}" aria-label="${esc(x.q.nombre)}${x.duro ? ', ' + (idioma() === 'en' || !x.por ? t('combina menos con este look', 'goes less well with this look') : esc(x.por.replace(/\.$/, '').toLowerCase())) : ''}"><img src="${urlCat(x.q)}" alt=""></button>`;
     const bien = cands.filter(x => !x.duro), menos = cands.filter(x => x.duro);
     const compl = ['Accesorios', 'Bolsos'].includes(p.tipo) && pr.ids.includes(id); // 18/11 (Sheila, 2842): un complemento (cinturón, bolso, gafas…) se puede quitar del look
-    const html = `<div class="at-cam-actual"><img src="${urlCat(p)}" alt=""><div><p>${esc(p.nombre)}</p><button class="at-enlace" data-camficha>${t('Ver su ficha', 'See its details')}</button>${compl ? `<button class="at-enlace" data-quitapz>${t('Quitar del look', 'Remove from the look')}</button>` : ''}</div></div>`
+    const html = `<div class="at-cam-actual"><img src="${urlCat(p)}" alt=""><div><p>${esc(p.nombre)}</p><span class="at-cam-acc">${icoAcc('data-camficha', I.info, t('Ver su ficha', 'See its details'))}${compl ? icoAcc('data-quitapz', I.cerrar, t('Quitar del look', 'Remove from the look')) : ''}</span></div></div>`
       + (cands.length ? `<p class="at-con-txt">${t('Elige otra: primero las que mejor van con el resto del look.', 'Pick another: the ones that go best with the rest of the look come first.')}</p>`
         + (bien.length ? `<div class="at-con-rej">${bien.map(celda).join('')}</div>` : '')
         + (menos.length ? `<h2 class="at-cam-sub">${t('Combinan menos con este look', 'Go less well with this look')}</h2><div class="at-con-rej">${menos.map(celda).join('')}</div>` : '')
@@ -657,7 +658,7 @@ if (AT) (() => {
     r.innerHTML = `<div class="at-barra-sup"><button class="at-volver" data-ir="closet" aria-label="${t('Volver', 'Back')}">${I.iz}</button><span class="at-der2"><button class="at-ico" data-atfacc="editar" aria-label="${t('Editar', 'Edit')}">${I.lapiz}</button><button class="at-ico" data-atfacc="borrar" aria-label="${t('Borrar la prenda', 'Delete the garment')}">${I.papelera}</button></span></div>
       <div class="at-foto${conCat(p) ? '' : ' sin-cat'}"><img src="${urlCat(p)}" alt="${esc(p.nombre)}">${cargaIco('tc-carga-c')}<button type="button" class="at-ampliar" data-ampliar="${p.id}" aria-label="${t('Ampliar la foto', 'Enlarge the photo')}"></button></div><p class="est-av est-ficha" id="est-ficha" role="status"${E.estil?.id === p.id ? '' : ' hidden'}><span>${t('Estilizando esta foto: unos 15 segundos', 'Styling this photo: about 15 seconds')}</span></p>${p.catProp && !p.cat ? `<button class="at-rep-av" data-catver>${t('Foto de catálogo lista · Ver', 'Catalogue photo ready · View')}</button>` : ''}${sinFoto(p) ? `<p class="at-sin-foto">${t('La foto de esta prenda se ha perdido en este móvil. Toca el lápiz y vuelve a hacerla.', 'This garment’s photo was lost on this phone. Tap the pencil and take it again.')}</p>` : ''}
       ${p.estado ? `<p class="at-estado">${estadoTxt(p.estado)}</p>` : ''}<h1 class="at-h1">${esc(p.nombre)}</h1>${datos ? `<p class="at-datos">${datos}</p>` : ''}<ul class="at-chips">${chips}</ul>${llevaH}
-      ${usos.length ? `<ul class="at-usos-l" id="at-usos-l"${usosAbierta === id ? '' : ' hidden'}>${[...usos].sort().reverse().map(d => `<li><span>${esc(diaUso(d))}</span><button data-atfacc="quitauso" data-d="${esc(d)}" aria-label="${t('Quitar la puesta del', 'Remove the wear on')} ${esc(diaUso(d))}">${t('Quitar', 'Remove')}</button></li>`).join('')}</ul>` : ''}
+      ${usos.length ? `<ul class="at-usos-l" id="at-usos-l"${usosAbierta === id ? '' : ' hidden'}>${[...usos].sort().reverse().map(d => `<li><span>${esc(diaUso(d))}</span><button class="at-ic-acc" data-atfacc="quitauso" data-d="${esc(d)}" aria-label="${t('Quitar la puesta del', 'Remove the wear on')} ${esc(diaUso(d))}" title="${t('Quitar', 'Remove')}">${I.cerrar}</button></li>`).join('')}</ul>` : ''}
       ${looks.length ? `<div class="at-minis${looks.length > 2 ? ' muchos' : ''}">${looks.map(x => baldosa(x.ps, MW, MH, x.attr)).join('')}</div>` : ''}
       <div class="at-iconos" role="group" aria-label="${t('Acciones de la prenda', 'Garment actions')}">${ACC.map(([k, ic, w, l]) => `<button class="at-ib${on(k) ? ' on' : ''}" data-atfacc="${k}" aria-label="${esc(nombre(w, l || largo(k)))}"${MARCA.includes(k) ? ` aria-pressed="${on(k)}"` : ''}><span class="at-ib-c">${ic}</span><span class="at-ib-t" aria-hidden="true">${esc(w)}</span></button>`).join('')}</div>
       <ul class="at-cuidar-l"${cuidarAbierta === id ? '' : ' hidden'}>${cuidados(p).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
@@ -1083,8 +1084,8 @@ if (AT) (() => {
     let cap = $('at-descartes'); if (!cap) { cap = document.createElement('div'); cap.id = 'at-descartes'; cap.className = 'ay-capa at-vj at-descs'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-label', t('Descartados', 'Discarded')); document.body.append(cap); }
     const xs = descartados().slice(0, 60), [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     cap.innerHTML = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button><h1>${t('Descartados', 'Discarded')}</h1>
-      <p class="at-vj-sub">${t('No vuelven a salir. «Recuperar» los devuelve a tus ideas.', 'They won’t show again. «Restore» brings them back to your ideas.')}</p>`
-      + (xs.length ? `<div class="at-rej2">${xs.map((x, i) => `<figure class="at-t">${baldosaFija(psDe(x), TW, TH, `${t('Look descartado', 'Discarded look')} ${i + 1}`)}<figcaption><button class="at-enlace" data-recup="${i}">${t('Recuperar', 'Restore')}</button></figcaption></figure>`).join('')}</div>`
+      <p class="at-vj-sub">${t('No vuelven a salir. Con la flecha vuelven a tus ideas.', 'They won’t show again. The arrow brings them back to your ideas.')}</p>`
+      + (xs.length ? `<div class="at-rej2">${xs.map((x, i) => `<figure class="at-t">${baldosaFija(psDe(x), TW, TH, `${t('Look descartado', 'Discarded look')} ${i + 1}`)}<figcaption>${icoAcc(`data-recup="${i}"`, I.deshacer, `${t('Recuperar el look', 'Restore the look')} ${i + 1}`)}</figcaption></figure>`).join('')}</div>`
         : `<p class="at-vj-sub">${t('No hay looks descartados.', 'No discarded looks.')}</p>`);
     const cerrar = () => { cap.remove(); pintarLooks(); (document.querySelector('#p-looks [data-descartados]') || document.querySelector('#p-looks [data-ideaoc][aria-current]'))?.focus({ preventScroll: true }); };
     cap.onkeydown = e => { if (e.key === 'Escape') cerrar(); };
@@ -1360,7 +1361,7 @@ if (AT) (() => {
       const chip = (k, txt) => `<button class="${S.estilo === k ? 'on' : ''}" data-cpest="${k}" aria-pressed="${S.estilo === k}">${txt}${DOS}</button>`;
       E.cpLooks = looks;
       cap.innerHTML = `${X}<h1>${t('Con una prenda', 'With one garment')}</h1>
-        <div class="at-cp-elegida"><img src="${urlCat(p)}" alt=""><span class="at-cp-n">${esc(p.nombre)}</span><button class="at-enlace" data-cpcambiar>${t('Cambiar', 'Change')}</button></div>
+        <div class="at-cp-elegida"><img src="${urlCat(p)}" alt=""><span class="at-cp-n">${esc(p.nombre)}</span>${icoAcc('data-cpcambiar', I.girar, t('Cambiar la prenda', 'Change the garment'))}</div>
         <p class="at-cp-et" id="at-cp-et">${t('En qué estilo', 'In which style')}</p>
         <nav class="at-fila at-cp-est" aria-labelledby="at-cp-et">${chip('', mios.length ? t('Mis estilos', 'My styles') : t('El mío', 'Mine'))}${ESTILOS.map(e => chip(e.k, L(e))).join('')}</nav>
         ${est ? `<p class="at-vj-sub">${esc(L({ n: est.d }))}</p>` : ''}
@@ -1744,7 +1745,7 @@ if (AT) (() => {
     const ico = w => ICO_T[w.clave === 'solnube' ? 'sol' : ['lluvia', 'tormenta'].includes(w.clave) ? 'nube' : w.clave] || '';
     cap.innerHTML = `${X}<h1 id="at-sem-t" tabindex="-1">${esc(s.nombre)}</h1><p class="at-vj-datos">${rangoTxt}${s.lugar ? ' · ' + esc(s.lugar) : ''}</p>${s.previsto ? '' : `<p class="at-vj-nota">${t('Aún no hay previsión para todos los días: es el tiempo de esos días el año pasado.', 'No forecast yet for every day: this is last year’s weather.')}</p>`}
       <ol class="at-sem-lista">${s.plan.map((d, i) => `<li class="at-sem-f"><div class="at-sem-d"><b>${mayus(fDia(d.fecha, { weekday: 'long' }))}</b><span>${fDia(d.fecha, { day: 'numeric', month: 'long' })}</span><span class="at-sem-w">${ico(d.w)}${d.w.max}°${d.w.lluvia >= 50 ? ` · ${t('lluvia', 'rain')}` : ''}</span>
-        ${d.faltaCapa ? `<span>${t('Con tu chaqueta encima', 'With your jacket on top')}</span>` : ''}${d.ids ? `<button class="at-enlace at-sem-otro" data-semotro="${i}" aria-label="${t('Otro look para el', 'Another look for')} ${dl(d.fecha)}">${t('Otro', 'Another')}</button>` : ''}</div>
+        ${d.faltaCapa ? `<span>${t('Con tu chaqueta encima', 'With your jacket on top')}</span>` : ''}${d.ids ? `<button class="at-ic-acc at-sem-otro" data-semotro="${i}" aria-label="${t('Otro look para el', 'Another look for')} ${dl(d.fecha)}" title="${t('Otro look', 'Another look')}">${I.girar}</button>` : ''}</div>
         ${d.ids ? `<div class="at-bal" style="width:${TW}px;height:${TH}px" role="img" aria-label="${esc(d.ids.map(id => P(id)?.nombre).filter(Boolean).join(', '))}">${figura(psDe(d), TW - 2 * m, TH - 2 * mh)}</div>` : `<div class="at-bal at-sem-vacio" style="width:${TW}px;height:${TH}px"><p>${t('Con tu ropa no sale un look para ese tiempo', 'Your clothes don’t make a look for that weather')}</p></div>`}</li>`).join('')}</ol>
       <div class="at-gu-pie">${hay ? `<button class="at-btn" data-semguarda>${t('Guardar los looks', 'Save the looks')}</button>` : ''}</div>`;
     cap.scrollTop = 0;
@@ -1930,7 +1931,7 @@ if (AT) (() => {
         ${falta.length || C.r.faltan.length ? `<h2 class="at-vj-h2">${t('Te faltaría', 'You’d need')}</h2><ul class="at-rc-l">${falta.map(d => fila(P(d.id), mayus(prendaFoto(d.foto)), d.nivel === 'parecido' ? t(`Con ${tuPrenda(P(d.id))} queda parecido.`, `With ${tuPrenda(P(d.id))} it looks similar.`) : t(`Lo más cercano: ${tuPrenda(P(d.id))}.`, `Closest: ${tuPrenda(P(d.id))}.`))).join('')}${C.r.faltan.map(x => fila(null, mayus(prendaFoto(x)))).join('')}</ul>` : ''}
         <div class="at-cm-bts">${v.aviso ? '' : `<button class="at-btn${puesto ? ' hecho' : ''}" data-rc="pongo"${puesto ? ' aria-disabled="true"' : ''}>${puesto ? t('Puesto hoy', 'Worn today') : t('Me lo pongo', 'I’ll wear it')}</button>`}
           <button class="at-btn${v.aviso ? '' : ' at-btn-2'}${guardado ? ' hecho' : ''}" data-rc="guardar"${guardado ? ' aria-disabled="true"' : ''}>${guardado ? t('Guardado en Mis looks', 'Saved to My looks') : t('Guardar', 'Save')}</button>
-          ${n > 1 ? `<button class="at-enlace" data-rc="otra">${t('Otra versión', 'Another version')}</button>` : ''}${foto(t('Probar con otra foto', 'Try another photo'), 'at-enlace')}</div>`;
+          ${n > 1 ? icoAcc('data-rc="otra"', I.girar, t('Otra versión', 'Another version')) : ''}${foto(t('Probar con otra foto', 'Try another photo'), 'at-enlace')}</div>`;
     }
     cap.querySelectorAll('[data-rcfoto]').forEach(inp => inp.onchange = async e => {
       const file = e.target.files?.[0]; e.target.value = ''; if (!file) return;

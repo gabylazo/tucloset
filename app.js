@@ -1137,7 +1137,7 @@ async function noSeParece(p) {
   const cap = document.createElement('div'); cap.id = 'cat-capa'; cap.className = 'ay-capa at-vj at-rep'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'cat-t');
   cap.innerHTML = `<h1 id="cat-t" tabindex="-1">${nom}</h1><p class="at-vj-sub">${t('¿La foto de catálogo no se parece a tu prenda?', 'Doesn’t the catalogue photo look like your garment?')}</p>
     <div class="rep-par">${[[u0, t('Tu foto', 'Your photo')], [urlCat(p), t('Catálogo', 'Catalogue')]].map(([u, et]) => `<figure><img src="${u}" alt=""><figcaption>${et}</figcaption></figure>`).join('')}</div>
-    <div class="at-ropa-ops">${p.catOtra ? '' : `<button class="at-btn" data-catu="otra">${t('Probar otra vez', 'Try again')}</button>`}<button class="at-btn" data-catu="mia">${t('Volver a mi foto', 'Back to my photo')}</button></div>
+    <div class="at-ropa-ops">${p.catOtra ? '' : agAc('data-catu="otra"', 'girar', t('Probar otra vez', 'Try again'))}${agAc('data-catu="mia"', 'deshacer', t('Volver a mi foto', 'Back to my photo'))}</div>
     <button class="at-enlace" data-catu="">${t('Dejarla así', 'Leave it')}</button>`;
   document.body.append(cap); $('cat-t').focus({ preventScroll: true });
   const fin = () => { URL.revokeObjectURL(u0); cap.remove(); if (E.pantalla === 'ficha' && $('at-ficha')?.dataset.id === p.id) abrirFicha(p.id); };
@@ -2143,6 +2143,8 @@ const AG_IC = { mas: '<path d="M12 5v14M5 12h14"/>', luna: '<path d="M18.5 14.6A
   papelera: '<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7M10.5 10.5v6M13.5 10.5v6"/>', girar: '<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/>',
   cal: '<rect x="4" y="5.5" width="16" height="14" rx="1"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>', cerrar: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
   percha: '<path d="M12 7.5a2 2 0 1 1 2-2c0 1-2 1.3-2 2.6V9M12 9l8.5 6.5c.6.5.3 1.5-.5 1.5H4c-.8 0-1.1-1-.5-1.5Z"/>' };
+// 19/11 (Gabriela, panel: «quería que todos los botones que tuvieran letras se cambiaran por iconos y sigo viendo quitar, borrar…»): los de las herramientas de foto, deshacer y cámara
+Object.assign(AG_IC, { deshacer: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>', recorte: '<path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/>', nivel: '<path d="M3.5 19h17"/><path d="m5.5 14.6 10.6-6.9 2.1 3.3-10.6 6.9z"/>', fondo: '<path d="m4 20 10.5-10.5M13 8l3 3"/><path d="M17.5 3.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>', foto: '<path d="M4 8h3.5L9 5.5h6L16.5 8H20v11H4z"/><circle cx="12" cy="13" r="3.3"/>' });
 const agIc = n => `<svg class="ag-ic" viewBox="0 0 24 24" aria-hidden="true">${AG_IC[n]}</svg>`;
 const agMi = (attr, ic, txt) => `<button class="ag-mi" ${attr}><span class="ag-mi-c">${agIc(ic)}</span><span>${txt}</span></button>`;
 // 18/11 (Gabriela: «en todas las opciones que salen borrar, al calendario, eleva tu look, verlo puesto, sustitúyelo por iconos; no podemos tratar ese tipo de botones de dos
@@ -2774,7 +2776,7 @@ function pintarSubida() {
   if (!n && nr) raiz.innerHTML = `<div class="sb"><button class="x" data-srafx aria-label="${t('Cerrar y descartar las fotos', 'Close and discard the photos')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button><div class="tit"><h1>${t('Fotos seguidas', 'Photo burst')}</h1><div class="mini-et" role="status">${nr === 1 ? t('1 foto', '1 photo') : t(`${nr} fotos`, `${nr} photos`)} · ${t('hasta 20', 'up to 20')}</div></div>
     <div class="raf">${E.rafaga.map((r, i) => `<img src="${r.url}" alt="${t('Foto', 'Photo')} ${i + 1}">`).join('')}</div><p class="consejo">${t('Una prenda en cada foto. Al terminar, toca «Listo».', 'One garment per photo. When you finish, tap «Done».')}</p>
     <div class="bts">${nr < 20 ? `<label class="boton">${t('Otra foto', 'Another photo')}<input type="file" accept="image/*" capture="environment" data-sraf></label>` : ''}<button class="boton no" data-sraflisto>${t('Listo', 'Done')}</button></div></div>`;
-  else if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Hasta 20 fotos a la vez, una prenda en cada una', 'Up to 20 photos at once, one garment in each')}</div></div>${avisoSinNube()}${avisoWifi()}<div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div><p class="consejo">${t('La app quita el fondo y te propone tipo y color.', 'The app removes the background and suggests type and colour.')}</p>${reglasFoto()}<div class="bts"><label class="boton">${t('Hacer fotos', 'Take photos')}<input type="file" accept="image/*" capture="environment" data-sraf></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}<span class="txt">${t('Hasta 20 a la vez', 'Up to 20 at a time')}</span></div></div>`;
+  else if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Hasta 20 fotos a la vez, una prenda en cada una', 'Up to 20 photos at once, one garment in each')}</div></div>${avisoSinNube()}${avisoWifi()}<div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div>${E.separando ? `<p class="s-procesando" role="status">${t('Buscando las prendas de la foto…', 'Finding the garments in the photo…')}</p>` : `<p class="consejo">${t('La app quita el fondo y te propone tipo y color.', 'The app removes the background and suggests type and colour.')}</p>${reglasFoto()}`}<div class="bts"><label class="boton">${t('Hacer fotos', 'Take photos')}<input type="file" accept="image/*" capture="environment" data-sraf></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}<span class="txt">${t('Hasta 20 a la vez', 'Up to 20 at a time')}</span>${socia() && !E.separando ? `<label class="txt sub-l">${t('Varias prendas en una foto', 'Several garments in one photo')}<input type="file" accept="image/*" multiple data-svarias></label>` : ''}</div></div>`;
   else if (det) {
     const i = E.subida.indexOf(det), listo = det.estado === 'listo';
     const ops = (lista, sel, k, nom) => `<div class="ops">${lista.map(x => `<button type="button" class="${x === sel ? 'on' : ''}" data-s${k}="${x}">${nom(x)}</button>`).join('')}</div>`;
@@ -2795,7 +2797,7 @@ function pintarSubida() {
       <div class="gr"><p class="mini-et">${t('Estación', 'Season')}</p>${ops(ESTACIONES, det.estacion, 'est', estNombre)}</div>
       <div class="fila2 s-cat s-compra"><label class="campo"><span>${t('Precio (opcional)', 'Price (optional)')}</span><input data-sprecio inputmode="decimal" placeholder="29,95 €" value="${escH(det.precioTxt || '')}"></label><label class="campo"><span>${t('La compraste', 'Bought')}</span><select data-scompra>${opsCompra(det.compra || '')}</select></label></div>
       ${det.recortada ? `<button class="txt sub-l" data-sorig>${det.usaOriginal ? t('Usar el fondo blanco', 'Use white background') : t('Usar la foto original', 'Use the original photo')}</button>` : ''}` : ''}
-      <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo && !(det.noPrenda && !det.siPrenda) ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(t('Añadir más prendas', 'Add more garments'), 'txt sub-l')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button><button class="txt sub-l" data-squita>${t('Quitar esta prenda', 'Remove this garment')}</button>`}</div></div>`;
+      <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo && !(det.noPrenda && !det.siPrenda) ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(t('Añadir más prendas', 'Add more garments'), 'txt sub-l')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button>${agAc('data-squita', 'papelera', t('Quitar esta prenda', 'Remove this garment'))}`}</div></div>`;
   } else {
     const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)).length, nop = E.subida.filter(i => i.noPrenda && !i.siPrenda).length;
     raiz.innerHTML = `<div class="sb rv">${X}<div class="tit"><h1>${n} ${t('prendas', 'garments')}</h1><div class="mini-et">${E.subida.some(i => i.estado !== 'listo') ? t('Quitando los fondos…', 'Removing backgrounds…') : E.subida.some(i => i.catP) ? t('Estilizando…', 'Styling…') : E.subida.some(i => i.clasP) ? t('Afinando nombres y detalles…', 'Refining names and details…') : t('Revisa y guarda', 'Check and save')}</div>${E.subida.some(i => i.estado !== 'listo' || i.catP) ? `<p class="est-av est-sub" role="status"><span class="est-arm-c" style="--d:${retrasoEst(3.2)}">${ARMARIO_EST}</span><small>${frasesEspera(t('Se quita el fondo y se convierte en foto de catálogo.', 'I remove the background and turn it into a catalogue photo.'))}</small></p>` : ''}</div>
@@ -2805,6 +2807,7 @@ function pintarSubida() {
       <div class="bts"><button class="boton" data-sguardar ${listos ? '' : 'disabled'}>${listos === 1 ? t('Guardar 1 prenda', 'Save 1 garment') : t(`Guardar ${listos} prendas`, `Save ${listos} garments`)}</button><span class="txt">${t('Toca una prenda para ver su ficha y cambiar nombre, tipo, color o estación', 'Tap a garment to open its card and change name, type, colour or season')}</span></div></div>`;
   }
   raiz.querySelectorAll('[data-sfotos]').forEach(inp => inp.onchange = e => { anadirFotos([...e.target.files]); e.target.value = ''; });
+  raiz.querySelectorAll('[data-svarias]').forEach(inp => inp.onchange = e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) fotosConVarias(fs); });
   raiz.querySelectorAll('[data-sraf]').forEach(inp => inp.onchange = e => { const fs = [...e.target.files]; e.target.value = ''; if (!fs.length) return;
     E.rafaga = [...(E.rafaga || []), ...fs.map(f => ({ file: f, url: URL.createObjectURL(f) }))].slice(0, 20); pintarSubida(); (raiz.querySelector('[data-sraf]') || raiz.querySelector('[data-sraflisto]'))?.focus({ preventScroll: true }); });
   const rl = raiz.querySelector('[data-sraflisto]'); if (rl) rl.onclick = () => { const fs = E.rafaga.map(r => r.file); quitarRafaga(); anadirFotos(fs); };
@@ -3035,6 +3038,38 @@ async function anadirFotos(files) {
     pintarSubida(); } };
   await Promise.all([obrera(), obrera(), obrera()]);
 }
+// 18/11 (Sheila, 2963: «adelantar la función de varias prendas a la vez… es lo que más la gente pide»): una foto con varias prendas extendidas o colgadas.
+// La foto, a 1.600 px como mucho, va a /api/prendas, que da una caja por prenda; cada caja se recorta de la foto con un 4 % de margen y entra en la cola de siempre
+// (anadirFotos: quitar el fondo, nombre y detalles, foto de catálogo). Solo las socias (socia()) hasta que Gabriela diga; el servidor tampoco responde a nadie más
+async function separarPrendas(file) {
+  const u = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; });
+    const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height, esc = Math.min(1, 1600 / Math.max(W, H));
+    const c = document.createElement('canvas'); c.width = Math.round(W * esc); c.height = Math.round(H * esc); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const b = await new Promise(r => c.toBlob(r, 'image/jpeg', .88)); if (!b) throw new Error('foto');
+    const r = await api('/api/prendas', { method: 'POST', body: b, headers: { 'Content-Type': 'image/jpeg' }, tiempo: 45000 });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const cajas = (await r.json()).prendas || [];
+    if (cajas.length < 2) return [file];
+    const out = [];
+    for (const [i, { caja: [x0, y0, x1, y1] }] of cajas.entries()) {
+      const mx = (x1 - x0) * .04, my = (y1 - y0) * .04, X = Math.max(0, x0 - mx) * W, Y = Math.max(0, y0 - my) * H, cw = Math.min(1, x1 + mx) * W - X, ch = Math.min(1, y1 + my) * H - Y;
+      const e = Math.min(1, 1600 / Math.max(cw, ch)), cv = document.createElement('canvas'); cv.width = Math.round(cw * e); cv.height = Math.round(ch * e);
+      const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, X, Y, cw, ch, 0, 0, cv.width, cv.height);
+      const pb = await new Promise(res => cv.toBlob(res, 'image/jpeg', .9)); if (pb) out.push(new File([pb], `prenda-${i + 1}.jpg`, { type: 'image/jpeg' }));
+    }
+    return out.length ? out : [file];
+  } finally { URL.revokeObjectURL(u); }
+}
+async function fotosConVarias(fs) {
+  E.separando = (E.separando || 0) + 1; pintarSubida(); let todas = [], una = 0, fallo = null;
+  try { for (const f of fs.slice(0, 5)) { try { const r = await separarPrendas(f); if (r.length === 1) una++; todas.push(...r); } catch (e) { fallo = e; } } }
+  finally { E.separando--; }
+  if (fallo) { avisarFallo('prendas', fallo); toast(/429/.test(fallo.message) ? t('Por hoy no se pueden separar más fotos', 'No more photos can be split today') : t('No se han podido separar las prendas. Inténtalo de nuevo.', 'The garments could not be separated. Try again.')); }
+  else if (una) toast(t('Solo se ve una prenda: sigue como una foto normal', 'Only one garment found: it goes on as a normal photo'));
+  if (E.pantalla !== 'subir') return; if (todas.length) anadirFotos(todas); else pintarSubida();
+}
 function repintarSubida(it) { // sin quitarle el campo en el que esté escribiendo
   if (E.pantalla !== 'subir' || !E.subida.includes(it)) return;
   const ae = document.activeElement;
@@ -3072,7 +3107,7 @@ let fotoNueva = null, fotoOriginal = null;
 async function fotoActual() { const p = E.editando; if (fotoNueva) return fotoNueva; if (p?.foto) return p.foto; if (p?.src) return (await fetch(p.src)).blob(); return null; }
 function pintarHerr() {
   const h = $('an-herr'); if (!h) return; const hay = !!(fotoNueva || E.editando?.foto || E.editando?.src), orig = fotoOriginal || E.editando?.original;
-  h.innerHTML = hay ? `<button type="button" class="txt sub-l" id="an-recortar">${t('Recortar', 'Crop')}</button><button type="button" class="txt sub-l" id="an-enderezar">${t('Enderezar', 'Straighten')}</button><button type="button" class="txt sub-l" id="an-fondo">${t('Quitar el fondo', 'Remove background')}</button>${orig ? `<button type="button" class="txt sub-l" id="an-orig">${t('Volver a la original', 'Back to original')}</button>` : ''}` : '';
+  h.innerHTML = hay ? agAc('type="button" id="an-recortar"', 'recorte', t('Recortar', 'Crop')) + agAc('type="button" id="an-enderezar"', 'nivel', t('Enderezar', 'Straighten')) + agAc('type="button" id="an-fondo"', 'fondo', t('Quitar el fondo', 'Remove background')) + (orig ? agAc('type="button" id="an-orig"', 'deshacer', t('Volver a la original', 'Back to original')) : '') : '';
   if (!hay) return;
   $('an-recortar').onclick = async () => { const b = await fotoActual(); if (!b) return; const r = await recortarAMano(b); if (!r) return; E.recManoEdit = 1; if (!fotoOriginal && !E.editando?.original) fotoOriginal = b; fotoNueva = r; pintarPrevia(URL.createObjectURL(r)); };
   $('an-enderezar').onclick = async () => { const b = await fotoActual(); if (!b) return; const r = await enderezar(b); if (!r) return; if (!fotoOriginal && !E.editando?.original) fotoOriginal = b; fotoNueva = r; pintarPrevia(URL.createObjectURL(r)); };
@@ -3099,9 +3134,9 @@ function anguloPrenda(img) {
 }
 function enderezar(blob) {
   return new Promise(res => {
-    const u = URL.createObjectURL(blob), cap = document.createElement('div'); cap.className = 'rc-capa';
+    const u = URL.createObjectURL(blob), cap = document.createElement('div'); cap.className = 'rc-capa'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-label', t('Editar la foto', 'Edit the photo'));
     cap.innerHTML = `<p class="mini-et">${t('Gira hasta que la prenda quede recta', 'Rotate until the garment is straight')}</p><div class="rc-zona en-zona"><img src="${u}" alt=""><i class="en-guia"></i></div>
-      <div class="en-ctrl"><input type="range" min="-45" max="45" step="0.5" value="0" aria-label="${t('Giro', 'Rotation')}"><span class="en-grados">0°</span><button class="txt sub-l" data-en="90">${t('Girar 90°', 'Rotate 90°')}</button></div>
+      <div class="en-ctrl"><input type="range" min="-45" max="45" step="0.5" value="0" aria-label="${t('Giro', 'Rotation')}"><span class="en-grados">0°</span>${agAc('data-en="90"', 'girar', t('Girar 90°', 'Rotate 90°'))}</div>
       <div class="rc-bts"><button class="boton" data-en="ok">${t('Enderezar', 'Straighten')}</button><button class="txt sub-l" data-en="no">${t('Cancelar', 'Cancel')}</button></div>`;
     document.body.appendChild(cap);
     const img = cap.querySelector('img'), rg = cap.querySelector('input'), gr = cap.querySelector('.en-grados'); let base = 0;
@@ -3135,7 +3170,7 @@ async function arreglarFoto(original, actual) {
 }
 function recortarAMano(blob, titulo) {
   return new Promise(res => {
-    const u = URL.createObjectURL(blob), cap = document.createElement('div'); cap.className = 'rc-capa';
+    const u = URL.createObjectURL(blob), cap = document.createElement('div'); cap.className = 'rc-capa'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-label', t('Editar la foto', 'Edit the photo'));
     cap.innerHTML = `<p class="mini-et">${titulo || t('Ajusta el marco a la prenda', 'Fit the frame to the garment')}</p><div class="rc-zona"><img src="${u}" alt=""><div class="rc-marco"><i data-c="tl"></i><i data-c="tr"></i><i data-c="bl"></i><i data-c="br"></i></div></div><div class="rc-bts"><button class="boton" data-rc="ok">${t('Recortar', 'Crop')}</button><button class="txt sub-l" data-rc="no">${t('Cancelar', 'Cancel')}</button></div>`;
     document.body.appendChild(cap);
     const img = cap.querySelector('img'), m = cap.querySelector('.rc-marco'); let r = null;
@@ -3214,7 +3249,7 @@ function pintarColores(sel) {
 }
 function pintarPrevia(url) {
   const pv = $('previa');
-  pv.innerHTML = url ? `<img src="${url}" alt=""><span class="cambiar">${t('Cambiar foto', 'Change photo')}<input type="file" accept="image/*" id="f-prenda" aria-label="${t('Cambiar foto', 'Change photo')}"></span>`
+  pv.innerHTML = url ? `<img src="${url}" alt=""><span class="cambiar cambiar-ic" title="${t('Cambiar foto', 'Change photo')}">${agIc('foto')}<input type="file" accept="image/*" id="f-prenda" aria-label="${t('Cambiar foto', 'Change photo')}"></span>`
     : `<label><svg><use href="#ic-camara"/></svg><span>${t('Haz una foto o elige una de la galería', 'Take a photo or pick one from the gallery')}</span><span class="et">${t('sobre fondo liso, la prenda entera', 'plain background, whole garment')}</span><input type="file" accept="image/*" id="f-prenda"></label>`;
   $('f-prenda').onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
@@ -4913,7 +4948,7 @@ function pintarEstilo() {
   $('es-lista').innerHTML = FAMILIAS.map((f, i) => `<h3 class="es-tit">${f[es]}</h3><div class="es-rej">${ESTILOS.filter(x => x.f === i).map(x => `<button class="${el.includes(x.k) ? 'on' : ''}" data-estilo="${x.k}"><span class="es-tela">${x.c.map(c => `<i style="background:${c}"></i>`).join('')}</span><b>${x.n[es]}</b><span class="es-d">${(E.perfil?.ropa === 'hombre' && x.dh || x.d)[es]}</span></button>`).join('')}</div>`).join('')
     + `<p class="es-cuenta" aria-live="polite">${el.length ? `<b>${el.length} ${t('de', 'of')} ${MAX_ESTILOS}</b>${el.map(k => ESTILOS.find(x => x.k === k)?.n[es]).filter(Boolean).join(', ')}` : '&nbsp;'}</p>`
     // 0.108 · «Enseñar la cintura» (Gabriela, 28/10: «12. sí»): preferencia de estilo, saltable, guardada solo en este móvil
-    + `<div class="es-cint"><h3 class="es-tit">${t('Un detalle más', 'One more thing')}</h3><p>${t('¿Te gusta enseñar la cintura?', 'Do you like showing your waist?')}</p><div>${[['1', t('Sí', 'Yes')], ['0', t('No', 'No')]].map(([v, n]) => `<button data-cintura="${v}" class="${cinturaPref() === v ? 'on' : ''}">${n}</button>`).join('')}</div><span class="es-d">${t('Así sabemos si proponerte tops cortos con pantalones de tiro bajo.', 'So we know whether to suggest crop tops with low-rise trousers.')}</span></div>`
+    + (E.perfil?.ropa === 'hombre' ? '' : `<div class="es-cint"><h3 class="es-tit">${t('Un detalle más', 'One more thing')}</h3><p>${t('¿Te gusta enseñar la cintura?', 'Do you like showing your waist?')}</p><div>${[['1', t('Sí', 'Yes')], ['0', t('No', 'No')]].map(([v, n]) => `<button data-cintura="${v}" class="${cinturaPref() === v ? 'on' : ''}">${n}</button>`).join('')}</div><span class="es-d">${t('Así sabemos si proponerte tops cortos con pantalones de tiro bajo.', 'So we know whether to suggest crop tops with low-rise trousers.')}</span></div>`)
     + bloqueUso() + bloqueGusto(); // 16/11: sin «Looks que te encantan» (auditoría); lo ya subido sigue en perfil.inspo
 }
 // 12/11 (Sheila, 2086): cómo usas tu ropa; viaja con la cuenta (perfil.usoRopa) y el motor ordena los looks según eso (ajusteUso en motor.js)

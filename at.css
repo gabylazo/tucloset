@@ -827,3 +827,20 @@ html.at .at-lleva button { min-height: 40px; padding: 0 14px; border: 1px solid 
 html.at .at-lleva-seg button + button { border-left: 0; }
 html.at .at-lleva button[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--fondo); font-weight: 500; }
 html.at .at-lleva button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+
+/* 19/11 (Gabriela, panel: «quería que todos los botones que tuvieran letras se cambiaran por iconos y sigo viendo quitar, borrar…»): las acciones que quedaban
+   con palabra, solo con icono (nombre en aria-label y title): cabeceras, Borrar filtros, Cambiar foto, herramientas de la foto, Ver su ficha, Quitar del look… */
+html.at .cab .ac-ic, html.at .mc-hoja .ac-ic { width: 44px; height: 44px; min-height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--tinta); background: none; border: 0; }
+html.at .cab .ac-ic { margin: 0 -10px 0 0; }
+html.at .ac-ic svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
+html.at .ac-ic:focus-visible, html.at .previa .cambiar-ic:focus-within { outline: 2px solid var(--tinta); outline-offset: 2px; }
+html.at .previa .cambiar-ic { width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--tinta); }
+html.at .previa .cambiar-ic .ag-ic { width: 23px; height: 23px; stroke-width: 1.35; }
+html.at .at-cam-acc { display: flex; gap: 2px; margin-left: -10px; }
+html.at .an-herr { gap: 8px; }
+
+/* 19/11 (Gabriela, al abrirle la cuenta a un probador: «en los estilos hay un espacio en blanco»): una familia con un número impar de estilos dejaba un hueco a la
+   derecha (De diario: Casual, Deportivo chic y Urbano), y la tira de colores dejaba otro con tres colores o con un blanco sin borde. El último, solo, va centrado;
+   la tira reparte sus colores en todo el ancho y lleva una línea fina alrededor, para que el blanco se vea como color */
+html.at #p-estilo .es-rej > button:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; width: calc(50% - 9px); }
+html.at #p-estilo .es-rej button .es-tela.es-mini { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--linea); }

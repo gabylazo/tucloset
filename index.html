@@ -21,8 +21,8 @@
 <link rel="icon" href="iconos/icono-129-180.png">
 <link rel="apple-touch-icon" href="iconos/icono-129-180.png">
 <link rel="stylesheet" href="fuentes.css?v=0.123"><!-- 0.123: letras en la propia web, sin Google Fonts (sin enviar la IP de nadie a Google) -->
-<link rel="stylesheet" href="app.css?v=0.315">
-<script>/* 06/11 noche: propuesta de modo oscuro (Gabriela). ?modo=oscuro lo enciende en ese navegador, ?modo=claro lo apaga; oscuro.css solo se carga encendido */ try { var mq = new URLSearchParams(location.search).get('modo'); if (mq === 'oscuro' || mq === 'claro') localStorage.setItem('tc_modo', mq); document.documentElement.dataset.fondo = '4'; localStorage.removeItem('tc_fondo'); /* 07/11: fondo «Sin tarjeta», elegido por Gabriela */ if (localStorage.getItem('tc_modo') === 'oscuro') { document.documentElement.classList.add('oscuro'); document.querySelector('meta[name="theme-color"]').content = '#1A1410'; document.querySelector('meta[name="color-scheme"]').content = 'dark'; document.write('<link rel="stylesheet" href="oscuro.css?v=0.315">'); } } catch (e) { }</script>
+<link rel="stylesheet" href="app.css?v=0.316">
+<script>/* 06/11 noche: propuesta de modo oscuro (Gabriela). ?modo=oscuro lo enciende en ese navegador, ?modo=claro lo apaga; oscuro.css solo se carga encendido */ try { var mq = new URLSearchParams(location.search).get('modo'); if (mq === 'oscuro' || mq === 'claro') localStorage.setItem('tc_modo', mq); document.documentElement.dataset.fondo = '4'; localStorage.removeItem('tc_fondo'); /* 07/11: fondo «Sin tarjeta», elegido por Gabriela */ if (localStorage.getItem('tc_modo') === 'oscuro') { document.documentElement.classList.add('oscuro'); document.querySelector('meta[name="theme-color"]').content = '#1A1410'; document.querySelector('meta[name="color-scheme"]').content = 'dark'; document.write('<link rel="stylesheet" href="oscuro.css?v=0.316">'); } } catch (e) { }</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -163,15 +163,15 @@
   <span id="closet-sub" hidden></span>
 </main>
 <div class="mc-velo" id="mc-velo" hidden></div>
-<section class="mc-hoja" id="mc-hoja" hidden><i class="asa"></i><h2>Filtrar</h2><div id="mc-grupos"></div>
-  <div class="pie"><button class="boton" id="mc-ver"></button><button class="borrar" id="mc-borrar">Borrar filtros</button></div></section>
+<section class="mc-hoja" id="mc-hoja" role="dialog" aria-modal="true" aria-label="Filtrar" hidden><i class="asa"></i><h2>Filtrar</h2><div id="mc-grupos"></div>
+  <div class="pie"><button class="boton" id="mc-ver"></button><button class="borrar ac-ic" id="mc-borrar" aria-label="Borrar filtros" title="Borrar filtros"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 5h12l-4.6 6v6.5l-2.8-1.5v-5zM15.5 13.5l4 4M19.5 13.5l-4 4"/></svg></button></div></section>
 
 <!-- SUBIR: varias prendas de golpe (patrón de Vinted) -->
 <main class="pantalla sin-tabs" id="p-subir"><div id="s-raiz"></div></main>
 
 <!-- AÑADIR / EDITAR PRENDA -->
 <main class="pantalla con-margen sin-tabs" id="p-anadir">
-  <div class="cab"><button data-ir="closet" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et" id="an-titulo" data-t="nueva">Nueva prenda</span><button class="accion oculto" id="an-borrar" data-t="borrar">Borrar</button></div>
+  <div class="cab"><button data-ir="closet" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et" id="an-titulo" data-t="nueva">Nueva prenda</span><button class="accion ac-ic oculto" id="an-borrar" aria-label="Borrar la prenda" title="Borrar la prenda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7M10.5 10.5v6M13.5 10.5v6"/></svg></button></div>
   <div class="previa" id="previa">
     <label><svg><use href="#ic-camara"/></svg><span data-t="hacer_foto">Haz una foto o elige una de la galería</span><span class="et" data-t="foto_et">sobre fondo liso, la prenda entera</span><input type="file" accept="image/*" id="f-prenda" aria-label="Foto de la prenda"></label>
   </div>
@@ -197,7 +197,7 @@
 
 <!-- FICHA -->
 <main class="pantalla con-margen" id="p-ficha">
-  <div class="cab"><button data-ir="closet" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et" id="f-cat"></span><button class="accion" id="f-editar" data-t="editar">Editar</button></div>
+  <div class="cab"><button data-ir="closet" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et" id="f-cat"></span><button class="accion ac-ic" id="f-editar" aria-label="Editar la prenda" title="Editar la prenda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 19.5l1-4.5L15.8 4.7a1.8 1.8 0 0 1 2.5 0l1 1a1.8 1.8 0 0 1 0 2.5L9 18.5z"/><path d="M13.8 6.7l3.5 3.5"/></svg></button></div>
   <h1 class="f7-tit" id="f-nombre"></h1>
   <p class="f7-uso" id="f-uso"></p>
   <div class="f-foto f7-foto"><img id="f-img" src="" alt=""><span class="estado oculto" id="f-estado"></span></div>
@@ -223,7 +223,7 @@
 
 <!-- CONJUNTO (detalle) -->
 <main class="pantalla con-margen" id="p-look">
-  <div class="cab"><button data-ir="looks" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et" id="lk-ocasion"></span><button class="accion" id="lk-borrar" data-t="borrar">Borrar</button></div>
+  <div class="cab"><button data-ir="looks" aria-label="Volver"><svg viewBox="0 0 18 18"><path d="m11 3-6 6 6 6"/></svg></button><span class="et" id="lk-ocasion"></span><button class="accion ac-ic" id="lk-borrar" aria-label="Borrar el look" title="Borrar el look"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7M10.5 10.5v6M13.5 10.5v6"/></svg></button></div>
   <div class="asi" style="margin-top:4px"><div class="puesta" id="lk-foto"></div></div>
   <h1 id="lk-nombre" style="font-size:28px;margin-top:14px"></h1>
   <p class="sub" id="lk-sub"></p>
@@ -243,7 +243,7 @@
   <nav class="y3-nav" id="yo-lista" aria-label="Tu perfil"></nav>
   <!-- 0.114 (Gabriela, 28/10: «sigo sin ver la opción de ajustes, básico en cualquier app… ubícate en un panel de opciones: letra un poco más oscura, iconos, intuitivo, sin redundancias»): panel por grupos;
        desde el 08/11 vive en su propia pantalla (abrirAjustes) -->
-  <p class="nota" id="yo-version">TuCloset web 0.315 · 18 de noviembre de 2026</p>
+  <p class="nota" id="yo-version">TuCloset web 0.316 · 19 de noviembre de 2026</p>
 </main>
 
 <!-- MIS COLORES (0.111) -->
@@ -270,8 +270,8 @@
 <dialog id="dlg"><h2 id="dlg-t"></h2><p id="dlg-p"></p><div class="botones"><button class="boton" id="dlg-si"></button><button class="boton linea" id="dlg-no"></button></div></dialog>
 </div>
 <script>window.TC_PUBLICA=true</script>
-<script src="app.js?v=0.315"></script>
-<script>if (AT) document.write('<script src="motor-datos.js?v=0.315"><\/script><script src="motor.js?v=0.315"><\/script>');</script>
-<script src="at.js?v=0.315"></script>
+<script src="app.js?v=0.316"></script>
+<script>if (AT) document.write('<script src="motor-datos.js?v=0.316"><\/script><script src="motor.js?v=0.316"><\/script>');</script>
+<script src="at.js?v=0.316"></script>
 </body>
 </html>
