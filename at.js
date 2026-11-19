@@ -1903,9 +1903,12 @@ if (AT) (() => {
   const HEX = Object.fromEntries(COLORES), EST_TXT = { rayas: ['de rayas', 'striped'], cuadros: ['de cuadros', 'checked'], flores: ['de flores', 'floral'], lunares: ['de lunares', 'polka-dot'], animal: ['de animal print', 'animal-print'] };
   const generoDe = txt => { const w = String(txt || '').toLowerCase().split(/\s+/)[0] || ''; return { pl: /s$/.test(w), f: /as?$/.test(w) }; };
   const mayus = x => x.charAt(0).toUpperCase() + x.slice(1);
+  // 19/11: el lector de fotos escribe algunos tipos sin tilde («sueter»); se ponen al enseñarlos
+  const TILDES = { sueter: 'suéter', sueteres: 'suéteres', cardigan: 'cárdigan', cardigans: 'cárdigans', pantalon: 'pantalón', cinturon: 'cinturón', tacon: 'tacón', algodon: 'algodón', saten: 'satén', camison: 'camisón', boton: 'botón', botones: 'botones' };
+  const conTilde = s => String(s || '').replace(/[a-zñ]+/gi, w => TILDES[w.toLowerCase()] || w);
   const prendaFoto = x => { const { pl, f } = generoDe(x.tipo), es = EST_TXT[x.estampado];
     return en() ? [x.color ? nomColor(x.color).toLowerCase() : '', es ? es[1] : '', x.tipo].filter(Boolean).join(' ')
-      : [f ? (pl ? 'unas' : 'una') : (pl ? 'unos' : 'un'), x.tipo, x.color ? adjColor(x.color, f, pl) : '', es ? es[0] : ''].filter(Boolean).join(' '); };
+      : [f ? (pl ? 'unas' : 'una') : (pl ? 'unos' : 'un'), conTilde(x.tipo), x.color ? adjColor(x.color, f, pl) : '', es ? es[0] : ''].filter(Boolean).join(' '); };
   const tuPrenda = p => { const n = String(p.nombre || ''); return en() ? `your ${n.toLowerCase()}` : `${generoDe(n).pl ? 'tus' : 'tu'} ${n.charAt(0).toLowerCase() + n.slice(1)}`; };
   const aprenderRc = (C, id) => { if (C.aprendido) return; C.aprendido = 1; const l = C.lec; E.perfil = E.perfil || {};
     E.perfil.propios = [...(E.perfil.propios || []), { id: id || 'rc-' + uid(), estilos: l.estilos || [], colores: l.colores || [], formalidad: l.formalidad || null, fecha: hoyISO() }].slice(-MAX_PROPIOS); };
