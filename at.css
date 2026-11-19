@@ -490,6 +490,12 @@ html.at .av-p svg { width: 18px; height: 18px; vertical-align: -4px; fill: none;
 html.at .av-acc { display: flex; gap: 6px; justify-content: center; }
 html.at .av-priv { display: flex; gap: 6px; align-items: flex-start; font-size: 12.5px; color: var(--sec); margin: 12px 0 0; max-width: 34ch; text-align: left; line-height: 1.4; }
 html.at .av-priv svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.4; margin-top: 2px; }
+/* 19/11 (Gabriela, panel: «no me gusta cómo está distribuido ese saber más con los botones y lo que hay que aceptar»): la casilla con su frase, «Saber más» debajo
+   de la frase y el botón, en una misma columna con el mismo ancho y el mismo borde izquierdo (antes, «Saber más» suelto en el centro y el botón más estrecho) */
+html.at .av-tarjeta .pm-cas, html.at .av-tarjeta .pm-mas, html.at .av-tarjeta > .at-btn, html.at .av-tarjeta .av-priv { width: 100%; max-width: 300px; }
+html.at .av-tarjeta .pm-cas { margin: 18px auto 0; padding: 0; }
+html.at .av-tarjeta .pm-mas { margin: 2px auto 0; padding-left: 34px; }
+html.at .av-tarjeta > .at-btn { margin-top: 18px; }
 html.at .av-tarjeta.creando .av-img { animation: av-lat 1.6s ease-in-out infinite; }
 @keyframes av-lat { 50% { opacity: .45; } }
 html.at .at-pie:has(.at-puestob)::after { display: none; }
@@ -844,3 +850,29 @@ html.at .an-herr { gap: 8px; }
    la tira reparte sus colores en todo el ancho y lleva una línea fina alrededor, para que el blanco se vea como color */
 html.at #p-estilo .es-rej > button:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; width: calc(50% - 9px); }
 html.at #p-estilo .es-rej button .es-tela.es-mini { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--linea); }
+
+/* 19/11 (Gabriela, con una captura: «los botones, las letras de abajo, todo»; «los botones que tengan un rectángulo y letra dentro, la letra siempre centrada»):
+   en la pantalla de la foto de catálogo, «Dejar la mía» debajo de tu foto y «Usar esta» debajo de la de catálogo, del mismo ancho y separados; los enlaces, uno debajo de otro */
+html.at .at-btn, html.at .boton, html.at .hz-bt { text-align: center; }
+html.at .at-rep .at-ropa-ops { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0 4px; }
+html.at .at-rep .at-ropa-ops .at-btn { width: 100%; min-width: 0; margin: 0; padding: 8px 10px; line-height: 1.35; }
+html.at .at-rep .at-ropa-ops:has(> .ag-ac:only-child) { display: flex; justify-content: center; }
+html.at .at-rep > .at-enlace { display: block; margin: 14px auto 0; }
+html.at .rep-par.solo { grid-template-columns: minmax(0, 60%); justify-content: center; }
+html.at .cat-falla { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 6px; }
+html.at .cat-falla .at-btn { width: 100%; min-width: 0; margin: 0; padding: 8px 10px; line-height: 1.35; }
+html.at .cat-falla .at-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
+html.at.oscuro .at-vj.at-rep .at-btn.hecho { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+/* 19/11 (Gabriela: «en Eleva tu look no me gusta ese recuadro que encierra la x y la frase»): el título de cada ventana recibe el foco al abrirse (para el lector de
+   pantalla) y el móvil lo marcaba con un recuadro de todo el ancho, X incluida. Un título no se pulsa: sin recuadro */
+html.at h1[tabindex="-1"]:focus, html.at h2[tabindex="-1"]:focus, html.at p[tabindex="-1"]:focus { outline: none; }
+/* 19/11: «Añadir más prendas» en Subir, solo con el +; el campo de fichero, encima del icono */
+html.at #s-raiz label.ag-ac { position: relative; overflow: hidden; }
+/* 19/11: En pareja, el plan para los dos: la frase de por qué combinan y el calendario en una fila; el día y «Apuntar para los dos» debajo */
+html.at .at-par-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+html.at .at-par-pie .at-par-por { margin: 0; }
+html.at .at-par-dia { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin: 8px 0 4px; }
+html.at .at-par-dia label { display: flex; flex-direction: column; gap: 4px; font-size: .86rem; color: var(--tinta); }
+html.at .at-par-dia input { min-height: 44px; padding: 0 10px; border: 1px solid var(--linea, rgba(74,53,38,.3)); border-radius: 0; background: var(--fondo, #fff); color: var(--tinta); font: inherit; }
+html.at .at-par-dia .at-btn { flex: 1 1 160px; }
+html.at .at-par-subs { margin-top: 2px; }

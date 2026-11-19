@@ -232,6 +232,7 @@ section[hidden] { display: none; }
 .chart .hit:hover + .guia, .chart .guia.on { stroke: var(--line); }
 details.data summary, details.md summary { display: inline-flex; align-items: center; min-height: 44px; }
 .desliza { overflow-x: auto; }
+.lect { display: block; margin-top: 3px; font-size: .74rem; font-weight: 400; color: var(--ink-2); line-height: 1.35; min-width: 16ch; max-width: 34ch; white-space: normal; }
 tbody th { text-transform: none; letter-spacing: 0; font-size: .86rem; font-weight: 500; color: var(--ink); text-align: left; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -393,7 +394,7 @@ a.trow { min-height: 48px; }
   const fichas = d.usuarias.map(u => { const x = UT[u.id] || {}, ult = [x.ultimo, (u.actualizado || '').slice(0, 10)].filter(Boolean).sort().pop() || null;
     return { ...u, ultimo: ult, dias30: x.dias30 || 0, dias: x.dias || 0, usd: suma(G, g => g.usuaria === u.id),
       cat: suma(GN, g => g.usuaria === u.id && g.s === 'catalogo'), av: suma(GN, g => g.usuaria === u.id && g.s === 'avatar'), pu: suma(GN, g => g.usuaria === u.id && g.s === 'puesto'),
-      rec: suma(R, g => g.usuaria === u.id), ins: suma(I, g => g.usuaria === u.id) }; })
+      rec: suma(R, g => g.usuaria === u.id), ins: suma(I, g => g.usuaria === u.id), fa: (d.gasto || []).filter(g => g.usuaria === u.id).reduce((s, g) => s + Math.max(0, (g.n || 0) - (g.ok || 0)), 0) }; })
     .sort((a, b) => (b.ultimo || '').localeCompare(a.ultimo || '') || (b.creada || '').localeCompare(a.creada || ''));
   const socias = new Set(fichas.filter(u => u.socia).map(u => u.id));
   const actR = (a, b, sinSocias) => new Set(d.uso.filter(u => u.dia >= dia(b) && u.dia <= dia(a) && !(sinSocias && socias.has(u.usuaria))).map(u => u.usuaria)).size;
@@ -420,7 +421,14 @@ a.trow { min-height: 48px; }
   const INV = (() => { let acc = 0; return PAG.slice().sort((a, b) => String(a.fecha).localeCompare(String(b.fecha))).map(g => ({ g, acc: acc += g.e })); })();
   const cambio = P.usdEur?.v || null;
   const tope = P.tope?.eur || 0;
-  const aE = v => v * (cambio || .86), usd = v => eur2(aE(v)); // 11/11 (Coordinación): una sola moneda en todo el panel, el euro
+  const aE = v => v * (cambio || .86), usd = v => eur2(aE(v));
+  // 19/11 (Gabriela: «ve analizando cada usuario, sobre todo el consumo y uso de la app»): una línea por cuenta con lo que dice su uso, sacada de los datos de hoy
+  const lectura = u => { const xs = [], dd = u.ultimo ? Math.floor((hoy - new Date(u.ultimo + 'T00:00')) / 864e5) : null;
+    if (!u.prendas) xs.push(u.dias ? 'Entra, pero aún no ha subido ropa' : 'Aún no ha entrado');
+    else { if (u.usd) xs.push(`${usd(u.usd / u.prendas)} de IA por prenda`); if (u.av || u.pu) xs.push(`${n0(u.av)} ${u.av === 1 ? 'avatar' : 'avatares'} y ${n0(u.pu)} «Verlo puesto»`); else if (u.prendas >= 10) xs.push('aún sin avatar'); if (!u.looks && u.prendas >= 10) xs.push('sin looks guardados'); }
+    if (u.fa) xs.push(`${n0(u.fa)} ${u.fa === 1 ? 'intento fallido' : 'intentos fallidos'} de IA`);
+    if (dd != null && dd >= 3) xs.push(`sin entrar desde hace ${dd} días`);
+    return xs.join(' · ').replace(/^./, c => c.toUpperCase()); }; // 11/11 (Coordinación): una sola moneda en todo el panel, el euro
   const CM = d.catalogoMes || null;
   const nomCada = { unico: 'una vez', 'único': 'una vez', mensual: 'al mes', anual: 'al año' };
   const SERV = { catalogo: 'Fotos de catálogo', avatar: 'Avatares', puesto: 'Verlo puesto', clasificar: 'Nombre y detalles' };
@@ -541,8 +549,8 @@ a.trow { min-height: 48px; }
       ${card('Visitas por origen', Object.keys(origen30).length ? barrasH(Object.entries(origen30).sort((a, b) => b[1] - a[1]).map(([o, n]) => ({ n: nomRed(o), v: n })), 'Visitas por origen, 30 días') : '<p class="vacio">Sin visitas con enlace todavía.</p>', { extra: '30 días' })}
       ${card('Lista de espera', !d.espera?.abierta && !EFs.length ? '<p class="vacio">Cerrada hasta tener Brevo y la privacidad publicada.</p>'
         : `<div class="kpis">${kpi('user', n0(EFs.length), 'apuntadas')}${kpi('check', d.espera?.confirmadas == null ? '—' : n0(d.espera.confirmadas), 'confirmadas')}${kpi('spark', n0(altas7), 'en 7 días', comp(altas7, altasA, 'la semana anterior'))}</div>`)}
-      ${card('Usuarias', `<div class="desliza"><table><thead><tr><th scope="col">Cuenta</th><th scope="col" class="num">Prendas</th><th scope="col" class="num">Looks</th><th scope="col" class="num">Días</th><th scope="col" class="num">IA</th></tr></thead>
-        <tbody>${fichas.map(u => `<tr><th scope="row">${esc(u.correo)}${u.socia ? ' · socia' : ''}</th><td class="num">${n0(u.prendas)}</td><td class="num">${n0(u.looks)}</td><td class="num">${n0(u.dias30)}</td><td class="num">${u.usd ? usd(u.usd) : '—'}</td></tr>`).join('')}</tbody></table></div>`, { wide: 1, count: fichas.length, extra: 'días de uso en 30 días' })}
+      ${card('Usuarias', `<div class="desliza"><table><thead><tr><th scope="col">Cuenta</th><th scope="col" class="num">Prendas</th><th scope="col" class="num">Fotos</th><th scope="col" class="num">Avatar</th><th scope="col" class="num">Puesto</th><th scope="col" class="num">Looks</th><th scope="col" class="num">Días</th><th scope="col" class="num">IA</th></tr></thead>
+        <tbody>${fichas.map(u => `<tr><th scope="row">${esc(u.correo)}${u.socia ? ' · socia' : ''}<small class="lect">${esc(lectura(u))}</small></th><td class="num">${n0(u.prendas)}</td><td class="num">${n0(u.cat)}</td><td class="num">${n0(u.av)}</td><td class="num">${n0(u.pu)}</td><td class="num">${n0(u.looks)}</td><td class="num">${n0(u.dias30)}</td><td class="num">${u.usd ? usd(u.usd) : '—'}</td></tr>`).join('')}</tbody></table></div>`, { wide: 1, count: fichas.length, extra: 'fotos, avatar y puesto hechos con IA · días de uso en 30 días' })}
       ${card('', `<div class="pleg sin">
         <details><summary><span class="n">Encuesta de las pruebas</span><small>${d.encuestas.length}</small>${ic('down')}</summary><div class="cuerpo">${enc}</div></details>
         <details><summary><span class="n">Fallos</span><small>${d.avisos.length}</small>${ic('down')}</summary><div class="cuerpo">${d.avisos.length ? `<div class="rows">${d.avisos.slice(0, 20).map(a => `<div class="trow"><b style="font-size:.8rem;overflow-wrap:anywhere">${esc(a.d)}</b><small>${hora(a.fecha)}</small></div>`).join('')}</div>` : '<p class="vacio">Ningún fallo.</p>'}</div></details>

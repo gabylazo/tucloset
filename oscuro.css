@@ -1233,6 +1233,10 @@ html.at.oscuro .ac-ic svg{fill:none;stroke:currentColor}
 html.at.oscuro .ac-ic:focus-visible,html.at.oscuro .previa .cambiar-ic:focus-within{outline:2px solid var(--tinta);outline-offset:2px}
 html.at.oscuro .previa .cambiar-ic{color:var(--tinta)}
 html.at.oscuro #p-estilo .es-rej button .es-tela.es-mini{border:1px solid var(--linea)}
+html.at.oscuro.oscuro .at-vj.at-rep .at-btn.hecho{background:transparent;color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+html.at.oscuro h1[tabindex="-1"]:focus,html.at.oscuro h2[tabindex="-1"]:focus,html.at.oscuro p[tabindex="-1"]:focus{outline:none}
+html.at.oscuro .at-par-dia label{color:var(--tinta)}
+html.at.oscuro .at-par-dia input{border:1px solid var(--linea, rgba(241,233,222,.3));border-radius:0;background:var(--fondo, var(--o-fondo));color:var(--tinta)}
 /* ---------- a mano (herramientas/hacer-oscuro.py lo pega al final de oscuro.css) ----------
    Modo oscuro de TuCloset (propuesta, 06/11 noche): los mismos colores de la marca, al revés. Fondo nogal noche; texto y botones en marfil; el dorado igual;
    «Tu» de la marca en nogal claro y «Closet» en dorado; la misma letra. Las prendas, sobre una tarjeta de nogal algo más clara que el fondo y con un filo de luz
@@ -1284,4 +1288,6 @@ html.oscuro .dg-campo input[aria-invalid=true] { border-bottom-color: #E8776B; }
 html.at.oscuro .at-vj-campo input::-webkit-calendar-picker-indicator { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F1E9DE' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5'/%3E%3Cpath d='M3.5 9.5h17M8 3v4M16 3v4'/%3E%3C/svg%3E"); }
 /* 11/11: los selectores en oscuro perdían el tamaño y la posición de su flecha (el fondo de la regla de arriba los reinicia) y la flecha se repetía como un mosaico */
 html.oscuro .campo select { background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+/* 19/11 (prueba de varias prendas, axe): en la cola de Subir, el #6E5F54 de app.css (12/11, para el fondo claro) daba 2,97:1 sobre el fondo oscuro */
+html.oscuro #s-raiz .rej small{color:var(--sec)}
 

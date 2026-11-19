@@ -272,7 +272,7 @@ function docLocal() {
   // 06/11 (Gabriela: «no se guardan las medidas»): las medidas solo vivían en el móvil donde se apuntaban; entraba desde tres sitios (Safari, la app del inicio
   // y el ordenador) y en los otros no estaban. Ahora van con la cuenta, como el diagnóstico; las fotos siguen solo en el móvil
   return { perfil: sinBlobs({ ...E.perfil }), conjuntos: E.conjuntos, agenda: E.agenda, borradas: JSON.parse(LS.get('tc_nube_borradas') || '[]'), reinicio: LS.get('tc_reinicio') || undefined,
-    prendas: E.prendas.filter(p => !p.ejemplo).map(p => ({ ...sinBlobs(p), conFoto: !!p.foto, conOriginal: !!p.original })) };
+    prendas: E.prendas.filter(p => !p.ejemplo).map(p => ({ ...sinBlobs(p), conFoto: !!p.foto, conOriginal: !!p.original, catSube: undefined, catLimpia: undefined })) }; // 19/11: catSube y catLimpia son de este móvil
 }
 E.nube = { estado: '', cuando: LS.get('tc_nube_cuando') || '' };
 let nubeT, nubeEnCurso = null, INTERCAMBIO = false;
@@ -300,6 +300,7 @@ async function subirNube(reintento) {
         // 0.113: una foto que no sube ya no frena las demás ni los datos; se reintenta en la próxima subida
         // 04/11: el iPhone de Gabriela perdió las fotos de 4 prendas («leer … The object can not be found here»): se marcan, no se reintentan y la ficha pide rehacerla; si la nube la tiene, se vuelve a bajar
         if (p.foto && !p.fotoRota && !p.fCat && p.fotoSub !== firma(p.foto)) { try { await subirFoto('/api/foto/' + p.id, p.foto); p.fotoSub = firma(p.foto); p.nube = Date.now().toString(36); cambio = true; } catch (e) { if (/^leer /.test(e?.message || '')) { p.fotoRota = 1; cambio = true; } fallos++; avisarFallo('foto', e, p.foto); } } // nube = marca de la versión subida; fotoSub = qué foto local se subió
+        if (p.catSube && p.cat instanceof Blob) { if (await subirCat(p)) cambio = true; else fallos++; } // 19/11: la de catálogo que no subió al ponerla
         if (p.original && !p.originalRota && !p.fCat && p.fotoSubO !== firma(p.original)) { try { await subirFoto('/api/foto/' + p.id + '-o', p.original); p.fotoSubO = firma(p.original); p.nubeO = Date.now().toString(36); cambio = true; } catch (e) { if (/^leer /.test(e?.message || '')) { p.originalRota = 1; cambio = true; } avisarFallo('original', e, p.original); } }
       }
       // 07/11 (Gabriela: «la app debería guardarlas, no depender de nada»; «en el Mac tampoco aparece ninguna foto del análisis»): con «Guardar mis fotos en mi cuenta»,
@@ -502,9 +503,9 @@ const hashTxt = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { 
 const fLocales = () => { try { return JSON.parse(LS.get('tc_pu_f') || '{}') || {}; } catch (e) { return {}; } };
 const ponerFLocales = m => LS.set('tc_pu_f', JSON.stringify(m));
 const probados = () => (E.perfil?.probados || []).slice().sort((a, b) => (b.u || '').localeCompare(a.u || ''));
-function nuevoProbado(k, blob) {
+function nuevoProbado(k, blob, m) {
   const pf = E.perfil = E.perfil || {}, t = new Date().toISOString(), f = 'pu-' + hashTxt(k + '|' + t) + hashTxt(t + '|' + k), fl = fLocales();
-  const fuera = (pf.probados || []).filter(x => x.k === k); pf.probados = (pf.probados || []).filter(x => x.k !== k).concat({ k, f, t, u: t });
+  const fuera = (pf.probados || []).filter(x => x.k === k); pf.probados = (pf.probados || []).filter(x => x.k !== k).concat({ k, f, t, u: t, ...(m ? { m } : {}) });
   for (const x of probados().slice(MAX_PUESTOS)) { fuera.push(x); delete E.puestos[x.k]; delete fl[x.k]; } // fuera el que hace más que no te pruebas
   pf.probados = pf.probados.filter(x => !fuera.includes(x)); pf.probadosFuera = [...new Set([...(pf.probadosFuera || []), ...fuera.map(x => x.f)])];
   E.puestos[k] = blob; fl[k] = f; ponerFLocales(fl);
@@ -1085,7 +1086,7 @@ async function pedirCatalogo(p, otra, fuente = p.foto, pista) {
     if (r.status === 401) return 'parar';
     if (!r.ok) { p.catFallos = (p.catFallos || 0) + 1; return null; }
     const fin = await afinarCat(await r.blob()); if (!fin) { p.catFallos = (p.catFallos || 0) + 1; return null; }
-    if (otra) p.catOtra = 1;
+    if (otra) p.catOtra = (+p.catOtra || 0) + 1; // 19/11: hasta 3 veces
     p.catProp = fin.blob; p.catPropAR = fin.ar; return true;
   } catch (e) { p.catFallos = (p.catFallos || 0) + 1; return null; } finally { URL.revokeObjectURL(u); }
 }
@@ -1105,19 +1106,28 @@ async function afinarCat(b, alto = 900) {
     return blob && { blob, ar: Math.round(o.width / o.height * 1e4) / 1e4 };
   } finally { URL.revokeObjectURL(u); }
 }
-async function usarCat(p, conservarNube) {
+// 19/11 (Gabriela: «se tarda un poco en aceptar», y con muchas prendas a la vez le preguntaba «Usar esta o la original» aunque la foto se pone sola): la foto de catálogo
+// se pone al momento en el móvil y se sube a la cuenta por detrás; si no sube (sin conexión, el móvil ocupado con muchas fotos), se reintenta en cada subida a la nube
+// (catSube) y no vuelve a preguntar. La limpieza de la nube (la original y la recortada) espera a que la de catálogo esté arriba (catLimpia)
+async function usarCat(p, conservarNube, espera = true) {
   const b = p.catProp; if (!b) return false;
-  try { await subirFoto('/api/foto/' + p.id + '-c', b); } catch (e) { return false; } // sin conexión: se vuelve a intentar la próxima vez
   // la foto de antes se queda 7 días solo en este móvil, por si la de catálogo no se parece («No se parece» en la ficha); después se borra sola
   if (p.foto instanceof Blob && !p.fCat && !p.fotoPrev) { p.fotoPrev = p.foto; p.fotoPrevT = Date.now(); }
-  Object.assign(p, { cat: b, foto: b, conCat: 1, nubeC: Date.now().toString(36), catAR: p.catPropAR, fCat: 1, caja: null });
+  Object.assign(p, { cat: b, foto: b, catAR: p.catPropAR, fCat: 1, caja: null, catSube: 1 });
   for (const k of ['catProp', 'catPropAR', 'catColor', 'original', 'fotoSub', 'fotoSubO', 'cajaV', 'dudoso', 'recMano', 'catPregunta']) delete p[k];
   urls.delete(p.id); alfa.delete(p.id); urlsCat.delete(p.id);
   // 11/11 (Sheila: «si una prenda no coincide con la original después de plancharla, ¿qué hago?»): la foto de antes se queda 7 días también en la cuenta (prevNube), no solo
   // en el móvil que la estilizó; así «No se parece» sale se abra donde se abra. Pasados los 7 días, limpiarFotoPrev la borra del servidor. La original sin recortar, fuera ya
-  if (conservarNube) p.nubeConserva = 1;
-  else { api('/api/foto/' + p.id + '-o', { method: 'DELETE' }).catch(() => { }); if (p.nube || p.prevNube) { p.prevNube = 1; p.fotoPrevT = p.fotoPrevT || Date.now(); } else api('/api/foto/' + p.id, { method: 'DELETE' }).catch(() => { }); }
-  E.propuestas = []; await guardar(); medirTodas(); return true;
+  if (conservarNube) p.nubeConserva = 1; else p.catLimpia = 1;
+  E.propuestas = []; await BD.set('prendas', E.prendas).catch(() => { }); medirTodas();
+  const sube = subirCat(p).then(() => guardar()); if (espera) await sube; return true;
+}
+async function subirCat(p) {
+  if (!p.catSube || !(p.cat instanceof Blob)) return true;
+  try { await subirFoto('/api/foto/' + p.id + '-c', p.cat); } catch (e) { return false; }
+  Object.assign(p, { conCat: 1, nubeC: Date.now().toString(36) }); delete p.catSube;
+  if (p.catLimpia) { delete p.catLimpia; api('/api/foto/' + p.id + '-o', { method: 'DELETE' }).catch(() => { }); if (p.nube || p.prevNube) { p.prevNube = 1; p.fotoPrevT = p.fotoPrevT || Date.now(); } else api('/api/foto/' + p.id, { method: 'DELETE' }).catch(() => { }); }
+  return true;
 }
 // 10/11 (Sheila: «si una prenda no coincide con la original después de plancharla, ¿qué hago?»): la foto de antes solo estaba en el móvil que la estilizó; las prendas
 // de antes guardan su foto en la cuenta (nubeConserva), así que «No se parece» sale en cualquier móvil y la trae de la cuenta al abrirlo
@@ -1127,29 +1137,34 @@ async function limpiarFotoPrev() { let n = 0, nube = 0;
     if (p.prevNube && !p.nubeConserva) { if (!cuenta()) continue; try { const r = await api('/api/foto/' + p.id, { method: 'DELETE' }); if (!r.ok) continue; } catch (e) { continue; } nube++; } // sin conexión, la próxima vez
     delete p.fotoPrev; delete p.fotoPrevT; delete p.prevNube; n++; }
   if (n) { await BD.set('prendas', E.prendas).catch(() => { }); if (nube) programarNube(); } }
-// «No se parece» (ficha, hasta 7 días después): probar otra vez con el modelo bueno, desde la foto de antes, o volver a la foto de antes
+// «Repetir foto» (ficha). 19/11 (Gabriela: «pon una opción de intentar de nuevo cuando no quede bien estilizar y que a esa señal un agente o cualquiera intervenga y lo
+// solucione»; antes, «No se parece», solo 7 días y una vez): siempre que la prenda tenga foto de catálogo. Pregunta qué falla, lo manda a la IA como corrección y repite
+// con el modelo bueno, hasta 3 veces; el servidor apunta cada vez (avisos «estilo-otra») para que la Dirección lo revise. «Volver a mi foto», mientras siga la de antes
+const FALLA_CAT = () => [['forma', t('La forma', 'The shape'), 'La forma o el corte no son los de mi prenda'], ['color', t('El color', 'The colour'), 'El color no es el de mi prenda'],
+  ['reves', t('Mal colocada', 'Badly placed'), 'Está torcida, al revés o mal colocada: ponla recta y bien colocada'], ['falta', t('Le falta o le sobra algo', 'Something missing or extra'), 'Le falta algo que tiene mi prenda o le sobra algo que no tiene'], ['otra', t('Otra cosa', 'Something else'), '']];
 async function noSeParece(p) {
-  $('cat-capa')?.remove(); if (!puedeDeshacerCat(p)) return;
-  if (!(p.fotoPrev instanceof Blob)) { // de la cuenta (prendas de antes): la foto que tenía antes de la de catálogo
-    try { const r = await api('/api/foto/' + p.id, { tiempo: 30000 }); if (r.ok) { const b = await r.blob(); if (b.size > 1000) { p.fotoPrev = b; p.fotoPrevT = Date.now(); } } } catch (e) { }
-    if (!(p.fotoPrev instanceof Blob)) return toast(t('Hace falta conexión para traer tu foto', 'You need a connection to fetch your photo')); }
-  const u0 = URL.createObjectURL(p.fotoPrev), nom = String(p.nombre || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  $('cat-capa')?.remove(); if (!p.fCat || !(p.cat instanceof Blob)) return;
+  if (!(p.fotoPrev instanceof Blob) && puedeDeshacerCat(p)) { // de la cuenta (prendas de antes): la foto que tenía antes de la de catálogo
+    try { const r = await api('/api/foto/' + p.id, { tiempo: 30000 }); if (r.ok) { const b = await r.blob(); if (b.size > 1000) { p.fotoPrev = b; p.fotoPrevT = Date.now(); } } } catch (e) { } }
+  const prev = p.fotoPrev instanceof Blob ? p.fotoPrev : null, u0 = prev ? URL.createObjectURL(prev) : '', quedan = 3 - (+p.catOtra || 0), nom = String(p.nombre || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const cap = document.createElement('div'); cap.id = 'cat-capa'; cap.className = 'ay-capa at-vj at-rep'; cap.setAttribute('role', 'dialog'); cap.setAttribute('aria-modal', 'true'); cap.setAttribute('aria-labelledby', 'cat-t');
-  cap.innerHTML = `<h1 id="cat-t" tabindex="-1">${nom}</h1><p class="at-vj-sub">${t('¿La foto de catálogo no se parece a tu prenda?', 'Doesn’t the catalogue photo look like your garment?')}</p>
-    <div class="rep-par">${[[u0, t('Tu foto', 'Your photo')], [urlCat(p), t('Catálogo', 'Catalogue')]].map(([u, et]) => `<figure><img src="${u}" alt=""><figcaption>${et}</figcaption></figure>`).join('')}</div>
-    <div class="at-ropa-ops">${p.catOtra ? '' : agAc('data-catu="otra"', 'girar', t('Probar otra vez', 'Try again'))}${agAc('data-catu="mia"', 'deshacer', t('Volver a mi foto', 'Back to my photo'))}</div>
+  cap.innerHTML = `<h1 id="cat-t" tabindex="-1">${nom}</h1><p class="at-vj-sub">${quedan > 0 ? t('¿Qué no ha quedado bien?', 'What is not right?') : t('Ya se ha repetido tres veces.', 'It has been redone three times.')}</p>
+    <div class="rep-par${prev ? '' : ' solo'}">${[...(prev ? [[u0, t('Tu foto', 'Your photo')]] : []), [urlCat(p), t('Catálogo', 'Catalogue')]].map(([u, et]) => `<figure><img src="${u}" alt=""><figcaption>${et}</figcaption></figure>`).join('')}</div>
+    ${quedan > 0 ? `<div class="cat-falla" role="group" aria-label="${t('Qué falla', 'What is wrong')}">${FALLA_CAT().map(([k, et]) => `<button class="at-btn hecho" data-catf="${k}">${et}</button>`).join('')}</div>` : ''}
+    ${prev ? `<div class="at-ropa-ops">${agAc('data-catu="mia"', 'deshacer', t('Volver a mi foto', 'Back to my photo'))}</div>` : ''}
     <button class="at-enlace" data-catu="">${t('Dejarla así', 'Leave it')}</button>`;
   document.body.append(cap); $('cat-t').focus({ preventScroll: true });
-  const fin = () => { URL.revokeObjectURL(u0); cap.remove(); if (E.pantalla === 'ficha' && $('at-ficha')?.dataset.id === p.id) abrirFicha(p.id); };
-  cap.onclick = async e => { const b = e.target.closest('[data-catu]'); if (!b || cap.dataset.ocupado) return; const k = b.dataset.catu; if (k === '') return fin();
+  const fin = () => { if (u0) URL.revokeObjectURL(u0); cap.remove(); if (E.pantalla === 'ficha' && $('at-ficha')?.dataset.id === p.id) abrirFicha(p.id); };
+  cap.onclick = async e => { const f = e.target.closest('[data-catf]'), b = f || e.target.closest('[data-catu]'); if (!b || cap.dataset.ocupado) return; const k = f ? 'otra' : b.dataset.catu; if (k === '') return fin();
     cap.dataset.ocupado = 1; cap.querySelectorAll('button').forEach(x => x.disabled = true);
     if (k === 'otra') { b.textContent = t('Haciendo otra… unos 20 segundos', 'Making another… about 20 seconds');
-      const r = await pedirCatalogo(p, true, p.fotoPrev); const ok = r === true && await usarCat(p, !!p.nubeConserva);
-      toast(ok ? t('Foto de catálogo nueva puesta', 'New catalogue photo set') : r === 'parar' ? t('Ahora no se pueden hacer fotos de catálogo. Inténtalo más tarde', 'I can’t make catalogue photos right now. Try again later') : t('No ha salido. Puedes volver a tu foto', 'It did not work. You can go back to your photo'));
+      const pista = FALLA_CAT().find(x => x[0] === f.dataset.catf)?.[2] || '';
+      const r = await pedirCatalogo(p, true, prev || p.cat, pista); const ok = r === true && await usarCat(p, !!p.nubeConserva, false);
+      toast(ok ? t('Foto de catálogo nueva puesta', 'New catalogue photo set') : r === 'parar' ? t('Ahora no se pueden hacer fotos de catálogo. Inténtalo más tarde', 'Catalogue photos are not available right now. Try again later') : t('No ha salido. Inténtalo de nuevo', 'It did not work. Try again'));
       return fin(); }
-    if (k === 'mia') { const prev = p.fotoPrev;
+    if (k === 'mia') {
       try { await subirFoto('/api/foto/' + p.id, prev); } catch (e2) { toast(t('Hace falta conexión para volver a tu foto', 'You need a connection to go back to your photo')); delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; }
-      for (const k2 of ['cat', 'conCat', 'nubeC', 'catAR', 'fCat', 'fotoPrev', 'fotoPrevT', 'prevNube', 'catOtra']) delete p[k2];
+      for (const k2 of ['cat', 'conCat', 'nubeC', 'catAR', 'fCat', 'fotoPrev', 'fotoPrevT', 'prevNube', 'catOtra', 'catSube', 'catLimpia']) delete p[k2];
       Object.assign(p, { foto: prev, catNo: 1, nube: Date.now().toString(36), fotoSub: firma(prev) }); urls.delete(p.id); alfa.delete(p.id); urlsCat.delete(p.id);
       api('/api/foto/' + p.id + '-c', { method: 'DELETE' }).catch(() => { }); E.propuestas = []; await guardar(); medirTodas(); toast(t('Vuelve a tener tu foto', 'Your photo is back')); return fin(); }
   };
@@ -1162,15 +1177,15 @@ function abrirCatalogo(id) {
   const rc = !!(p.catColor && p.cat), enCol = rc ? t('En ' + adjColor(p.catColor, /as?$/.test(String(p.nombre || '').split(/\s+/)[0].toLowerCase())), 'In ' + nomColor(p.catColor).toLowerCase()) : '';
   cap.innerHTML = `<h1 id="cat-t" tabindex="-1">${nom}</h1><p class="at-vj-sub">${rc ? t('La misma foto en el color nuevo. Si la usas, sustituye a la de ahora.', 'The same photo in the new colour. If you use it, it replaces the current one.') : t('Tu prenda, en foto de catálogo. Si la usas, será su única foto.', 'Your garment as a catalogue photo. If you use it, it becomes its only photo.')}</p>
     <div class="rep-par">${[[urlFoto(p), rc ? t('Ahora', 'Now') : t('Tu foto', 'Your photo')], [uC, rc ? enCol : t('Catálogo', 'Catalogue')]].map(([u, et]) => `<figure><img src="${u}" alt=""><figcaption>${et}</figcaption></figure>`).join('')}</div>
-    <div class="at-ropa-ops"><button class="at-btn" data-catu="si">${t('Usar esta', 'Use this one')}</button><button class="at-btn" data-catu="no">${rc ? t('Dejar la de ahora', 'Keep the current one') : t('Dejar la mía', 'Keep mine')}</button></div>
-    ${p.catOtra || rc ? '' : `<button class="at-enlace" data-catu="otra">${t('No se parece: probar otra vez', 'Not alike: try again')}</button>`}
+    <div class="at-ropa-ops"><button class="at-btn hecho" data-catu="no">${rc ? t('Dejar la de ahora', 'Keep the current one') : t('Dejar la mía', 'Keep mine')}</button><button class="at-btn" data-catu="si">${t('Usar esta', 'Use this one')}</button></div>
+    ${(p.catOtra || 0) >= 3 || rc ? '' : `<button class="at-enlace" data-catu="otra">${t('No se parece: probar otra vez', 'Not alike: try again')}</button>`}
     <button class="at-enlace" data-catu="">${lista.length > 1 ? t(`Ahora no · quedan ${lista.length - 1} más`, `Not now · ${lista.length - 1} more`) : t('Ahora no', 'Not now')}</button>`;
   document.body.append(cap); $('cat-t').focus({ preventScroll: true });
   const fin = () => { URL.revokeObjectURL(uC); cap.remove(); };
   cap.onclick = async e => { const b = e.target.closest('[data-catu]'); if (!b || cap.dataset.ocupado) return; const k = b.dataset.catu;
     if (k === '') { fin(); if (E.pantalla === 'closet') pintarCloset(); return; }
     cap.dataset.ocupado = 1; cap.querySelectorAll('button').forEach(x => x.disabled = true);
-    if (k === 'si') { if (!(await usarCat(p, rc && !!p.nubeConserva))) { delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; } toast(t('Foto de catálogo puesta', 'Catalogue photo set')); }
+    if (k === 'si') { if (!(await usarCat(p, rc && !!p.nubeConserva, false))) { delete cap.dataset.ocupado; cap.querySelectorAll('button').forEach(x => x.disabled = false); return; } toast(t('Foto de catálogo puesta', 'Catalogue photo set')); }
     else if (k === 'no') { delete p.catProp; delete p.catPropAR; delete p.catPregunta; if (p.catColor) delete p.catColor; else p.catNo = 1; await guardar(); }
     else if (k === 'otra') { b.textContent = t('Haciendo otra… unos 20 segundos', 'Making another… about 20 seconds'); const r = await pedirCatalogo(p, true); await BD.set('prendas', E.prendas).catch(() => { });
       if (r !== true) toast(r === 'parar' ? t('Ahora no se pueden hacer fotos de catálogo. Inténtalo más tarde', 'I can’t make catalogue photos right now. Try again later') : t('No ha salido: puedes usar esta o dejar la tuya', 'It did not work: use this one or keep yours'));
@@ -2144,7 +2159,7 @@ const AG_IC = { mas: '<path d="M12 5v14M5 12h14"/>', luna: '<path d="M18.5 14.6A
   cal: '<rect x="4" y="5.5" width="16" height="14" rx="1"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>', cerrar: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
   percha: '<path d="M12 7.5a2 2 0 1 1 2-2c0 1-2 1.3-2 2.6V9M12 9l8.5 6.5c.6.5.3 1.5-.5 1.5H4c-.8 0-1.1-1-.5-1.5Z"/>' };
 // 19/11 (Gabriela, panel: «quería que todos los botones que tuvieran letras se cambiaran por iconos y sigo viendo quitar, borrar…»): los de las herramientas de foto, deshacer y cámara
-Object.assign(AG_IC, { deshacer: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>', recorte: '<path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/>', nivel: '<path d="M3.5 19h17"/><path d="m5.5 14.6 10.6-6.9 2.1 3.3-10.6 6.9z"/>', fondo: '<path d="m4 20 10.5-10.5M13 8l3 3"/><path d="M17.5 3.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>', foto: '<path d="M4 8h3.5L9 5.5h6L16.5 8H20v11H4z"/><circle cx="12" cy="13" r="3.3"/>' });
+Object.assign(AG_IC, { copiar: '<rect x="8.5" y="8.5" width="11" height="11" rx="1"/><path d="M15.5 8.5V5.5a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3"/>', deshacer: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>', recorte: '<path d="M7 3.5V17h13.5"/><path d="M3.5 7H17v13.5"/>', nivel: '<path d="M3.5 19h17"/><path d="m5.5 14.6 10.6-6.9 2.1 3.3-10.6 6.9z"/>', fondo: '<path d="m4 20 10.5-10.5M13 8l3 3"/><path d="M17.5 3.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>', foto: '<path d="M4 8h3.5L9 5.5h6L16.5 8H20v11H4z"/><circle cx="12" cy="13" r="3.3"/>' });
 const agIc = n => `<svg class="ag-ic" viewBox="0 0 24 24" aria-hidden="true">${AG_IC[n]}</svg>`;
 const agMi = (attr, ic, txt) => `<button class="ag-mi" ${attr}><span class="ag-mi-c">${agIc(ic)}</span><span>${txt}</span></button>`;
 // 18/11 (Gabriela: «en todas las opciones que salen borrar, al calendario, eleva tu look, verlo puesto, sustitúyelo por iconos; no podemos tratar ese tipo de botones de dos
@@ -2691,7 +2706,8 @@ const NOM_X = { 'a t-shirt': ['Camiseta', 'T-shirt', 'f'], 'a blouse': ['Blusa',
   'a polo shirt': ['Polo', 'Polo shirt', 'm'], 'a hoodie': ['Sudadera', 'Hoodie', 'f'], 'a midi skirt': ['Falda midi', 'Midi skirt', 'f'], 'a mini dress': ['Vestido corto', 'Mini dress', 'm'], 'a midi dress': ['Vestido midi', 'Midi dress', 'm'], 'a jumpsuit': ['Mono', 'Jumpsuit', 'm'],
   'a parka': ['Parka', 'Parka', 'f'], 'a denim jacket': ['Cazadora vaquera', 'Denim jacket', 'f'], 'a bomber jacket': ['Bomber', 'Bomber jacket', 'f'], 'a pair of ankle boots': ['Botines', 'Ankle boots', 'm', 1], 'a pair of knee high boots': ['Botas altas', 'Knee-high boots', 'f', 1], 'a pair of loafers': ['Mocasines', 'Loafers', 'm', 1],
   'a crossbody bag': ['Bandolera', 'Crossbody bag', 'f'], 'a cap': ['Gorra', 'Cap', 'f'], 'a bracelet': ['Pulsera', 'Bracelet', 'f'], gloves: ['Guantes', 'Gloves', 'm', 1],
-  'a hat': ['Sombrero', 'Hat', 'm'], 'a scarf': ['Pañuelo', 'Scarf', 'm'], 'a belt': ['Cinturón', 'Belt', 'm'], sunglasses: ['Gafas de sol', 'Sunglasses', 'f', 1], 'a necklace': ['Collar', 'Necklace', 'm'], earrings: ['Pendientes', 'Earrings', 'm', 1], 'a watch': ['Reloj', 'Watch', 'm'] };
+  'a hat': ['Sombrero', 'Hat', 'm'], 'a scarf': ['Pañuelo', 'Scarf', 'm'], 'a belt': ['Cinturón', 'Belt', 'm'], 'a necktie': ['Corbata', 'Tie', 'f'], 'a bow tie': ['Pajarita', 'Bow tie', 'f'], suspenders: ['Tirantes', 'Braces', 'm', 1], // 19/11 (Gabriela: la corbata salía como pañuelo y los tirantes como cinturón)
+  sunglasses: ['Gafas de sol', 'Sunglasses', 'f', 1], 'a necklace': ['Collar', 'Necklace', 'm'], earrings: ['Pendientes', 'Earrings', 'm', 1], 'a watch': ['Reloj', 'Watch', 'm'] };
 // 0.58 (Sheila, 23/10: «para hacerlo manualmente tienes que dejar un menú desplegable de categoría… apóyate en el menú de clasificación de las app de ropa o de Vinted»):
 // dos desplegables, categoría y tipo, como en Vinted; el tipo pone el nombre («Botas negras») y de él salen el estilo y la ocasión
 const SUBCATS = {
@@ -2703,7 +2719,7 @@ const SUBCATS = {
   Abrigos: ['a coat', 'a trench coat', 'a puffer jacket', 'a parka', 'a jacket', 'a denim jacket', 'a bomber jacket', 'a blazer'],
   Zapatos: ['a pair of shoes', 'a pair of sneakers', 'a pair of boots', 'a pair of knee high boots', 'a pair of ankle boots', 'a pair of high heels', 'a pair of sandals', 'a pair of ballet flats', 'a pair of loafers'],
   Bolsos: ['a handbag', 'a shoulder bag', 'a crossbody bag', 'a tote bag', 'a clutch bag', 'a backpack'],
-  Accesorios: ['a belt', 'a scarf', 'a hat', 'a cap', 'a sunglasses', 'sunglasses', 'a necklace', 'earrings', 'a bracelet', 'a watch', 'gloves'].filter(x => NOM_X[x])
+  Accesorios: ['a belt', 'suspenders', 'a necktie', 'a bow tie', 'a scarf', 'a hat', 'a cap', 'a sunglasses', 'sunglasses', 'a necklace', 'earrings', 'a bracelet', 'a watch', 'gloves'].filter(x => NOM_X[x])
 };
 const subDe = (cat, x, nombre) => SUBCATS[cat]?.includes(x) ? x : SUBCATS[cat]?.find(k => (nombre || '').toLowerCase().startsWith(NOM_X[k][0].toLowerCase() + ' ')) || '';
 const opsCat = sel => CATS_ORDEN.filter(c => c === sel || !(E.perfil?.ropa === 'hombre' && ['Faldas', 'Vestidos'].includes(c))).map(c => `<option value="${c}"${c === sel ? ' selected' : ''}>${catTxt(c)}</option>`).join('');
@@ -2798,12 +2814,12 @@ function pintarSubida() {
         return `<details class="gr s-deta" data-sdetabre${det.detaAbierto ? ' open' : ''}><summary><span class="mini-et">${t('Detalles', 'Details')}</span><span class="s-deta-l">${(det.detalles || []).map(k => t(k, DETALLES[k])).join(', ') || t('Ninguno', 'None')}</span></summary>${bts}</details>`; })()}
       <div class="gr"><p class="mini-et">${t('Estación', 'Season')}</p>${ops(ESTACIONES, det.estacion, 'est', estNombre)}</div>
       <div class="fila2 s-cat s-compra"><label class="campo"><span>${t('Precio (opcional)', 'Price (optional)')}</span><input data-sprecio inputmode="decimal" placeholder="29,95 €" value="${escH(det.precioTxt || '')}"></label><label class="campo"><span>${t('La compraste', 'Bought')}</span><select data-scompra>${opsCompra(det.compra || '')}</select></label></div>
-      ${det.recortada ? `<button class="txt sub-l" data-sorig>${det.usaOriginal ? t('Usar el fondo blanco', 'Use white background') : t('Usar la foto original', 'Use the original photo')}</button>` : ''}` : ''}
-      <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo && !(det.noPrenda && !det.siPrenda) ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(t('Añadir más prendas', 'Add more garments'), 'txt sub-l')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button>${agAc('data-squita', 'papelera', t('Quitar esta prenda', 'Remove this garment'))}`}</div></div>`;
+      ${det.recortada ? agAc('data-sorig', det.usaOriginal ? 'fondo' : 'foto', det.usaOriginal ? t('Usar el fondo blanco', 'Use white background') : t('Usar la foto original', 'Use the original photo')) : ''}` : ''}
+      <div class="bts">${n === 1 ? `<button class="boton" data-sguardar ${listo && !(det.noPrenda && !det.siPrenda) ? '' : 'disabled'}>${t('Guardar en mi clóset', 'Save to my closet')}</button>${mas(`${agIc('mas')}<span class="vh">${t('Añadir más prendas', 'Add more garments')}</span>`, 'ag-ac s-mas')}` : `<button class="boton" data-svolver>${t('Listo', 'Done')}</button>${agAc('data-squita', 'papelera', t('Quitar esta prenda', 'Remove this garment'))}`}</div></div>`;
   } else {
     const listos = E.subida.filter(i => i.estado === 'listo' && !(i.noPrenda && !i.siPrenda)).length, nop = E.subida.filter(i => i.noPrenda && !i.siPrenda).length;
     raiz.innerHTML = `<div class="sb rv">${X}<div class="tit"><h1>${n} ${t('prendas', 'garments')}</h1><div class="mini-et">${E.subida.some(i => i.estado !== 'listo') ? t('Quitando los fondos…', 'Removing backgrounds…') : E.subida.some(i => i.catP) ? t('Estilizando…', 'Styling…') : E.subida.some(i => i.clasP) ? t('Afinando nombres y detalles…', 'Refining names and details…') : t('Revisa y guarda', 'Check and save')}</div>${E.subida.some(i => i.estado !== 'listo' || i.catP) ? `<p class="est-av est-sub" role="status"><span class="est-arm-c" style="--d:${retrasoEst(3.2)}">${ARMARIO_EST}</span><small>${frasesEspera(t('Se quita el fondo y se convierte en foto de catálogo.', 'I remove the background and turn it into a catalogue photo.'))}</small></p>` : ''}</div>
-      <div class="rej">${E.subida.map(it => `<button type="button" data-sdet="${it.id}"${it.catP ? ' class="est-p"' : it.estado !== 'listo' ? ' class="s-carga"' : ''}>${it.url ? `<img src="${(!it.usaOriginal && it.urlCat) || it.url}" alt="">` : ''}${it.catP || it.estado !== 'listo' ? cargaIco('tc-carga-c') : ''}${it.catP ? `<span class="s-est" role="status">${t('Estilizando…', 'Styling…')}</span>` : ''}${it.estado === 'listo' && it.noPrenda && !it.siPrenda ? `<p class="no">${t('No es una prenda', 'Not a garment')}<small>${t('Toca para revisarla', 'Tap to check')}</small></p>` : it.estado === 'listo' ? `<em></em><p>${it.nombre}<small>${it.dudoso ? t('Revisa el recorte', 'Check the cut-out') : `${catTxt(catDe(it))} · ${it.color}`}</small></p>` : `<p><small>${t('Quitando el fondo…', 'Removing the background…')}</small></p>`}</button>`).join('')}${n < 20 ? mas(`<svg viewBox="0 0 20 20"><path d="M10 3v14M3 10h14"/></svg><small>${t('Añadir más', 'Add more')}</small>`, 'mas') : ''}</div>
+      <div class="rej">${E.subida.map(it => `<button type="button" data-sdet="${it.id}"${it.catP ? ' class="est-p"' : it.estado !== 'listo' ? ' class="s-carga"' : ''}>${it.url ? `<img src="${(!it.usaOriginal && it.urlCat) || it.url}" alt="">` : ''}${it.catP || it.estado !== 'listo' ? cargaIco('tc-carga-c') : ''}${it.catP ? `<span class="s-est" role="status">${t('Estilizando…', 'Styling…')}</span>` : ''}${it.estado === 'listo' && it.noPrenda && !it.siPrenda ? `<p class="no">${t('No es una prenda', 'Not a garment')}<small>${t('Toca para revisarla', 'Tap to check')}</small></p>` : it.estado === 'listo' ? `<em></em><p>${it.nombre}<small>${it.dudoso ? t('Revisa el recorte', 'Check the cut-out') : `${catTxt(catDe(it))} · ${it.color}`}</small></p>` : `<p><small>${t('Quitando el fondo…', 'Removing the background…')}</small></p>`}</button>`).join('')}${n < 20 ? mas(`<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v14M3 10h14"/></svg><span class="vh">${t('Añadir más', 'Add more')}</span>`, 'mas') : ''}</div>
       ${E.subida.some(i => i.estado === 'listo' && i.dudoso && !(i.noPrenda && !i.siPrenda)) ? `<p class="s-aviso-l">${t('Las que dicen «Revisa el recorte» pueden haber salido mal: tócalas para verlas.', 'The ones that say «Check the cut-out» may have come out wrong: tap them to see.')}</p>` : ''}
       ${nop ? `<p class="s-aviso-l">${nop === 1 ? t('Hay 1 foto que no coincide con ninguna categoría de prenda: no se guardará.', '1 photo does not match any clothing category: it will not be saved.') : t(`Hay ${nop} fotos que no coinciden con ninguna categoría de prenda: no se guardarán.`, `${nop} photos do not match any clothing category: they will not be saved.`)}</p>` : ''}
       <div class="bts"><button class="boton" data-sguardar ${listos ? '' : 'disabled'}>${listos === 1 ? t('Guardar 1 prenda', 'Save 1 garment') : t(`Guardar ${listos} prendas`, `Save ${listos} garments`)}</button><span class="txt">${t('Toca una prenda para ver su ficha y cambiar nombre, tipo, color o estación', 'Tap a garment to open its card and change name, type, colour or season')}</span></div></div>`;
@@ -3732,6 +3748,7 @@ function pintarPanelYo() {
     + grupoP(t('La app', 'The app'),
       filaP({ id: 'yo-ciudad', ic: 'ciudad', tit: t('Ciudad para el tiempo', 'City for the weather'), val: ciudad })
       + filaP({ id: 'yo-modo', ic: 'modo', tit: t('Modo oscuro', 'Dark mode'), val: '<span class="pn-sw" aria-hidden="true"></span>', flecha: false, attr: `role="switch" aria-checked="${document.documentElement.classList.contains('oscuro')}"` })
+      + filaP({ id: 'yo-hoyuno', ic: 'percha', tit: t('Un solo look en Hoy', 'One look in Today'), val: '<span class="pn-sw" aria-hidden="true"></span>', flecha: false, attr: `role="switch" aria-checked="${E.perfil?.hoyUno === true}"` }) // 19/11 (Sheila, 2914 y 3065)
       + filaP({ id: 'yo-letra', ic: 'letra', tit: t('Letra grande', 'Large text'), val: '<span class="pn-sw" aria-hidden="true"></span>', flecha: false, attr: `role="switch" aria-checked="${document.documentElement.classList.contains('letra-g')}"` })
       + filaP({ id: 'yo-idioma', ic: 'idioma', tit: t('Idioma', 'Language'), val: es ? 'English' : 'Español' }))
     + grupoP(t('Privacidad y datos', 'Privacy and data'),
@@ -3751,7 +3768,7 @@ function pintarPanelYo() {
       + (PUBLICA ? '' : filaP({ id: 'yo-ejemplo', ic: 'probar', tit: E.prendas.some(p => p.ejemplo) ? t('Quitar el clóset de ejemplo', 'Remove the sample closet') : t('Cargar un clóset de ejemplo', 'Load a sample closet'), flecha: false }))) : '');
   if ($('yo-pareja')) $('yo-pareja').onclick = panelPareja;
   if ($('yo-avisos')) $('yo-avisos').onclick = panelAvisos;
-  if ($('yo-vercomo')) $('yo-vercomo').onclick = panelVerComo; $('yo-modo').onclick = cambiarModo; if ($('yo-letra')) $('yo-letra').onclick = cambiarLetra; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
+  if ($('yo-vercomo')) $('yo-vercomo').onclick = panelVerComo; $('yo-modo').onclick = cambiarModo; if ($('yo-letra')) $('yo-letra').onclick = cambiarLetra; if ($('yo-hoyuno')) $('yo-hoyuno').onclick = async () => { E.perfil = E.perfil || {}; E.perfil.hoyUno = E.perfil.hoyUno !== true; await guardar(); programarNube(); E.hoyIdx = 0; pintarPanelYo(); }; $('yo-ciudad').onclick = panelCiudad; $('yo-idioma').onclick = panelIdioma; $('yo-privacidad').onclick = panelPrivacidad; $('yo-ayuda').onclick = abrirAyuda; $('yo-plan-info').onclick = panelPlan;
   if ($('yo-closet')) $('yo-closet').onclick = () => { const otro = CLOSET_ACT ? '' : 'pruebas'; try { localStorage.setItem('tc_closet', otro); } catch (e) { } location.href = location.pathname + '?repaso=0&pantalla=closet'; };
   if ($('yo-ejemplo')) $('yo-ejemplo').onclick = () => E.prendas.some(p => p.ejemplo) ? quitarEjemplo() : cargarEjemplo();
   if ($('yo-intercambio')) $('yo-intercambio').onclick = () => intercambiarClosets().catch(e => { avisarFallo('intercambio', e); toast(t('No se ha podido. No se ha cambiado nada.', 'It did not work. Nothing was changed.')); });
@@ -3878,6 +3895,22 @@ async function parejaDatos(forzar) {
   PAREJA.datos = (await r.json()).pareja || false; PAREJA.cuando = Date.now(); LS.set('tc_pareja', PAREJA.datos ? PAREJA.datos.nombre || t('Tu pareja', 'Your partner') : null);
   return PAREJA.datos;
 }
+// 19/11 (Gabriela: «quizás se pueda también poner el plan en común, para que ambos vayan en conjunto»): los planes que tu pareja apunta para los dos en En pareja
+// llegan a tu calendario con tu look (el que el motor eligió con tu ropa para ir a juego). Cada uno entra una sola vez (perfil.parPlanes), aunque lo quites después
+async function recogerPlanesPareja() {
+  if (!cuenta()) return; // sin pareja, el servidor contesta 404 y no se hace nada
+  const r = await api('/api/pareja/planes', { tiempo: 15000 }).catch(() => null); if (!r?.ok) return;
+  const { planes = [] } = await r.json().catch(() => ({})), ya = new Set(E.perfil.parPlanes || []), hoy = hoyISO(); let n = 0, de = '';
+  for (const q of planes) {
+    if (ya.has(q.id) || q.fecha < hoy) continue; const ids = (q.ids || []).filter(id => E.prendas.some(p => p.id === id)); ya.add(q.id); if (!ids.length) continue;
+    const a = E.agenda[q.fecha] = E.agenda[q.fecha] || { planes: [] }, noche = ['Noche', 'Evento'].includes(q.oc); a.planes = a.planes || [];
+    a.planes.push({ id: q.id, nombre: `${q.nombre || ocNombre(q.oc)} · ${t('con', 'with')} ${q.de || t('tu pareja', 'your partner')}`, oc: q.oc, ...(q.sub ? { sub: q.sub } : {}), ...(noche ? { hora: '21:00', fr: 'Noche' } : { dia: 1 }), par: 1 });
+    a.looks = { ...(a.looks || {}), [q.id]: ids }; n++; de = q.de || de;
+  }
+  if (ya.size === (E.perfil.parPlanes || []).length) return;
+  E.perfil.parPlanes = [...ya].slice(-60); await guardar();
+  if (n) toast(n === 1 ? t(`${de || 'Tu pareja'} ha apuntado un plan para los dos: ya está en tu calendario`, `${de || 'Your partner'} added a plan for both: it’s in your calendar`) : t(`${n} planes para los dos, ya en tu calendario`, `${n} plans for both, now in your calendar`));
+}
 function panelPareja() { abrirPanel(t('Pareja', 'Partner'), '<div id="pn-pareja"></div>', cap => pintarPareja(cap)); }
 async function pintarPareja(cap, codigo) {
   const z = cap.querySelector('#pn-pareja'); if (!z) return;
@@ -3899,7 +3932,7 @@ async function pintarPareja(cap, codigo) {
   }
   z.innerHTML = intro + (codigo ? `<div class="pn-par-cod"><p class="pn-par-n" aria-label="${t('Tu código', 'Your code')}: ${codigo.split('').join(' ')}">${codigo}</p>
       <p class="pn-nota">${t('Dáselo a tu pareja: lo escribe en su TuCloset, en Looks → Ideas → En pareja. Vale 24 horas.', 'Give it to your partner: they type it in their TuCloset, in Looks → Ideas → As a couple. Valid for 24 hours.')}</p>
-      <button class="boton linea" id="pn-par-copiar">${t('Copiar el código', 'Copy the code')}</button></div>`
+      <button class="ag-ac" id="pn-par-copiar" aria-label="${t('Copiar el código', 'Copy the code')}" title="${t('Copiar el código', 'Copy the code')}">${agIc('copiar')}</button></div>`
       : `<button class="boton" id="pn-par-crear">${t('Crear un código', 'Create a code')}</button>`)
     + `<label class="pn-campo"><span>${t('¿Te han dado un código?', 'Have you been given a code?')}</span><input id="pn-par-in" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="8" placeholder="${t('Por ejemplo, K7M2QX', 'For example, K7M2QX')}"></label>
       <button class="boton linea pn-par-unir" id="pn-par-unir">${t('Enlazar', 'Link')}</button><p class="pn-error" id="pn-par-err" role="alert"></p>`;
@@ -4229,29 +4262,50 @@ const clavePuesto = (ps, cm) => { const sel = selLook(ps); return sel.length ? s
 // 18/11 (Sheila, 2755): a la IA del «Verlo puesto» se le dice si la prenda va cerrada o abierta (el servidor lo lee del nombre, puestoCapas); la clave cambia solo si ella lo eligió
 const nombrePuesto = p => { const n = p.nombre || ''; if (typeof Motor === 'undefined') return n; const f = Motor.ficha(p); return f.abrochable && f.cierre ? `${n} (${f.cierre})` : n; };
 // 10/11 (Gabriela: «los conjuntos que ya tengan avatar se quedan así… distinguiéndolo con el maniquí que indica avatar coloreado, como que ya tienes esa prueba»)
-const yaProbado = ps => { if (planDemo() !== 'pro' || !tieneAvatar()) return false; const k = clavePuesto(ps); return !!k && (E.puestos?.[k] instanceof Blob || (E.perfil?.probados || []).some(x => x.k === k && x.s)); };
+const yaProbado = ps => { if (planDemo() !== 'pro' || !tieneAvatar()) return false; const k = clavePuesto(ps); if (!k) return false; const ks = [k, ...MANERAS.map(v => clavePuesto(ps, v))]; return ks.some(q => E.puestos?.[q] instanceof Blob || (E.perfil?.probados || []).some(x => x.k === q && x.s)); }; // 19/11: también lo guardado con la manera en la clave
+// 19/11 (Sheila, 3084: «una vez ya está creada, te vuelve a vestir si cambias… no deberían cobrarnos por hacer algo que ya está hecho»): lo que ya se ha visto
+// puesto se recuerda en esta sesión por look y manera de verdad (Fuera, A medias, Dentro), venga de donde venga (Hoy le da al look su manera, Ideas no; la clave
+// guardada depende de eso). Así, volver a una manera ya probada sale al momento y no se pide otra vez
+const PUESTO_MEM = new Map();
+const comoReal = (ps, como, elegido) => { const sel = selLook(ps), cm = elegido && elegido !== (como || 'suelta') ? elegido : '';
+  return { cm, cmo: cm || como || (sel.some(p => p.tipo === 'Arriba') && sel.some(p => p.tipo === 'Abajo') ? 'suelta' : '') }; };
+// Desde el 19/11 cada prueba nueva se guarda con la manera en la clave («~suelta», «~media», «~por dentro») y en su apunte (m). Las de antes, sin m, valen
+// solo con su clave de entonces (relativa a la manera del look)
+const MANERAS = ['suelta', 'media', 'por dentro'], manDe = k => (E.perfil?.probados || []).find(x => x.k === k)?.m;
+function buscaPuesto(ps, cm, cmo) {
+  const kl = clavePuesto(ps, cm); if (!kl) return ''; E.puestos = E.puestos || {};
+  for (const kk of [...new Set([clavePuesto(ps, cmo), kl, clavePuesto(ps)])]) if (E.puestos[kk] instanceof Blob) { const m = manDe(kk); if (m ? m === cmo : kk === kl) return kk; }
+  return '';
+}
+function puestoGuardado(ps, como, elegido) {
+  const { cm, cmo } = comoReal(ps, como, elegido), km = clavePuesto(ps) + '#' + cmo, k = buscaPuesto(ps, cm, cmo);
+  if (k) { PUESTO_MEM.set(km, { b: E.puestos[k], k }); return { blob: E.puestos[k], k }; }
+  const x = PUESTO_MEM.get(km); return x ? { blob: x.b, k: x.k } : null;
+}
 async function puestoEnMi(ps, como, otra, soloGuardado, elegido) {
   const pf = E.perfil || {}; if (!(pf.avatar instanceof Blob)) return { error: t('Primero crea tu avatar en Yo', 'First create your avatar in Me') };
   if (!permiso('avatar')) return { error: errorAvatar(403, 'permiso') };
   const sel = selLook(ps); if (!sel.length) return { error: t('Este look aún no tiene fotos', 'This look has no photos yet') };
   if (ps.some(esBano)) return { error: t('La ropa de baño no se puede ver puesta: Google no deja vestir así a una persona real', 'Swimwear can’t be shown on you: Google doesn’t allow it on a real person') };
-  const cm = elegido && elegido !== (como || 'suelta') ? elegido : '', k = clavePuesto(ps, cm);
+  const { cm, cmo } = comoReal(ps, como, elegido), km = clavePuesto(ps) + '#' + cmo;
   E.puestos = E.puestos || (await BD.get('puestos').catch(() => null)) || {};
-  if (!otra && E.puestos[k] instanceof Blob) { if (!soloGuardado) fijarPuesto(k); return { blob: E.puestos[k], k }; }
+  const kv = buscaPuesto(ps, cm, cmo), k = kv || clavePuesto(ps, cmo); // lo nuevo, con la manera en la clave
+  if (!otra && kv) { PUESTO_MEM.set(km, { b: E.puestos[k], k }); if (!soloGuardado) fijarPuesto(k); return { blob: E.puestos[k], k }; }
+  if (!otra && PUESTO_MEM.has(km)) { const x = PUESTO_MEM.get(km); if (!soloGuardado && E.puestos[x.k] instanceof Blob) fijarPuesto(x.k); return { blob: x.b, k: x.k }; }
   // 12/11: si la prueba se hizo en otro móvil, está en la cuenta: se baja (sin gastar) en vez de enseñar las prendas sueltas
-  const enCuenta = (E.perfil?.probados || []).find(x => x.k === k && x.s && x.f);
+  const kl = clavePuesto(ps, cm), enCuenta = (E.perfil?.probados || []).find(x => x.s && x.f && (x.m ? x.m === cmo && [k, kl, clavePuesto(ps)].includes(x.k) : x.k === kl));
   if (enCuenta && !otra) { try { const rb = await api('/api/foto/' + enCuenta.f, { tiempo: 20000 }); if (rb.ok) { const b = await rb.blob(); if (b.size > 1000) { E.puestos[k] = b; const fl = fLocales(); fl[k] = enCuenta.f; ponerFLocales(fl); BD.set('puestos', E.puestos).catch(() => { }); if (!soloGuardado) fijarPuesto(k); return { blob: b, k }; } } } catch (e) { } }
   if (soloGuardado) return { nada: true };
   try {
     const fd = new FormData(); fd.append('avatar', await jpegBlanco(pf.avatar), 'avatar.jpg'); if (pf.ropa === 'hombre') fd.append('ropa', 'hombre');
     for (const [i, p] of sel.entries()) fd.append('p' + i, await jpegBlanco(p.cat instanceof Blob ? p.cat : p.foto, 768), `p${i}.jpg`);
-    fd.append('nombres', JSON.stringify(sel.map(nombrePuesto))); const cmo = cm || como || (sel.some(p => p.tipo === 'Arriba') && sel.some(p => p.tipo === 'Abajo') ? 'suelta' : ''); if (cmo) fd.append('como', cmo); // 12/11 (Sheila, 2095): siempre se dice la manera; sin ella la IA hacía lo que quería y debajo se marcaba «Por fuera»
+    fd.append('nombres', JSON.stringify(sel.map(nombrePuesto))); if (cmo) fd.append('como', cmo); // 12/11 (Sheila, 2095): siempre se dice la manera; sin ella la IA hacía lo que quería y debajo se marcaba «Por fuera»
     // 11/11 (Gabriela: «sigo teniendo dos avatares en mi cuenta»): ya no va la selfie. Con dos caras de referencia (el avatar y la selfie, que había cambiado
     // después), la IA copiaba unas veces una y otras la otra, y salían dos personas. La cara sale solo del avatar; el parecido se arregla en el avatar («No me parezco»)
     const r = await apiAvatar('/api/avatar?que=puesto' + (otra ? '&otra=1' : ''), fd);
     if (!r.ok) { const j = await r.json().catch(() => ({})); return { error: errorAvatar(r.status, j.error === 'sin-imagen' && /SAFETY|PROHIBITED/.test(j.d || '') ? 'filtro' : j.error, true) }; }
     const fin = await afinarCat(await r.blob(), 1200); if (!fin) return { error: errorAvatar(502) };
-    nuevoProbado(k, fin.blob); fijarPuesto(k); await BD.set('puestos', E.puestos).catch(() => { }); return { blob: fin.blob, k };
+    nuevoProbado(k, fin.blob, cmo); PUESTO_MEM.set(km, { b: fin.blob, k }); fijarPuesto(k); await BD.set('puestos', E.puestos).catch(() => { }); return { blob: fin.blob, k };
   } catch (e) { return { error: t('Sin conexión. Inténtalo de nuevo', 'No connection: try again') }; }
 }
 // la tarjeta de Yo, solo en el Pro: sin fotos, lleva a ponerlas; con fotos, «Crear mi avatar»; con avatar, el avatar (se toca para verlo), «Rehacer» y «Borrar»
@@ -4307,8 +4361,8 @@ function panelDiagFotos() {
   const pf = E.perfil || {}, md = pf.medidas || {}, en = idioma() === 'en';
   const campo = (k, et, ud) => `<label class="dx-campo"><span>${et}</span><span class="dx-in"><input type="text" inputmode="decimal" autocomplete="off" data-med="${k}" value="${md[k] ? String(md[k]).replace('.', en ? '.' : ',') : ''}"><i>${ud}</i></span></label>`;
   const foto = (k, tit, ic) => pf[k]
-    ? `<div class="dx-foto"><button type="button" class="dx-ver" data-ampliar-diag="${k}" aria-label="${t('Ver en grande', 'View larger')}: ${tit}"><img src="${URL.createObjectURL(pf[k])}" alt=""><span class="dx-lupa" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></svg></span></button><b>${tit}</b><label class="dx-acc"><svg aria-hidden="true"><use href="#ic-camara"/></svg>${t('Cambiar', 'Change')}<input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label></div>`
-    : `<label class="dx-foto dx-sin"><span class="dx-caja"><svg aria-hidden="true"><use href="#${ic}"/></svg><b>${tit}</b><small>${t('Opcional', 'Optional')}</small></span><span class="dx-acc">${t('Añadir', 'Add')}</span><input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label>`;
+    ? `<div class="dx-foto"><button type="button" class="dx-ver" data-ampliar-diag="${k}" aria-label="${t('Ver en grande', 'View larger')}: ${tit}"><img src="${URL.createObjectURL(pf[k])}" alt=""><span class="dx-lupa" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></svg></span></button><b>${tit}</b><label class="dx-acc"><svg aria-hidden="true"><use href="#ic-camara"/></svg><span class="vh">${t('Cambiar', 'Change')}</span><input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label></div>`
+    : `<label class="dx-foto dx-sin"><span class="dx-caja"><svg aria-hidden="true"><use href="#${ic}"/></svg><b>${tit}</b><small>${t('Opcional', 'Optional')}</small></span><span class="dx-acc">${agIc('mas')}<span class="vh">${t('Añadir', 'Add')}</span></span><input class="dx-oculto" type="file" accept="image/*" data-dgfoto="${k}"></label>`;
   // 14/11: la guía se ve antes de hacer las fotos (abierta mientras falte una) y dice lo que más pesa en el parecido del avatar
   const consejos = [[t('Tu cara', 'Your face'), [t('De frente y de cerca', 'Facing the camera, close up'), t('Con luz de día', 'In daylight'), t('Sin filtros ni gafas', 'No filters or glasses'), t('Solo tú, con el pelo suelto', 'Just you, hair down')]],
     [t('Cuerpo entero', 'Full body'), [t('De pie y de frente', 'Standing, facing the camera'), t('De la cabeza a los pies', 'From head to toe'), t('Con ropa ajustada', 'In fitted clothes'), t('Los brazos un poco separados', 'Arms slightly away from your body')]]];
@@ -4387,7 +4441,7 @@ async function panelDiag(pendientes = [], tab, solo) { // 17/11 (Sheila, 2744): 
   const deMio = c && pro ? E.prendas.filter(p => c.si.includes(p.color) && ['Arriba', 'Vestidos', 'Abrigo'].includes(p.tipo)).slice(0, 6) : [];
   const favor = b && pro ? E.prendas.filter(p => ['Arriba', 'Abajo', 'Vestidos'].includes(p.tipo)).map(p => [p, puntosDiag([p])]).filter(x => x[1] > 0).sort((x, y) => y[1] - x[1]).slice(0, 6).map(x => x[0]) : [];
   const avisosC = (dg.avisos?.cara || []).filter(p => !p.fatal).map(p => textoProb(R, p.k)), avisosB = (dg.avisos?.cuerpo || []).filter(p => !p.fatal).map(p => textoProb(R, p.k));
-  const falta = (txt) => `<div class="dx-falta"><p>${txt}</p><button class="boton linea" data-diag="fotos">${t('Añadir', 'Add')}</button></div>`;
+  const falta = (txt) => `<div class="dx-falta"><p>${txt}</p>${agAc('data-diag="fotos"', 'mas', t('Añadir', 'Add'))}</div>`;
   let col = falta(t('Con una foto de tu cara, descubre qué colores te favorecen.', 'With a photo of your face, I tell you which colours suit you.'));
   if (c) {
     const metales = METALES.filter(([k]) => c.metal.includes(k)).filter(([k], i, a) => !(k === 'oro' && a.some(x => x[0] === 'oro rosa') && !/oro(?! rosa)/.test(c.metal.replace('oro rosa', ''))));
@@ -4858,7 +4912,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
-  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => cierresViejos()).catch(() => 0).then(() => window.viajesAlCalendario?.()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
+  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => cierresViejos()).catch(() => 0).then(() => window.viajesAlCalendario?.()).catch(() => 0).then(() => recogerPlanesPareja()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
@@ -4882,9 +4936,9 @@ function siluetaSVG([s, w, h]) {
 }
 function pintarCuerpo() { // 04/11: ya no se elige a mano; sale de la foto de cuerpo entero (Gabriela: «tú no puedes seleccionar tu tipo de cuerpo»)
   const pf = E.perfil || {}, b = pf.diag?.cuerpo, es = idioma() === 'en' ? 1 : 0, sil = $('tc-siluetas'), fav = $('tc-favorece'), sub = $('tc-sub'); sil.classList.add('uno');
-  if (!pf.cuerpo) { sub.textContent = t('Con la foto de cuerpo entero se calcula tu silueta. Puedes hacerla ahora o más tarde en Yo.', 'With the full-body photo, the app tells you your body type. Take it now or later in Me.'); sil.innerHTML = ''; fav.innerHTML = `<button class="boton linea" data-ir="silueta">${t('Hacer la foto', 'Take the photo')}</button>`; return; }
+  if (!pf.cuerpo) { sub.textContent = t('Con la foto de cuerpo entero se calcula tu silueta. Puedes hacerla ahora o más tarde en Yo.', 'With the full-body photo, the app tells you your body type. Take it now or later in Me.'); sil.innerHTML = ''; fav.innerHTML = `${agAc('data-ir="silueta"', 'foto', t('Hacer la foto', 'Take the photo'))}`; return; }
   if (diagPendiente() && !diagFallo) { sub.textContent = t('Midiendo tu silueta en la foto…', 'Measuring your figure in the photo…'); sil.innerHTML = ''; fav.innerHTML = ''; diagHastaAlDia().then(() => { if (E.pantalla === 'cuerpo') pintarCuerpo(); }); return; }
-  if (!b) { sub.textContent = t('No se ha podido medir tu silueta en esa foto. Prueba con otra de pie, de frente y de cuerpo entero.', 'I could not measure your figure in that photo. Try another one standing, facing the camera, head to toe.'); sil.innerHTML = ''; fav.innerHTML = `<button class="boton linea" data-ir="silueta">${t('Cambiar la foto', 'Change the photo')}</button>`; return; }
+  if (!b) { sub.textContent = t('No se ha podido medir tu silueta en esa foto. Prueba con otra de pie, de frente y de cuerpo entero.', 'I could not measure your figure in that photo. Try another one standing, facing the camera, head to toe.'); sil.innerHTML = ''; fav.innerHTML = `${agAc('data-ir="silueta"', 'foto', t('Cambiar la foto', 'Change the photo'))}`; return; }
   // 06/11 (Gabriela: «en tu tipo de cuerpo, el desglose de lo que te favorece está suelto en dos columnas y no se entiende bien, está regado»): las barras de la
   // silueta y una sola columna, como en el diagnóstico
   sub.textContent = b.fuente === 'medidas' ? t('Según tus medidas.', 'From your measurements.') : t('Medido en tu foto de cuerpo entero.', 'Measured in your full-body photo.');
@@ -4993,7 +5047,7 @@ function bloqueInspo() {
     + `<button class="es-insp-x" data-inspox="${i}" aria-label="${t('Quitar este look', 'Remove this look')}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15"/></svg></button></li>`;
   const leyendo = Array.from({ length: inspoLeyendo }, () => `<li class="es-insp leyendo" aria-busy="true"><p>${t('Leyendo la foto…', 'Reading the photo…')}</p></li>`).join('');
   const caben = MAX_INSPO - l.length - inspoLeyendo;
-  const mas = caben > 0 ? `<li class="es-insp es-insp-mas"><label><input type="file" accept="image/*" multiple id="es-inspo-f"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg><span>${l.length ? t('Añadir otro', 'Add another') : t('Añadir looks', 'Add looks')}</span></label></li>` : '';
+  const mas = caben > 0 ? `<li class="es-insp es-insp-mas"><label><input type="file" accept="image/*" multiple id="es-inspo-f"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg><span class="vh">${l.length ? t('Añadir otro', 'Add another') : t('Añadir looks', 'Add looks')}</span></label></li>` : '';
   const { top, nuevos } = inspoResumen();
   const res = top.length ? `<p class="es-insp-res">${t('Tus looks se parecen a', 'Your looks are close to')} <b>${top.map(nomE).join(t(' y ', ' and '))}</b>.${nuevos.length ? ` <button data-inspoadd="${nuevos.join(',')}">${t('Añadir a mis estilos', 'Add to my styles')}</button>` : ''}</p>` : '';
   return `<section class="es-inspo" aria-labelledby="es-inspo-t">${cab}<ul class="es-insp-l">${l.map(tarjeta).join('')}${leyendo}${mas}</ul>${res}</section>`;

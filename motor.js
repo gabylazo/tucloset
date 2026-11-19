@@ -81,6 +81,8 @@ const Motor = (() => {
     let sub = buscar(norm(p.nombre)); if (!sub || (COMODIN[sub.id] && !(sub.id === 'top' && TOP_ESP.test(norm(p.nombre))))) sub = buscar(norm(p.x)) || sub;
     // 06/11: un top de tirantes o una camiseta con volantes, encaje, satén… es un top arreglado, no una camiseta básica (no va a deporte ni cuenta como básico)
     if (sub && ['camiseta_tirantes', 'camiseta'].includes(sub.id) && TOP_ESP.test(norm((p.nombre || '') + ' ' + (p.detalles || []).join(' ')))) sub = I.subtipos.find(s => s.id === 'top') || sub;
+    // 19/11: un reloj «con correa de piel» no es un cinturón (la correa casaba con el cinturón y el reloj salía de cinturón en los looks y en Eleva)
+    if (sub?.id === 'cinturon' && /\breloj|\bwatch/.test(norm(p.nombre || ''))) sub = null;
     let conSub = !!sub;
     const dicho = est.sub && I.subtipos.find(s => s.id === (SUB_EST[est.sub] || est.sub));
     if (dicho && !(sub && (sub.id.startsWith(dicho.id) || (dicho.id === 'camiseta' && sub.id === 'henley')))) { sub = dicho; conSub = true; }
@@ -726,9 +728,15 @@ const Motor = (() => {
     if (['vivo', 'acento'].includes(f.color_clase)) s += E.vivo || 0;
     return s;
   }
+  const CORB_SUB = new Set(['O1', 'N2', 'N4', 'V4']), CORB_NO = /jersey|cardigan|chaleco_punto|polo|camiseta|sudadera/;
+  const corbataVale = (l, ctx) => { const st = ['capa', 'arriba', 'base_interior'].map(k => l[k]).filter(Boolean).map(p => p._f.subtipo || '');
+    return (ctx.ocasion === 'Evento' || CORB_SUB.has(ctx.sub)) && st.includes('camisa') && st.includes('americana') && !st.some(x => CORB_NO.test(x)); };
   function evaluar(l, ctx, pf, hoy) {
     const c = camposLook(l, ctx, pf, hoy), e = entorno(l, c, ctx, pf), veto = vetar(e), pts = puntuar(l, c, e), uso = ajusteUso(l, pts, pf, hoy);
     if (ctx.h_americana && !l.vestido && ![l.capa, l.arriba].some(p => p && !p.muestra && p._f.subtipo === 'americana')) veto.duros = [...veto.duros, { id: 'H01', porque: 'a un cóctel, una boda, una gala o una ceremonia, con americana' }];
+    // 19/11 (Gabriela, con la ropa de un hombre: «añade solo las corbatas cuando sea el look, no con un jersey y cosas así raras»; «a los looks diarios no se anda con corbata»):
+    // la corbata, solo con camisa y americana, sin jersey, polo ni camiseta, y en un evento, una reunión importante, un restaurante elegante, el teatro o la cena elegante del viaje
+    if (['accesorio', 'accesorio2'].some(k => l[k]?._f.subtipo === 'corbata') && !corbataVale(l, ctx)) veto.duros = [...veto.duros, { id: 'VC01', porque: 'la corbata, solo con camisa y americana y en un plan que la pide' }];
     // un look puesto ayer no es la primera idea: el peso del grupo «variedad» solo no lo baja lo bastante
     const ayer = uso.ayer && (c.dias_desde_ultimo_uso === 1 || c.dias_desde_ultimo_uso === 0) ? (c.es_favorito ? .05 : .15) : 0;
     const nota0 = pts.total + veto.p / 2, gusto = pf.ap ? gustoLook(l, pf.ap, nota0, veto) : 0, vm = pf.uso ? 0 : variedadModa(l, c, pf, hoy, nota0); // con «Cómo usas tu ropa» elegido, manda ajusteUso
@@ -1030,9 +1038,13 @@ const Motor = (() => {
     };
     const cats = h => h === 'base_interior' ? 'arriba' : h, listas = {}, hora = o.hora ?? (plan === 'Noche' || plan === 'Evento' ? 20 : 12), tref = contexto(o.tiempo, plan, { hora }).t_ref;
     const apta = e => e._f.tmin == null || (tref >= e._f.tmin - 2 && tref <= (e._f.tmax ?? 99) + 2);
+    let bolsoTuyo = false;
     for (const [h, { x, fq }] of Object.entries(huecos)) {
       const l = ents.filter(e => e._f.cat === cats(h)).map(e => parecido(x, fq, e)).sort((a, b) => b.s - a.s);
       const vale = h === 'accesorio' ? l.filter(c => c.fam) : ['bolso', 'base_interior'].includes(h) ? l.filter(c => c.nivel !== 'distinto') : l; // un complemento que no se parece no se pone (una gorra no es un cinturón)
+      // 19/11 (Gabriela, en el vídeo de «Recrea un look»: «¿por qué pones el bolso abajo? O pon uno que tenga y combine, como el negro que hay en el armario»): sin un bolso
+      // parecido, va el tuyo que mejor combina con el look (lo elige el juez más abajo) y en «Te faltaría» sale como «Lo más cercano», con su foto
+      if (!vale.length && h === 'bolso' && l.length) { bolsoTuyo = true; continue; }
       if (!vale.length) { faltan.push({ ...x, hueco: h }); if (h === 'vestido') delete huecos.vestido; continue; }
       // las 4 más parecidas y las 2 siguientes que valen para el tiempo de hoy (unos shorts en noviembre: tus vaqueros)
       const n = h === 'bolso' || h === 'accesorio' ? 2 : 4, top = vale.slice(0, n);
@@ -1045,6 +1057,7 @@ const Motor = (() => {
     const rellenar = h => { const l = ents.filter(e => e._f.cat === h).map(e => { const j = juez({ ...base(), [h]: e.p }); return { e, s: 0, nivel: 'tuya', j: (j.veto.duros.length ? -100 : 0) + j.nota }; }).sort((a, b) => b.j - a.j); if (l.length) listas[h] = l.slice(0, 3); };
     if (!listas.vestido) { if (!listas.arriba) rellenar('arriba'); if (!listas.abajo) rellenar('abajo'); }
     if (!listas.calzado) rellenar('calzado');
+    if (bolsoTuyo) { const d0 = juez(base()).veto.duros.length, l = ents.filter(e => e._f.cat === 'bolso').map(e => { const j = juez({ ...base(), bolso: e.p }); return { e, s: 0, nivel: 'distinto', j: (j.veto.duros.length > d0 ? -100 : 0) + j.nota }; }).filter(c => c.j > -50).sort((a, b) => b.j - a.j); if (l.length) listas.bolso = l.slice(0, 2); }
     // 4. las combinaciones, de más a menos parecidas, por el juez
     const hs = RC_HUECOS.filter(h => listas[h]); let combos = [[]];
     if (o.depurar) for (const h of hs) o.depurar.push(h + ': ' + listas[h].map(c => `${c.e.p.nombre} ${c.s.toFixed(1)}${apta(c.e) ? '' : '*'}`).join(' · '));
