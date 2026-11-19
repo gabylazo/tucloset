@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.316'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.318'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -520,7 +520,7 @@ if (AT) (() => {
     $('at-ropa-sel')?.remove(); const ro = E.perfil?.ropa;
     $('es-sub').insertAdjacentHTML('beforebegin', `<div id="at-ropa-sel"><h2 class="es-tit">${t('Ropa que llevas', 'What you wear')}</h2><div class="at-fila at-vj-ops at-insp-g">${ROPAS.map(([v, n]) => `<button class="${ro === v ? 'on' : ''}" data-ropasel="${v}" aria-pressed="${ro === v}">${n[en() ? 1 : 0].replace(/^Ropa de /, '').replace(/^\w/, c => c.toUpperCase())}${DOS}</button>`).join('')}</div></div>`);
     $('at-ropa-sel').onclick = async e => { const b = e.target.closest('[data-ropasel]'); if (!b) return; await ponerRopa(b.dataset.ropasel); pintarEstilo(); };
-    document.querySelectorAll('#es-lista [data-estilo]').forEach(b => { if (!FOTO_ESTILO.has(b.dataset.estilo)) return; const tela = b.querySelector('.es-tela'); tela.insertAdjacentHTML('beforebegin', `<img class="es-foto" src="${ro === 'hombre' ? 'estilos-h' : 'estilos'}/${b.dataset.estilo}.webp?v=1" alt="">`); tela.classList.add('es-mini'); });
+    document.querySelectorAll('#es-lista [data-estilo]').forEach(b => { if (!FOTO_ESTILO.has(b.dataset.estilo)) return; const tela = b.querySelector('.es-tela'); tela.insertAdjacentHTML('beforebegin', `<img class="es-foto" src="${ro === 'hombre' ? 'estilos-h' : 'estilos'}/${b.dataset.estilo}.webp?v=${ro === 'hombre' ? 2 : 1}" alt="">`); tela.classList.add('es-mini'); });
   };
 
   /* ---------- al volver de una prenda o de un look, el clóset y Looks siguen donde estaban (la queja repetida de las apps de armario) ---------- */
