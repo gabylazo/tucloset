@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.320'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.321'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -682,7 +682,7 @@ if (AT) (() => {
     const ACC = [['hoy', I.percha, t('Hoy', 'Today'), t('Me la pongo hoy', 'Wearing it today')], ['conjunto', I.mas, 'Look', t('Crear un look', 'Create a look')], ['partido', I.chispa, t('Ideas', 'Ideas')],
       ['cuidar', I.tina, t('Cuidar', 'Care'), t('Cómo cuidarla', 'How to care for it')], ['lavar', I.cesto, t('Sucia', 'Dirty'), t('Está sucia: que no salga en los looks', 'In the wash: keep it out of looks')], ['guardada', I.caja, t('Guardar', 'Store'), t('Guardar hasta la próxima estación', 'Store until next season')],
       ['donar', I.bolsa, t('Donar', 'Donate'), t('Donar o vender', 'Donate or sell')], ['donde', I.pin, t('Cerca', 'Nearby')], ['arreglar', I.recorte, t('Arreglar foto', 'Fix photo'), t('Arreglar la foto: marca la prenda y se quita el fondo de nuevo', 'Fix the photo: frame the garment and I remove the background again')],
-      ['parecido', I.deshacer, t('Repetir foto', 'Redo photo'), t('Repetir la foto de catálogo: no ha quedado bien', 'Redo the catalogue photo: it is not right')]] // 07/11: la foto de catálogo se pone sola; hasta 7 días se puede deshacer
+      ['parecido', I.girar, t('Estilizar de nuevo', 'Restyle'), t('Estilizar de nuevo: la foto de catálogo no ha quedado bien', 'Restyle: the catalogue photo is not right')]] // 07/11: la foto de catálogo se pone sola. 19/11, noche (Gabriela: «no es repetir foto, es repetir el proceso de estilizar, como volver a intentar, cuando no queda bien»): «Estilizar de nuevo», con el icono de volver a intentar
       // 06/11 (Gabriela: «el icono de girar… ¿para qué es? Es mejor rehacer»): «Girar» sale de la ficha (las fotos ya se enderezan solas al subir) y en su sitio, «Rehacer»: vuelve a quitar el fondo desde la foto original
       .filter(([k]) => ['hoy', 'cuidar'].includes(k) || (hay.has(k) && k !== 'girar') || (k === 'arreglar' && p.foto instanceof Blob && !conCat(p)) || (k === 'parecido' && !!p.fCat && p.cat instanceof Blob));
     const on = k => k === p.estado || (k === 'cuidar' && cuidarAbierta === id), MARCA = ['cuidar', 'lavar', 'guardada', 'donar'];
