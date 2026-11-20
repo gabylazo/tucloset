@@ -929,6 +929,7 @@ html.oscuro .nl-elegidas img{border:1px solid var(--linea2);background:var(--o-f
 html.oscuro .nl-elegidas p{color:var(--sec)}
 /* at.css */
 html.at.oscuro :focus-visible{outline:2px solid var(--oro-tinta);outline-offset:2px}
+html.at.oscuro.at-toque :is(button,html.oscuro a,html.oscuro [role="button"],html.oscuro label.ag-ac):focus-visible,html.at.oscuro.at-toque .at-ib:focus-visible .at-ib-c{outline:none!important}
 html.at.oscuro .at-ic{fill:none;stroke:currentColor}
 html.at.oscuro .at-dos{border:1.2px solid var(--oro);border-radius:50%}
 html.at.oscuro .at-dos::before,html.at.oscuro .at-dos::after{border-radius:50%;background:var(--oro)}
