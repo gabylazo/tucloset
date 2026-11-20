@@ -918,6 +918,7 @@ html.oscuro #p-estilo .es-uso-l button.on{border-color:var(--tinta);box-shadow:i
 html.oscuro #p-estilo .es-uso .es-d{color:var(--sec)}
 html.oscuro #p-inicio .pronto{color:var(--accion)}
 html.oscuro #p-inicio .abajo a.boton{text-decoration:none}
+html.oscuro #p-inicio .abajo a.sigue{color:var(--accion);text-decoration:underline}
 html.oscuro #p-inicio .muestra figcaption{color:var(--sec)}
 html.oscuro #s-raiz .s-est{color:var(--tinta)}
 html.oscuro #s-raiz .rej small{color:#6E5F54}
