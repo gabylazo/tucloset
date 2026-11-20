@@ -2722,7 +2722,7 @@ const SUBCATS = {
   Accesorios: ['a belt', 'suspenders', 'a necktie', 'a bow tie', 'a scarf', 'a hat', 'a cap', 'a sunglasses', 'sunglasses', 'a necklace', 'earrings', 'a bracelet', 'a watch', 'gloves'].filter(x => NOM_X[x])
 };
 const subDe = (cat, x, nombre) => SUBCATS[cat]?.includes(x) ? x : SUBCATS[cat]?.find(k => (nombre || '').toLowerCase().startsWith(NOM_X[k][0].toLowerCase() + ' ')) || '';
-const opsCat = sel => CATS_ORDEN.filter(c => c === sel || !(E.perfil?.ropa === 'hombre' && ['Faldas', 'Vestidos'].includes(c))).map(c => `<option value="${c}"${c === sel ? ' selected' : ''}>${catTxt(c)}</option>`).join('');
+const opsCat = sel => CATS_ORDEN.filter(c => c === sel || !(E.perfil?.ropa === 'hombre' && ['Faldas', 'Vestidos', 'Tops'].includes(c))).map(c => `<option value="${c}"${c === sel ? ' selected' : ''}>${catTxt(c)}</option>`).join('');
 // 18/11 (auditoría de hombre): con ropa de hombre, el tipo sin las prendas de mujer (blusa, crop top, body, tacones, bailarinas, clutch…), salvo la que ya tenga
 const SUB_MUJER = new Set(['a blouse', 'a crop top', 'a halter bodysuit', 'a peplum top', 'a sleeveless top', 'wide leg pants', 'leggings', 'a bikini', 'a pair of knee high boots', 'a pair of high heels', 'a pair of ballet flats', 'a handbag', 'a clutch bag', 'a necklace', 'earrings']);
 const opsSub = (cat, sel) => `<option value="">${t('Elige…', 'Choose…')}</option>` + (SUBCATS[cat] || []).filter(k => k === sel || !(E.perfil?.ropa === 'hombre' && SUB_MUJER.has(k))).map(k => `<option value="${k}"${k === sel ? ' selected' : ''}>${NOM_X[k][idioma() === 'en' ? 1 : 0]}</option>`).join('');
@@ -2876,11 +2876,23 @@ async function clasificarIA(fuente) {
     const im = await cargaImg(u), e = Math.min(1, 1024 / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.round(im.naturalWidth * e), h = Math.round(im.naturalHeight * e);
     const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(im, 0, 0, w, h);
     const b = await new Promise(r => c.toBlob(r, 'image/jpeg', .88)); if (!b) return null;
-    let r; for (let k = 0; k < 6; k++) { r = await api('/api/clasificar', { method: 'POST', body: b, headers: { 'Content-Type': 'image/jpeg' }, tiempo: 30000 }); if (!await siOcupado(r)) break; }
+    let r; for (let k = 0; k < 6; k++) { r = await api('/api/clasificar' + (E.perfil?.ropa === 'hombre' ? '?ropa=hombre' : ''), { method: 'POST', body: b, headers: { 'Content-Type': 'image/jpeg' }, tiempo: 30000 }); if (!await siOcupado(r)) break; }
     if (r.status === 429 || r.status === 503 || r.status === 401) { clasParado = true; return null; } // tope del día o sin clave: otra vez en la próxima apertura
     if (!r.ok) return null;
     const o = await r.json(); return o && typeof o.nombre === 'string' && o.nombre && TIPO_DE_CAT[o.categoria] ? o : null;
   } catch (e) { return null; } finally { URL.revokeObjectURL(u); }
+}
+// 20/11 (Gabriela, panel: «en los hombres… te sale tops y te pone las camisetas estas típicas de tirantes anchos… hay que reclasificar piezas… no puede ser estándar para los
+// dos»): con ropa de hombre, los nombres de mujer que puede dar el clasificador pasan a los de la sección de hombre (Zara Hombre): blusa → camisa, top → camiseta de tirantes.
+// Al subir (aplicarClas) y una vez con lo que ya tenía (nombresHombre, al abrir la app); lo que él vuelva a cambiar a mano no se toca (nomH)
+const NOM_HOMBRE = [[/^Blusa\b/i, 'Camisa', 0], [/^Top (de )?tirantes\b/i, 'Camiseta de tirantes', 1], [/^Top deportivo\b/i, 'Camiseta de tirantes deportiva', 1], [/^(Crop top|Top corto)\b/i, 'Camiseta corta', 1], [/^Top\b/i, 'Camiseta de tirantes', 1], [/^Body\b/i, 'Camiseta', 1]];
+const FEM_H = { blanco: 'blanca', negro: 'negra', rojo: 'roja', amarillo: 'amarilla', morado: 'morada', dorado: 'dorada', plateado: 'plateada', claro: 'clara', oscuro: 'oscura', estampado: 'estampada', liso: 'lisa', ajustado: 'ajustada', ancho: 'ancha', anchos: 'anchos', largo: 'larga', corto: 'corta', fino: 'fina', grueso: 'gruesa', acanalado: 'acanalada', básico: 'básica', deportivo: 'deportiva', técnico: 'técnica' };
+const nombreHombre = n => { for (const [re, a, fem] of NOM_HOMBRE) if (re.test(n)) { const r = n.replace(re, a); return fem ? r.replace(/\p{L}+/gu, (w, i) => i < a.length ? w : FEM_H[w.toLowerCase()] || w) : r; } return n; };
+const X_HOMBRE = { 'a blouse': 'a shirt', 'a crop top': 'a tank top', 'a sleeveless top': 'a tank top', 'a halter bodysuit': 'a tank top', 'a peplum top': 'a tank top' };
+async function nombresHombre() {
+  if (E.perfil?.ropa !== 'hombre' || idioma() === 'en') return 0; let n = 0;
+  for (const p of E.prendas) { if (p.tipo !== 'Arriba' || p.nomH) continue; const nn = nombreHombre(p.nombre || ''); if (nn === p.nombre) continue; p.nombre = nn; if (X_HOMBRE[p.x]) p.x = X_HOMBRE[p.x]; p.nomH = 1; n++; }
+  if (n) await guardar(); return n;
 }
 function aplicarClas(p, o, antes, subida) {
   const libre = k => !antes || JSON.stringify(p[k] ?? null) === antes[k];
@@ -2891,7 +2903,8 @@ function aplicarClas(p, o, antes, subida) {
     if (color) p.color = color;
     pon(p, 'estampado', estp); pon(p, 'color2', estp && COLORES.some(c => c[0] === o.color2) ? o.color2 : null);
     const x = xDeNombre(o.nombre, o.categoria); p.x = x;
-    p.nombre = idioma() === 'en' ? (nombreReconocido(x, p.color) || nombreAuto(p.tipo, p.color)) : o.nombre;
+    p.nombre = idioma() === 'en' ? (nombreReconocido(x, p.color) || nombreAuto(p.tipo, p.color)) : E.perfil?.ropa === 'hombre' ? nombreHombre(o.nombre) : o.nombre;
+    if (E.perfil?.ropa === 'hombre' && X_HOMBRE[p.x]) p.x = X_HOMBRE[p.x];
   }
   // 18/11 (Sheila, 2757): «oversize» llega aparte y se guarda como un detalle más (el motor ya lo lee del nombre y los detalles)
   const detIA = [...(o.detalles || []).filter(k => k in DETALLES), ...(o.oversize && ['Arriba', 'Abrigo', 'Vestidos'].includes(p.tipo) ? ['Oversize'] : [])];
@@ -4912,7 +4925,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
-  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => cierresViejos()).catch(() => 0).then(() => window.viajesAlCalendario?.()).catch(() => 0).then(() => recogerPlanesPareja()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
+  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => cierresViejos()).catch(() => 0).then(() => nombresHombre()).catch(() => 0).then(() => window.viajesAlCalendario?.()).catch(() => 0).then(() => recogerPlanesPareja()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente

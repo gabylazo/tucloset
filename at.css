@@ -892,3 +892,27 @@ html.at .at-ideas-cab { display: grid; grid-template-columns: 44px 1fr 44px; ali
 /* 19/11, noche (Gabriela: «que todas las app sean estáticas, no se aumente el zoom que se desestabiliza»): en iPhone, tocar un campo con letra de menos de 16 px
    amplía la página y se queda ampliada. Los campos de escribir que tenían menos, a 16 px (con «Letra grande», más) */
 html.at #p-closet .mc-busca input, html.at .cal-hasta input, html.at .s-cat select, html.at .ag-hora input, html.at .at-par-dia input { font-size: 16px; }
+/* 20/11 (Gabriela, 3123): En pareja, quien ya eligió su look propone tres a su pareja y su pareja elige una */
+html.at .at-par-prop, html.at .at-par-nuevo { margin: 20px 0 8px; }
+html.at .at-par-prop + .at-par-prop, html.at .at-par-prop + .at-par-nuevo, html.at .at-par-nuevo + .at-par-prop { border-top: 1px solid var(--linea, rgba(74, 53, 38, .12)); padding-top: 20px; }
+html.at .at-par-tit { margin: 0; text-align: center; font-family: 'Bellefair', serif; font-size: 22px; font-weight: 400; line-height: 1.2; color: var(--tinta); }
+html.at .at-par-nuevo .at-par-tit + .at-par-ocs { margin-top: 10px; }
+html.at .at-par-mio + .at-par-tit { margin-top: 18px; }
+html.at .at-par-cuando { margin: 2px 0 10px; text-align: center; font-size: 14px; color: var(--sec); }
+html.at .at-par-txt { margin: 14px 0 8px; text-align: center; font-size: 15px; color: var(--tinta); }
+html.at .at-par-fijo, html.at .at-par-mio { display: flex; flex-direction: column; align-items: center; }
+html.at .at-par-mio { margin-top: 10px; }
+html.at .at-par-tres { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+html.at .at-par-tres .at-t { width: auto; }
+html.at .at-par-tres .at-par-acc { gap: 0; }
+html.at .at-par-elegir { flex-wrap: wrap; row-gap: 14px; }
+html.at .at-par-elegir figcaption { max-width: 30vw; }
+html.at .at-par-cuatro { gap: 6px; }
+html.at .at-par-prop .at-rej2 { padding: 0; }
+html.at .at-par-manda { display: flex; align-items: flex-end; justify-content: center; gap: 10px; margin: 16px 0 12px; }
+html.at .at-par-manda label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--tinta); }
+html.at .at-par-manda input { min-height: 44px; padding: 0 10px; border: 1px solid var(--linea, rgba(74, 53, 38, .3)); border-radius: 0; background: var(--fondo, #fff); color: var(--tinta); font: inherit; font-size: 16px; }
+html.at .at-par-mandar { display: block; width: 100%; }
+html.at .at-par-foto { margin: 0; display: flex; justify-content: center; }
+html.at .at-par-foto img { max-width: 100%; max-height: 62vh; }
+html.at .ag-ac.at-cargando { opacity: .45; }
