@@ -1981,8 +1981,10 @@ function marcarYa(b, zona) {
 }
 const trasPintar = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
 const opcionesHoy = sel => `<div class="hz-ops">${OCASIONES.map(o => `<button class="${o === sel ? 'on' : ''}" data-hzoc="${o}">${ocNombre(o)}</button>`).join('')}</div>`;
+let hzTurno = 0; // 20/11: si llega otro toque mientras se calcula en segundo plano, pinta solo el último
 document.addEventListener('click', async e => {
   const b = e.target.closest('#p-hoy [data-hzpreg],#p-hoy [data-hzoc],#p-hoy [data-hzsub],#p-looks [data-hzpreg],#p-looks [data-hzoc]'); if (!b) return;
+  const turno = ++hzTurno;
   const k = diaISO(new Date()), h = new Date().getHours(), fr = h < 14 ? 'Mañana' : h < 20 ? 'Tarde' : 'Noche';
   if (b.dataset.hzoc) {
     marcarYa(b, $('at-hoy'));
@@ -1997,7 +1999,7 @@ document.addEventListener('click', async e => {
     if (pl) pl.sub = subPlan({ ...pl, oc: x.oc }) === x.id ? '' : x.id; else a.planes.unshift({ id: uid(), oc: x.oc, sub: x.id, fr, deHoy: 1 });
     E.hzPreg = false; E.hoyDiario = false; E.propuestas = []; E.hoyIdx = 0; E.hoySalto = 'sub'; await guardar();
   } else E.hzPreg = !E.hzPreg;
-  if (b.dataset.hzoc || b.dataset.hzsub) await trasPintar();
+  if (b.dataset.hzoc || b.dataset.hzsub) { await trasPintar(); const oc = b.dataset.hzoc || Motor.subocasiones().find(s => s.id === b.dataset.hzsub)?.oc; if (E.pantalla !== 'looks') await window.atFondoHoy?.(oc); if (turno !== hzTurno) return; }
   if (E.pantalla === 'looks') pintarLooks(); else pintarHoy();
 });
 function pintarHoy() { // 0.8 · cerrada por Gabriela el 20/10: centrada, sin menú arriba, el tiempo una vez junto a la fecha, debajo solo la ocasión

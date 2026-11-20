@@ -916,14 +916,40 @@ if (AT) (() => {
   // 15/11: el plan concreto de hoy en esa ocasión (el elegido en Hoy, el de su evento o el que dice su texto); solo lo usa Hoy (proponer), no Ideas
   const subHoy = plan => { const ev = eventoAhora(); return ev && ev.oc === plan ? subPlan(ev) : null; };
   // 18/11: con pre, solo calcula y guarda (lo que se precalcula en Ideas no cuenta como visto hasta que se enseña)
-  const pedirMotor = (plan, n, sub, pre) => {
+  // 20/11: las opciones del motor y su firma, aparte, para poder calcularlas también en segundo plano (calcularFondo)
+  const opcMotor = (plan, n, sub) => {
     const g = E.perfil?.gustos, hoy = hoyISO(), excluir = [...(g?.fuera || []), ...(g?.hoy?.d === hoy ? g.hoy.k : [])], ins = insHoy(plan), pr = quitarPor(ins, activas()), ev = sub && eventoAhora()?.oc === plan ? eventoAhora() : null, hora = ev?.hora && !ev.deHoy ? parseInt(ev.hora) : undefined;
     const firma = JSON.stringify([plan, n, sub, hora, hoy, ins?.firma, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), pr.map(p => [p.nombre, p.tipo, p.color, p.estacion, p.catM, p.detalles, p.est?.sub].join('·')).join('|'), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
-    const kc = plan + n + (sub || '');
+    return { kc: plan + n + (sub || ''), firma, hoy, pr, o: { prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true, ...(sub ? { sub, hora } : {}) } };
+  };
+  const pedirMotor = (plan, n, sub, pre) => {
+    const { kc, firma, hoy, o } = opcMotor(plan, n, sub);
     const u = ultima[kc]; if (u?.firma === firma) { if (pre) return u.r; if (!u.visto) { u.visto = true; apuntarVistos(u.r.looks, hoy); } if (sub) E.subCorto = u.r.subCorto ? u.r.sub : null; return u.r; }
-    const r = Motor.looks({ prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true, ...(sub ? { sub, hora } : {}) });
+    const r = Motor.looks(o);
     ultima[kc] = { firma, r, visto: !pre }; if (pre) return r; apuntarVistos(r.looks, hoy); if (sub) E.subCorto = r.subCorto ? r.sub : null; return r;
   };
+  // 20/11 (Gabriela, panel: «la app está lenta y los botones no están funcionando»; con 107 prendas un cálculo bloqueaba el móvil uno o dos segundos): el motor
+  // corre en un Web Worker (motor-worker.js) y lo que devuelve entra en la caché de pedirMotor con la misma firma, así que pintar después es al instante y la
+  // pantalla responde mientras tanto. Dos: «toque» para lo que se toca y «pre» para el cálculo por adelantado, que así nunca hace esperar a un toque.
+  // Las piezas de cada look llevan su prenda en .p: al volver se enlazan con las prendas de verdad. Si el worker no está o falla, se calcula como antes
+  const MW = {}, mwEsperan = new Map(); let mwId = 0;
+  const mwNuevo = k => { try { const v = (document.querySelector('script[src*="motor.js"]')?.src.match(/[?&]v=([^&]+)/) || [])[1] || '', w = new Worker('motor-worker.js?v=' + v);
+    w.onmessage = e => { const f = mwEsperan.get(e.data?.id); if (f) { mwEsperan.delete(e.data.id); f(e.data); } };
+    w.onerror = () => { MW[k] = null; for (const [id, f] of mwEsperan) if (f.k === k) { mwEsperan.delete(id); f({ error: 'worker' }); } }; return w; } catch (e) { return null; } };
+  const enlazar = (r, pr) => { const P0 = new Map(pr.map(p => [p.id, p])), ya = new Set();
+    const ir = x => { if (!x || typeof x !== 'object' || ya.has(x)) return; ya.add(x); if (x._f && x.p && P0.has(x.id)) x.p = P0.get(x.id); for (const k in x) { const v = x[k]; if (v && typeof v === 'object') ir(v); } };
+    ir(r); return r; };
+  const calcularFondo = (plan, n, sub, k = 'toque') => new Promise(res => {
+    if (typeof Worker === 'undefined' || MW[k] === null || !E.prendas.length) return res(false);
+    let q; try { q = opcMotor(plan, n, sub); } catch (e) { return res(false); }
+    if (ultima[q.kc]?.firma === q.firma) return res(true);
+    const w = MW[k] || (MW[k] = mwNuevo(k)); if (!w) { MW[k] = null; return res(false); }
+    const id = ++mwId, fin = setTimeout(() => { mwEsperan.delete(id); res(false); }, 10000);
+    const f = d => { clearTimeout(fin); if (d.r && ultima[q.kc]?.firma !== q.firma) ultima[q.kc] = { firma: q.firma, r: enlazar(d.r, q.pr), visto: false }; res(!!d.r); };
+    f.k = k; mwEsperan.set(id, f);
+    try { w.postMessage({ id, o: q.o }); } catch (e) { clearTimeout(fin); mwEsperan.delete(id); res(false); }
+  });
+  window.atFondoHoy = oc => oc ? Promise.all([calcularFondo(oc, 8, null), subHoy(oc) ? calcularFondo(oc, 8, subHoy(oc)) : null]) : Promise.resolve();
   // 14/11 (Gabriela, 2293: «Diario, salen siempre las mismas combinaciones»): lo que la app enseña cada día se apunta en el perfil (hoy y los 3 días de antes;
   // la ropa de cada look y, aparte, su calzado y su bolso) para que mañana el motor lo deje descansar. Solo en el móvil; sube a la nube con el siguiente guardado.
   function apuntarVistos(ls, hoy) {
@@ -1089,17 +1115,22 @@ if (AT) (() => {
   let preT = 0, prePaso = null;
   // 20/11 (Gabriela, panel: «la app está lenta y los botones no están funcionando»): con un clóset grande cada cálculo tarda casi un segundo en el móvil y bloquea
   // los toques; el cálculo por adelantado espera ahora 2,5 s sin tocar la pantalla para empezar y 1,2 s entre una ocasión y otra (antes, 1,2 s y 0,4 s)
-  document.addEventListener('pointerdown', () => { if (prePaso) { clearTimeout(preT); preT = setTimeout(prePaso, 2500); } }, { capture: true, passive: true });
+  let preFondo = false; const conFondo = () => typeof Worker !== 'undefined' && MW.pre !== null; // 20/11: con el worker, el cálculo por adelantado no bloquea: sin esperas
+  document.addEventListener('pointerdown', () => { if (prePaso && !preFondo && !conFondo()) { clearTimeout(preT); preT = setTimeout(prePaso, 2500); } }, { capture: true, passive: true });
   // En Hoy, lo mismo mientras está abierta la fila de ocasiones (los 8 looks que pide Hoy, sin plan concreto, como al tocar una ocasión)
   function precalcular(oc, n, sigue, subDe) {
     clearTimeout(preT); const orden = ['Diario', 'Oficina', 'Noche', 'Evento'], i = orden.indexOf(oc), pend = [...orden.slice(i + 1), ...orden.slice(0, Math.max(i, 0))];
     prePaso = () => { if (!sigue() || document.hidden || !pend.length || !E.prendas.length) { prePaso = null; return; }
-      const o = pend.shift(); pedirMotor(o, n, subDe(o), true); preT = setTimeout(prePaso, 1200); };
-    preT = setTimeout(prePaso, 2500);
+      const o = pend.shift();
+      if (conFondo()) { preFondo = true; calcularFondo(o, n, subDe(o), 'pre').then(ok => { preFondo = false; if (!ok && !conFondo()) pedirMotor(o, n, subDe(o), true); preT = setTimeout(prePaso, 50); }); return; }
+      pedirMotor(o, n, subDe(o), true); preT = setTimeout(prePaso, 1200); };
+    preT = setTimeout(prePaso, conFondo() ? 600 : 2500);
   }
   const precalcularIdeas = oc => precalcular(oc, 12, () => E.pantalla === 'looks' && E.lkTab === 'ideas', o => { const ss = Motor.subocasiones(o); return ss.some(x => x.id === E.ideaSub?.[o]) ? E.ideaSub[o] : null; });
   const precalcularHoy = () => E.hzPreg && E.plan !== 'Todos' && precalcular(E.plan, 8, () => E.pantalla === 'hoy' && E.hzPreg, () => null);
   /* ---------- IDEAS: lo que el motor saca de su ropa para el tiempo de hoy, en rejilla como Pinterest; el corazón guarda sin abrir; sin frases a la vista ---------- */
+  // 20/11: lo que va a pedir pintarIdeas, calculado antes en segundo plano (calcularFondo)
+  const fondoIdeas = () => { const oc = E.ideaOc || 'Todos', sub = Motor.subocasiones(oc).some(x => x.id === E.ideaSub?.[oc]) ? E.ideaSub[oc] : null; return calcularFondo(oc, 12, sub); };
   function pintarIdeas(raiz) {
     // 17/11 (Sheila, 2589: «aquí no te deja personalizar»): debajo de la ocasión, sus planes concretos, como en Hoy (opcional; otra vez el mismo, se quita).
     // Lo elegido aquí no toca Hoy ni el calendario: solo cambia las ideas. E.subCorto es de Hoy, así que se deja como estaba
@@ -1143,8 +1174,8 @@ if (AT) (() => {
       if (b.dataset.inspira != null) return abrirInspira();
       if (b.dataset.lktab) { E.lkTab = b.dataset.lktab; E.lkTocado = true; return pintarLooks(); }
       const velo = () => raiz.querySelector('.at-rej-ideas, .at-vacio');
-      if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; E.ideaMas = null; marcarYa(b, velo()); await trasPintar(); if (E.ideaOc !== b.dataset.ideaoc) return; pintarLooks(); return raiz.querySelector(`[data-ideaoc="${b.dataset.ideaoc}"]`)?.focus({ preventScroll: true }); }
-      if (b.dataset.ideasub) { const o = E.ideaOc || 'Todos'; E.ideaSub = E.ideaSub || {}; E.ideaMas = null; E.ideaSub[o] = E.ideaSub[o] === b.dataset.ideasub ? null : b.dataset.ideasub; marcarYa(b, velo()); await trasPintar(); pintarLooks(); return raiz.querySelector(`[data-ideasub="${b.dataset.ideasub}"]`)?.focus({ preventScroll: true }); }
+      if (b.dataset.ideaoc) { E.ideaOc = b.dataset.ideaoc; E.ideaVendria = false; E.ideaMas = null; marcarYa(b, velo()); await trasPintar(); if (E.ideaOc !== b.dataset.ideaoc) return; await fondoIdeas(); if (E.ideaOc !== b.dataset.ideaoc) return; pintarLooks(); return raiz.querySelector(`[data-ideaoc="${b.dataset.ideaoc}"]`)?.focus({ preventScroll: true }); }
+      if (b.dataset.ideasub) { const o = E.ideaOc || 'Todos'; E.ideaSub = E.ideaSub || {}; E.ideaMas = null; E.ideaSub[o] = E.ideaSub[o] === b.dataset.ideasub ? null : b.dataset.ideasub; marcarYa(b, velo()); await trasPintar(); const yaSub = E.ideaSub[o]; await fondoIdeas(); if (E.ideaSub[o] !== yaSub || (E.ideaOc || 'Todos') !== o) return; pintarLooks(); return raiz.querySelector(`[data-ideasub="${b.dataset.ideasub}"]`)?.focus({ preventScroll: true }); }
       if (b.dataset.ideavendria != null) { E.ideaVendria = !E.ideaVendria; return pintarLooks(); }
       if (b.dataset.ideadesc != null) return descartarIdea(lista[+b.dataset.ideadesc], +b.dataset.ideadesc);
       if (b.dataset.ideafav != null) { const x = lista[+b.dataset.ideafav]; await alternarFav(x.ids, x.ocasion); await datosLook(x); const on = esFav(x.ids); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); return; }
