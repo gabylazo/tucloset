@@ -1947,7 +1947,8 @@ function refrescarTiempo() {
   if (!E.tiempo || (Date.now() - ts < 30 * 60000 && new Date(ts).getHours() === new Date().getHours())) return; // 18/11: también al cambiar la hora (la de la lluvia)
   const antes = E.tiempo; cargarTiempo(true).then(w => { if (!w) E.tiempo = antes; cuandoQuieto(() => E.pantalla === 'hoy' && pintarHoy()); });
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refrescarTiempo(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') return; refrescarTiempo();
+  if (cuenta() && Date.now() - (E.combT || 0) > 5 * 60000) { E.combT = Date.now(); window.atCombinados?.().catch(() => 0); } }); // 20/11: lo que tu pareja eligió mientras tanto, a tu calendario
 setInterval(() => { if (document.visibilityState === 'visible') refrescarTiempo(); }, 15 * 60000);
 
 /* ---------- HOY ---------- */
@@ -1988,7 +1989,7 @@ document.addEventListener('click', async e => {
   const k = diaISO(new Date()), h = new Date().getHours(), fr = h < 14 ? 'Mañana' : h < 20 ? 'Tarde' : 'Noche';
   if (b.dataset.hzoc) {
     marcarYa(b, $('at-hoy'));
-    E.agenda[k] = E.agenda[k] || { planes: [] }; E.agenda[k].planes = [{ id: uid(), oc: b.dataset.hzoc, fr, deHoy: 1 }, ...E.agenda[k].planes.filter(p => p.oc !== b.dataset.hzoc)];
+    E.agenda[k] = E.agenda[k] || { planes: [] }; E.agenda[k].planes = [{ id: uid(), oc: b.dataset.hzoc, fr, deHoy: 1 }, ...E.agenda[k].planes.filter(p => p.oc !== b.dataset.hzoc || !p.deHoy)]; // 20/11: los planes del calendario (el de pareja) se quedan; antes se borraban
     // 15/11: en Hoy (Atelier) la fila sigue abierta para elegir, si quiere, el plan concreto debajo (segunda fila); en Looks se cierra como antes
     E.hzPreg = E.pantalla !== 'looks' && document.documentElement.classList.contains('at') && Motor.subocasiones(b.dataset.hzoc).length > 0; E.hoyDiario = false; E.propuestas = []; E.hoyIdx = 0; E.hoySalto = 'oc'; await guardar();
   } else if (b.dataset.hzsub) {
@@ -4933,7 +4934,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   ir(destino);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
-  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => cierresViejos()).catch(() => 0).then(() => nombresHombre()).catch(() => 0).then(() => window.viajesAlCalendario?.()).catch(() => 0).then(() => recogerPlanesPareja()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
+  limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => cierresViejos()).catch(() => 0).then(() => nombresHombre()).catch(() => 0).then(() => window.viajesAlCalendario?.()).catch(() => 0).then(() => recogerPlanesPareja()).catch(() => 0).then(() => window.atCombinados?.()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
   setTimeout(() => recortarOtraVez().catch(() => { }), cuenta() ? 15000 : 4000); // 0.156: recorte nuevo para lo subido desde el 04/11
   setTimeout(medirTodas, 1500); // 0.95: sin repaso con el reconocedor al abrir (bajaba 45 MB y trababa el móvil); el reconocedor solo se usa al subir ropa
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
