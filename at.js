@@ -1259,7 +1259,7 @@ if (AT) (() => {
     const vs = viajes(), i = vs.indexOf(v); if (i < 0) return false; if (igual) { v.rehecho = n.rehecho; await guardar(); return false; }
     viajeFueraDelCalendario(v); vs[i] = n; viajeAlCalendario(n); E.propuestas = []; await guardar(); programarNube(); return true;
   }
-  const VIAJE_V = 2; let rehaciendo = false;
+  const VIAJE_V = 3; let rehaciendo = false; // 3 (20/11, 21:3x): los viajes de antes se rehacen con las noches que escribió y sin vestido con zapatillas de noche
   async function rehacerViajes() {
     if (rehaciendo || !E.perfil) return; const hoy = diaISO(new Date()), viejos = viajes().filter(v => (v.ver || 1) < VIAJE_V && v.desde >= hoy); if (!viejos.length) return; rehaciendo = true;
     try { for (const v of viejos) { try {
