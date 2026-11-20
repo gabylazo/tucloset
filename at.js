@@ -1291,7 +1291,9 @@ if (AT) (() => {
     const tv = await tiempoViaje(g.latitude, g.longitude, f.desde, f.dias);
     const planes = (f.planes || []).filter(x => x.i < f.dias).map(x => ({ i: x.i, sub: x.sub, ...(x.f ? { f: x.f, k: x.k, txt: x.txt } : {}) }));
     // 20/11: si contó sus noches, solo esas (más noches de salir, si las marca ella)
-    const extras = planes.some(x => x.f === 'n') && !f.nocheMano ? (f.extras || []).filter(x => x !== 'Noche') : f.extras;
+    // 20/11 (Gabriela, panel: «si yo pongo el día 1 que hago tal cosa y en la noche tal cosa, ¿por qué me pone una noche de salir?»): si cuenta sus planes, las noches
+    // son las que escribe; si no escribe nada, la app pone las suyas, como antes
+    const extras = planes.some(x => x.f) ? (f.extras || []).filter(x => x !== 'Noche') : f.extras;
     const { plan } = Motor.planViaje({ prendas: activas(), perfil: E.perfil, desde: f.desde, dias: tv.dias, lugar: f.lugar || 'ciudad', motivo: f.motivo, extras, nocheMano: !!f.nocheMano, planes, pro: true, colorEstacion: EST_COLOR[E.perfil?.colores?.est] });
     const tmin = Math.min(...tv.dias.map(w => w.min)), tmax = Math.max(...tv.dias.map(w => w.max));
     if (!plan.length) { const e = new Error('sinlooks'); const g = n => String(n).replace('-', '−'); e.temp = t(`de ${g(tmin)}° a ${g(tmax)}°`, `${g(tmin)}° to ${g(tmax)}°`); e.falta = tmax < 12 ? t('te hace falta ropa de más abrigo', 'you need warmer clothes') : tmin > 22 ? t('te hace falta ropa más fresca', 'you need lighter clothes') : ''; throw e; }
@@ -1368,13 +1370,9 @@ if (AT) (() => {
       + `<label class="ag-f at-vj-tx">${agIc('sol')}<input type="text" data-vjtd="${i}" maxlength="160" autocomplete="off" enterkeyhint="next" aria-label="${t('Durante el día', 'During the day')}, ${d}" placeholder="${i ? t('Durante el día', 'During the day') : t('Durante el día: museo, playa…', 'During the day: museum, beach…')}" value="${esc(x.d || '')}"></label>`
       + `<label class="ag-f at-vj-tx">${agIc('luna')}<input type="text" data-vjtn="${i}" maxlength="160" autocomplete="off" enterkeyhint="next" aria-label="${t('Por la noche', 'At night')}, ${d}" placeholder="${i ? t('Por la noche', 'At night') : t('Por la noche: cena, luego copas…', 'At night: dinner, then drinks…')}" value="${esc(x.n || '')}"></label></fieldset>`; };
     const modo = (m, txt) => `<button type="button" class="${F.modo === m ? 'on' : ''}" data-vjmodo="${m}" aria-pressed="${F.modo === m}">${txt}</button>`;
-    // si cuenta sus noches, la noche libre de la app se apaga sola (salvo que la toque ella) y el botón pasa a «Más noches de salir»
-    const hayNoche = () => F.modo === 'itin' ? /noche|cena|copas|fiesta|bailar|teatro|concierto|night|dinner|drinks/i.test(F.itin) : F.textos.some(x => x?.n?.trim()), conNoche = hayNoche();
-    if (conNoche && !F.nocheMano) F.extras = F.extras.filter(x => x !== 'Noche');
     const fila = (ic, id, valor, control) => `<label class="ag-f">${agIc(ic)}<span class="ag-v" aria-hidden="true"><span id="${id}-v">${valor}</span>${control.startsWith('<select') ? agIc('abajo') : ''}</span>${control}</label>`;
     const nDias = n => t(`${n} ${n === 1 ? 'día' : 'días'}`, `${n} day${n === 1 ? '' : 's'}`), nomMotivo = m => m === 'Oficina' ? t('De trabajo', 'For work') : t('De ocio', 'For leisure');
     const idaTxt = () => t('Ida: ', 'Leaving ') + fDia(F.desde, { weekday: 'short', day: 'numeric', month: 'short' });
-    const extra = (v, txt) => { const on = F.extras.includes(v); return `<button type="button" class="${on ? 'on' : ''}" data-vjextra="${v}" aria-pressed="${on}">${txt}</button>`; };
     cap.innerHTML = `${X}<h1>${edita ? t('Cambiar el viaje', 'Change the trip') : t('Tu viaje', 'Your trip')}</h1>
       <form class="ag-form at-vj-f2" novalidate>
         <input id="vj-destino" class="ag-tit" type="text" autocomplete="off" enterkeyhint="done" maxlength="60" aria-label="${t('Destino', 'Destination')}" placeholder="${t('¿Adónde vas?', 'Where are you going?')}" value="${esc(F.destino)}" required>
@@ -1385,25 +1383,20 @@ if (AT) (() => {
         <div class="ag-f at-vj-ex" role="group" aria-label="${t('Tus planes', 'Your plans')}">${agIc('nota')}<span class="at-vj-exb">${modo('dias', t('Día a día', 'Day by day'))}${modo('itin', t('Pegar el itinerario', 'Paste the itinerary'))}</span></div>
         ${F.modo === 'itin' ? `<label class="ag-f at-vj-itin"><textarea id="vj-itin" rows="6" maxlength="3000" aria-label="${t('Tu itinerario', 'Your itinerary')}" placeholder="${t('Día 1: llegada y paseo por el centro&#10;Día 2: museo; por la noche, cena y copas', 'Day 1: arrival and a walk downtown&#10;Day 2: museum; at night, dinner and drinks')}">${esc(F.itin)}</textarea></label>`
           : Array.from({ length: F.dias }, (_, i) => filaDia(i)).join('')}
-        <div class="ag-f at-vj-ex" role="group" aria-label="${t('Además, si quieres', 'Also, if you like')}">${agIc('luna')}<span class="at-vj-exb">${extra('Noche', conNoche ? t('Más noches de salir', 'More nights out') : t('Una noche de salir', 'A night out'))}</span></div>
         <p class="at-vj-error" role="alert"></p>
         <button class="at-btn" type="submit">${edita ? t('Rehacer la maleta', 'Repack my suitcase') : t('Preparar la maleta', 'Pack my suitcase')}</button>
       </form>${viajes().length && !edita ? `<h2 class="at-vj-h2">${t('Tus viajes', 'Your trips')}</h2><div class="at-enlaces at-vj-lista">${viajes().map(v => `<button class="at-enlace" data-vjver="${v.id}">${esc(v.destino)} · ${rango(v)}</button>`).join('')}</div>` : ''}`;
     const lee = () => { if (!$('vj-destino')) return; cap.querySelectorAll('[data-vjtd],[data-vjtn]').forEach(e => { const i = +(e.dataset.vjtd ?? e.dataset.vjtn); F.textos[i] = { ...(F.textos[i] || {}), [e.dataset.vjtd != null ? 'd' : 'n']: e.value }; });
       if ($('vj-itin')) F.itin = $('vj-itin').value; F.destino = $('vj-destino').value.trim(); if (F.destino0 && F.destino !== F.destino0) { delete F.lat; delete F.lon; delete F.destino0; } F.desde = $('vj-desde').value || F.desde; F.dias = +$('vj-dias').value || F.dias; F.lugar = $('vj-lugar').value || F.lugar; F.motivo = $('vj-motivo').value || F.motivo; };
     // el valor de cada fila lo pinta la app: al cambiar el control, se pone al día sin repintar el formulario (no se pierde el foco)
-    cap.oninput = e => { const d = e.target.dataset; if (d.vjtn == null && e.target.id !== 'vj-itin') return; lee(); const b = cap.querySelector('[data-vjextra="Noche"]'); if (!b) return;
-      const n = hayNoche(); if (!F.nocheMano) { F.extras = n ? F.extras.filter(x => x !== 'Noche') : [...new Set([...F.extras, 'Noche'])]; const on = F.extras.includes('Noche'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }
-      b.textContent = n ? t('Más noches de salir', 'More nights out') : t('Una noche de salir', 'A night out'); };
     cap.onchange = e => { if (!e.target.closest('.at-vj-f2')) return; const d = e.target.dataset; if (d.vjtd != null || d.vjtn != null || e.target.id === 'vj-itin') return lee();
       const dias0 = F.dias, desde0 = F.desde; lee(); if ((F.modo === 'dias' && F.dias !== dias0) || F.desde !== desde0) { const id = e.target.id; formViaje(cap, X, cerrar); return $(id)?.focus(); } /* los días de los planes cambian */
       $('vj-desde-v').textContent = idaTxt(); $('vj-dias-v').textContent = nDias(F.dias); $('vj-lugar-v').textContent = nomLugar(F.lugar); $('vj-motivo-v').textContent = nomMotivo(F.motivo); };
     cap.onclick = e => {
-      const b = e.target.closest('.x,[data-vjextra],[data-vjver],[data-vjmodo]'); if (!b) return; e.preventDefault(); lee();
+      const b = e.target.closest('.x,[data-vjver],[data-vjmodo]'); if (!b) return; e.preventDefault(); lee();
       if (b.dataset.vjmodo) { if (F.modo === b.dataset.vjmodo) return; F.modo = b.dataset.vjmodo; formViaje(cap, X, cerrar); return cap.querySelector(F.modo === 'itin' ? '#vj-itin' : '[data-vjtd="0"]')?.focus(); }
       if (b.classList.contains('x')) { E.vjForm = null; return cerrar(); }
       if (b.dataset.vjver) return abrirViaje(b.dataset.vjver);
-      const x = b.dataset.vjextra, on = !F.extras.includes(x); F.extras = on ? [...F.extras, x] : F.extras.filter(y => y !== x); if (x === 'Noche') F.nocheMano = true; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
     };
     cap.querySelector('form').onsubmit = async e => {
       e.preventDefault(); lee(); const err = cap.querySelector('.at-vj-error'), bt = cap.querySelector('[type=submit]');

@@ -1139,10 +1139,13 @@ const Motor = (() => {
   const PV_MARCA = /^\s*(?:(?:el\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b[\s,]*)?(?:(?:d[ií]a|day)\s*\d{1,2}\b|\d{1,2}\s*[\/.-]\s*\d{1,2}\b|\d{1,2}\s*(?:de\s+)?(?:ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|jan|apr|aug|dec)[a-záéíóú]*\b)?\s*[:.\-–)]?\s*/i;
   const limpiaTrozo = s => { let x = String(s || '').trim(), y; do { y = x; x = x.replace(/^(?:y|luego|despu[eé]s|vamos a|iremos a|nos vamos a|vamos al|ir a|ir al|irnos a|queremos|quiero|a la|al|a|el|la|los|las|un|una|por la (?:mañana|tarde|noche)|de (?:día|noche))\s+/i, '').replace(/^[:\-–·]\s*/, '').trim(); } while (x !== y);
     return x.charAt(0).toUpperCase() + x.slice(1, 60); };
+  // 20/11 (Gabriela, panel: «para por la noche te pongo a comer quesadillas en un restaurante, me pones un vestido con unos tenis»): de noche, un plan de día («comer»,
+  // «museo», «paseo») es la cena del viaje (V4: tacón, sandalia de tacón, botín, mocasín o bailarina); el viaje (V1), el deporte, la noche y los eventos se quedan
+  const nocheSub = s => !s || /^[NES]/.test(s) || s === 'V1' || s === 'V4' ? s : 'V4';
   function trozoPlan(txt, noche) {
     const n = ' ' + norm(txt).replace(/[^a-z0-9ñ ]/g, ' ') + ' ', d = detectarSub(txt, null, noche ? 21 : 12), de = L => (L.find(([, r]) => r.test(n)) || [])[0] || null;
     if (d && /^[EOS]/.test(d)) return { sub: d, noche: noche || ['E1', 'E3', 'E4', 'E7'].includes(d) };
-    if (noche) { const x = de(PV_N) || de(PV_D.filter(([k]) => k !== 'Playa')) || (d === 'D2' ? 'N1' : d); return { sub: x, noche: true }; }
+    if (noche) { const x = de(PV_N) || de(PV_D.filter(([k]) => k !== 'Playa')) || (d === 'D2' ? 'N1' : d); return { sub: nocheSub(x), noche: true }; }
     const x = de(PV_D); if (x) return { sub: x, noche: false };
     const y = de(PV_N); if (y) return { sub: y, noche: true }; // «cena» escrita en el día: es de noche
     return { sub: d || null, noche: !!d && /^N/.test(d) };
@@ -1181,7 +1184,8 @@ const Motor = (() => {
     const ocSub = id => id === 'Playa' ? 'Playa' : /^N/.test(id) ? 'Noche' : /^E/.test(id) ? 'Evento' : /^D/.test(id) ? 'Diario' : /^S/.test(id) ? 'Deporte' : /^O/.test(id) ? 'Oficina' : 'Viaje';
     // 20/11 (la maleta de verdad): cada plan con su franja (f: 'd' de día, 'n' de noche; los de antes, por su plan) y su orden. En cada franja, un look para todo lo que
     // cuenta, el del plan más arreglado («cena y luego a bailar», con la ropa de la cena), y la playa y el deporte, cada uno con el suyo, en su orden y a su hora
-    const suyos = (o.planes || []).filter(x => x && x.sub && x.i >= 0 && x.i < N).map((x, k) => ({ ...x, f: x.f === 'n' || x.f === 'd' ? x.f : SUBN.test(x.sub) ? 'n' : 'd', k: x.k ?? k }));
+    const suyos = (o.planes || []).filter(x => x && x.sub && x.i >= 0 && x.i < N).map((x, k) => { const f = x.f === 'n' || x.f === 'd' ? x.f : SUBN.test(x.sub) ? 'n' : 'd';
+      return { ...x, f, sub: f === 'n' ? nocheSub(x.sub) : x.sub, k: x.k ?? k }; }); // de noche, lo que la IA del servidor dé de día, también a la cena del viaje
     const formDe = s => SUBS.get(s)?.form?.[0] ?? 2, clase = s => s === 'Playa' ? 'playa' : /^S/.test(s) ? 'deporte' : 'resto';
     const grupos = (i, f) => { const g = [];
       for (const x of suyos.filter(x => x.i === i && x.f === f).sort((a, b) => a.k - b.k)) { const c = clase(x.sub), y = c === 'resto' ? g.find(z => z.c === c) : g.at(-1)?.c === c ? g.at(-1) : null;
@@ -1223,6 +1227,8 @@ const Motor = (() => {
       const Sb = q.sub && (q.senal || hora >= 19) && SUBS.get(q.sub);
       if (Sb) { const zap = ({ l }) => l.calzado && !l.calzado.muestra && (Sb.calzado_si || []).includes(l.calzado._f.subtipo), ves = ({ l }) => l.vestido && !l.vestido.muestra && (Sb.vestido_si || []).includes(l.vestido._f.subtipo);
         let si = q.senal ? ls.filter(c => zap(c) && ves(c)) : []; if (!si.length) si = ls.filter(zap); if (si.length) ls = si; }
+      // 20/11 (Gabriela: «me pones combinaciones muy feas… un vestido bonito con unas zapatillas»): de noche, ni vestido ni falda con zapatillas si sale otra cosa
+      if (hora >= 19 && !/^S/.test(q.sub || '')) { const feo = ({ l }) => l.calzado?._f?.subtipo === 'zapatillas' && (!!l.vestido || /^falda/.test(l.abajo?._f?.subtipo || '')); if (ls.some(c => !feo(c))) ls = ls.filter(c => !feo(c)); }
       if (!ls.length) return null;
       const K = q.K || .03, max = Math.max(...ls.map(({ l }) => l.nota ?? 0)), noche = hora >= 19;
       let mejor = null, min = 1e9;
