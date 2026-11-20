@@ -1989,7 +1989,7 @@ document.addEventListener('click', async e => {
   const k = diaISO(new Date()), h = new Date().getHours(), fr = h < 14 ? 'Mañana' : h < 20 ? 'Tarde' : 'Noche';
   if (b.dataset.hzoc) {
     marcarYa(b, $('at-hoy'));
-    E.agenda[k] = E.agenda[k] || { planes: [] }; E.agenda[k].planes = [{ id: uid(), oc: b.dataset.hzoc, fr, deHoy: 1 }, ...E.agenda[k].planes.filter(p => p.oc !== b.dataset.hzoc || !p.deHoy)]; // 20/11: los planes del calendario (el de pareja) se quedan; antes se borraban
+    E.agenda[k] = E.agenda[k] || { planes: [] }; E.agenda[k].planes = [{ id: uid(), oc: b.dataset.hzoc, fr, deHoy: 1, t: new Date().toISOString() }, ...E.agenda[k].planes.filter(p => p.oc !== b.dataset.hzoc || !p.deHoy)]; // 20/11: los planes del calendario (el de pareja) se quedan; antes se borraban
     // 15/11: en Hoy (Atelier) la fila sigue abierta para elegir, si quiere, el plan concreto debajo (segunda fila); en Looks se cierra como antes
     E.hzPreg = E.pantalla !== 'looks' && document.documentElement.classList.contains('at') && Motor.subocasiones(b.dataset.hzoc).length > 0; E.hoyDiario = false; E.propuestas = []; E.hoyIdx = 0; E.hoySalto = 'oc'; await guardar();
   } else if (b.dataset.hzsub) {
@@ -1997,7 +1997,7 @@ document.addEventListener('click', async e => {
     // el plan concreto se apunta en el plan de hoy de esa ocasión (el que eligió en Hoy o su evento suelto de hoy); otra vez el mismo, se quita
     const x = Motor.subocasiones().find(s => s.id === b.dataset.hzsub); if (!x) return;
     const a = E.agenda[k] = E.agenda[k] || { planes: [] }, ev = eventoAhora(), pl = a.planes.find(p => p.deHoy && p.oc === x.oc) || (ev && !ev.fijo && ev.oc === x.oc ? ev.ref : null);
-    if (pl) pl.sub = subPlan({ ...pl, oc: x.oc }) === x.id ? '' : x.id; else a.planes.unshift({ id: uid(), oc: x.oc, sub: x.id, fr, deHoy: 1 });
+    if (pl) { pl.sub = subPlan({ ...pl, oc: x.oc }) === x.id ? '' : x.id; if (pl.deHoy) pl.t = new Date().toISOString(); } else a.planes.unshift({ id: uid(), oc: x.oc, sub: x.id, fr, deHoy: 1, t: new Date().toISOString() });
     E.hzPreg = false; E.hoyDiario = false; E.propuestas = []; E.hoyIdx = 0; E.hoySalto = 'sub'; await guardar();
   } else E.hzPreg = !E.hzPreg;
   if (b.dataset.hzoc || b.dataset.hzsub) { await trasPintar(); const oc = b.dataset.hzoc || Motor.subocasiones().find(s => s.id === b.dataset.hzsub)?.oc; if (E.pantalla !== 'looks') await window.atFondoHoy?.(oc); if (turno !== hzTurno) return; }
@@ -2111,11 +2111,17 @@ function eventosDe(d) {
 const horaEv = e => e.hora || (e.ref?.dia ? '17:00' : '');
 function lookDe(d, ev) { const a = E.agenda[d] || {}, ids = a.looks?.[ev.id] || (a.look && eventosDe(d)[0]?.id === ev.id ? a.look : null); return ids?.length && ids.every(P) ? ids : null; }
 function eventoAhora() { // el evento de hoy que toca: el próximo (o el que acaba de empezar); si ya pasaron todos, el último
-  const d = diaISO(new Date()), evs = eventosDe(d); if (!evs.length) return null;
+  const d = diaISO(new Date()), evs = eventosDe(d), pu = Object.entries(E.agenda[d]?.puestos || {}).filter(([, x]) => x?.ids?.length).sort((x, y) => String(y[1].t || '').localeCompare(String(x[1].t || '')))[0];
+  // sin un plan de esa ocasión apuntado, lo puesto vale como plan de hoy (sin hora ni look propio: el look sale igual, el primero, por «Me lo pongo»)
+  const dePuesto = () => pu && { id: 'puesto-' + pu[0], oc: pu[0], nombre: '', desc: '', sub: '', hora: '', fijo: 1, ref: null };
+  if (!evs.length) return dePuesto() || null;
   const n = new Date(), ya = `${String(Math.max(0, n.getHours() - 1)).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
   // lo que eligió en Hoy manda, y de eso, lo ÚLTIMO que eligió (el primero de la lista: cada elección va delante). 16/11 (Gabriela: «no me deja cambiar a diario»):
   // con el orden por hora salía el elegido por la mañana (Evento, 09:00) aunque después tocara Diario (16:00)
   const elegido = (E.agenda[d]?.planes || []).find(p => p.deHoy), evEl = elegido && evs.find(e => e.ref === elegido);
+  // 20/11 (Gabriela: «sigue saliendo primero Diario, luego lo que llevo hoy»): si después de elegir la ocasión te has puesto un look («Me lo pongo»), manda la ocasión de ese look
+  if (pu && (!elegido || String(pu[1].t || '') > String(elegido.t || ''))) { const k = claveLook(pu[1].ids), de = evs.filter(e => e.oc === pu[0]);
+    return de.find(e => lookDe(d, e) && claveLook(lookDe(d, e)) === k) || de.find(e => lookDe(d, e)) || de.find(e => e.ref?.deHoy) || de[0] || dePuesto(); }
   return evEl || evs.find(e => !horaEv(e) || horaEv(e) >= ya) || evs[evs.length - 1];
 }
 const nomEv = ev => ev.nombre || ocNombre(ev.oc);

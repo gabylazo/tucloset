@@ -1241,6 +1241,7 @@ html.at.oscuro .at-par-dia input{border:1px solid var(--linea, rgba(241,233,222,
 html.at.oscuro .ag-ac[data-parsi][aria-pressed="true"]{box-shadow:inset 0 -2px 0 var(--oro)}
 html.at.oscuro .at-par-si{color:var(--sec)}
 html.at.oscuro .at-par-si .ag-ic{fill:none;stroke:currentColor}
+html.at.oscuro .ag-ac[data-pardos].probado svg{fill:var(--oro);stroke:var(--tinta)}
 html.at.oscuro .at-par-comb{color:var(--tinta)}
 html.at.oscuro .at-rc-cuenta{color:var(--sec)}
 html.at.oscuro .at-par-prop + .at-par-prop,html.at.oscuro .at-par-prop + .at-par-nuevo,html.at.oscuro .at-par-nuevo + .at-par-prop{border-top:1px solid var(--linea, rgba(241,233,222, .12))}

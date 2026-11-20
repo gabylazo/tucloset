@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.323'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.328'; document.head.append(l);
   document.documentElement.classList.add('at');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const en = () => idioma() === 'en', loc = () => en() ? 'en-GB' : 'es-ES';
@@ -283,7 +283,7 @@ if (AT) (() => {
   // (el servidor dice cuál va debajo y si asoma por abajo o va metida, puestoBajo)
   const camisaBajo = ps => { const ar = (ps || []).filter(p => p.tipo === 'Arriba').map(p => sinTilde(p.nombre));
     return ar.some(n => /camisa|blusa|\bpolo\b/.test(n) && !/sobrecamisa|camiseta/.test(n)) && ar.some(n => /jersey|sudadera|chaleco de punto|sueter/.test(n)); };
-  const COMOS = ps => camisaBajo(ps) ? [['suelta', t('Camisa fuera', 'Shirt out')], ['por dentro', t('Camisa dentro', 'Shirt in')]]
+  const COMOS = ps => camisaBajo(ps) ? [['suelta', t('Camisa por fuera', 'Shirt untucked')], ['por dentro', t('Camisa por dentro', 'Shirt tucked in')]]
     : [['suelta', t('Fuera', 'Out')], ...(E.perfil?.ropa === 'hombre' ? [] : [['media', t('A medias', 'Half')]]), ['por dentro', t('Dentro', 'In')]];
   const comoAplica = ps => { const top = ps.filter(p => p.tipo === 'Arriba').pop(); if (!top || !ps.some(p => p.tipo === 'Abajo')) return false;
     const f = Motor.ficha(top); return !['body', 'top_corto', 'top_deportivo'].includes(f.subtipo) && top.est?.largo !== 'crop' && !/crop|\bcorto\b|body/i.test(top.nombre || ''); };
@@ -1093,7 +1093,9 @@ if (AT) (() => {
     // el plan «que toca», y la ocasión puesta en Hoy, sin look, tapaba el paseo de las 14:00 con su look)
     const hoyD = diaISO(new Date()), n = new Date(), ya = `${String(Math.max(0, n.getHours() - 1)).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
     // 13/11 (Gabriela: «todo lo que se elija para cualquier día, ese día sale de primero en Hoy»): si ya pasó la hora de todos los planes con look, sale el del último
-    const evA0 = eventoAhora(), evA = evA0 && lookDe(hoyD, evA0) ? evA0 : eventosDe(hoyD).find(e => (!horaEv(e) || horaEv(e) >= ya) && lookDe(hoyD, e)) || eventosDe(hoyD).filter(e => lookDe(hoyD, e)).at(-1) || evA0;
+    // 20/11 (Gabriela: «a Pablo le sale “Diario con Gabriela”, un diario, y es noche»): si el plan que toca no tiene look, primero el de otro plan de hoy de esa misma ocasión
+    const evA0 = eventoAhora(), deOc = evA0 ? eventosDe(hoyD).filter(e => e.oc === evA0.oc && lookDe(hoyD, e)) : [];
+    const evA = evA0 && lookDe(hoyD, evA0) ? evA0 : deOc.find(e => !horaEv(e) || horaEv(e) >= ya) || deOc.at(-1) || eventosDe(hoyD).find(e => (!horaEv(e) || horaEv(e) >= ya) && lookDe(hoyD, e)) || eventosDe(hoyD).filter(e => lookDe(hoyD, e)).at(-1) || evA0;
     const props = [], dia = E.agenda[hoyD], lkA = evA ? lookDe(hoyD, evA) : null, clave = claveLook, g = E.perfil?.gustos;
     // 11/11 (Gabriela: «los looks que se seleccionan desde cualquier sitio, como "me lo pongo hoy", deben salir los primeros en Hoy y después los otros»)
     // y si te has puesto dos, los dos, el último primero
@@ -1620,17 +1622,33 @@ if (AT) (() => {
   window.atPrueba && Object.assign(window.atPrueba, { misDecididos, trasElevar: (a, b, oc) => trasElevar(a, b, oc), abrirIdea: x => abrirIdea(x), tresPara: (d, oc, ids) => tresPara(d, { oc }, { x: { ids, ocasion: oc }, ps: psDe({ ids, ocasion: oc }) }, new Set()) });
   const propuestas = async () => { try { const r = await api('/api/pareja/propuestas', { tiempo: 12000 }); if (!r.ok) return null; const j = await r.json(); if (j.quien) E.parQuien = j.quien; return j.propuestas || []; } catch (e) { return null; } };
   const lookP = s => [...new Set([...(s?.ids || []), ...(s?.mas || [])])]; // el look de cada uno en la propuesta, con lo que añadió con «Eleva»
+  const clavePar = q => q.id + '|' + claveLook(lookP(q.yo)) + '|' + claveLook(lookP(q.el));
+  // 20/11 (Gabriela: «todo tiene que tener iconos y sustituir las palabras»): «En el calendario», el calendario con la marca, sin texto
+  const IC_CALSI = '<svg class="ag-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="1"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/><path d="m8.5 14.6 2.4 2.4 4.6-4.6"/></svg>';
+  // 20/11 (Gabriela: «si ya te lo probaste una vez se queda guardado ese outfit con tu avatar… que se genera automáticamente»): al quedar combinados, la foto de los dos
+  // se pide sola (la guardada, si la hay; si no, se hace una vez y se guarda para los dos). Una cada vez y sin avisos; si falla, queda el botón
+  async function autoFotoPar(L, cap) {
+    const F = E.parFotos = E.parFotos || {}, A = E.parAuto = E.parAuto || {};
+    const q = L.find(q => !F[clavePar(q)] && !A[clavePar(q)]); if (!q) return; const k = clavePar(q); A[k] = 1;
+    const r = await puestoPar(q, false, true).catch(() => ({ error: 1 }));
+    if (r.blob) { F[k] = URL.createObjectURL(r.blob); A[k] = 2; } else if (r.haciendo) { A[k] = 0; return setTimeout(() => cap.isConnected && abrirPareja(), 25000); } else A[k] = 3;
+    if (cap.isConnected && !cap.dataset.ocupado) abrirPareja();
+  }
   // 20/11 (Gabriela, panel: «que salga en Hoy directamente cuando yo dé en Noche… a él no le sale lo que seleccionó, ya que va conjuntado conmigo»): cuando los dos han
   // elegido, el look de cada uno se apunta solo en su calendario, ese día y en esa ocasión (antes había que pulsar «Apuntar para los dos»). Si cambia lo elegido o lo
   // añadido con «Eleva», se cambia; si se quita la elección o la propuesta, se quita. Si el look salió de un plan de tu calendario, se queda en ese plan
   async function combinadosAlCal(L, quien) {
-    if (!Array.isArray(L)) return 0; const hoy = diaISO(new Date()), estan = new Set(L.map(q => q.id)); let n = 0, enHoy = false;
+    if (!Array.isArray(L)) return 0; const hoy = diaISO(new Date()), estan = new Set(L.map(q => q.id)), sube = []; let n = 0, enHoy = false;
     const quitar = (a, pl, d) => { const k = pl.prp; a.prp = (a.prp || []).filter(x => x !== k); if (pl.par) { a.planes = a.planes.filter(p => p !== pl); if (a.looks) delete a.looks[pl.id]; } else delete pl.prp; n++; enHoy ||= d === hoy; };
     for (const q of L) {
       if (!q.fecha || q.fecha < hoy) continue;
       const a = E.agenda[q.fecha] = E.agenda[q.fecha] || { planes: [] }; a.planes = a.planes || [];
-      const pl = a.planes.find(p => p.prp === q.id), ids = lookP(q.yo).filter(P), ok = q.yo.ok && q.el.ok && ids.length >= 2;
+      const pl = a.planes.find(p => p.prp === q.id), ok = q.yo.ok && q.el.ok && lookP(q.yo).filter(P).length >= 2; let ids = lookP(q.yo).filter(P);
       if (!ok) { if (pl) quitar(a, pl, q.fecha); continue; }
+      // 20/11, 18:3x (Gabriela: «ya generé mi avatar con él y a mí me sigue saliendo sin lo de elevar el look»): si tu look de ese plan ya lleva más (lo añadido con «Eleva»
+      // en «Me lo pongo» o en el plan del calendario), va a la propuesta («mas»), y así lo ven los dos y sale en la foto
+      const sup = [q.fecha === hoy ? a.puestos?.[q.oc]?.ids : null, pl ? a.looks?.[pl.id] : null].filter(l => Array.isArray(l) && l.every(P) && q.yo.ids.every(i => l.includes(i))).sort((x, y) => y.length - x.length)[0];
+      if (sup && sup.length > ids.length && sup.some(i => !ids.includes(i))) { const mas = sup.filter(i => !q.yo.ids.includes(i)).slice(0, 4); sube.push({ q, mas }); ids = [...q.yo.ids, ...mas]; }
       if (pl) { if (claveLook(a.looks?.[pl.id] || []) !== claveLook(ids)) { a.looks = { ...(a.looks || {}), [pl.id]: ids }; n++; enHoy ||= q.fecha === hoy; } continue; }
       if ((a.prp || []).includes(q.id)) continue; // ya apuntado con «Apuntar para los dos» (antes del 20/11)
       const base = a.planes.find(p => !p.deHoy && !p.prp && p.oc === q.oc && claveLook(a.looks?.[p.id] || []) === claveLook(q.yo.ids));
@@ -1640,7 +1658,8 @@ if (AT) (() => {
       a.prp = [...new Set([...(a.prp || []), q.id])]; n++; enHoy ||= q.fecha === hoy;
     }
     if (L.length < 12) for (const [d, a] of Object.entries(E.agenda)) { if (d < hoy || !a?.planes) continue; for (const pl of a.planes.filter(p => p.prp && !estan.has(p.prp))) quitar(a, pl, d); } // la propuesta ya no está
-    if (!n) return 0; await guardar(); programarNube();
+    for (const { q, mas } of sube) { const j = await api('/api/pareja/propuesta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: q.id, v: q.v, mas }), tiempo: 15000 }).then(r => r?.ok ? r.json() : null).catch(() => null); if (j?.propuesta) Object.assign(q, j.propuesta); }
+    if (!n) return sube.length; await guardar(); programarNube();
     if (enHoy) { E.propuestas = []; if (E.pantalla === 'hoy') pintarHoy(); }
     return n;
   }
@@ -1675,14 +1694,14 @@ if (AT) (() => {
   }
   // 20/11 (Gabriela: «a Pablo y a mí nos salen diferentes imágenes… quiero que lo homogenices y que salga igual en ambos perfiles»): la foto de los dos la hace el servidor
   // con lo guardado en las dos cuentas, una vez por propuesta, y la ven igual los dos; antes la hacía cada móvil con lo suyo y salían distintas. «otra»: rehacerla
-  async function puestoPar(q, otra) {
+  async function puestoPar(q, otra, solo) {
     const pf = E.perfil || {}, quien = E.parR.quien;
     if (!otra) { const r0 = await api('/api/pareja/puesto?prp=' + encodeURIComponent(q.id), { tiempo: 20000 }).catch(() => null); if (r0?.ok) return { blob: await sinBlanco(await r0.blob()) }; }
     if (!(pf.avatar instanceof Blob)) return { error: t('Primero crea tu avatar en Yo', 'First create your avatar in Me') };
     if (!permiso('avatar')) return { error: errorAvatar(403, 'permiso') };
     try {
       const r = await apiAvatar('/api/pareja/puesto?prp=' + encodeURIComponent(q.id) + (otra ? '&otra=1' : ''), new FormData());
-      if (!r.ok) { const j = await r.json().catch(() => ({}));
+      if (!r.ok) { const j = await r.json().catch(() => ({})); if (j.error === 'haciendo') return { haciendo: 1 };
         return { error: j.error === 'permiso-pareja' ? t(`${quien} aún no ha dado permiso para su avatar`, `${quien} hasn’t allowed their avatar yet`) : j.error === 'sin-avatar-pareja' ? t(`${quien} aún no tiene avatar`, `${quien} has no avatar yet`)
           : j.error === 'sin-avatar' ? t('Tu avatar aún no está en tu cuenta: ábrelo en Yo', 'Your avatar isn’t in your account yet: open it in Me') : j.error === 'look' ? t('Falta que elijáis los dos', 'You both need to choose first')
           : errorAvatar(r.status, j.error === 'sin-imagen' && /SAFETY|PROHIBITED/.test(j.d || '') ? 'filtro' : j.error, true) }; }
@@ -1734,12 +1753,13 @@ if (AT) (() => {
       if (b.dataset.parok) { const q = prop(b.dataset.parok); if (!q || cap.dataset.ocupado) return; b.disabled = true; // lo que ya estaba en el calendario de quien mandó no se repite
         return planParaDos(q, E.parR.quien, { mio: !(q.mia && q.cal), suyo: !(!q.mia && q.cal) }).then(() => abrirPareja()); }
       if (b.dataset.pardos || b.dataset.parotrav) { // los dos avatares juntos (otra vez el botón, vuelven los looks); «Otra versión», la rehace para los dos
-        const otra = !!b.dataset.parotrav, q = prop(b.dataset.pardos || b.dataset.parotrav); if (!q) return; const k = q.id + '|' + claveLook(lookP(q.yo)) + '|' + claveLook(lookP(q.el)), F = E.parFotos = E.parFotos || {};
+        const otra = !!b.dataset.parotrav, q = prop(b.dataset.pardos || b.dataset.parotrav); if (!q) return; const k = clavePar(q), F = E.parFotos = E.parFotos || {}, OFF = E.parOff = E.parOff || new Set();
         E.parFoco = otra ? `[data-parotrav="${q.id}"]` : `[data-pardos="${q.id}"]`;
-        if (!otra) { if (E.parVer === k) { E.parVer = null; return abrirPareja(); } if (F[k]) { E.parVer = k; return abrirPareja(); } }
+        if (!otra && F[k]) { if (OFF.has(k)) OFF.delete(k); else OFF.add(k); return abrirPareja(); }
         if (cap.dataset.ocupado) return; cap.dataset.ocupado = 1; b.disabled = true; b.classList.add('at-cargando'); toast(t('Un momento: tarda unos 20 segundos', 'One moment: it takes about 20 seconds'));
         return puestoPar(q, otra).then(r => { delete cap.dataset.ocupado;
-          if (r.error) { b.disabled = false; b.classList.remove('at-cargando'); return toast(r.error); } if (F[k]) URL.revokeObjectURL(F[k]); F[k] = URL.createObjectURL(r.blob); E.parVer = k; abrirPareja(); });
+          if (r.haciendo) { b.disabled = false; b.classList.remove('at-cargando'); toast(t('La foto de los dos ya se está haciendo: sale en un momento', 'The photo of you both is being made: it will appear shortly')); return setTimeout(() => cap.isConnected && abrirPareja(), 25000); }
+          if (r.error) { b.disabled = false; b.classList.remove('at-cargando'); return toast(r.error); } if (F[k]) URL.revokeObjectURL(F[k]); F[k] = URL.createObjectURL(r.blob); OFF.delete(k); abrirPareja(); });
       }
     };
     if (!cuenta()) { cap.innerHTML = enlazar(t('Entra en tu cuenta y enlázala con la de tu pareja: eliges tu look y le propones tres que van con él.', 'Sign in and link your account with your partner’s: pick your look and suggest three that go with it.')); return; }
@@ -1766,17 +1786,19 @@ if (AT) (() => {
     const [ancho] = caja(), W2 = Math.floor((ancho - 40 - 12) / 2), H2 = Math.round(W2 * 1.25), W3 = Math.floor((ancho - 40 - 16) / 3), H3 = Math.round(W3 * 1.25), W4 = Math.floor((ancho - 40 - 18) / 4), H4 = Math.round(W4 * 1.25);
     const cuando = q => `${q.nombre ? escH(q.nombre) : subNom(q.sub) || ocNombre(q.oc)}, ${diaTxt(q.fecha)}`;
     const chip = k => `<button class="${S.oc === k ? 'on' : ''}" data-paroc="${k}" aria-pressed="${S.oc === k}">${ocNombre(k)}${DOS}</button>`;
-    const btPuesto = (q, on) => planDemo() === 'pro' && tieneAvatar() ? `<button class="ag-ac" data-pardos="${q.id}" aria-pressed="${on}" aria-label="${t('Vernos puestos a los dos', 'See us both wearing them')}" title="${t('Vernos puestos a los dos', 'See us both wearing them')}">${IC_PUESTO}</button>` : '';
+    // 20/11 (Gabriela: «como generé el avatar, me tiene que salir el muñequito coloreado»): con la foto hecha, la figura rellena de dorado, como en los looks probados
+    const btPuesto = (q, on) => { if (planDemo() !== 'pro' || !tieneAvatar()) return ''; const k = clavePar(q), hecha = !!E.parFotos?.[k], va = !hecha && E.parAuto?.[k] === 1;
+      return `<button class="ag-ac${hecha ? ' probado' : ''}${va ? ' at-cargando' : ''}" data-pardos="${q.id}" aria-pressed="${on}" aria-label="${t('Vernos puestos a los dos', 'See us both wearing them')}" title="${t('Vernos puestos a los dos', 'See us both wearing them')}">${IC_PUESTO}</button>`; };
     const secPend = q => `<section class="at-par-prop" aria-label="${t(`Lo que te propone ${quien}`, `${quien}’s suggestion`)}"><h2 class="at-par-tit">${t(`${Q} ya eligió su look`, `${Q} has chosen their look`)}</h2><p class="at-par-cuando">${cuando(q)}</p>
       <div class="at-par-fijo">${baldosaFija(suPs(q.el.ids), W2, H2, t(`Look de ${quien}`, `${quien}’s look`))}</div>
       <p class="at-par-txt">${t('Elige el tuyo', 'Pick yours')}</p>
       <div class="at-par-tres">${q.yo.opc.map((l, i) => { const ids = E.parEd?.[q.id]?.[i] || l, ps = miPs(ids, q.oc); return ps.length ? `<figure class="at-t">${baldosaFija(ps, W3, H3, `${t('Opción', 'Option')} ${i + 1}`)}
         <div class="at-par-acc">${agAc(`data-parpz="${q.id}.${i}"`, 'percha', t('Cambiar una prenda', 'Swap a garment'))}${agAc(`data-parelige="${q.id}.${i}"`, 'si', t('Me pongo este', 'I’ll wear this one'))}</div></figure>` : ''; }).join('')}</div>
       <p class="at-enlaces"><button class="at-enlace" data-parno="${q.id}">${t('Ninguno me convence', 'None of them')}</button></p></section>`;
-    const secComb = q => { const k = q.id + '|' + claveLook(lookP(q.yo)) + '|' + claveLook(lookP(q.el)), ver = E.parVer === k && E.parFotos?.[k], apunt = (E.agenda[q.fecha]?.prp || []).includes(q.id);
+    const secComb = q => { const k = clavePar(q), ver = !E.parOff?.has(k) && E.parFotos?.[k], apunt = (E.agenda[q.fecha]?.prp || []).includes(q.id);
       return `<section class="at-par-prop at-par-hecho" aria-label="${t('Combinados', 'Matched')}"><h2 class="at-par-tit">${t('Combinados', 'Matched')}</h2><p class="at-par-cuando">${cuando(q)}</p>
       ${ver ? `<figure class="at-par-foto"><img src="${ver}" alt="${t(`Tú y ${quien}, cada uno con su look`, `You and ${quien}, each in your look`)}"></figure>` : `<div class="at-rej2"><figure class="at-t">${baldosaFija(miPs(lookP(q.yo), q.oc), W2, H2, t('Tu look', 'Your look'))}<figcaption>${t('Tú', 'You')}</figcaption></figure><figure class="at-t">${baldosaFija(suPs(lookP(q.el)), W2, H2, t(`Look de ${quien}`, `${quien}’s look`))}<figcaption>${Q}</figcaption></figure></div>`}
-      <div class="at-par-acc">${apunt ? `<span class="at-par-si">${agIc('si')}${t('En el calendario', 'In the calendar')}</span>` : q.fecha >= hoy ? agAc(`data-parok="${q.id}"`, 'cal', t('Apuntar para los dos', 'Add for both')) : ''}${btPuesto(q, !!ver)}${ver ? agAc(`data-parotrav="${q.id}"`, 'girar', t('Otra versión', 'Another version')) : ''}${agAc(`data-parquita="${q.id}"`, q.mia ? 'cerrar' : 'deshacer', q.mia ? t('Quitar', 'Remove') : t('Cambiar mi elección', 'Change my choice'))}</div></section>`; };
+      <div class="at-par-acc">${apunt ? `<span class="at-par-si" role="img" aria-label="${t('En el calendario', 'In the calendar')}" title="${t('En el calendario', 'In the calendar')}">${IC_CALSI}</span>` : q.fecha >= hoy ? agAc(`data-parok="${q.id}"`, 'cal', t('Apuntar para los dos', 'Add for both')) : ''}${btPuesto(q, !!ver)}${ver ? agAc(`data-parotrav="${q.id}"`, 'girar', t('Otra versión', 'Another version')) : ''}${agAc(`data-parquita="${q.id}"`, q.mia ? 'cerrar' : 'deshacer', q.mia ? t('Quitar', 'Remove') : t('Cambiar mi elección', 'Change my choice'))}</div></section>`; };
     const secEnv = q => `<section class="at-par-prop" aria-label="${t('Lo que has mandado', 'What you sent')}"><h2 class="at-par-tit">${q.el.no ? t(`A ${Q} no le convence ninguno`, `${Q} didn’t like any`) : t(`Mandado a ${Q}`, `Sent to ${Q}`)}</h2><p class="at-par-cuando">${cuando(q)}</p>
       <div class="at-par-tres at-par-cuatro"><figure class="at-t">${baldosaFija(miPs(q.yo.ids, q.oc), W4, H4, t('Tu look', 'Your look'))}<figcaption>${t('Tú', 'You')}</figcaption></figure>${(q.el.opc || []).map((l, i) => `<figure class="at-t">${baldosaFija(suPs(l), W4, H4, `${t('Opción', 'Option')} ${i + 1}`)}<figcaption>${i + 1}</figcaption></figure>`).join('')}</div>
       <div class="at-par-acc">${agAc(`data-parotras="${q.id}"`, 'girar', t('Otras tres', 'Three more'))}${agAc(`data-parquita="${q.id}"`, 'cerrar', t('Quitar', 'Remove'))}</div></section>`;
@@ -1796,6 +1818,7 @@ if (AT) (() => {
       ${pend.map(secPend).join('')}${comb.map(secComb).join('')}${nuevo}${env.map(secEnv).join('')}
       <p class="at-enlaces"><button class="at-enlace" data-parajustes>${t('Gestionar el enlace', 'Manage the link')}</button></p>`; // 16/11 (Gabriela: «lo de pareja ya sale en Looks, ¿por qué ponerlo de nuevo en Ajustes?»): se gestiona desde aquí
     deslizable(cap.querySelector('.at-par-ocs')); if (cap.querySelector('.at-par-subs')) deslizable(cap.querySelector('.at-par-subs'));
+    if (planDemo() === 'pro' && tieneAvatar() && permiso('avatar')) autoFotoPar(comb.filter(q => q.fecha >= hoy), cap);
     const on = cap.querySelector('.at-par-ocs .on'); if (on) requestAnimationFrame(() => on.scrollIntoView({ block: 'nearest', inline: 'center' }));
     if (E.parFoco) { cap.querySelector(E.parFoco)?.focus({ preventScroll: true }); E.parFoco = null; }
     // mientras está abierta, mira cada 20 s si tu pareja ha mandado, elegido o cambiado algo
