@@ -207,7 +207,9 @@ const Motor = (() => {
   function detectarSub(txt, oc, hora) {
     const t = ' ' + norm(txt).replace(/[^a-z0-9ñ ]/g, ' ') + ' '; let mejor = null, largo = 0;
     // sin ocasión (oc null): en todas, para deducirla del nombre («ópera», «cóctel»)
-    for (const x of SUBS.values()) if ((!oc || x.oc === oc) && !x.solo_viaje) for (const w of x.detectar || []) // 17/11: E7 (Nochevieja), solo en «Tu viaje» hasta que digan sí a verla en el calendario if (w.length > largo && t.includes(' ' + w + (w.length > 5 ? '' : ' '))) { mejor = x.id; largo = w.length; }
+    // 17/11: E7 (Nochevieja), solo en «Tu viaje» hasta que digan sí a verla en el calendario. 20/11: este comentario iba al final de la línea de abajo y dejaba
+    // el «if» dentro del comentario: desde el 17/11 no se reconocía ningún plan por su nombre (ni en el calendario)
+    for (const x of SUBS.values()) if ((!oc || x.oc === oc) && !x.solo_viaje) for (const w of x.detectar || []) if (w.length > largo && t.includes(' ' + w + (w.length > 5 ? '' : ' '))) { mejor = x.id; largo = w.length; }
     if (mejor === 'E2' && hora >= 19) mejor = 'E3'; // una boda por la noche
     return mejor;
   }
@@ -1121,6 +1123,54 @@ const Motor = (() => {
   const CALZ_VIAJE = {
     playa: f => f.tacon_num >= 2 || /^bota|^botines/.test(f.subtipo) ? 1.5 : f.abierto || ['sandalias_planas', 'chanclas', 'alpargatas'].includes(f.subtipo) ? -1.5 : f.subtipo === 'zapatillas' ? -.5 : 0,
     campo: f => f.tacon_num >= 2 ? 2 : ['zapatillas', 'botas_montana', 'botines', 'botas_agua', 'botas_altas'].includes(f.subtipo) ? -1.5 : f.abierto || ['bailarinas', 'sandalias_planas', 'chanclas'].includes(f.subtipo) ? 1 : 0 };
+  /* ---------- 20/11 LA MALETA DE VERDAD (Gabriela, panel: «que funcione como una maleta de verdad, que le cuentes los planes o el itinerario y recomiende outfit;
+     para diario, por ejemplo, en el día y en la noche te digo que vamos a cenar, luego vamos a x sitio»). Lo que escribe de cada día, en trozos («cena», «luego vamos
+     a bailar») y cada trozo en un plan concreto de Moda: primero las palabras de Moda (detectar) para bodas, galas, deporte y trabajo; después unas del viaje, de día
+     y de noche. Lo que no se entiende queda sin plan y la app se lo pregunta a la IA del servidor (/api/plan). Un trozo de noche escrito en el día («cena») pasa a la
+     noche. itinerario() reparte un texto pegado por días («Día 2», «martes», «5/12», «5 de diciembre») y franjas («por la noche») ---------- */
+  const PV_CORTE = /\s*(?:[,;\n.]+|\s\+\s|\by luego\b|\bluego\b|\by despu[eé]s\b|\bdespu[eé]s\b|\bm[aá]s tarde\b|\by\b|\be\b|\bthen\b|\band\b|\bafter that\b)\s*/i;
+  const PV_N = [['E7', /nochevieja|fin de ano|new year/], ['N3', /discoteca|bailar|baile|fiesta|salsa|\bclub\b|party|dancing|clubbing/], ['N4', /teatro|opera|clasic|ballet|auditorio|sinfonic|zarzuela|musical\b|theatre|theater/],
+    ['N5', /concierto|festival|\brock\b|\bpop\b|concert|\bgig\b/], ['N2', /elegante|restaurante|aniversario|michelin|fine dining|romantic/], ['N1', /copas|\bcopa\b|tapas|tapeo|\bbar\b|bares|cerveza|vino|informal|amig|drinks|\bpub\b/],
+    ['V4', /cena|cenar|dinner|cenamos/]];
+  const PV_D = [['Playa', /playa|piscina|\bcalas?\b|beach|\bpool\b|banar|snorkel/], ['V1', /vuelo|avion|aeropuerto|\btren\b|flight|airport|\btrain\b|llegada|llegamos|aterriza|\bida\b|vuelta a casa/],
+    ['S4', /senderismo|trekking|hiking|montana|escalada/], ['V3', /naturaleza|\bcampo\b|\bruta\b|bosque|\blago\b|cascada|nature|\brio\b/], ['D5', /excursion|parque|picnic|aire libre|\bbarco\b|\bpark\b|zoo|acuario/],
+    ['D4', /comida familiar|comida formal|familia|suegros|cumple|bautizo/], ['V2', /museo|visita|visitar|turismo|monumento|catedral|casco|centro|ciudad|free tour|\btour\b|mercado|castillo|palacio|sightseeing|museum|explorar|conocer|recorrer|comer|comida|almuerzo|almorzar|lunch|galeria|exposicion|barrio/],
+    ['D1', /compras|tiendas|shopping|recados|paseo|pasear|\bwalk\b|mercadillo/], ['D3', /\bcafe\b|merienda|brunch|coffee|desayuno/]];
+  const PV_MARCA = /^\s*(?:(?:el\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b[\s,]*)?(?:(?:d[ií]a|day)\s*\d{1,2}\b|\d{1,2}\s*[\/.-]\s*\d{1,2}\b|\d{1,2}\s*(?:de\s+)?(?:ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|jan|apr|aug|dec)[a-záéíóú]*\b)?\s*[:.\-–)]?\s*/i;
+  const limpiaTrozo = s => { let x = String(s || '').trim(), y; do { y = x; x = x.replace(/^(?:y|luego|despu[eé]s|vamos a|iremos a|nos vamos a|vamos al|ir a|ir al|irnos a|queremos|quiero|a la|al|a|el|la|los|las|un|una|por la (?:mañana|tarde|noche)|de (?:día|noche))\s+/i, '').replace(/^[:\-–·]\s*/, '').trim(); } while (x !== y);
+    return x.charAt(0).toUpperCase() + x.slice(1, 60); };
+  function trozoPlan(txt, noche) {
+    const n = ' ' + norm(txt).replace(/[^a-z0-9ñ ]/g, ' ') + ' ', d = detectarSub(txt, null, noche ? 21 : 12), de = L => (L.find(([, r]) => r.test(n)) || [])[0] || null;
+    if (d && /^[EOS]/.test(d)) return { sub: d, noche: noche || ['E1', 'E3', 'E4', 'E7'].includes(d) };
+    if (noche) { const x = de(PV_N) || de(PV_D.filter(([k]) => k !== 'Playa')) || (d === 'D2' ? 'N1' : d); return { sub: x, noche: true }; }
+    const x = de(PV_D); if (x) return { sub: x, noche: false };
+    const y = de(PV_N); if (y) return { sub: y, noche: true }; // «cena» escrita en el día: es de noche
+    return { sub: d || null, noche: !!d && /^N/.test(d) };
+  }
+  // los trozos de lo que escribió para un día (f: 'd' o 'n'), con su plan o sin él
+  const planesDeTexto = (txt, noche) => String(txt || '').split(PV_CORTE).map(limpiaTrozo).filter(x => x.length > 1).map(x => { const r = trozoPlan(x, noche); return { txt: x, sub: r.sub, f: r.noche ? 'n' : 'd' }; });
+  const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'], MESES_EN = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  const SEMANA = [['domingo', 'sunday'], ['lunes', 'monday'], ['martes', 'tuesday'], ['miercoles', 'wednesday'], ['jueves', 'thursday'], ['viernes', 'friday'], ['sabado', 'saturday']];
+  function itinerario(txt, N, desde) {
+    const ms = d => Date.parse(d + 'T12:00:00Z'), y0 = +desde.slice(0, 4), out = []; let i = 0, marcas = 0;
+    const deFecha = (dd, mm) => { for (const y of [y0, y0 + 1]) { const k = Math.round((Date.UTC(y, mm - 1, dd, 12) - ms(desde)) / 864e5); if (k >= 0 && k < N) return k; } return null; };
+    for (const lin of String(txt || '').split(/\n+/)) {
+      const n = norm(lin); let k = null, m;
+      if ((m = n.match(/\b(?:dia|day)\s*(\d{1,2})\b/))) k = +m[1] - 1;
+      else if ((m = n.match(/\b(\d{1,2})\s*[\/.-]\s*(\d{1,2})\b/))) k = deFecha(+m[1], +m[2]);
+      else if ((m = n.match(/\b(\d{1,2})\s*(?:de\s+)?([a-z]{3})[a-z]*\b/)) && (MESES.includes(m[2]) || MESES_EN.includes(m[2]))) k = deFecha(+m[1], (MESES.includes(m[2]) ? MESES.indexOf(m[2]) : MESES_EN.indexOf(m[2])) + 1);
+      else { const w = SEMANA.findIndex(ws => ws.some(x => new RegExp('\\b' + x + '\\b').test(n))); if (w >= 0) for (let j = 0; j < N; j++) if (new Date(ms(desde) + j * 864e5).getUTCDay() === w) { k = j; break; } }
+      if (k != null && k >= 0 && k < N) { i = k; marcas++; }
+      // la franja: «por la noche: …» vale para lo que sigue en la línea; «por la mañana» o «por la tarde» la devuelve al día
+      let f = null; const cuerpo = lin.replace(PV_MARCA, '');
+      for (const tz of cuerpo.split(/(\bpor la (?:mañana|manana|tarde|noche)\b|\bde noche\b|\bat night\b|\bin the (?:morning|afternoon|evening)\b|\bnoche\s*:)/i)) {
+        const tn = norm(tz); if (!tn) continue;
+        if (/^(por la noche|de noche|at night|in the evening|noche\s*:)$/.test(tn)) { f = 'n'; continue; } if (/^(por la (manana|tarde)|in the (morning|afternoon))$/.test(tn)) { f = 'd'; continue; }
+        for (const p of planesDeTexto(tz, f === 'n')) if (!/^(?:dia|day)\s*\d+$/i.test(norm(p.txt)) && !SEMANA.some(ws => ws.includes(norm(p.txt)))) out.push({ i, ...p });
+      }
+    }
+    return { partes: out, marcas };
+  }
   const diaMas = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
   function planViaje(o) {
     const N = o.dias.length, ocio = o.motivo !== 'Oficina', lugar = o.lugar || 'ciudad', fecha = i => diaMas(o.desde, i), extras = o.extras || [];
@@ -1128,16 +1178,24 @@ const Motor = (() => {
     // 18/11 (Gabriela, panel: «que le puedas decir si vas a salir de fiesta qué día, si vas a cenar y ese tipo de planes y lo tenga en cuenta»): los planes con su día
     // (o.planes = [{ i, sub }]): los de noche (N*, E1, E3, E4, V4) son una noche fija ese día; los de día (D*, E2, E6, V3, «Playa») cambian el plan de ese día
     const SUBN = /^(N\d|E[134]|V4)$/, nomSub = id => { const x = SUBS.get(id); return x ? { nombre: x.nombre, en: x.en || x.nombre } : {}; };
-    const ocSub = id => id === 'Playa' ? 'Playa' : /^N/.test(id) ? 'Noche' : /^E/.test(id) ? 'Evento' : /^D/.test(id) ? 'Diario' : 'Viaje';
-    const suyos = (o.planes || []).filter(x => x && x.sub && x.i >= 0 && x.i < N), deDiaSuyo = new Map(suyos.filter(x => !SUBN.test(x.sub)).map(x => [x.i, x]));
-    const deDia = (i, w) => deDiaSuyo.has(i) ? (s => s === 'Playa' ? { plan: 'Playa', oc: 'Playa' } : { plan: ocSub(s), sub: s, oc: ocSub(s) === 'Viaje' ? o.motivo : ocSub(s), ...nomSub(s) })(deDiaSuyo.get(i).sub)
-      : !ocio ? { plan: o.motivo, oc: o.motivo } : N === 1 ? { plan: 'Viaje', sub: 'V2', oc: o.motivo } : i === 0 || i === N - 1 ? { plan: 'Viaje', sub: 'V1', oc: o.motivo }
+    const ocSub = id => id === 'Playa' ? 'Playa' : /^N/.test(id) ? 'Noche' : /^E/.test(id) ? 'Evento' : /^D/.test(id) ? 'Diario' : /^S/.test(id) ? 'Deporte' : /^O/.test(id) ? 'Oficina' : 'Viaje';
+    // 20/11 (la maleta de verdad): cada plan con su franja (f: 'd' de día, 'n' de noche; los de antes, por su plan) y su orden. En cada franja, un look para todo lo que
+    // cuenta, el del plan más arreglado («cena y luego a bailar», con la ropa de la cena), y la playa y el deporte, cada uno con el suyo, en su orden y a su hora
+    const suyos = (o.planes || []).filter(x => x && x.sub && x.i >= 0 && x.i < N).map((x, k) => ({ ...x, f: x.f === 'n' || x.f === 'd' ? x.f : SUBN.test(x.sub) ? 'n' : 'd', k: x.k ?? k }));
+    const formDe = s => SUBS.get(s)?.form?.[0] ?? 2, clase = s => s === 'Playa' ? 'playa' : /^S/.test(s) ? 'deporte' : 'resto';
+    const grupos = (i, f) => { const g = [];
+      for (const x of suyos.filter(x => x.i === i && x.f === f).sort((a, b) => a.k - b.k)) { const c = clase(x.sub), y = c === 'resto' ? g.find(z => z.c === c) : g.at(-1)?.c === c ? g.at(-1) : null;
+        if (y) { y.txts.push(x.txt); if (formDe(x.sub) > formDe(y.sub)) y.sub = x.sub; } else g.push({ c, sub: x.sub, txts: [x.txt] }); }
+      return g.map(y => ({ sub: y.sub, txt: y.txts.filter(Boolean).join(' · ').slice(0, 80) || null })); };
+    const qDe = (s, noche) => { if (s === 'Playa') return { plan: 'Playa', oc: 'Playa' }; const oc = ocSub(s);
+      return noche ? { plan: oc === 'Viaje' ? 'Viaje' : oc, sub: s, oc: oc === 'Viaje' ? 'Noche' : oc, ...nomSub(s) } : { plan: oc, sub: s, oc: oc === 'Viaje' ? o.motivo : oc, ...nomSub(s) }; };
+    const HORAS_D = [[12], [11, 16], [10, 13, 16], [10, 12, 15, 17]], HORAS_N = [[21], [20, 23], [20, 22, 23]];
+    const deDia = (i, w) => !ocio ? { plan: o.motivo, oc: o.motivo } : N === 1 ? { plan: 'Viaje', sub: 'V2', oc: o.motivo } : i === 0 || i === N - 1 ? { plan: 'Viaje', sub: 'V1', oc: o.motivo }
       : lugar === 'playa' && w.max >= 25 ? ((i - 1) % 3 < 2 ? { plan: 'Playa', oc: 'Playa' } : { plan: 'Viaje', sub: 'V2', oc: o.motivo })
       : lugar === 'campo' ? { plan: 'Viaje', sub: (i - 1) % 3 < 2 ? 'V3' : 'V2', oc: o.motivo } : { plan: 'Viaje', sub: 'V2', oc: o.motivo };
     // las noches: las señaladas en su fecha; el evento que se marca sin fecha señalada, el penúltimo día; las libres, lejos de las demás
     const noches = [];
-    for (const x of suyos.filter(x => SUBN.test(x.sub))) { if (noches.some(y => y.i === x.i)) continue; const oc = ocSub(x.sub);
-      noches.push({ i: x.i, plan: oc === 'Viaje' ? 'Viaje' : oc, sub: x.sub, oc: oc === 'Viaje' ? 'Noche' : oc, ...nomSub(x.sub), K: .01, suyo: 1 }); }
+    for (let i = 0; i < N; i++) { const g = grupos(i, 'n').slice(0, 3), hs = HORAS_N[g.length - 1]; g.forEach((x, j) => noches.push({ i, ...qDe(x.sub, true), ...(x.txt ? { txt: x.txt } : {}), hora: hs?.[j] ?? 21, K: .01, suyo: 1 })); }
     for (let i = 0; i < N - 1; i++) { const s = SENALADAS.find(x => x.md === fecha(i).slice(5)); if (s && !noches.some(y => y.i === i)) noches.push({ i, plan: s.sub === 'E7' ? 'Evento' : 'Viaje', sub: s.sub, oc: s.sub === 'E7' ? 'Evento' : 'Noche', nombre: s.nombre, en: s.en, K: .001, senal: 1 }); }
     const sen = noches.filter(x => x.senal).length;
     if (extras.includes('Evento') && !sen && !suyos.length) noches.push({ i: Math.max(0, N - 2), plan: 'Evento', oc: 'Evento', K: .01 });
@@ -1184,12 +1242,13 @@ const Motor = (() => {
       let m = elegir(i, q, hora); for (let r = reserva(q); !m && r; r = reserva(r)) m = elegir(i, r, hora);
       if (!m) return; const w = o.dias[i], noche = hora >= 19;
       m.x.ids.forEach(id => { usos.set(id, (usos.get(id) || 0) + 1); if (!noche) usosDia.set(id, (usosDia.get(id) || 0) + 1); }); hechos.add(m.x.ids.slice().sort().join());
-      plan.push({ fecha: fecha(i), oc: q.oc, sub: q.sub || null, ...(q.nombre ? { nombre: q.nombre, en: q.en } : {}), hora, ids: m.x.ids, zspec: m.x.zspec, como: m.x.como, w: { max: w.max, min: w.min, lluvia: w.lluvia, clave: w.clave } });
+      plan.push({ fecha: fecha(i), oc: q.oc, sub: q.sub || null, ...(q.nombre ? { nombre: q.nombre, en: q.en } : {}), ...(q.txt ? { txt: q.txt } : {}), hora, ids: m.x.ids, zspec: m.x.zspec, como: m.x.como, w: { max: w.max, min: w.min, lluvia: w.lluvia, clave: w.clave } });
     };
     // primero las señaladas (su ropa de fiesta entra antes de que el ahorro de la maleta la deje fuera), después los días y al final las demás noches
     noches.filter(q => q.senal).forEach(q => poner(q.i, q, 21));
-    o.dias.forEach((w, i) => poner(i, deDia(i, w), 12));
-    noches.filter(q => !q.senal).forEach(q => poner(q.i, q, 21));
+    o.dias.forEach((w, i) => { const g = grupos(i, 'd').slice(0, 4); if (!g.length) return poner(i, deDia(i, w), 12);
+      g.forEach((x, j) => poner(i, { ...qDe(x.sub, false), ...(x.txt ? { txt: x.txt } : {}) }, HORAS_D[g.length - 1][j])); });
+    noches.filter(q => !q.senal).forEach(q => poner(q.i, q, q.hora || 21));
     plan.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora - b.hora);
     return { plan, T };
   }
@@ -1232,7 +1291,7 @@ const Motor = (() => {
     return { pct: posibles.length ? Math.round(100 * conEl.length / posibles.length) : null, con: conEl.map(x => x.id), posibles: posibles.length, nLooks: vistos.size,
       ocasiones: ocs.filter(x => enOc.has(x)), temps, looks: lista.map(aPropuesta), parecidas, tipos: CON_TIPO[p.tipo] || [] };
   }
-  return { iniciar, subocasiones, detectarSub, inferir, planViaje, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, recrear, aPropuesta, faltas, faltaCon, nombreTipo, claveLook, claveRopa, utilidad, get R() { return R; }, get F() { return F; } };
+  return { iniciar, subocasiones, detectarSub, inferir, planViaje, planesDeTexto, itinerario, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, recrear, aPropuesta, faltas, faltaCon, nombreTipo, claveLook, claveRopa, utilidad, get R() { return R; }, get F() { return F; } };
 })();
 if (typeof module !== 'undefined') module.exports = Motor;
 else if (typeof MOTOR_DATOS !== 'undefined') Motor.iniciar(MOTOR_DATOS.R, MOTOR_DATOS.F, MOTOR_DATOS.S);
