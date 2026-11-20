@@ -1624,14 +1624,17 @@ if (AT) (() => {
   // si quiere (Sheila, 3120), o dice que ninguna. Elegida: «Combinados», apuntarlo para los dos y, con avatar, los dos juntos (/api/pareja/puesto)
   const claveL = x => x.ids.slice().sort().join();
   const diaTxt = f => { const h = diaISO(new Date()), m = diaISO(new Date(Date.now() + 864e5)); return f === h ? t('hoy', 'today') : f === m ? t('mañana', 'tomorrow') : new Date(f + 'T12:00').toLocaleDateString(idioma() === 'en' ? 'en-GB' : 'es-ES', { weekday: 'short', day: 'numeric' }); };
+  // 20/11 (Sheila, 3172: «me falta algo para abajo»): el servidor solo guarda en la propuesta la ropa en uso y quitaba sin avisar la falda guardada de un look guardado;
+  // ahora los looks con ropa guardada, para donar, para lavar o sucia no se ofrecen ni se mandan
+  const enUsoPar = id => { const p = P(id); return !!p && !['guardada', 'donar', 'lavar', 'sucia'].includes(p.estado); };
   function misDecididos(oc) { // lo que ya sabes que te pones en esta ocasión: lo de hoy y lo de los planes del calendario de los próximos 7 días
-    const L = [], ya = new Set(), pon = x => { if (!x.ids?.length || !x.ids.every(P)) return; const k = claveLook(x.ids); if (ya.has(k)) return; ya.add(k); L.push({ ...x, ids: [...x.ids] }); };
+    const L = [], ya = new Set(), pon = x => { if (!x.ids?.length || !x.ids.every(enUsoPar)) return; const k = claveLook(x.ids); if (ya.has(k)) return; ya.add(k); L.push({ ...x, ids: [...x.ids] }); };
     const hoy = diaISO(new Date()), pu = E.agenda[hoy]?.puestos?.[oc]; if (pu) pon({ ids: pu.ids, fecha: hoy, nombre: '', cal: 0 });
     for (let i = 0; i < 7; i++) { const d = diaISO(new Date(Date.now() + i * 864e5)); eventosDe(d).filter(ev => ev.oc === oc).forEach(ev => pon({ ids: lookDe(d, ev) || [], fecha: d, nombre: ev.nombre || '', sub: subPlan(ev), cal: 1 })); }
     return L;
   }
   function paraElegir(d, S) { // sin look decidido: lo decidido, tus looks guardados de esta ocasión y las primeras ideas del motor
-    const { miOpc, misLooks } = parOpc(d, S.oc, S.sub), L = [], ya = new Set(), pon = x => { const k = claveL(x); if (ya.has(k) || !x.ids.every(P)) return; ya.add(k); L.push({ ...x, ids: [...x.ids] }); };
+    const { miOpc, misLooks } = parOpc(d, S.oc, S.sub), L = [], ya = new Set(), pon = x => { const k = claveL(x); if (ya.has(k) || !x.ids.every(enUsoPar)) return; ya.add(k); L.push({ ...x, ids: [...x.ids] }); };
     misDecididos(S.oc).forEach(pon);
     (E.conjuntos || []).filter(c => !c.auto && c.ocasion === S.oc).slice(-6).reverse().forEach(c => pon({ ids: c.ids }));
     misLooks(Motor.looks(miOpc)).slice(0, 6).forEach(x => pon({ ids: x.ids, como: x.como }));
@@ -1748,7 +1751,7 @@ if (AT) (() => {
   }
   // 20/11 (Gabriela, panel: «yo quisiera enviar ese outfit… que tenemos una salida, y que me propongas tres opciones, que te diga cuál es la ocasión»): desde el look que
   // estás viendo (guardado o idea), En pareja con ese look como el tuyo
-  const mandarPareja = (ids, oc, como) => { E.parS = { oc: OCASIONES.includes(oc) ? oc : 'Diario', mio: { ids: [...ids], como, fecha: '', nombre: '', cal: 0 } }; return abrirPareja(); };
+  const mandarPareja = (ids, oc, como) => { if (!ids.every(enUsoPar)) return toast(t('Este look lleva ropa guardada o para lavar', 'This look has clothes put away or in the wash')); E.parS = { oc: OCASIONES.includes(oc) ? oc : 'Diario', mio: { ids: [...ids], como, fecha: '', nombre: '', cal: 0 } }; return abrirPareja(); };
   async function abrirPareja() {
     const cap = capaDe('at-pareja', 'at-cp at-par', t('En pareja', 'As a couple')), S = E.parS = E.parS || { oc: 'Diario' };
     const cab = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button><h1>${t('En pareja', 'As a couple')}</h1>`;
