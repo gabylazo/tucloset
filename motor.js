@@ -41,7 +41,7 @@ const Motor = (() => {
   const ZAPS = [['zapatillas-blancas', 'zapatillas', 'Blanco', 'plano'], ['zapatillas-negras', 'zapatillas', 'Negro', 'plano'], ['botines-negros-planos', 'botines', 'Negro', 'plano'], ['botines-negros-plataforma', 'botines', 'Negro', 'bajo'], ['botines-camel-plataforma', 'botines', 'Camel', 'bajo'], ['botines-negros-tacon', 'botines', 'Negro', 'medio'], ['mocasines-negros', 'mocasines', 'Negro', 'plano'], ['bailarinas-negras', 'bailarinas', 'Negro', 'plano'], ['sandalias-negras-planas', 'sandalias_planas', 'Negro', 'plano'], ['sandalias-marrones-planas', 'sandalias_planas', 'Marrón', 'plano'], ['sandalias-beige-plataforma', 'sandalias_planas', 'Beige', 'bajo'], ['sandalias-negras-tacon', 'sandalias_tacon', 'Negro', 'medio']];
   const TACON = { plano: 0, bajo: 1, medio: 2, alto: 3 };
 
-  function iniciar(reglas, formulas, siluetas) {
+  function iniciar(reglas, formulas, siluetas) { COMP = new WeakMap(); // 20/11: reglas nuevas, condiciones compiladas de nuevo
     R = reglas; F = formulas; S = siluetas || {};
     for (const s of R.inferencia.subtipos) s.re = s.palabras.map(re);
     for (const m of R.inferencia.modificadores) {
@@ -259,13 +259,31 @@ const Motor = (() => {
     const b = typeof c[2] === 'string' && ES_RUTA.test(c[2]) ? leer(c[2], env) : c[2];
     return OP[c[1]](a, b);
   }
-  const cumple = (si, env) => { for (const c of si) if (!una(c, env)) return false; return true; };
+  // 20/11 (Gabriela, panel: «la app está lenta y los botones no están funcionando»; con su clóset de 107 prendas, Diario tardaba 0,3 s en el Mac y más de 1 s en un
+  // móvil): las condiciones de las reglas se compilan una vez a funciones (la ruta partida, la operación elegida y las listas fijas de «en» como Set) en vez de
+  // interpretarse en cada look. Mismo resultado que una() (comprobado look a look con scratchpad/igual-motor.mjs); una() queda como referencia
+  let COMP = new WeakMap();
+  const lector = p => { const k = p.split('.'); if (k.length === 2) { const [x, y] = k; return env => { const o = env[x]; return o == null ? undefined : o[y]; }; }
+    return env => { let o = env; for (const q of k) { if (o == null) return undefined; o = o[q]; } return o; }; };
+  function compilar(c) {
+    if (!Array.isArray(c)) { const alts = c.o.map(x => { if (Array.isArray(x) && Array.isArray(x[0])) { const fs = x.map(compilar); return env => fs.every(f => f(env)); } return compilar(x); });
+      return env => alts.some(f => f(env)); }
+    const get = lector(c[0]), op = c[1];
+    if (op === 'existe') return env => get(env) != null; if (op === 'no_existe') return env => get(env) == null;
+    const esRuta = typeof c[2] === 'string' && ES_RUTA.test(c[2]), getB = esRuta ? lector(c[2]) : null, b = c[2];
+    if (!esRuta && (op === 'en' || op === 'no_en')) { const S = new Set(b || []), neg = op === 'no_en';
+      return env => { const a = get(env); if (a === undefined) return false; const r = Array.isArray(a) ? a.some(x => S.has(x)) : S.has(a); return neg ? !r : r; }; }
+    const f = OP[op];
+    return getB ? env => { const a = get(env); return a === undefined ? false : f(a, getB(env)); } : env => { const a = get(env); return a === undefined ? false : f(a, b); };
+  }
+  const cumple = (si, env) => { let f = COMP.get(si); if (!f) { const fs = si.map(compilar); f = e => { for (const g of fs) if (!g(e)) return false; return true; }; COMP.set(si, f); } return f(env); };
 
   /* ---------- 4. los campos del look ---------- */
   // 16/11 (Sheila, 2432: su bikini en los looks de playa): «bano» es el bañador o el bikini que va debajo en las fórmulas de playa (PLA-01 y PLA-02), solo en «Tu viaje»
   const TRAJE_SUB = new Set(['E1', 'E2', 'E3', 'E4', 'E5']); // 18/11: los planes en los que un hombre va con americana
   const PIEZAS = ['arriba', 'base_interior', 'abajo', 'vestido', 'capa', 'calzado', 'bolso', 'accesorio', 'bano'];
-  const diasDesde = (iso, hoy) => Math.round((Date.parse(hoy) - Date.parse(iso)) / 864e5);
+  const FECHAS = new Map(), msDe = s => { let v = FECHAS.get(s); if (v === undefined) { v = Date.parse(s); FECHAS.set(s, v); } return v; }; // 20/11: Date.parse una vez por fecha
+  const diasDesde = (iso, hoy) => Math.round((msDe(hoy) - msDe(iso)) / 864e5);
   function camposLook(l, ctx, pf, hoy) {
     const ps = PIEZAS.map(k => l[k]).filter(Boolean), ropaP = ps.filter(p => !['calzado', 'bolso', 'accesorio'].includes(p._f.cat)), ropa = ropaP.map(p => p._f);
     const prA = l.arriba || l.vestido, A = prA?._f, B = l.abajo?._f, C = l.capa?._f;

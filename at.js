@@ -1087,13 +1087,15 @@ if (AT) (() => {
   // 18/11 (Sheila, 2749): mientras mira las ideas, las otras ocasiones de la fila se calculan de una en una en los ratos quietos (sin contarlas como vistas),
   // para que cambiar de una a otra sea al instante. Un toque en la pantalla aplaza el siguiente cálculo; al salir de Ideas, se para
   let preT = 0, prePaso = null;
-  document.addEventListener('pointerdown', () => { if (prePaso) { clearTimeout(preT); preT = setTimeout(prePaso, 1500); } }, { capture: true, passive: true });
+  // 20/11 (Gabriela, panel: «la app está lenta y los botones no están funcionando»): con un clóset grande cada cálculo tarda casi un segundo en el móvil y bloquea
+  // los toques; el cálculo por adelantado espera ahora 2,5 s sin tocar la pantalla para empezar y 1,2 s entre una ocasión y otra (antes, 1,2 s y 0,4 s)
+  document.addEventListener('pointerdown', () => { if (prePaso) { clearTimeout(preT); preT = setTimeout(prePaso, 2500); } }, { capture: true, passive: true });
   // En Hoy, lo mismo mientras está abierta la fila de ocasiones (los 8 looks que pide Hoy, sin plan concreto, como al tocar una ocasión)
   function precalcular(oc, n, sigue, subDe) {
     clearTimeout(preT); const orden = ['Diario', 'Oficina', 'Noche', 'Evento'], i = orden.indexOf(oc), pend = [...orden.slice(i + 1), ...orden.slice(0, Math.max(i, 0))];
     prePaso = () => { if (!sigue() || document.hidden || !pend.length || !E.prendas.length) { prePaso = null; return; }
-      const o = pend.shift(); pedirMotor(o, n, subDe(o), true); preT = setTimeout(prePaso, 400); };
-    preT = setTimeout(prePaso, 1200);
+      const o = pend.shift(); pedirMotor(o, n, subDe(o), true); preT = setTimeout(prePaso, 1200); };
+    preT = setTimeout(prePaso, 2500);
   }
   const precalcularIdeas = oc => precalcular(oc, 12, () => E.pantalla === 'looks' && E.lkTab === 'ideas', o => { const ss = Motor.subocasiones(o); return ss.some(x => x.id === E.ideaSub?.[o]) ? E.ideaSub[o] : null; });
   const precalcularHoy = () => E.hzPreg && E.plan !== 'Todos' && precalcular(E.plan, 8, () => E.pantalla === 'hoy' && E.hzPreg, () => null);
