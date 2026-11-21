@@ -140,7 +140,11 @@ const urlsCat = new Map(); function urlCat(p) { if (!p) return ''; if (!p.cat) r
 function urlFoto(p) { if (!p) return ''; if (p.src) return p.src; if (!p.foto) return ''; if (!urls.has(p.id)) urls.set(p.id, URL.createObjectURL(p.foto)); return urls.get(p.id); }
 const P = id => E.prendas.find(p => p.id === id);
 const activas = () => verPrendas().filter(p => !['guardada', 'donar'].includes(p.estado));
-async function guardar() { await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda); programarNube(); }
+// 21/11 (Gabriela: «recomendar… no sólo que las piezas combinan entre sí sino que esa persona se lo pondría»): los looks guardados, en corto, dentro de los gustos,
+// para que el motor aprenda de ellos por tipo de prenda (motor.js, tiposAprendidos). Los «Me lo pongo» automáticos van con a:1 y cuentan solo por sus puestas
+function guarSync() { if (!E.perfil) return; const g = E.perfil.gustos = E.perfil.gustos || {};
+  g.guar = (E.conjuntos || []).filter(c => !c.ejemplo && c.ids?.length > 1).slice(-60).map(c => ({ k: c.ids.join(','), ...(c.creada ? { d: c.creada } : {}), ...(c.ocasion ? { o: c.ocasion } : {}), ...(c.auto ? { a: 1 } : {}), ...(c.usos?.length ? { u: c.usos.length } : {}) })); }
+async function guardar() { guarSync(); await BD.set('perfil', E.perfil); await BD.set('prendas', E.prendas); await BD.set('conjuntos', E.conjuntos); await BD.set('agenda', E.agenda); programarNube(); }
 
 /* ---------- mis colores (0.73): colorimetría ligera de la primera versión, sin foto ---------- */
 // Decidido por las dos (18/10, «el punto 3 sí»): colorimetría ligera en la 1.0. Cuatro preguntas y una de las cuatro estaciones clásicas;

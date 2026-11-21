@@ -958,6 +958,7 @@ if (AT) (() => {
   // 18/11: con pre, solo calcula y guarda (lo que se precalcula en Ideas no cuenta como visto hasta que se enseña)
   // 20/11: las opciones del motor y su firma, aparte, para poder calcularlas también en segundo plano (calcularFondo)
   const opcMotor = (plan, n, sub) => {
+    if (E.perfil && !E.perfil.gustos?.guar && typeof guarSync === 'function') guarSync(); // 21/11: los looks guardados, para el motor (app.js)
     const g = E.perfil?.gustos, hoy = hoyISO(), excluir = [...(g?.fuera || []), ...(g?.hoy?.d === hoy ? g.hoy.k : [])], ins = insHoy(plan), pr = quitarPor(ins, activas()), ev = sub && eventoAhora()?.oc === plan ? eventoAhora() : null, hora = ev?.hora && !ev.deHoy ? parseInt(ev.hora) : undefined;
     const firma = JSON.stringify([plan, n, sub, hora, hoy, ins?.firma, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), pr.map(p => [p.nombre, p.tipo, p.color, p.estacion, p.catM, p.detalles, p.est?.sub].join('·')).join('|'), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
     return { kc: plan + n + (sub || ''), firma, hoy, pr, o: { prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true, ...(sub ? { sub, hora } : {}) } };
