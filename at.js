@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.330'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.336'; document.head.append(l);
   document.documentElement.classList.add('at');
   // 20/11 (Gabriela, panel: «sigue saliendo el cuadro que encierra el botón del avatar»): en el iPhone, tocar un botón no lo enfoca y, cuando la pantalla se vuelve a
   // pintar y la app le devuelve el foco (En pareja, E.parFoco), Safari le pone el marco del teclado. Con el dedo o el ratón, sin marco (at.css); con el teclado, vuelve
@@ -74,6 +74,20 @@ if (AT) (() => {
     deshacer: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'),
     cerrar: svg('<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>'),
     info: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>'), // 19/11: «Ver su ficha»
+    // 21/11 (Gabriela, panel: «en vez de las letras… las letras quedan un poco poco profesional… y así con todo»): las opciones, con icono. La palabra va en
+    // aria-label y title. Cómo llevar la de arriba: la prenda de arriba y el pantalón, con el bajo por fuera, a medias o por dentro de la cinturilla
+    // (21/11, 14:2x, al verlo en pantalla: con la cinturilla solo en línea no se distinguían) la cinturilla va rellena: entera por dentro, media a medias, ninguna por fuera
+    cfuera: svg('<path d="M9 2.5 12 3.8l3-1.3 3.5 2-1.3 3-1.6-.7v8.2H8.4V6.8l-1.6.7-1.3-3z"/><path d="M8.6 15.5 8 21.5h3l1-4 1 4h3l-.6-6"/>'),
+    cmedia: svg('<path d="M9 2.5 12 3.8l3-1.3 3.5 2-1.3 3-1.6-.7v8.7L12 12.6V11H8.4V6.8l-1.6.7-1.3-3z"/><path d="M8.4 11H12v2H8.4z" fill="currentColor"/><path d="M8.4 13 7.8 21.5H11l1-5 1 5h3.2l-.5-6"/>'),
+    cdentro: svg('<path d="M9 2.5 12 3.8l3-1.3 3.5 2-1.3 3-1.6-.7V11H8.4V6.8l-1.6.7-1.3-3z"/><path d="M8.4 11h7.2v2H8.4z" fill="currentColor"/><path d="M8.4 13 7.8 21.5H11l1-5 1 5h3.2l-.6-8.5"/>'),
+    // Cómo la llevas (ficha): cerrada o abierta, oversize y si transparenta
+    cerrada: svg('<path d="M8.5 3.5 5 5.5V20.5h14V5.5l-3.5-2"/><path d="M8.5 3.5 12 10l3.5-6.5M12 10v10.5"/><circle cx="12" cy="13.3" r=".6"/><circle cx="12" cy="16.8" r=".6"/>'),
+    abierta: svg('<path d="M8.5 3.5 5 5.5V20.5h4.6V10.2zM15.5 3.5 19 5.5V20.5h-4.6V10.2z"/><path d="M11.4 8.5v12M12.6 8.5v12" stroke-dasharray="1 1.6"/>'),
+    oversize: svg('<path d="M9.5 4h5l4.5 2.6-1.6 3.4-2-.9V20h-6.8V9.1l-2 .9L5 6.6z"/><path d="M2.5 12.5h2.2M3.4 11.3 2.3 12.5l1.1 1.2M21.5 12.5h-2.2M20.6 11.3l1.1 1.2-1.1 1.2"/>'),
+    transp: svg('<path d="M9.5 4h5l4.5 2.6-1.6 3.4-2-.9V20h-6.8V9.1l-2 .9L5 6.6z" stroke-dasharray="1.4 1.5"/><path d="M10.6 11.5c.6 2.6 2.2 2.6 2.8 0M12 15.5v3"/>'),
+    // Tus planes del viaje: día a día o pegar el itinerario
+    diaadia: svg('<path d="M4.5 6h15v14h-15zM4.5 10h15M8.5 4v3.5M15.5 4v3.5"/><path d="M7.5 13h2.5M7.5 16.5h2.5M14 13h2.5M14 16.5h2.5"/>'),
+    pegar: svg('<path d="M8.5 5H6v15.5h12V5h-2.5"/><path d="M9 3.5h6v3H9zM9 10.5h6M9 13.5h6M9 16.5h4"/>'),
   };
 
   /* ---------- barra de abajo: cinco secciones, en mayúsculas pequeñas; la activa, en nogal y con los dos agujeros ---------- */
@@ -288,7 +302,9 @@ if (AT) (() => {
   const camisaBajo = ps => { const ar = (ps || []).filter(p => p.tipo === 'Arriba').map(p => sinTilde(p.nombre));
     return ar.some(n => /camisa|blusa|\bpolo\b/.test(n) && !/sobrecamisa|camiseta/.test(n)) && ar.some(n => /jersey|sudadera|chaleco de punto|sueter/.test(n)); };
   const COMOS = ps => camisaBajo(ps) ? [['suelta', t('Camisa por fuera', 'Shirt untucked')], ['por dentro', t('Camisa por dentro', 'Shirt tucked in')]]
-    : [['suelta', t('Fuera', 'Out')], ...(E.perfil?.ropa === 'hombre' ? [] : [['media', t('A medias', 'Half')]]), ['por dentro', t('Dentro', 'In')]];
+    : [['suelta', t('Por fuera', 'Untucked')], ...(E.perfil?.ropa === 'hombre' ? [] : [['media', t('A medias', 'Half tucked')]]), ['por dentro', t('Por dentro', 'Tucked in')]];
+  const COMO_IC = { suelta: 'cfuera', media: 'cmedia', 'por dentro': 'cdentro' };   // 21/11: con icono (Gabriela); el nombre, en aria-label y title
+  const comoBt = (v, l, extra) => `<button type="button" class="at-op" data-como="${v}" ${extra} aria-label="${l}" title="${l}">${I[COMO_IC[v]]}</button>`;
   const comoAplica = ps => { const top = ps.filter(p => p.tipo === 'Arriba').pop(); if (!top || !ps.some(p => p.tipo === 'Abajo')) return false;
     const f = Motor.ficha(top); return !['body', 'top_corto', 'top_deportivo'].includes(f.subtipo) && top.est?.largo !== 'crop' && !/crop|\bcorto\b|body/i.test(top.nombre || ''); };
   // 18/11 (Sheila, 2906: «el avatar sigue saliendo pequeño»): la foto de la IA trae blanco alrededor de la persona; se recorta, con un poco de aire, para que la persona
@@ -338,7 +354,7 @@ if (AT) (() => {
         if (!capa) { capa = document.createElement('div'); capa.className = 'at-puesto'; fig.after(capa); }
         capa.style.height = alto0 + 'px'; fig.style.display = 'none'; b.setAttribute('aria-pressed', 'true'); LS.set('tc_ver_avatar', '1');
         capa.innerHTML = `<p class="at-como-tit" id="at-como-t">${t('¿Cómo llevas la de arriba?', 'How do you wear the top?')}</p>
-          <div class="at-como at-como-elegir" role="group" aria-labelledby="at-como-t">${COMOS(ps).map(([v, l]) => `<button data-como="${v}"${v === sug ? ' class="sug"' : ''}>${l}</button>`).join('')}</div>
+          <div class="at-como at-como-elegir" role="group" aria-labelledby="at-como-t">${COMOS(ps).map(([v, l]) => comoBt(v, l, v === sug ? 'data-sug="1"' : '')).join('')}</div>
 `;
         capa.querySelectorAll('[data-como]').forEach(x => { x.onclick = e => { e.stopPropagation(); COMO_ELEGIDO.set(idsDe(ps), x.dataset.como); verPuesto(b, zona, ps, como, false, false, true); }; });
         if (b.matches(':focus-visible')) capa.querySelector('[data-como]')?.focus({ preventScroll: true }); // con teclado, el foco pasa a la elección
@@ -359,7 +375,7 @@ if (AT) (() => {
     if (!capa.isConnected) return;
     if (r.error) { capa.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); LS.set('tc_ver_avatar', null); return toast(r.error); }
     if (b.classList.contains('at-puestob') && !b.classList.contains('probado')) { b.classList.add('probado'); b.setAttribute('aria-label', t('Verlo puesto en mí: ya te lo has probado', 'See it on me: already tried on')); }
-    const ahora = el || como || 'suelta', opc = comoAplica(ps) ? `<div class="at-como" role="group" aria-label="${t('Cómo llevar la de arriba', 'How to wear the top')}">${COMOS(ps).map(([v, l]) => `<button data-como="${v}" aria-pressed="${v === ahora}">${l}</button>`).join('')}</div>` : '';
+    const ahora = el || como || 'suelta', opc = comoAplica(ps) ? `<div class="at-como" role="group" aria-label="${t('Cómo llevar la de arriba', 'How to wear the top')}">${COMOS(ps).map(([v, l]) => comoBt(v, l, `aria-pressed="${v === ahora}"`)).join('')}</div>` : '';
     const vis = await sinBlanco(r.blob); if (!capa.isConnected) return;
     capa.innerHTML = `<img src="${URL.createObjectURL(vis)}" alt="${t('Tú con este look', 'You wearing this look')}"><div class="at-puesto-pie">${opc}<button class="at-puesto-otra av-ico" aria-label="${t('No se parece: otra vez', 'Not right: try again')}" title="${t('Otra vez', 'Try again')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/></svg></button></div>`;
     capa.querySelector('.at-puesto-otra').onclick = e => { e.stopPropagation(); verPuesto(b, zona, ps, como, true); };
@@ -687,7 +703,7 @@ if (AT) (() => {
     // transparenta (a un hombre, la americana y la chaqueta van siempre abiertas: sin el «Cerrada / Abierta»; Moda, C6). El motor lo lee (Motor.ficha: f.cierre, y «Oversize» y «Transparente» de los detalles). Lo que va en esa línea no se repite en los datos
     const lleva = ['Arriba', 'Abrigo', 'Vestidos'].includes(p.tipo) && !p.ejemplo, LLEVA_DET = lleva ? ['Oversize', 'Transparente'] : [];
     const datos = [sub, forma, (p.detalles || []).filter(d => !LLEVA_DET.includes(d)).join(', ').toLowerCase()].filter(Boolean).map(esc).join(' · ');
-    const tieneD = d => (p.detalles || []).includes(d), bt = (acc, v, txt, on) => `<button type="button" data-atfacc="${acc}" data-v="${v}" aria-pressed="${on}">${txt}</button>`;
+    const tieneD = d => (p.detalles || []).includes(d), bt = (acc, v, txt, on) => `<button type="button" class="at-op" data-atfacc="${acc}" data-v="${v}" aria-pressed="${on}" aria-label="${txt}" title="${txt}">${I[{ cerrada: 'cerrada', abierta: 'abierta', Oversize: 'oversize', Transparente: 'transp' }[v]]}</button>`;
     const llevaH = lleva ? `<div class="at-lleva" role="group" aria-label="${t('Cómo la llevas', 'How you wear it')}">${fz.abrochable && !(E.perfil?.ropa === 'hombre' && ['americana', 'chaqueta'].includes(fz.subtipo_real || fz.subtipo)) ? `<span class="at-lleva-seg">${bt('cierre', 'cerrada', t('Cerrada', 'Closed'), fz.cierre === 'cerrada')}${bt('cierre', 'abierta', t('Abierta', 'Open'), fz.cierre === 'abierta')}</span>` : ''}${bt('ldeta', 'Oversize', 'Oversize', tieneD('Oversize'))}${p.tipo !== 'Abrigo' ? bt('ldeta', 'Transparente', t('Transparenta', 'Sheer'), tieneD('Transparente')) : ''}</div>` : '';
     const precio = p.precio ? `${dinero(p.precio)}${/^\d{4}-\d{2}$/.test(p.compra || '') ? ` · ${t('comprada en', 'bought in')} ${nomMes(p.compra)}` : ''}${usos.length ? ` · ${dinero(p.precio / usos.length)}/${t('puesta', 'wear')}` : ''}` : '';
     const hex = (COLORES.find(([c]) => c === p.color) || [])[1];
@@ -1211,7 +1227,9 @@ if (AT) (() => {
   // 17/11 (probadora, por Sheila, 2643: «en las ideas no me deja eliminar uno; mi idea era eliminarlo a ver si me generaba otra combinación nueva»): la ✕ de Hoy (12/11)
   // también en cada idea. La idea descartada no vuelve (gustos.fuera, que pedirMotor ya excluye), cuenta como «no me gusta» y la rejilla se rellena con la siguiente. Con «Deshacer».
   // los looks descartados (en Hoy o en Ideas), del último al primero, solo si sus prendas siguen en el clóset
-  const descartados = () => { const g = E.perfil?.gustos, ks = [...(g?.fuera || []), ...(g?.hoy?.d === hoyISO() ? g.hoy.k : [])], vistos = new Set(), out = [];
+  // 21/11 (Gabriela, panel: «en mis eliminados me dice que tengo 36… quisiera eliminarlo… como la papelera normal del ordenador que puedes vaciarla… cuando yo quiera»):
+  // «Vaciar la papelera» los quita de la lista (`gustos.vaciada`) y ya no se pueden recuperar; siguen sin volver a salir (gustos.fuera, como siempre)
+  const descartados = () => { const g = E.perfil?.gustos, ks = [...(g?.fuera || []), ...(g?.hoy?.d === hoyISO() ? g.hoy.k : [])], vistos = new Set(g?.vaciada || []), out = [];
     for (const k of ks.reverse()) { if (vistos.has(k)) continue; vistos.add(k); const ids = k.split(','); if (ids.length >= 2 && ids.every(id => P(id))) out.push({ k, ids }); }
     return out; };
   function abrirDescartados(foco) {
@@ -1219,11 +1237,15 @@ if (AT) (() => {
     const xs = descartados().slice(0, 60), [ancho] = caja(), TW = Math.floor((ancho - 40 - 12) / 2), TH = Math.round(TW * 1.25);
     cap.innerHTML = `<button class="x" aria-label="${t('Cerrar', 'Close')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button><h1>${t('Descartados', 'Discarded')}</h1>
       <p class="at-vj-sub">${t('No vuelven a salir. Con la flecha vuelven a tus ideas.', 'They won’t show again. The arrow brings them back to your ideas.')}</p>`
+      + (xs.length ? `<p class="at-descs-vaciar">${icoAcc('data-vaciar', I.papelera, t('Vaciar la papelera', 'Empty the bin'))}</p>` : '')
       + (xs.length ? `<div class="at-rej2">${xs.map((x, i) => `<figure class="at-t">${baldosaFija(psDe(x), TW, TH, `${t('Look descartado', 'Discarded look')} ${i + 1}`)}<figcaption>${icoAcc(`data-recup="${i}"`, I.deshacer, `${t('Recuperar el look', 'Restore the look')} ${i + 1}`)}</figcaption></figure>`).join('')}</div>`
         : `<p class="at-vj-sub">${t('No hay looks descartados.', 'No discarded looks.')}</p>`);
     const cerrar = () => { cap.remove(); pintarLooks(); (document.querySelector('#p-looks [data-descartados]') || document.querySelector('#p-looks [data-ideaoc][aria-current]'))?.focus({ preventScroll: true }); };
     cap.onkeydown = e => { if (e.key === 'Escape') cerrar(); };
-    cap.onclick = async e => { const b = e.target.closest('.x,[data-recup]'); if (!b) return; if (b.classList.contains('x')) return cerrar();
+    cap.onclick = async e => { const b = e.target.closest('.x,[data-recup],[data-vaciar]'); if (!b) return; if (b.classList.contains('x')) return cerrar();
+      if (b.dataset.vaciar != null) { const g = E.perfil.gustos, antes = g.vaciada, vivas = new Set([...(g.fuera || []), ...(g.hoy?.k || [])]);
+        g.vaciada = [...new Set([...(antes || []).filter(k => vivas.has(k)), ...descartados().map(x => x.k)])]; await guardar(); programarNube(); abrirDescartados();
+        return toast(t('Papelera vaciada', 'Bin emptied'), [t('Deshacer', 'Undo'), async () => { g.vaciada = antes; await guardar(); programarNube(); if ($('at-descartes')) abrirDescartados(); }]); }
       const x = xs[+b.dataset.recup], g = E.perfil.gustos; g.fuera = (g.fuera || []).filter(y => y !== x.k); if (g.hoy?.k) g.hoy.k = g.hoy.k.filter(y => y !== x.k);
       parejas(x.ids.map(P).filter(Boolean)).forEach(q => { if (g.no?.[q] > 1) g.no[q]--; else if (g.no) delete g.no[q]; });
       E.propuestas = []; await guardar(); programarNube(); toast(t('Recuperado: vuelve a tus ideas', 'Restored: back in your ideas')); abrirDescartados(+b.dataset.recup); };
@@ -1380,7 +1402,7 @@ if (AT) (() => {
     const filaDia = i => { const x = F.textos[i] || {}, d = diaPl(i); return `<fieldset class="at-vj-dia"><legend>${d}</legend>`
       + `<label class="ag-f at-vj-tx">${agIc('sol')}<input type="text" data-vjtd="${i}" maxlength="160" autocomplete="off" enterkeyhint="next" aria-label="${t('Durante el día', 'During the day')}, ${d}" placeholder="${i ? t('Durante el día', 'During the day') : t('Durante el día: museo, playa…', 'During the day: museum, beach…')}" value="${esc(x.d || '')}"></label>`
       + `<label class="ag-f at-vj-tx">${agIc('luna')}<input type="text" data-vjtn="${i}" maxlength="160" autocomplete="off" enterkeyhint="next" aria-label="${t('Por la noche', 'At night')}, ${d}" placeholder="${i ? t('Por la noche', 'At night') : t('Por la noche: cena, luego copas…', 'At night: dinner, then drinks…')}" value="${esc(x.n || '')}"></label></fieldset>`; };
-    const modo = (m, txt) => `<button type="button" class="${F.modo === m ? 'on' : ''}" data-vjmodo="${m}" aria-pressed="${F.modo === m}">${txt}</button>`;
+    const modo = (m, txt) => `<button type="button" class="at-op${F.modo === m ? ' on' : ''}" data-vjmodo="${m}" aria-pressed="${F.modo === m}" aria-label="${txt}" title="${txt}">${I[m === 'dias' ? 'diaadia' : 'pegar']}</button>`;
     const fila = (ic, id, valor, control) => `<label class="ag-f">${agIc(ic)}<span class="ag-v" aria-hidden="true"><span id="${id}-v">${valor}</span>${control.startsWith('<select') ? agIc('abajo') : ''}</span>${control}</label>`;
     const nDias = n => t(`${n} ${n === 1 ? 'día' : 'días'}`, `${n} day${n === 1 ? '' : 's'}`), nomMotivo = m => m === 'Oficina' ? t('De trabajo', 'For work') : t('De ocio', 'For leisure');
     const idaTxt = () => t('Ida: ', 'Leaving ') + fDia(F.desde, { weekday: 'short', day: 'numeric', month: 'short' });
