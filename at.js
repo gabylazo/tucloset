@@ -299,14 +299,24 @@ if (AT) (() => {
     const c = document.createElement('canvas'); c.width = w; c.height = h; const cx = c.getContext('2d', { willReadFrequently: true }); cx.drawImage(bm, 0, 0, w, h);
     const d = cx.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1, alfa = false;
     for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) { const o = (y * w + i) * 4; if (d[o + 3] < 250) alfa = true; if (d[o + 3] > 16 && Math.min(d[o], d[o + 1], d[o + 2]) < 236) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
-    const recorta = !(x1 < 0 || (y1 - y0 + 1) / h > .97); if (!recorta && !alfa) return bl;
+    const recorta = !(x1 < 0 || (y1 - y0 + 1) / h > .97); if (!recorta && alfa) return bl;
     const m = .03 * H, X0 = recorta ? Math.max(0, x0 / k - m) : 0, Y0 = recorta ? Math.max(0, y0 / k - m) : 0, X1 = recorta ? Math.min(W, (x1 + 1) / k + m) : W, Y1 = recorta ? Math.min(H, (y1 + 1) / k + m) : H;
-    // 21/11 (Gabriela, 3174: «no puede ir fondo en ninguna… El fondo blanco… ni gris, ni negro, ni nada»): la foto llega sin fondo (transparente) y se ponía negra en JPEG
-    // y, sin pasar a JPEG, en modo oscuro o sobre la baldosa se veía el color de detrás; ahora lo transparente queda siempre en blanco, en todas las cuentas
-    const cc = document.createElement('canvas'); cc.width = Math.round(X1 - X0); cc.height = Math.round(Y1 - Y0); const c2 = cc.getContext('2d'); c2.fillStyle = '#fff'; c2.fillRect(0, 0, cc.width, cc.height);
-    c2.drawImage(bm, X0, Y0, X1 - X0, Y1 - Y0, 0, 0, cc.width, cc.height);
-    return await new Promise(r => cc.toBlob(z => r(z || bl), 'image/jpeg', .92));
+    // 21/11, 12:0x (Gabriela, panel: «que sea transparente… que no se vea nada atrás… que siempre esté a favor del modo de la app, como siempre ha estado»): sin fondo,
+    // nunca blanco (en modo oscuro salía un cuadro blanco), ni negro (el JPEG pintaba de negro lo transparente). Se guarda con transparencia (WebP; Safari da PNG) y,
+    // si la foto llega con fondo blanco (de antes, o si el servidor no pudo quitarlo), lo blanco que toca el borde se vuelve transparente, con el borde suave
+    const cc = document.createElement('canvas'), cw = cc.width = Math.round(X1 - X0), ch = cc.height = Math.round(Y1 - Y0), c2 = cc.getContext('2d', { willReadFrequently: !alfa });
+    c2.drawImage(bm, X0, Y0, X1 - X0, Y1 - Y0, 0, 0, cw, ch);
+    if (!alfa) {
+      const id = c2.getImageData(0, 0, cw, ch), q = id.data, n = cw * ch, vis = new Uint8Array(n), pila = [], claro = i => Math.min(q[i * 4], q[i * 4 + 1], q[i * 4 + 2]);
+      const ir = i => { if (!vis[i] && claro(i) >= 240) { vis[i] = 1; pila.push(i); } };
+      for (let x = 0; x < cw; x++) { ir(x); ir(n - cw + x); } for (let y = 0; y < ch; y++) { ir(y * cw); ir(y * cw + cw - 1); }
+      while (pila.length) { const i = pila.pop(), x = i % cw; q[i * 4 + 3] = 0; if (x > 0) ir(i - 1); if (x < cw - 1) ir(i + 1); if (i >= cw) ir(i - cw); if (i < n - cw) ir(i + cw); }
+      for (let i = 0; i < n; i++) if (!vis[i]) { const x = i % cw; if ((x > 0 && vis[i - 1]) || (x < cw - 1 && vis[i + 1]) || (i >= cw && vis[i - cw]) || (i < n - cw && vis[i + cw])) { const v = claro(i); if (v > 200) q[i * 4 + 3] = Math.round(255 * (255 - v) / 55); } }
+      c2.putImageData(id, 0, 0);
+    }
+    return await new Promise(r => cc.toBlob(z => r(z || bl), 'image/webp', .92));
   } catch (e) { return bl; } })(); RECORTES.set(bl, pr); return pr; };
+  window.atPrueba && (window.atPrueba.sinBlanco = sinBlanco); // herramientas/pruebas/probar-pareja-elige.mjs
   // 18/11 (Sheila, 2906; capturas del vídeo del avatar): la capa medía lo mismo que el look de ropa, que en Hoy se queda bajo por el ancho, y debajo quedaba hueco.
   // Ahora ocupa todo el alto libre de la zona (como `ajustar()` de Hoy); donde la zona no tiene alto fijo, el del look
   const altoCapa = (zona, fig) => { const f = fig.offsetHeight || 0, z = zona.clientHeight; if (!z) return f || 320;
