@@ -299,12 +299,13 @@ if (AT) (() => {
     const c = document.createElement('canvas'); c.width = w; c.height = h; const cx = c.getContext('2d', { willReadFrequently: true }); cx.drawImage(bm, 0, 0, w, h);
     const d = cx.getImageData(0, 0, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1, alfa = false;
     for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) { const o = (y * w + i) * 4; if (d[o + 3] < 250) alfa = true; if (d[o + 3] > 16 && Math.min(d[o], d[o + 1], d[o + 2]) < 236) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
-    if (x1 < 0 || (y1 - y0 + 1) / h > .97) return bl;
-    const m = .03 * H, X0 = Math.max(0, x0 / k - m), Y0 = Math.max(0, y0 / k - m), X1 = Math.min(W, (x1 + 1) / k + m), Y1 = Math.min(H, (y1 + 1) / k + m);
-    const cc = document.createElement('canvas'); cc.width = Math.round(X1 - X0); cc.height = Math.round(Y1 - Y0); cc.getContext('2d').drawImage(bm, X0, Y0, X1 - X0, Y1 - Y0, 0, 0, cc.width, cc.height);
-    // 20/11 (Gabriela, panel: «en los avatar de la pareja me sale un fondo negro»): la foto de los dos llega sin fondo y el JPEG pinta de negro lo transparente;
-    // con transparencia se guarda en WebP (Safari, que no lo escribe, da PNG)
-    return await new Promise(r => cc.toBlob(z => r(z || bl), alfa ? 'image/webp' : 'image/jpeg', .92));
+    const recorta = !(x1 < 0 || (y1 - y0 + 1) / h > .97); if (!recorta && !alfa) return bl;
+    const m = .03 * H, X0 = recorta ? Math.max(0, x0 / k - m) : 0, Y0 = recorta ? Math.max(0, y0 / k - m) : 0, X1 = recorta ? Math.min(W, (x1 + 1) / k + m) : W, Y1 = recorta ? Math.min(H, (y1 + 1) / k + m) : H;
+    // 21/11 (Gabriela, 3174: «no puede ir fondo en ninguna… El fondo blanco… ni gris, ni negro, ni nada»): la foto llega sin fondo (transparente) y se ponía negra en JPEG
+    // y, sin pasar a JPEG, en modo oscuro o sobre la baldosa se veía el color de detrás; ahora lo transparente queda siempre en blanco, en todas las cuentas
+    const cc = document.createElement('canvas'); cc.width = Math.round(X1 - X0); cc.height = Math.round(Y1 - Y0); const c2 = cc.getContext('2d'); c2.fillStyle = '#fff'; c2.fillRect(0, 0, cc.width, cc.height);
+    c2.drawImage(bm, X0, Y0, X1 - X0, Y1 - Y0, 0, 0, cc.width, cc.height);
+    return await new Promise(r => cc.toBlob(z => r(z || bl), 'image/jpeg', .92));
   } catch (e) { return bl; } })(); RECORTES.set(bl, pr); return pr; };
   // 18/11 (Sheila, 2906; capturas del vídeo del avatar): la capa medía lo mismo que el look de ropa, que en Hoy se queda bajo por el ancho, y debajo quedaba hueco.
   // Ahora ocupa todo el alto libre de la zona (como `ajustar()` de Hoy); donde la zona no tiene alto fijo, el del look
