@@ -3887,17 +3887,17 @@ async function pintarAvisos(cap) {
   if (!AV.ok()) { z.innerHTML = intro + `<p class="pn-nota">${t('Este navegador no admite avisos.', 'This browser does not support notifications.')}</p>`; return; }
   const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription(), hora = LS.get('tc_aviso_hora') || '08:30';
   if (!sub && LS.get('tc_avisos')) LS.set('tc_avisos', null);
-  const bloq = Notification.permission === 'denied';
-  z.innerHTML = intro + (sub ? grupoP('', filaP({ tag: 'div', ic: 'aviso', tit: t('Avisos', 'Notifications'), val: t('Activados', 'On'), flecha: false })) : '')
+  const bloq = Notification.permission === 'denied', on = !!sub && LS.get('tc_avisos') === '1'; // 22/11: con la campana de En pareja hay suscripción sin «Tu look de hoy»
+  z.innerHTML = intro + (on ? grupoP('', filaP({ tag: 'div', ic: 'aviso', tit: t('Avisos', 'Notifications'), val: t('Activados', 'On'), flecha: false })) : '')
     + `<label class="pn-campo"><span>${t('Hora del aviso', 'Notification time')}</span><input id="pn-av-hora" type="time" min="06:00" max="22:00" step="900" value="${hora}"></label>`
     + (bloq ? `<p class="pn-error" role="alert">${t('Los avisos de TuCloset están bloqueados en este navegador. Permítelos en los ajustes del navegador y vuelve aquí.', 'TuCloset notifications are blocked in this browser. Allow them in the browser settings and come back here.')}</p>`
-      : sub ? `<button class="boton" id="pn-av-prueba">${t('Mandarme un aviso de prueba', 'Send me a test notification')}</button><button class="boton linea" id="pn-av-quitar">${t('Desactivar avisos', 'Turn off notifications')}</button>`
+      : on ? `<button class="boton" id="pn-av-prueba">${t('Mandarme un aviso de prueba', 'Send me a test notification')}</button><button class="boton linea" id="pn-av-quitar">${t('Desactivar avisos', 'Turn off notifications')}</button>`
       : `<button class="boton" id="pn-av-on">${t('Activar avisos', 'Turn on notifications')}</button>`)
     + `<p class="pn-nota">${t('La hora es aproximada: el aviso llega en los 15 minutos siguientes.', 'The time is approximate: the notification arrives within the next 15 minutes.')}</p>`;
   const fallo = (e, txt) => { avisarFallo('avisos', e); toast(txt); };
   z.querySelector('#pn-av-hora').onchange = async e => {
     const v = e.target.value; if (!/^\d\d:\d\d$/.test(v)) return; LS.set('tc_aviso_hora', v);
-    if (sub) try { await guardarAviso(sub, v); toast(t(`Aviso a las ${v}`, `Notification at ${v}`)); pintarPanelYo(); } catch (x) { fallo(x, t('Sin conexión: no se ha cambiado la hora', 'No connection: the time was not changed')); }
+    if (on) try { await guardarAviso(sub, v); toast(t(`Aviso a las ${v}`, `Notification at ${v}`)); pintarPanelYo(); } catch (x) { fallo(x, t('Sin conexión: no se ha cambiado la hora', 'No connection: the time was not changed')); }
   };
   if (z.querySelector('#pn-av-on')) z.querySelector('#pn-av-on').onclick = async () => {
     try {
@@ -3912,7 +3912,7 @@ async function pintarAvisos(cap) {
     catch (x) { fallo(x, t('No se ha podido mandar el aviso de prueba', 'The test notification could not be sent')); }
   };
   if (z.querySelector('#pn-av-quitar')) z.querySelector('#pn-av-quitar').onclick = async () => {
-    try { const ep = sub.endpoint; await sub.unsubscribe(); await api('/api/push', { method: 'DELETE', json: { endpoint: ep }, tiempo: 15000 }); LS.set('tc_avisos', null); toast(t('Avisos desactivados', 'Notifications off')); pintarAvisos(cap); pintarPanelYo(); }
+    try { const r = await api('/api/push', { method: 'DELETE', json: { endpoint: sub.endpoint, que: 'dia' }, tiempo: 15000 }); if (!r.ok) throw new Error('push ' + r.status); if (!(await r.json()).queda) await sub.unsubscribe(); LS.set('tc_avisos', null); /* 22/11: si le queda la campana de En pareja, el móvil sigue suscrito */ toast(t('Avisos desactivados', 'Notifications off')); pintarAvisos(cap); pintarPanelYo(); }
     catch (x) { fallo(x, t('No se han podido desactivar. Inténtalo de nuevo.', 'Could not turn them off. Try again in a moment.')); }
   };
 }
@@ -4938,10 +4938,11 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   // 0.96 (Gabriela, 24/10: «se sigue demorando en abrir la app»): con sesión o con prendas se entra directa en Hoy; el repaso de la bienvenida, solo con ?repaso=1
   const REPASO = q.get('repaso') === '1' || (q.get('repaso') !== '0' && !cuenta() && !E.prendas.length); // 0.48 (Gabriela, 22/10: «cada vez que abra la app, salgan todos los pasos con posibilidad de siguiente página»): mientras diseñamos, se entra siempre por la bienvenida y los pasos del alta; ?repaso=0 vuelve a lo de una usuaria real (directo a Hoy)
   // 12/11 (Gabriela, vía Coordinación: «por qué la app cada vez que la abres te lleva a tu ropa, debería llevarte a Hoy con el outfit seleccionado»): abre en Hoy, con lo que te pones hoy el primero (antes, 04/11, en Clóset)
-  const destino = q.get('pantalla') || (REPASO || !(E.perfil?.alta || E.prendas.length) ? 'inicio' : 'hoy');
+  const parAviso = q.get('pantalla') === 'pareja'; // 22/11: al tocar un aviso de En pareja con la app cerrada, Hoy y encima En pareja
+  const destino = (parAviso ? 'hoy' : q.get('pantalla')) || (REPASO || !(E.perfil?.alta || E.prendas.length) ? 'inicio' : 'hoy');
   if (E.perfil) { if (E.perfil.nombre) $('a-nombre').value = E.perfil.nombre; if (E.perfil.ciudad) $('a-ciudad').value = E.perfil.ciudad; } // en el repaso no se pierde lo ya puesto
   if (destino !== 'inicio') { const tc = cargarTiempo(); if (destino === 'hoy') await Promise.race([tc, new Promise(r => setTimeout(r, 1200))]); tc.then(() => cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); })).catch(() => { }); } // 0.96: no se espera al tiempo más de 1,2 s; cuando llega, se repinta Hoy
-  ir(destino);
+  ir(destino); if (parAviso) setTimeout(() => window.atAbrirPareja?.(), 400);
   if (q.get('ficha')) abrirFicha(q.get('ficha') === 'primera' ? (E.prendas.find(p => !p.ejemplo && p.tipo === 'Arriba') || E.prendas[0])?.id : q.get('ficha')); // ?ficha=primera: la primera prenda de arriba (iconos.html)
   setTimeout(() => revisarRepetidas().then(n => { if (n && E.pantalla === 'closet') cuandoQuieto(() => pintarCloset()); }).catch(() => { }), cuenta() ? 9000 : 2500); // 05/11: prendas repetidas
   limpiarFotoPrev().catch(() => { }); setTimeout(() => afinarColores().catch(() => 0).then(() => soltarFallosCatalogo()).catch(() => 0).then(() => clasificarViejas()).catch(() => 0).then(() => bikinisViejos()).catch(() => 0).then(() => mangasViejas()).catch(() => 0).then(() => cierresViejos()).catch(() => 0).then(() => nombresHombre()).catch(() => 0).then(() => window.viajesAlCalendario?.()).catch(() => 0).then(() => recogerPlanesPareja()).catch(() => 0).then(() => window.atCombinados?.()).catch(() => 0).then(() => estilizarNuevas()).catch(() => { }), cuenta() ? 15000 : 0); // 09/11: antes, el nombre y los detalles de lo subido sin ellos; 06/11: fotos de catálogo de las prendas nuevas que se quedaron a medias
@@ -4950,7 +4951,7 @@ function entrada(q) { // las puertas del 129 se abren al entrar; un toque la sal
   if (cuenta()) setTimeout(async () => { try { if (await bajarNube()) cuandoQuieto(() => { if (E.pantalla === 'hoy') pintarHoy(); else if (E.pantalla === 'closet') pintarCloset(); }); repararFotos().catch(() => { }); await subirNube(); } catch (e) { } setTimeout(enderezarTodas, 3000); }, 800); else setTimeout(enderezarTodas, 5000); // 0.73: al abrir, trae lo de otros móviles y sube lo pendiente
   document.querySelectorAll('#pl-empezar').forEach(b => b.addEventListener('click', () => { if (!E.perfil?.alta) { E.perfil = Object.assign(E.perfil || {}, { alta: hoyISO(), idioma: idioma() }); guardar(); } }));
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
-  if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data?.ir === 'hoy') ir('hoy'); }); // 15/11: al tocar un aviso con la app abierta
+  if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data?.ir === 'hoy') ir('hoy'); else if (e.data?.ir === 'pareja') window.atAbrirPareja?.(); }); // 15/11: al tocar un aviso con la app abierta (22/11: o En pareja)
 })();
 
 /* ---------- tipo de cuerpo (0.14): cinco siluetas, la elige ella; con la foto se le propondrá una (función 24). Siempre en positivo. ---------- */

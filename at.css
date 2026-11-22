@@ -944,3 +944,11 @@ html.at .at-lleva button.at-op .at-ic { width: 24px; height: 24px; }
 html.at .at-vj-exb button.at-op { width: 52px; padding: 0; color: var(--tinta); }
 html.at .at-vj-exb button.at-op.on { color: var(--fondo); }   /* en oscuro, la tinta es clara: el icono, del color del fondo */
 html.at .at-vj-exb button.at-op .at-ic { width: 24px; height: 24px; }
+
+/* 22/11 (Sheila, 3172: «además debería llegar como notificación»): la campana de los avisos de En pareja, arriba a la derecha (la ✕ va a la izquierda); rellena = activados */
+html.at .at-par-av { position: absolute; right: 12px; top: 20px; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--sec); cursor: pointer; }
+html.at .at-par-av svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+html.at .at-par-av.on { color: var(--tinta); }
+html.at .at-par-av.on svg { fill: currentColor; }
+html.at .at-par-av:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+html.at .at-par-avnota { margin-top: 0; font-size: 13px; }

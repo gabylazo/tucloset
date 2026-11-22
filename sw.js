@@ -1,5 +1,5 @@
 // TuCloset web 0.5 · caché de la aplicación: primero red (siempre lo último), caché si no hay red; el tiempo nunca se cachea
-const C = 'tucloset-0.338';
+const C = 'tucloset-0.339';
 const BASE = ['./', './index.html', './manifest.webmanifest'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(C).then(c => c.addAll(BASE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
@@ -19,7 +19,7 @@ self.addEventListener('notificationclick', e => {
   e.notification.close(); const url = new URL(e.notification.data?.url || './?pantalla=hoy', self.registration.scope).href;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
     const c = cs.find(x => x.url.startsWith(self.registration.scope));
-    if (c) { c.postMessage({ ir: 'hoy' }); return c.focus(); }
+    if (c) { c.postMessage({ ir: new URL(url).searchParams.get('pantalla') || 'hoy' }); return c.focus(); } // 22/11: o En pareja (./?pantalla=pareja)
     return self.clients.openWindow(url);
   }));
 });

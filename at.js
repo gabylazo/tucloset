@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.338'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.339'; document.head.append(l);
   document.documentElement.classList.add('at');
   // 20/11 (Gabriela, panel: «sigue saliendo el cuadro que encierra el botón del avatar»): en el iPhone, tocar un botón no lo enfoca y, cuando la pantalla se vuelve a
   // pintar y la app le devuelve el foco (En pareja, E.parFoco), Safari le pone el marco del teclado. Con el dedo o el ratón, sin marco (at.css); con el teclado, vuelve
@@ -1786,15 +1786,44 @@ if (AT) (() => {
   // 20/11 (Gabriela, panel: «yo quisiera enviar ese outfit… que tenemos una salida, y que me propongas tres opciones, que te diga cuál es la ocasión»): desde el look que
   // estás viendo (guardado o idea), En pareja con ese look como el tuyo
   const mandarPareja = (ids, oc, como) => { if (!ids.every(enUsoPar)) return toast(t('Este look lleva ropa guardada o para lavar', 'This look has clothes put away or in the wash')); E.parS = { oc: OCASIONES.includes(oc) ? oc : 'Diario', mio: { ids: [...ids], como, fecha: '', nombre: '', cal: 0 } }; return abrirPareja(); };
+  // 22/11: la campana de En pareja. El servidor dice si la suscripción de este móvil tiene los avisos de En pareja; al tocarla se activan (permiso del navegador y
+  // suscripción, la misma de «Tu look de hoy» si ya la había) o se quitan (el móvil se da de baja solo si no le queda ningún aviso). En iPhone, solo con la app en la
+  // pantalla de inicio: si no, una línea que lo dice
+  const estadoAvisoPar = async () => { if (!AV.ok() || Notification.permission !== 'granted') return false; const reg = await navigator.serviceWorker.getRegistration(), sub = reg && await reg.pushManager.getSubscription(); if (!sub) return false;
+    const r = await api('/api/push?e=' + encodeURIComponent(sub.endpoint), { tiempo: 10000 }); return r.ok ? !!(await r.json()).pareja : false; };
+  async function avisoPareja(b, cap) {
+    const nota = txt => { let p = cap.querySelector('.at-par-avnota'); if (!p) { p = document.createElement('p'); p.className = 'at-vj-sub at-par-avnota'; p.setAttribute('role', 'status'); cap.querySelector('h1')?.after(p); } p.textContent = txt; };
+    if (AV.ios() && !AV.instalada()) return nota(t('En iPhone, los avisos llegan con TuCloset en la pantalla de inicio: en Safari, Compartir → «Añadir a pantalla de inicio».', 'On iPhone, notifications arrive with TuCloset on the home screen: in Safari, Share → «Add to Home Screen».'));
+    if (!AV.ok()) return nota(t('Este navegador no admite avisos.', 'This browser does not support notifications.'));
+    if (b.disabled) return; b.disabled = true;
+    try {
+      const reg = await navigator.serviceWorker.ready; let sub = await reg.pushManager.getSubscription();
+      if (E.parAviso) {
+        if (sub) { const r = await api('/api/push', { method: 'DELETE', json: { endpoint: sub.endpoint, que: 'pareja' }, tiempo: 15000 }); if (!r.ok) throw new Error('push ' + r.status); if (!(await r.json()).queda) await sub.unsubscribe().catch(() => { }); }
+        E.parAviso = false; toast(t('Avisos de En pareja desactivados', 'Couple notifications off'));
+      } else {
+        if (Notification.permission === 'denied') return nota(t('Los avisos de TuCloset están bloqueados en este navegador: permítelos en sus ajustes.', 'TuCloset notifications are blocked in this browser: allow them in its settings.'));
+        if (await Notification.requestPermission() !== 'granted') return toast(t('Sin permiso no te pueden llegar avisos', 'Without permission, notifications cannot arrive'));
+        if (!sub) { const r = await api('/api/push/clave', { tiempo: 15000 }); if (!r.ok) throw new Error('clave ' + r.status); sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: deB64u((await r.json()).clave) }); }
+        const j = sub.toJSON(), r = await api('/api/push', { method: 'POST', json: { endpoint: j.endpoint, keys: j.keys, pareja: 1, tz: Intl.DateTimeFormat().resolvedOptions().timeZone }, tiempo: 15000 }); if (!r.ok) throw new Error('push ' + r.status);
+        E.parAviso = true; toast(t('Avisos de En pareja activados', 'Couple notifications on'));
+      }
+    } catch (x) { avisarFallo('avisos-pareja', x); toast(t('No se ha podido cambiar. Inténtalo de nuevo.', 'It could not be changed. Try again.')); }
+    finally { b.disabled = false; b.classList.toggle('on', !!E.parAviso); b.setAttribute('aria-pressed', String(!!E.parAviso)); }
+  }
+  window.atAbrirPareja = () => { if (cuenta()) abrirPareja(); }; // al tocar un aviso de En pareja (sw.js y ?pantalla=pareja de app.js)
   async function abrirPareja() {
     const cap = capaDe('at-pareja', 'at-cp at-par', t('En pareja', 'As a couple')), S = E.parS = E.parS || { oc: 'Diario' };
     const cab = `<button class="x" aria-label="${t('Cerrar', 'Close')}">${X_CERRAR}</button><h1>${t('En pareja', 'As a couple')}</h1>`;
+    // 22/11 (Sheila, 3172: «además debería llegar como notificación»): la campana de los avisos de En pareja, arriba a la derecha; rellena = activados
+    const campana = () => `<button class="at-par-av${E.parAviso ? ' on' : ''}" data-paraviso aria-pressed="${!!E.parAviso}" aria-label="${t('Avisos de En pareja', 'Couple notifications')}" title="${t('Avisos de En pareja', 'Couple notifications')}">${icY('aviso')}</button>`;
     const enlazar = txt => `${cab}<p class="at-vj-sub">${txt}</p><button class="boton linea at-par-enl" data-parajustes>${t('Enlazar con mi pareja', 'Link with my partner')}</button>`;
     const prop = id => E.parR?.L.find(x => x.id === id), hecho = (b, cuerpo, tras) => { if (cap.dataset.ocupado) return; cap.dataset.ocupado = 1; b.disabled = true;
       return guardarProp(cuerpo).then(re => { delete cap.dataset.ocupado; if (re) { tras?.(); abrirPareja(); } else b.disabled = false; }); };
     cap.onclick = e => {
-      const b = e.target.closest('.x,[data-paroc],[data-parsub],[data-parajustes],[data-parotra],[data-parcambio],[data-parmio],[data-parmas],[data-parmanda],[data-parelige],[data-parpz],[data-parno],[data-parquita],[data-parotras],[data-parok],[data-pardos],[data-parotrav]'); if (!b) return;
+      const b = e.target.closest('.x,[data-paraviso],[data-paroc],[data-parsub],[data-parajustes],[data-parotra],[data-parcambio],[data-parmio],[data-parmas],[data-parmanda],[data-parelige],[data-parpz],[data-parno],[data-parquita],[data-parotras],[data-parok],[data-pardos],[data-parotrav]'); if (!b) return;
       if (b.classList.contains('x')) return cap.remove();
+      if (b.dataset.paraviso != null) return avisoPareja(b, cap);
       if (b.dataset.parajustes != null) { cap.remove(); return panelPareja(); }
       if (b.dataset.parotra != null) { PAREJA.datos = null; return abrirPareja(); }
       if (b.dataset.paroc) { S.oc = b.dataset.paroc; S.sub = null; S.mio = undefined; S.elegir = false; S.vistas = null; return abrirPareja(); }
@@ -1882,10 +1911,11 @@ if (AT) (() => {
       ${tres.length ? `<div class="at-par-tres">${tres.map((z, i) => `<figure class="at-t">${baldosaFija(z.ps, W3, H3, `${t('Opción', 'Option')} ${i + 1}${z.por ? '. ' + esc(z.por) : ''}`)}</figure>`).join('')}</div>
       <div class="at-par-manda"><label>${t('Para el día', 'For')} <input type="date" min="${hoy}" value="${S.mio.fecha && S.mio.fecha >= hoy ? S.mio.fecha : hoy}" data-parfecha></label>${agAc('data-parmas', 'girar', t('Otras tres', 'Three more'))}</div>
       <button class="at-btn at-par-mandar" data-parmanda>${t(`Mandar a ${Q}`, `Send to ${Q}`)}</button>` : `<p class="at-vj-sub">${vacio}</p>`}`}</section>`;
-    cap.innerHTML = `${cab}<p class="at-vj-sub">${t(`Elige tu look y propón a ${Q} tres que van con él.`, `Pick your look and suggest three to ${Q} that go with it.`)}</p>
+    cap.innerHTML = `${cab}${campana()}<p class="at-vj-sub">${t(`Elige tu look y propón a ${Q} tres que van con él.`, `Pick your look and suggest three to ${Q} that go with it.`)}</p>
       ${pend.map(secPend).join('')}${comb.map(secComb).join('')}${nuevo}${env.map(secEnv).join('')}
       <p class="at-enlaces"><button class="at-enlace" data-parajustes>${t('Gestionar el enlace', 'Manage the link')}</button></p>`; // 16/11 (Gabriela: «lo de pareja ya sale en Looks, ¿por qué ponerlo de nuevo en Ajustes?»): se gestiona desde aquí
     deslizable(cap.querySelector('.at-par-ocs')); if (cap.querySelector('.at-par-subs')) deslizable(cap.querySelector('.at-par-subs'));
+    if (E.parAviso === undefined) { E.parAviso = false; estadoAvisoPar().then(v => { E.parAviso = v; const bt = cap.querySelector('[data-paraviso]'); if (bt) { bt.classList.toggle('on', v); bt.setAttribute('aria-pressed', String(v)); } }).catch(() => { }); }
     if (planDemo() === 'pro' && tieneAvatar() && permiso('avatar')) autoFotoPar(comb.filter(q => q.fecha >= hoy), cap);
     const on = cap.querySelector('.at-par-ocs .on'); if (on) requestAnimationFrame(() => on.scrollIntoView({ block: 'nearest', inline: 'center' }));
     if (E.parFoco) { cap.querySelector(E.parFoco)?.focus({ preventScroll: true }); E.parFoco = null; }
