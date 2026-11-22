@@ -938,14 +938,7 @@ html.at .at-descs-vaciar { display: flex; justify-content: flex-end; margin: -4p
 /* 21/11 (Gabriela, panel: «en vez de las letras… las letras quedan un poco poco profesional… y así con todo»): las opciones, con icono (at.js, I.cfuera…I.pegar);
    la palabra va en aria-label y title. Cómo llevar la de arriba: lo elegido, en tinta con la raya dorada debajo; al elegir antes de vestir, tres cuadros en fila */
 html.at .at-op { display: inline-flex; align-items: center; justify-content: center; }
-html.at .at-como button.at-op { width: 44px; height: 44px; min-height: 44px; padding: 0; text-decoration: none; border-bottom: 1.5px solid transparent; color: var(--sec); }
-html.at .at-como button.at-op[aria-pressed="true"] { color: var(--tinta); border-bottom-color: var(--oro); }
-html.at .at-como button.at-op .at-ic { width: 26px; height: 26px; }
-html.at .at-como-elegir { flex-direction: row; align-items: center; gap: 10px; margin: 6px 0 0; }
-html.at .at-como-elegir button.at-op { width: 58px; height: 58px; border: 1px solid var(--linea2, rgba(74, 53, 38, .28)); color: var(--tinta); }
-html.at .at-como-elegir button.at-op[data-sug] { border: 1.5px solid var(--oro); }
-html.at .at-como-elegir button.at-op .at-ic { width: 32px; height: 32px; }
-html.at .at-como button.at-op:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+/* 22/11 (Gabriela, panel: «vuélvelo a las palabras»): cómo llevar la de arriba, otra vez con palabras (reglas de arriba, 12/11 y 18/11) */
 html.at .at-lleva button.at-op { width: 46px; padding: 0; }
 html.at .at-lleva button.at-op .at-ic { width: 24px; height: 24px; }
 html.at .at-vj-exb button.at-op { width: 52px; padding: 0; color: var(--tinta); }

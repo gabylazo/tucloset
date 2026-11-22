@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.336'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.338'; document.head.append(l);
   document.documentElement.classList.add('at');
   // 20/11 (Gabriela, panel: «sigue saliendo el cuadro que encierra el botón del avatar»): en el iPhone, tocar un botón no lo enfoca y, cuando la pantalla se vuelve a
   // pintar y la app le devuelve el foco (En pareja, E.parFoco), Safari le pone el marco del teclado. Con el dedo o el ratón, sin marco (at.css); con el teclado, vuelve
@@ -303,8 +303,8 @@ if (AT) (() => {
     return ar.some(n => /camisa|blusa|\bpolo\b/.test(n) && !/sobrecamisa|camiseta/.test(n)) && ar.some(n => /jersey|sudadera|chaleco de punto|sueter/.test(n)); };
   const COMOS = ps => camisaBajo(ps) ? [['suelta', t('Camisa por fuera', 'Shirt untucked')], ['por dentro', t('Camisa por dentro', 'Shirt tucked in')]]
     : [['suelta', t('Por fuera', 'Untucked')], ...(E.perfil?.ropa === 'hombre' ? [] : [['media', t('A medias', 'Half tucked')]]), ['por dentro', t('Por dentro', 'Tucked in')]];
-  const COMO_IC = { suelta: 'cfuera', media: 'cmedia', 'por dentro': 'cdentro' };   // 21/11: con icono (Gabriela); el nombre, en aria-label y title
-  const comoBt = (v, l, extra) => `<button type="button" class="at-op" data-como="${v}" ${extra} aria-label="${l}" title="${l}">${I[COMO_IC[v]]}</button>`;
+  // 21/11 con icono; 22/11 (Gabriela, panel: «no me gustan los iconos de por dentro, fuera o medio, vuélvelo a las palabras»): otra vez con palabras
+  const comoBt = (v, l, extra) => `<button type="button" data-como="${v}"${extra}>${l}</button>`;
   const comoAplica = ps => { const top = ps.filter(p => p.tipo === 'Arriba').pop(); if (!top || !ps.some(p => p.tipo === 'Abajo')) return false;
     const f = Motor.ficha(top); return !['body', 'top_corto', 'top_deportivo'].includes(f.subtipo) && top.est?.largo !== 'crop' && !/crop|\bcorto\b|body/i.test(top.nombre || ''); };
   // 18/11 (Sheila, 2906: «el avatar sigue saliendo pequeño»): la foto de la IA trae blanco alrededor de la persona; se recorta, con un poco de aire, para que la persona
@@ -354,7 +354,7 @@ if (AT) (() => {
         if (!capa) { capa = document.createElement('div'); capa.className = 'at-puesto'; fig.after(capa); }
         capa.style.height = alto0 + 'px'; fig.style.display = 'none'; b.setAttribute('aria-pressed', 'true'); LS.set('tc_ver_avatar', '1');
         capa.innerHTML = `<p class="at-como-tit" id="at-como-t">${t('¿Cómo llevas la de arriba?', 'How do you wear the top?')}</p>
-          <div class="at-como at-como-elegir" role="group" aria-labelledby="at-como-t">${COMOS(ps).map(([v, l]) => comoBt(v, l, v === sug ? 'data-sug="1"' : '')).join('')}</div>
+          <div class="at-como at-como-elegir" role="group" aria-labelledby="at-como-t">${COMOS(ps).map(([v, l]) => comoBt(v, l, v === sug ? ' class="sug"' : '')).join('')}</div>
 `;
         capa.querySelectorAll('[data-como]').forEach(x => { x.onclick = e => { e.stopPropagation(); COMO_ELEGIDO.set(idsDe(ps), x.dataset.como); verPuesto(b, zona, ps, como, false, false, true); }; });
         if (b.matches(':focus-visible')) capa.querySelector('[data-como]')?.focus({ preventScroll: true }); // con teclado, el foco pasa a la elección
@@ -375,7 +375,7 @@ if (AT) (() => {
     if (!capa.isConnected) return;
     if (r.error) { capa.remove(); fig.style.display = ''; b.setAttribute('aria-pressed', 'false'); LS.set('tc_ver_avatar', null); return toast(r.error); }
     if (b.classList.contains('at-puestob') && !b.classList.contains('probado')) { b.classList.add('probado'); b.setAttribute('aria-label', t('Verlo puesto en mí: ya te lo has probado', 'See it on me: already tried on')); }
-    const ahora = el || como || 'suelta', opc = comoAplica(ps) ? `<div class="at-como" role="group" aria-label="${t('Cómo llevar la de arriba', 'How to wear the top')}">${COMOS(ps).map(([v, l]) => comoBt(v, l, `aria-pressed="${v === ahora}"`)).join('')}</div>` : '';
+    const ahora = el || como || 'suelta', opc = comoAplica(ps) ? `<div class="at-como" role="group" aria-label="${t('Cómo llevar la de arriba', 'How to wear the top')}">${COMOS(ps).map(([v, l]) => comoBt(v, l, ` aria-pressed="${v === ahora}"`)).join('')}</div>` : '';
     const vis = await sinBlanco(r.blob); if (!capa.isConnected) return;
     capa.innerHTML = `<img src="${URL.createObjectURL(vis)}" alt="${t('Tú con este look', 'You wearing this look')}"><div class="at-puesto-pie">${opc}<button class="at-puesto-otra av-ico" aria-label="${t('No se parece: otra vez', 'Not right: try again')}" title="${t('Otra vez', 'Try again')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M17.5 3.5v4h-4"/></svg></button></div>`;
     capa.querySelector('.at-puesto-otra').onclick = e => { e.stopPropagation(); verPuesto(b, zona, ps, como, true); };
