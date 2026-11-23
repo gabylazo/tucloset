@@ -1974,6 +1974,8 @@ html.oscuro .pn-error{color:#E8776B}
 .tc-leyendo .tc-carga-c{top:112px}
 #s-raiz .rej .tc-carga-c{top:42%}
 #s-raiz .rej .est-p .s-est{top:calc(42% + 24px)}
+/* 23/11 (Gabriela: «Estilizando… con el armario que se abre y se cierra, como en la app»): en «Revisa tu prenda», el armario encima de la foto, como en la rejilla */
+#s-raiz .foto .tc-carga-c + .s-est{top:calc(50% + 24px)}
 
 /* 15/11: avisos (Ajustes → Para probar → Avisos): los botones con aire, como en Pareja */
 #pn-avisos .boton{width:100%;margin-top:12px}#pn-avisos .boton+.boton{margin-top:10px}#pn-avisos .pn-campo{margin-bottom:4px}

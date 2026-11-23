@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="color-scheme" content="only light">
+<title>Lista de espera · TuCloset</title>
+<meta name="description" content="TuCloset: tu armario en el móvil. Apúntate y te avisamos el día que abramos.">
+<!-- 10/11/2026: LISTA DE ESPERA (Coordinación de marketing, estudio A5, camino B; legal en A8, 2.2): solo el correo, una casilla obligatoria de edad y otra,
+     opcional, para las novedades; primera capa de información bajo el formulario; la confirmación la manda Brevo (POST /api/espera). Sin cookies ni nada de
+     terceros: letras de la propia web. Publicada desde el 20/11 (Gabriela, panel: «la lista de espera tiene que estar funcionando hoy»), con Brevo y la privacidad publicada.
+     Edad: 18, como propone Legal para la app (decisión pendiente); el mínimo legal para consentir en España es 14. -->
+<link rel="icon" href="iconos/icono-129-180.png">
+<link rel="stylesheet" href="fuentes.css?v=0.123">
+<style>
+:root{--tinta:#4A3526;--sec:#6B5A4E;--linea:rgba(74,53,38,.28);--oro:#C9A24B;--oro-t:#8C6A1F;--rojo:#8E3B2E;--suave:#F6F4F1}
+*{box-sizing:border-box;margin:0}
+html,body{background:#fff;color:var(--tinta)}
+body{font:400 16px/1.55 'Jost',system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:0 20px env(safe-area-inset-bottom)}
+main{max-width:400px;margin:0 auto;padding:56px 0 48px;text-align:center}
+.icono{display:block;width:88px;height:88px;margin:0 auto}
+.marca{display:block;font:400 30px/1 'Bellefair',Georgia,serif;margin-top:14px;letter-spacing:.01em}
+.marca b{font-weight:400;color:var(--oro-t)}
+h1{font:400 38px/1.12 'Bellefair',Georgia,serif;margin:44px 0 18px;text-wrap:balance}
+.sub{color:var(--sec);font-size:17px;max-width:30ch;margin:0 auto;text-wrap:pretty}
+.abre{margin:28px auto 0;max-width:30ch;font-size:16px;color:var(--tinta)}
+form{margin-top:36px;text-align:left}
+label.campo{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sec)}
+input[type=email]{display:block;width:100%;font:inherit;font-size:18px;color:var(--tinta);border:0;border-bottom:1px solid var(--linea);padding:10px 0;background:none;border-radius:0;margin-top:6px}
+input[type=email]:focus{outline:none;border-bottom-color:var(--tinta)}
+input[type=email]:focus-visible{outline:2px solid var(--oro);outline-offset:4px}
+.casilla{display:flex;gap:14px;align-items:flex-start;min-height:44px;padding:10px 0;margin-top:14px;cursor:pointer;font-size:15px;line-height:1.45;color:var(--tinta)}
+.casilla + .casilla{margin-top:2px}
+.casilla input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:0;border:1.5px solid var(--tinta);border-radius:0;background:#fff;display:grid;place-items:center;cursor:pointer}
+.casilla input::after{content:'';width:11px;height:6px;border-left:1.8px solid #fff;border-bottom:1.8px solid #fff;transform:translateY(-1px) rotate(-45deg);opacity:0}
+.casilla input:checked{background:var(--tinta)}
+.casilla input:checked::after{opacity:1}
+.casilla input:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
+.casilla small{display:block;color:var(--sec);font-size:13px}
+button{display:block;width:100%;font:500 12px/1 'Jost',system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;min-height:52px;margin-top:28px;border:1px solid var(--tinta);background:var(--tinta);color:#fff;border-radius:0;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
+.error{color:var(--rojo);margin-top:14px;min-height:1.5em;font-size:15px;text-align:center}
+/* 18/11 (Gabriela: textos justificados): la capa de información legal, justificada */
+.capa p,.capa li{text-align:justify;-webkit-hyphens:auto;hyphens:auto}
+.capa{margin-top:28px;padding-top:20px;border-top:1px solid rgba(74,53,38,.14);font-size:13px;line-height:1.55;color:var(--sec);text-align:justify;-webkit-hyphens:auto;hyphens:auto}
+.capa b{font-weight:500;color:var(--tinta)}
+.capa a,.fin a,.hecho a{color:var(--tinta);text-underline-offset:3px}
+.hecho a{display:inline-flex;align-items:center;min-height:44px;font-size:17px}
+.fin{margin-top:40px;font-size:14px;color:var(--sec)}
+.hecho{margin-top:12px}
+.hecho p{color:var(--sec);max-width:32ch;margin:0 auto;text-wrap:balance}
+.hecho p + p{margin-top:14px}
+.hecho strong{display:block;margin:4px 0;font-weight:500;color:var(--tinta);overflow-wrap:anywhere}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <img class="icono" src="iconos/icono-129-180.png" alt="" width="88" height="88">
+  <span class="marca" aria-label="TuCloset">Tu<b>Closet</b></span>
+
+  <section id="pedir" aria-labelledby="t-pedir">
+    <h1 id="t-pedir">Tu armario, en el móvil</h1>
+    <p class="sub">Sube tu ropa y cada mañana tendrás un look hecho con ella, pensado para el tiempo que hace y para tu plan.</p>
+    <p class="abre">Abrimos pronto. Déjanos tu correo y te avisamos el primer día.</p>
+    <form id="f" novalidate>
+      <label class="campo" for="correo">Tu correo</label>
+      <input id="correo" type="email" name="correo" autocomplete="email" inputmode="email" required aria-describedby="err">
+      <label class="casilla"><input type="checkbox" id="edad" required aria-describedby="err"><span>Tengo 18 años o más</span></label>
+      <label class="casilla"><input type="checkbox" id="novedades"><span>Quiero recibir también las novedades de TuCloset<small>Opcional. Como mucho, un correo cada dos semanas.</small></span></label>
+      <button id="enviar" type="submit">Apuntarme</button>
+      <p class="error" id="err" role="alert"></p>
+    </form>
+    <p class="capa"><b>Responsable:</b> Gabriela Lazo García, titular de TuCloset. <b>Para qué:</b> avisarte cuando TuCloset esté disponible y, si marcas la segunda casilla, mandarte novedades. Te mandamos un correo para confirmar; si no lo confirmas, no te apuntamos. <b>Tus derechos</b> (acceso, supresión y los demás): en <a href="mailto:app@tucloset.app">app@tucloset.app</a>. Más información en la <a href="privacidad.html">política de privacidad</a>.</p>
+  </section>
+
+  <section id="mira" class="hecho" aria-labelledby="t-mira" hidden>
+    <h1 id="t-mira" tabindex="-1">Mira tu correo</h1>
+    <p>Te hemos mandado un enlace para confirmar a <strong id="mira-correo"></strong> Púlsalo y ya estarás dentro.</p>
+    <p>Si no lo ves en unos minutos, mira en Promociones o en el correo no deseado.</p>
+  </section>
+
+  <section id="dentro" class="hecho" aria-labelledby="t-dentro" hidden>
+    <h1 id="t-dentro" tabindex="-1">Ya estás dentro</h1>
+    <p>Te escribiremos el día que abramos. Mientras, puedes seguirnos en Instagram o en TikTok.</p>
+    <p><a href="https://www.instagram.com/tucloset.app/" rel="noopener">Instagram · @tucloset.app</a></p>
+    <p><a href="https://www.tiktok.com/@tucloset.app" rel="noopener">TikTok · @tucloset.app</a></p>
+  </section>
+
+  <p class="fin">TuCloset · <a href="mailto:app@tucloset.app">app@tucloset.app</a></p>
+</main>
+<script>
+(() => {
+  const TEXTO_V = 'espera-2026-11-10'; // versión del texto aceptado (prueba del permiso, RGPD art. 7.1): cambiarla si cambian las casillas o la primera capa
+  const API = (() => { try { const q = localStorage.getItem('tc_api'); if (q) return q; } catch (e) { } return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://localhost:8787' : 'https://tucloset-api.apptucloset.workers.dev'; })();
+  const $ = id => document.getElementById(id), q = new URLSearchParams(location.search);
+  // de qué red llega (?o=ig…): se cuenta la visita una vez y se quita de la dirección, como en la app (sin cookies ni nada guardado)
+  let o = (q.get('o') || '').toLowerCase(); if (!/^(ig|tt|pin|g|cartel|mail\d{1,2}|(?:meta|tt|g|pin)-ad\d{1,3})$/.test(o)) o = '';
+  if (q.has('o')) { q.delete('o'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '')); if (o) fetch(API + '/api/visita', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ o }) }).catch(() => { }); }
+  const ver = id => { for (const s of ['pedir', 'mira', 'dentro']) $(s).hidden = s !== id; const h = $(id).querySelector('h1'); if (id !== 'pedir') h.focus(); };
+  if (q.get('dentro') === '1') ver('dentro');
+  const err = $('err');
+  $('f').addEventListener('submit', async e => {
+    e.preventDefault(); err.textContent = '';
+    const correo = $('correo').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) { err.textContent = 'Escribe tu correo completo, por ejemplo nombre@gmail.com.'; return $('correo').focus(); }
+    if (!$('edad').checked) { err.textContent = 'Para apuntarte tienes que tener 18 años o más.'; return $('edad').focus(); }
+    const bt = $('enviar'); bt.disabled = true; bt.textContent = 'Apuntando…';
+    let r = null; try { r = await fetch(API + '/api/espera', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correo, edad: true, novedades: $('novedades').checked, o, v: TEXTO_V }) }); } catch (x) { }
+    bt.disabled = false; bt.textContent = 'Apuntarme';
+    if (r?.ok) { $('mira-correo').textContent = correo; return ver('mira'); }
+    const j = r ? await r.json().catch(() => ({})) : {};
+    err.textContent = !r ? 'Sin conexión. Prueba otra vez en un momento.'
+      : j.error === 'cerrada' ? 'La lista abre en unos días. Vuelve pronto.'
+      : j.error === 'frenado' ? 'Demasiados intentos seguidos. Prueba dentro de 15 minutos.'
+      : j.error === 'correo' ? 'Ese correo no parece válido. Revísalo.'
+      : 'No hemos podido mandarte el correo. Prueba otra vez en un momento.';
+  });
+})();
+</script>
+</body>
+</html>
