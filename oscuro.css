@@ -1230,6 +1230,11 @@ html.at.oscuro .at-lleva button{border:1px solid var(--linea2, rgba(241,233,222,
 html.at.oscuro .at-lleva-seg button + button{border-left:0}
 html.at.oscuro .at-lleva button[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--fondo)}
 html.at.oscuro .at-lleva button:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+html.at.oscuro .at-uso-t{color:var(--sec)}
+html.at.oscuro .at-uso-b{border:1px solid var(--linea2, rgba(241,233,222, .28));border-radius:0;background:none;color:var(--sec)}
+html.at.oscuro .at-uso-b + .at-uso-b{border-left:0}
+html.at.oscuro .at-uso-b[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--fondo)}
+html.at.oscuro .at-uso-b:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
 html.at.oscuro .cab .ac-ic,html.at.oscuro .mc-hoja .ac-ic{color:var(--tinta);background:none;border:0}
 html.at.oscuro .ac-ic svg{fill:none;stroke:currentColor}
 html.at.oscuro .ac-ic:focus-visible,html.at.oscuro .previa .cambiar-ic:focus-within{outline:2px solid var(--tinta);outline-offset:2px}

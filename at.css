@@ -835,6 +835,13 @@ html.at .at-lleva button { min-height: 40px; padding: 0 14px; border: 1px solid 
 html.at .at-lleva-seg button + button { border-left: 0; }
 html.at .at-lleva button[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--fondo); font-weight: 500; }
 html.at .at-lleva button:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+/* 23/11: «La uso para: Todo · Diario · Trabajo · Salir» en la ficha (Sheila, 3136), con el mismo dibujo que «cómo la llevas» */
+html.at .at-uso { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; margin: 14px 0 2px; }
+html.at .at-uso-t { flex-basis: 100%; text-align: center; font: 400 12px/1.3 var(--f); color: var(--sec); margin-bottom: 6px; }
+html.at .at-uso-b { min-height: 40px; padding: 0 14px; border: 1px solid var(--linea2, rgba(74, 53, 38, .28)); border-radius: 0; background: none; font: 400 13px/1 var(--f); color: var(--sec); cursor: pointer; }
+html.at .at-uso-b + .at-uso-b { border-left: 0; }
+html.at .at-uso-b[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--fondo); font-weight: 500; }
+html.at .at-uso-b:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
 
 /* 19/11 (Gabriela, panel: «quería que todos los botones que tuvieran letras se cambiaran por iconos y sigo viendo quitar, borrar…»): las acciones que quedaban
    con palabra, solo con icono (nombre en aria-label y title): cabeceras, Borrar filtros, Cambiar foto, herramientas de la foto, Ver su ficha, Quitar del look… */

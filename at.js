@@ -5,7 +5,7 @@
    está el conjunto completo… queda muy ajustado, tiene que quedar más holgado»: todo look en baldosa lleva 24 px de aire arriba y abajo.
    Solo actúa con ?propuesta=atelier (o ?ver=atelier una vez): sin ella, la app no cambia. */
 if (AT) (() => {
-  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.339'; document.head.append(l);
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'at.css?v=0.341'; document.head.append(l);
   document.documentElement.classList.add('at');
   // 20/11 (Gabriela, panel: «sigue saliendo el cuadro que encierra el botón del avatar»): en el iPhone, tocar un botón no lo enfoca y, cuando la pantalla se vuelve a
   // pintar y la app le devuelve el foco (En pareja, E.parFoco), Safari le pone el marco del teclado. Con el dedo o el ratón, sin marco (at.css); con el teclado, vuelve
@@ -38,7 +38,7 @@ if (AT) (() => {
   for (const k in COMPLEMENTA) { const i = COMPLEMENTA[k].indexOf('Tops'); if (i >= 0) COMPLEMENTA[k].splice(i, 1, ...ARRIBA); const j = COMPLEMENTA[k].indexOf('Pantalones'); if (j >= 0) COMPLEMENTA[k].splice(j + 1, 0, 'Vaqueros'); }
   // Sheila, 01/11 (m. 1649): con el filtro Evento no salía ningún pantalón. La ocasión de una prenda también sale de las fórmulas del motor
   const ocasionesViejas = ocasionesPrenda;
-  ocasionesPrenda = p => [...new Set([...ocasionesViejas(p), ...Motor.ocasionesDe(p)])];
+  ocasionesPrenda = p => [...new Set([...ocasionesViejas(p), ...Motor.ocasionesDe(p)])].filter(o => Motor.usoVale(p, o)); // 23/11: «La uso para»
   const caja = () => { const a = $('app'); return [Math.min(a.clientWidth || innerWidth, 430), a.clientHeight || innerHeight]; };
   const DOS = '<span class="at-dos" aria-hidden="true"></span>';
   // los botones (Gabriela, 03/11: «son muy grandes… generan ruido visual, prueba dorados u otra forma, proponme varias opciones»): ?boton=1…4 elige uno en este navegador
@@ -705,6 +705,10 @@ if (AT) (() => {
     const datos = [sub, forma, (p.detalles || []).filter(d => !LLEVA_DET.includes(d)).join(', ').toLowerCase()].filter(Boolean).map(esc).join(' · ');
     const tieneD = d => (p.detalles || []).includes(d), bt = (acc, v, txt, on) => `<button type="button" class="at-op" data-atfacc="${acc}" data-v="${v}" aria-pressed="${on}" aria-label="${txt}" title="${txt}">${I[{ cerrada: 'cerrada', abierta: 'abierta', Oversize: 'oversize', Transparente: 'transp' }[v]]}</button>`;
     const llevaH = lleva ? `<div class="at-lleva" role="group" aria-label="${t('Cómo la llevas', 'How you wear it')}">${fz.abrochable && !(E.perfil?.ropa === 'hombre' && ['americana', 'chaqueta'].includes(fz.subtipo_real || fz.subtipo)) ? `<span class="at-lleva-seg">${bt('cierre', 'cerrada', t('Cerrada', 'Closed'), fz.cierre === 'cerrada')}${bt('cierre', 'abierta', t('Abierta', 'Open'), fz.cierre === 'abierta')}</span>` : ''}${bt('ldeta', 'Oversize', 'Oversize', tieneD('Oversize'))}${p.tipo !== 'Abrigo' ? bt('ldeta', 'Transparente', t('Transparenta', 'Sheer'), tieneD('Transparente')) : ''}</div>` : '';
+    // 23/11 (Sheila, 3136, y una probadora: «dividir su ropa en diaria y en salidas»; sí de las dos): «La uso para: Todo · Diario · Trabajo · Salir». Todo = sin marcar
+    // (como hasta ahora); se puede marcar más de una. El motor la saca solo en los looks de lo marcado (Motor.usoVale)
+    const usoP = Array.isArray(p.uso) ? p.uso : [], USOS = [['todo', t('Todo', 'All')], ['diario', t('Diario', 'Everyday')], ['trabajo', t('Trabajo', 'Work')], ['salir', t('Salir', 'Going out')]];
+    const usoH = p.ejemplo ? '' : `<div class="at-uso" role="group" aria-labelledby="at-uso-t"><span class="at-uso-t" id="at-uso-t">${t('La uso para', 'I wear it for')}</span>${USOS.map(([v, txt]) => `<button type="button" class="at-uso-b" data-atfacc="uso" data-v="${v}" aria-pressed="${v === 'todo' ? !usoP.length : usoP.includes(v)}">${txt}</button>`).join('')}</div>`;
     const precio = p.precio ? `${dinero(p.precio)}${/^\d{4}-\d{2}$/.test(p.compra || '') ? ` · ${t('comprada en', 'bought in')} ${nomMes(p.compra)}` : ''}${usos.length ? ` · ${dinero(p.precio / usos.length)}/${t('puesta', 'wear')}` : ''}` : '';
     const hex = (COLORES.find(([c]) => c === p.color) || [])[1];
     const chips = [p.color && `<li><i class="at-mancha"${hex ? ` style="background:${hex}"` : ''}></i>${esc(nomColor(p.color))}</li>`, `<li>${I.cal}${esc(estNombre(p.estacion))}</li>`,
@@ -733,7 +737,7 @@ if (AT) (() => {
     const nombre = (w, l) => l.toLowerCase().includes(w.toLowerCase()) ? l : `${w}. ${l}`; // el nombre que se lee contiene la palabra que se ve
     r.innerHTML = `<div class="at-barra-sup"><button class="at-volver" data-ir="closet" aria-label="${t('Volver', 'Back')}">${I.iz}</button><span class="at-der2"><button class="at-ico" data-atfacc="editar" aria-label="${t('Editar', 'Edit')}">${I.lapiz}</button><button class="at-ico" data-atfacc="borrar" aria-label="${t('Borrar la prenda', 'Delete the garment')}">${I.papelera}</button></span></div>
       <div class="at-foto${conCat(p) ? '' : ' sin-cat'}"><img src="${urlCat(p)}" alt="${esc(p.nombre)}">${cargaIco('tc-carga-c')}<button type="button" class="at-ampliar" data-ampliar="${p.id}" aria-label="${t('Ampliar la foto', 'Enlarge the photo')}"></button></div><p class="est-av est-ficha" id="est-ficha" role="status"${E.estil?.id === p.id ? '' : ' hidden'}><span>${t('Estilizando esta foto: unos 15 segundos', 'Styling this photo: about 15 seconds')}</span></p>${p.catProp && !p.cat ? `<button class="at-rep-av" data-catver>${t('Foto de catálogo lista · Ver', 'Catalogue photo ready · View')}</button>` : ''}${sinFoto(p) ? `<p class="at-sin-foto">${t('La foto de esta prenda se ha perdido en este móvil. Toca el lápiz y vuelve a hacerla.', 'This garment’s photo was lost on this phone. Tap the pencil and take it again.')}</p>` : ''}
-      ${p.estado ? `<p class="at-estado">${estadoTxt(p.estado)}</p>` : ''}<h1 class="at-h1">${esc(p.nombre)}</h1>${datos ? `<p class="at-datos">${datos}</p>` : ''}<ul class="at-chips">${chips}</ul>${llevaH}
+      ${p.estado ? `<p class="at-estado">${estadoTxt(p.estado)}</p>` : ''}<h1 class="at-h1">${esc(p.nombre)}</h1>${datos ? `<p class="at-datos">${datos}</p>` : ''}<ul class="at-chips">${chips}</ul>${llevaH}${usoH}
       ${usos.length ? `<ul class="at-usos-l" id="at-usos-l"${usosAbierta === id ? '' : ' hidden'}>${[...usos].sort().reverse().map(d => `<li><span>${esc(diaUso(d))}</span><button class="at-ic-acc" data-atfacc="quitauso" data-d="${esc(d)}" aria-label="${t('Quitar la puesta del', 'Remove the wear on')} ${esc(diaUso(d))}" title="${t('Quitar', 'Remove')}">${I.cerrar}</button></li>`).join('')}</ul>` : ''}
       ${looks.length ? `<div class="at-minis${looks.length > 2 ? ' muchos' : ''}">${looks.map(x => baldosa(x.ps, MW, MH, x.attr)).join('')}</div>` : ''}
       <div class="at-iconos" role="group" aria-label="${t('Acciones de la prenda', 'Garment actions')}">${ACC.map(([k, ic, w, l]) => `<button class="at-ib${on(k) ? ' on' : ''}" data-atfacc="${k}" aria-label="${esc(nombre(w, l || largo(k)))}"${MARCA.includes(k) ? ` aria-pressed="${on(k)}"` : ''}><span class="at-ib-c">${ic}</span><span class="at-ib-t" aria-hidden="true">${esc(w)}</span></button>`).join('')}</div>
@@ -759,6 +763,12 @@ if (AT) (() => {
       else if (k === 'ldeta') { const v = b.dataset.v, l = new Set(p.detalles || []), on = !l.has(v); on ? l.add(v) : l.delete(v); p.detalles = [...l]; if (!p.detalles.length) delete p.detalles; p.detaMano = 1; E.propuestas = []; E.generados = [];
         const TX = { Oversize: [t('Oversize: los looks la combinan como tal', 'Oversized: looks will style it that way'), t('Ya no está marcada como oversize', 'No longer marked as oversized')], Transparente: [t('Transparenta: irá con algo debajo si hace falta', 'Sheer: looks will add a layer underneath if needed'), t('Ya no está marcada como transparente', 'No longer marked as sheer')] };
         guardar().then(() => { programarNube(); abrirFicha(id); toast(TX[v][on ? 0 : 1]); $('at-ficha')?.querySelector(`[data-atfacc="ldeta"][data-v="${v}"]`)?.focus({ preventScroll: true }); }); }
+      else if (k === 'uso') { const v = b.dataset.v, l = new Set(Array.isArray(p.uso) ? p.uso : []);
+        if (v === 'todo') l.clear(); else l.has(v) ? l.delete(v) : l.add(v);
+        if (l.size >= 3) l.clear(); const nuevo = ['diario', 'trabajo', 'salir'].filter(x => l.has(x)); if ((p.uso || []).join() === nuevo.join()) return;
+        if (nuevo.length) p.uso = nuevo; else delete p.uso; E.propuestas = []; E.generados = [];
+        const NOM = { diario: t('diario', 'everyday'), trabajo: t('trabajo', 'work'), salir: t('salir', 'going out') }, lista = nuevo.map(x => NOM[x]).join(t(' y ', ' and '));
+        guardar().then(() => { programarNube(); abrirFicha(id); toast(nuevo.length ? t(`Solo saldrá en looks de ${lista}`, `It will only appear in ${lista} looks`) : t('Saldrá en looks de todo tipo', 'It will appear in all kinds of looks')); $('at-ficha')?.querySelector(`[data-atfacc="uso"][data-v="${v}"]`)?.focus({ preventScroll: true }); }); }
       else if (k === 'usos') { usosAbierta = usosAbierta === id ? null : id; const l = r.querySelector('.at-usos-l'), a = usosAbierta === id; l.hidden = !a; b.setAttribute('aria-expanded', a); }
       else if (k === 'quitauso') { const d = b.dataset.d; p.usos = (p.usos || []).filter(u => u !== d); E.propuestas = []; usosAbierta = p.usos.length ? id : null;
         guardar().then(() => { abrirFicha(id); toast(t(`Quitada la puesta del ${diaUso(d)}`, `Removed the wear on ${diaUso(d)}`)); r.querySelector(p.usos.length ? '.at-usos-b' : '.at-chips')?.focus?.({ preventScroll: true }); }); }
@@ -854,7 +864,7 @@ if (AT) (() => {
     const corbata = () => americana && F.some(f => f.subtipo === 'camisa') && !F.some(f => /jersey|cardigan|chaleco_punto|polo|camiseta|sudadera/.test(f.subtipo || '')) && deTipo('corbata').length > 0;
     const vale = k => !lleva.includes(k) && (k !== 'corbata' || corbata()) && (k !== 'gafas' || sol) && (k !== 'gorra' || !americana) && (k !== 'pulsera' || !lleva.includes('pulsera')) && (k !== 'panuelo' || !foco) && (k !== 'cinturon' || cintura()) && (k !== 'collar' || (!foco && !cuelloAlto && !lleva.includes('pendientes'))) && (k !== 'pendientes' || !lleva.includes('collar'));
     const bolsoVale = p => { const s = Motor.ficha(p).subtipo; return ['Noche', 'Evento'].includes(oc) ? ['clutch', 'bolso_mano'].includes(s) : oc === 'Oficina' ? !['mochila', 'rinonera', 'clutch'].includes(s) : s !== 'clutch'; };
-    const mios = activas().filter(p => !ids.includes(p.id)), m = metalDe(ps);
+    const mios = activas().filter(p => !ids.includes(p.id) && Motor.usoVale(p, oc)), m = metalDe(ps); // 23/11: «La uso para»
     const deTipo = k => mios.filter(p => tipoAcc(p) === k && (k !== 'bolso' || bolsoVale(p)));
     const nota = p => { const c = sinTilde(p.color), metal = /dorad/.test(c) ? 'oro' : /platead/.test(c) ? 'plata' : ''; return (metal && metal === m ? 1 : metal ? -1 : 0) + (NEUTROS_EL.includes(c) ? .3 : 0) - Math.min(.5, (p.usos || []).length * .02); };
     // 18/11: lo que enseñó Eleva o salió en un look los 3 días anteriores descansa (ayer −0,6, hace 2 días −0,4, hace 3 −0,2; Moda, pareja-1811), y así no sale cada día lo mismo
@@ -960,7 +970,7 @@ if (AT) (() => {
   const opcMotor = (plan, n, sub) => {
     if (E.perfil && !E.perfil.gustos?.guar && typeof guarSync === 'function') guarSync(); // 21/11: los looks guardados, para el motor (app.js)
     const g = E.perfil?.gustos, hoy = hoyISO(), excluir = [...(g?.fuera || []), ...(g?.hoy?.d === hoy ? g.hoy.k : [])], ins = insHoy(plan), pr = quitarPor(ins, activas()), ev = sub && eventoAhora()?.oc === plan ? eventoAhora() : null, hora = ev?.hora && !ev.deHoy ? parseInt(ev.hora) : undefined;
-    const firma = JSON.stringify([plan, n, sub, hora, hoy, ins?.firma, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), pr.map(p => [p.nombre, p.tipo, p.color, p.estacion, p.catM, p.detalles, p.est?.sub].join('·')).join('|'), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
+    const firma = JSON.stringify([plan, n, sub, hora, hoy, ins?.firma, new Date().getHours(), E.tiempo, pr.length, pr.reduce((s, p) => s + (p.usos?.length || 0), 0), pr.map(p => [p.nombre, p.tipo, p.color, p.estacion, p.catM, p.detalles, p.est?.sub, p.uso].join('·')).join('|'), E.perfil?.estilos, g, E.perfil?.diag?.fecha, planDemo()]);
     return { kc: plan + n + (sub || ''), firma, hoy, pr, o: { prendas: pr, tiempo: E.tiempo, plan, perfil: E.perfil, n, hoy, excluir, pro: planDemo() === 'pro', colorEstacion: EST_COLOR[E.perfil?.colores?.est], complementos: true, ...(sub ? { sub, hora } : {}) } };
   };
   const pedirMotor = (plan, n, sub, pre) => {

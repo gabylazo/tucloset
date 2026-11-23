@@ -221,7 +221,7 @@ function portadaPronto() {
   // (keepalive y texto plano: llega aunque la página se vaya a Instagram, sin consulta previa del navegador)
   ab.querySelector('a[href*="instagram.com"]').addEventListener('click', () => { if (/^(ig|tt|pin)$/.test(ORIGEN)) try { fetch(API + '/api/visita', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ o: 'sigue-' + ORIGEN }), keepalive: true }).catch(() => { }); } catch (e) { } });
 }
-const MUESTRA_PORTADA = false;
+const MUESTRA_PORTADA = true;
 // 20/11 (Gabriela, panel: «la lista de espera tiene que estar funcionando hoy»): en la portada «Muy pronto», «Apúntate a la lista» (espera.html, con la red de origen)
 // y «Síguenos en Instagram» debajo, como enlace. Con false vuelve el botón de Instagram solo.
 const ESPERA = true; // 23/11, 15:0x: encendida (Brevo con permiso de contactos, listas 4 y 5, plantilla 1; sí de Coordinación tras ver la página y el correo de prueba; orden de Gabriela: «ya debería abrirse sí o sí»)

@@ -559,7 +559,13 @@ const Motor = (() => {
     const orden = p => (ofi && !hombre && ['Blanco', 'Negro'].includes(p._f.color) ? 2 : 0) + (['neutro', 'neutro_suave'].includes(p._f.color_clase) ? 1 : 0) + (p._f.color === fA.color ? .5 : 0);
     return { rol: 'base_interior', tipos, opcional: !(trans && ofi), virtual: pool.sort((a, b) => orden(b) - orden(a)).slice(0, 2) };
   }
+  // 23/11 (Sheila, 3136: una probadora quiere «dividir su ropa en diaria y en salidas, no suele usar toda la ropa igual»; sí de las dos): «La uso para» de cada
+  // prenda, p.uso = lista con 'diario', 'trabajo' y 'salir' (vacía o sin campo = Todo, como hasta ahora). Con algo marcado, la prenda solo entra en los looks de esas
+  // ocasiones: diario = Diario, Deporte, Viaje y Playa; trabajo = Oficina; salir = Noche y Evento
+  const USO_OC = { Diario: 'diario', Deporte: 'diario', Viaje: 'diario', Playa: 'diario', Oficina: 'trabajo', Noche: 'salir', Evento: 'salir' };
+  const usoVale = (p, oc) => { const u = p && Array.isArray(p.uso) ? p.uso : null; if (!u || !u.length || !USO_OC[oc]) return true; return u.includes(USO_OC[oc]); };
   function rellenar(formula, ents, zapatos, ctx, pf, hoy, cacheP) {
+    ents = ents.filter(e => usoVale(e.p, ctx.ocasion)); zapatos = zapatos.filter(e => usoVale(e.p, ctx.ocasion)); // 23/11: «La uso para»
     const dep = formula.ocasiones.includes('Deporte');
     // 15/11 (Gabriela, 2367: «en las bodas y las ceremonias, ¿por qué no pones vestido largo? Yo tengo vestido largo»): en un plan de etiqueta (cóctel, boda,
     // gala, teatro) se está bajo techo (unos 20°): su vestido arreglado vale aunque fuera haga frío, con la capa para ir y volver (el tramo de clima la pide)
@@ -887,7 +893,8 @@ const Motor = (() => {
     return out;
   }
   // en qué ocasiones cabe una prenda (para el filtro del clóset): una fórmula de esa ocasión la admite en un hueco y la prenda no baja del nivel de la ocasión
-  const ocasionesDe = p => { const f0 = ficha(p, {}), e = [{ id: p.id, p, _f: f0 }];
+  const ocasionesDe = p => ocasionesDe0(p).filter(o => usoVale(p, o)); // 23/11: «La uso para»
+  const ocasionesDe0 = p => { const f0 = ficha(p, {}), e = [{ id: p.id, p, _f: f0 }];
     if (f0.cat === 'bolso') return [...(grupo('@bolso_dia').includes(f0.subtipo) ? ['Diario', 'Oficina', 'Viaje'] : []), ...(grupo('@bolso_noche').includes(f0.subtipo) ? ['Noche', 'Evento'] : [])]; // 06/11: complementos
     if (f0.subtipo === 'cinturon') return ['Diario', 'Oficina', 'Noche', 'Evento'];
     return [...new Set(F.formulas.filter(f => (!soloDeporte(f0) || f.ocasiones.includes('Deporte')) && f.huecos.some(h => cands(h, e).length)).flatMap(f => f.ocasiones))].filter(o => o !== 'Playa' && !(f0.form < (R.ocasiones[o]?.form_media_min ?? 0) - .5)); };
@@ -947,7 +954,7 @@ const Motor = (() => {
     const Sb = o.sub && SUBS.get(o.sub), sb = Sb && (!o.plan || o.plan === 'Todos' || o.plan === Sb.oc) ? Sb : null; // 15/11: la subocasión manda su ocasión; si no es de la ocasión pedida, no cuenta
     const t0 = Date.now(), hoy = o.hoy || new Date().toISOString().slice(0, 10), plan = sb ? sb.oc : o.plan || 'Todos', n = o.n || 6, pf = perfilMotor(o.perfil, o), excluir = exclSet(o);
     const ctx0 = contexto(o.tiempo, plan, { hora: o.hora ?? sb?.hora, t_ref: o.t_ref, evento: o.evento || sb?.evento, lugar: o.lugar || sb?.lugar, sub: sb?.id });
-    const ents = (o.prendas || []).filter(p => !p.noMeGusta).map(p => ({ id: p.id, p, _f: ficha(p, pf) }));
+    const ents = (o.prendas || []).filter(p => !p.noMeGusta && usoVale(p, plan)).map(p => ({ id: p.id, p, _f: ficha(p, pf) })); // 23/11: «La uso para»
     // 18/11 (auditoría de hombre): a un hombre, en un cóctel, una boda, una gala o una ceremonia, si tiene americana, va con ella (salía «abrigo, camisa y pantalón»
     // para una gala); con frío, el abrigo encima (fórmula H-01). Sin americana en su clóset no se le quita ningún look
     if (!o.sinAmericana && pf.publico === 'masculino' && sb && TRAJE_SUB.has(sb.id) && ents.some(x => x._f.subtipo === 'americana')) ctx0.h_americana = 1; // si con ella no sale ningún look (calor), se repite sin pedirla (al final)
@@ -1076,7 +1083,7 @@ const Motor = (() => {
     return res.map(l => {
       const id = l.bolso?.id; if (!id || l.bolso.muestra) return l;
       if ((uso.get(id) || 0) >= bMax) {
-        const libres = ents.filter(p => p._f.cat !== 'bolso' || ((uso.get(p.id) || 0) < bMax && p.id !== id)), nb = complemento('bolso', { ...l, bolso: null, estilos: l.formula?.estilos || [] }, libres, l.ctx);
+        const libres = ents.filter(p => p._f.cat !== 'bolso' || ((uso.get(p.id) || 0) < bMax && p.id !== id && usoVale(p.p, l.ctx?.ocasion))), nb = complemento('bolso', { ...l, bolso: null, estilos: l.formula?.estilos || [] }, libres, l.ctx);
         if (nb) { const e = evaluar({ ...l, bolso: nb }, l.ctx, pf, hoy);
           if (!e.veto.duros.length && e.nota >= Math.min(l.nota, Math.max(bueno, l.nota - .1))) { uso.set(nb.id, (uso.get(nb.id) || 0) + 1); return { ...e, orden: l.orden, propio: l.propio }; } }
       }
@@ -1398,7 +1405,7 @@ const Motor = (() => {
     return { pct: posibles.length ? Math.round(100 * conEl.length / posibles.length) : null, con: conEl.map(x => x.id), posibles: posibles.length, nLooks: vistos.size,
       ocasiones: ocs.filter(x => enOc.has(x)), temps, looks: lista.map(aPropuesta), parecidas, tipos: CON_TIPO[p.tipo] || [] };
   }
-  return { iniciar, subocasiones, detectarSub, inferir, planViaje, planesDeTexto, itinerario, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, recrear, aPropuesta, faltas, faltaCon, nombreTipo, claveLook, claveRopa, utilidad, get R() { return R; }, get F() { return F; } };
+  return { iniciar, subocasiones, detectarSub, inferir, planViaje, planesDeTexto, itinerario, afinEstilo, rasgo, txtAfin, ficha: p => ficha(p, {}), ocasionesDe, usoVale, vaHoy, aptoDeporte, soloDeporte, contexto, perfilMotor, looks, juzgar, recrear, aPropuesta, faltas, faltaCon, nombreTipo, claveLook, claveRopa, utilidad, get R() { return R; }, get F() { return F; } };
 })();
 if (typeof module !== 'undefined') module.exports = Motor;
 else if (typeof MOTOR_DATOS !== 'undefined') Motor.iniciar(MOTOR_DATOS.R, MOTOR_DATOS.F, MOTOR_DATOS.S);
