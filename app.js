@@ -2327,12 +2327,18 @@ let catArriba = () => 'Tops'; // el diseño nuevo (at.js) separa las prendas de 
 // no la mete en los looks (motor.js, inferir). Es de baño lo que el motor entiende como tal: por el nombre, por lo leído en la foto o porque ella la puso ahí
 const esBano = p => !!p && typeof Motor !== 'undefined' && Motor.ficha(p).cat === 'bano';
 let catPor = p => esBano(p) ? 'Baño' : null; // y desde el 03/11 clasifica todo como las tiendas (Sheila: «estudia en Zara, Lefties, H&M, Pull and Bear las clasificaciones»)
-const CAT_ES = { 'Baño': 'Ropa de baño' }; // los nombres en español que cambia el diseño nuevo (Tops → Tops y bodies…)
+const CAT_ES = { 'Baño': 'Ropa de baño', Deporte: 'Ropa deportiva' }; // los nombres en español que cambia el diseño nuevo (Tops → Tops y bodies…)
 const catDe = p => catPor(p) || (p.tipo === 'Abajo' ? (/falda|skirt/i.test(p.nombre) ? 'Faldas' : 'Pantalones') : p.tipo === 'Arriba' ? catArriba(p) : ({ Abrigo: 'Abrigos', Vestidos: 'Vestidos', Calzado: 'Zapatos', Bolsos: 'Bolsos', Accesorios: 'Accesorios' }[p.tipo] || p.tipo));
 const CATS_ORDEN = ['Tops', 'Pantalones', 'Faldas', 'Vestidos', 'Baño', 'Abrigos', 'Zapatos', 'Bolsos', 'Accesorios'];
+// 25/11 (Sheila, 3295, nota de voz: «todo lo deportivo en una sola categoría de ropa, porque cuando se mezcla con los tops y la ropa normal queda un poco feo»):
+// en el clóset, la ropa de deporte (la que el motor entiende como tal) va junta en «Ropa deportiva», detrás de la de baño, con sus tipos dentro (at.js, subCloset).
+// Solo cambia cómo se ve el clóset: Editar, el motor, el análisis y los looks siguen con catDe
+const esDeporte = p => !!p && ['Arriba', 'Abajo', 'Vestidos', 'Abrigo'].includes(p.tipo) && typeof Motor !== 'undefined' && Motor.ficha(p).uso === 'deporte';
+const catVer = p => esDeporte(p) ? 'Deporte' : catDe(p);
+const catsVer = ps => { const o = [...CATS_ORDEN], i = o.indexOf('Baño'); o.splice(i < 0 ? o.length : i + 1, 0, 'Deporte'); return ['Todo', ...o.filter(c => ps.some(p => catVer(p) === c))]; };
 // 18/11 (auditoría de hombre): con ropa de hombre, sin «blusas», «bodies» ni «faldas» en los nombres de las categorías
 const CAT_H = { 'Camisas y blusas': ['Camisas', 'Shirts'], Tops: ['Tops', 'Tops'], Bolsos: ['Mochilas y bolsos', 'Bags'], Punto: ['Jerséis y punto', 'Jumpers & knitwear'] }; // Punto: Sheila, 2817
-const catTxt = c => E.perfil?.ropa === 'hombre' && CAT_H[c] ? CAT_H[c][idioma() === 'en' ? 1 : 0] : idioma() === 'en' ? ({ Todo: 'All', Tops: 'Tops', Camisetas: 'T-shirts', 'Camisas y blusas': 'Shirts & blouses', Punto: 'Knitwear', Pantalones: 'Trousers', Faldas: 'Skirts', Vestidos: 'Dresses', Abrigos: 'Outerwear', 'Baño': 'Swimwear', Zapatos: 'Shoes', Bolsos: 'Bags', Accesorios: 'Accessories', Sudaderas: 'Sweatshirts', Vaqueros: 'Jeans', Shorts: 'Shorts' }[c] || c) : (CAT_ES[c] || c);
+const catTxt = c => E.perfil?.ropa === 'hombre' && CAT_H[c] ? CAT_H[c][idioma() === 'en' ? 1 : 0] : idioma() === 'en' ? ({ Todo: 'All', Tops: 'Tops', Camisetas: 'T-shirts', 'Camisas y blusas': 'Shirts & blouses', Punto: 'Knitwear', Pantalones: 'Trousers', Faldas: 'Skirts', Vestidos: 'Dresses', Abrigos: 'Outerwear', 'Baño': 'Swimwear', Deporte: 'Sportswear', Zapatos: 'Shoes', Bolsos: 'Bags', Accesorios: 'Accessories', Sudaderas: 'Sweatshirts', Vaqueros: 'Jeans', Shorts: 'Shorts' }[c] || c) : (CAT_ES[c] || c);
 E.f = { ocasion: [], estacion: [], color: [], uso: [], estado: [] };
 const FILTROS = () => [
   ['ocasion', t('Ocasión', 'Occasion'), OCASIONES.map(o => [o, ocNombre(o)])],
@@ -2360,11 +2366,11 @@ function pasaFiltros(p) {
 }
 function pintarCloset() {
   const todas = E.prendas;
-  const cats = ['Todo', ...CATS_ORDEN.filter(c => todas.some(p => catDe(p) === c))];
+  const cats = catsVer(todas);
   if (!cats.includes(E.filtro)) E.filtro = 'Todo';
   $('cats').innerHTML = cats.map(c => `<button class="${c === E.filtro ? 'activo' : ''}" data-filtro="${c}">${catTxt(c)}</button>`).join('');
   const q = E.busca.trim().toLowerCase();
-  const lista = todas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && pasaFiltros(p) && (!q || [p.nombre, p.color, catDe(p), p.notas].join(' ').toLowerCase().includes(q)));
+  const lista = todas.filter(p => (E.filtro === 'Todo' || catVer(p) === E.filtro) && pasaFiltros(p) && (!q || [p.nombre, p.color, catDe(p), p.notas].join(' ').toLowerCase().includes(q)));
   const nf = Object.values(E.f).reduce((t, v) => t + v.length, 0); $('mc-nf').textContent = nf || '';
   $('pared').innerHTML = lista.map(p => `<button data-ficha="${p.id}" aria-label="${p.nombre}"><img src="${urlFoto(p)}" alt="">${p.estado ? `<i>${estadoTxt(p.estado)}</i>` : ''}</button>`).join('');
   $('closet-vacio').innerHTML = todas.length ? (lista.length ? '' : `<div class="vacio">${t('Nada con ese filtro.', 'Nothing matches.')}</div>`) : `<div class="vacio">${t('Haz una foto a cada prenda sobre un fondo liso. Con tres ya hay look de hoy.', 'Photograph each garment on a plain background. With three there is already an outfit of the day.')}<button class="hz-bt" data-ir="subir">${t('Subir mis prendas', 'Upload my garments')}</button>${PUBLICA ? '' : `<button class="hz-bt" style="border:0" id="cl-ejemplo">${t('Cargar un clóset de ejemplo', 'Load a sample closet')}</button>`}</div>`;
@@ -2375,7 +2381,7 @@ function pintarFiltros() {
   $('mc-grupos').innerHTML = FILTROS().map(([k, tit, ops]) => `<div class="mc-gr"><p class="mini-et">${tit}</p><div class="mc-ops">${ops.map(([v, txt]) => k === 'color'
     ? `<button class="sw ${E.f.color.includes(v) ? 'on' : ''}" data-fil="${k}|${v}" title="${nomColor(v)}" aria-label="${nomColor(v)}" aria-pressed="${E.f.color.includes(v)}" style="background:${txt}"></button>`
     : `<button class="${E.f[k].includes(v) ? 'on' : ''}" data-fil="${k}|${v}">${txt}</button>`).join('')}</div>${k === 'ocasion' ? `<small>${t('según el tipo de prenda y tus looks', 'from the garment type and your looks')}</small>` : ''}</div>`).join('');
-  const n = E.prendas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && pasaFiltros(p)).length;
+  const n = E.prendas.filter(p => (E.filtro === 'Todo' || catVer(p) === E.filtro) && pasaFiltros(p)).length;
   $('mc-ver').textContent = n === 1 ? t('Ver 1 prenda', 'See 1 garment') : t(`Ver ${n} prendas`, `See ${n} garments`);
 }
 function hojaFiltros(abrir) { $('mc-hoja').hidden = !abrir; $('mc-velo').hidden = !abrir; if (abrir) pintarFiltros(); }
@@ -2811,7 +2817,7 @@ function pintarSubida() {
   if (!n && nr) raiz.innerHTML = `<div class="sb"><button class="x" data-srafx aria-label="${t('Cerrar y descartar las fotos', 'Close and discard the photos')}"><svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button><div class="tit"><h1>${t('Fotos seguidas', 'Photo burst')}</h1><div class="mini-et" role="status">${nr === 1 ? t('1 foto', '1 photo') : t(`${nr} fotos`, `${nr} photos`)} · ${t('hasta 20', 'up to 20')}</div></div>
     <div class="raf">${E.rafaga.map((r, i) => `<img src="${r.url}" alt="${t('Foto', 'Photo')} ${i + 1}">`).join('')}</div><p class="consejo">${t('Una prenda en cada foto. Al terminar, toca «Listo».', 'One garment per photo. When you finish, tap «Done».')}</p>
     <div class="bts">${nr < 20 ? `<label class="boton">${t('Otra foto', 'Another photo')}<input type="file" accept="image/*" capture="environment" data-sraf></label>` : ''}<button class="boton no" data-sraflisto>${t('Listo', 'Done')}</button></div></div>`;
-  else if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Hasta 20 fotos a la vez, una prenda en cada una', 'Up to 20 photos at once, one garment in each')}</div></div>${avisoSinNube()}${avisoWifi()}<div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div>${E.separando ? `<p class="s-procesando" role="status">${t('Buscando las prendas de la foto…', 'Finding the garments in the photo…')}</p>` : `<p class="consejo">${t('La app quita el fondo y te propone tipo y color.', 'The app removes the background and suggests type and colour.')}</p>${reglasFoto()}`}<div class="bts"><label class="boton">${t('Hacer fotos', 'Take photos')}<input type="file" accept="image/*" capture="environment" data-sraf></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}<span class="txt">${t('Hasta 20 a la vez', 'Up to 20 at a time')}</span>${(PRENDAS_TODAS || socia()) && !E.separando ? `<label class="txt sub-l">${t('Varias prendas en una foto', 'Several garments in one photo')}<input type="file" accept="image/*" multiple data-svarias></label>` : ''}</div></div>`;
+  else if (!n) raiz.innerHTML = `<div class="sb">${X}<div class="tit"><h1>${t('Sube tu ropa', 'Upload your clothes')}</h1><div class="mini-et">${t('Hasta 20 fotos a la vez, una prenda en cada una', 'Up to 20 photos at once, one garment in each')}</div></div>${avisoSinNube()}${avisoWifi()}<div class="guia"><svg viewBox="0 0 24 24"><use href="#ic-camara"/></svg><i></i><i></i><i></i><i></i></div>${E.separando ? `<p class="s-procesando" role="status">${t('Buscando las prendas de la foto…', 'Finding the garments in the photo…')}</p>` : `<p class="consejo">${t('La app quita el fondo y te propone tipo y color.', 'The app removes the background and suggests type and colour.')}</p>${reglasFoto()}`}<div class="bts"><label class="boton">${t('Hacer fotos', 'Take photos')}<input type="file" accept="image/*" capture="environment" data-sraf></label>${mas(t('Elegir de la galería', 'Choose from gallery'), 'boton no')}${(PRENDAS_TODAS || socia()) && !E.separando ? `<label class="boton no">${t('Varias prendas en una foto', 'Several garments in one photo')}<input type="file" accept="image/*" multiple data-svarias></label>` : ''}<span class="txt">${(PRENDAS_TODAS || socia()) && !E.separando ? t('Hasta 20 fotos a la vez; con varias prendas, 5', 'Up to 20 photos at a time; with several garments, 5') : t('Hasta 20 a la vez', 'Up to 20 at a time')}</span></div></div>`;
   else if (det) {
     const i = E.subida.indexOf(det), listo = det.estado === 'listo';
     const ops = (lista, sel, k, nom) => `<div class="ops">${lista.map(x => `<button type="button" class="${x === sel ? 'on' : ''}" data-s${k}="${x}">${nom(x)}</button>`).join('')}</div>`;
@@ -3090,6 +3096,7 @@ async function anadirFotos(files) {
 // La foto, a 1.600 px como mucho, va a /api/prendas, que da una caja por prenda; cada caja se recorta de la foto con un 4 % de margen y entra en la cola de siempre
 // (anadirFotos: quitar el fondo, nombre y detalles, foto de catálogo). Solo las socias (socia()) hasta que Gabriela diga; el servidor tampoco responde a nadie más
 // 20/11 (Gabriela, panel: «sería muy bueno, ¿por qué no haces la prueba y lo incorporamos?»): para todas; el servidor, con PRENDAS_TODAS = "1"
+// 25/11 (Sheila, 3318: «tendría que tener un tamaño proporcional al resto de opciones… yo de hecho ni la vi»): en Subir es un botón como «Elegir de la galería», no un enlace
 const PRENDAS_TODAS = true;
 async function separarPrendas(file) {
   const u = URL.createObjectURL(file);

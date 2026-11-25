@@ -608,17 +608,30 @@ if (AT) (() => {
   // 18/11 (Sheila, 2817 y 2862, sobre un probador): dentro de Camisetas, por manga; dentro de Accesorios, por tipo. Solo lo que tenga y si hay más de un tipo
   const SUB_ACC = [[/reloj|watch/i, 'relojes', ['Relojes', 'Watches']], [/pulsera|bracelet/i, 'pulseras', ['Pulseras', 'Bracelets']], [/collar|cadena|colgante|necklace/i, 'collares', ['Collares', 'Necklaces']], [/pendiente|aretes|earring/i, 'pendientes', ['Pendientes', 'Earrings']], [/anillo/i, 'anillos', ['Anillos', 'Rings']]];
   const SUB_ACC_T = { cinturon: ['Cinturones', 'Belts'], bufanda: ['Bufandas', 'Scarves'], panuelo: ['Pañuelos', 'Neckerchiefs'], gorro: ['Gorros', 'Beanies'], guantes: ['Guantes', 'Gloves'], gorra: ['Gorras', 'Caps'], sombrero: ['Sombreros', 'Hats'], gafas: ['Gafas', 'Glasses'], gafas_vista: ['Gafas de ver', 'Eyeglasses'], paraguas: ['Paraguas', 'Umbrellas'], corbata: ['Corbatas', 'Ties'], tirantes: ['Tirantes', 'Braces'], joyas: ['Joyas', 'Jewellery'] };
-  const subCloset = p => { const c = catDe(p), f = Motor.ficha(p);
+  const subCloset = p => { const c = catVer(p), f = Motor.ficha(p);
+    if (c === 'Deporte') return subDeporte(p, f);
     if (c === 'Camisetas') return f.manga === 'corta' ? ['1corta', t('Manga corta', 'Short sleeve')] : f.manga === 'larga' ? ['2larga', t('Manga larga', 'Long sleeve')] : ['3sin', t('Sin mangas', 'Sleeveless')];
     if (c === 'Accesorios') { for (const [re, k, w] of SUB_ACC) if (re.test(p.nombre || '')) return [k, t(...w)]; const w = SUB_ACC_T[f.subtipo]; return w ? [f.subtipo, t(...w)] : ['~otros', t('Otros', 'Other')]; }
     return null; };
+  // 25/11 (Sheila, 3295: «con su categoría para top, leggin corto, leggin largo, camiseta con manga»): los tipos dentro de «Ropa deportiva»
+  const subDeporte = (p, f) => { const n = (p.nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), s = f.subtipo || '';
+    if (f.cat === 'abajo') {
+      if (/ciclist|biker/.test(n) || ((s === 'malla' || /malla|legging/.test(n)) && /\bcort[oa]s?\b/.test(n))) return ['3legc', t('Leggings cortos', 'Short leggings')];
+      if (s === 'malla' || /malla|legging/.test(n)) return ['4legl', t('Leggings largos', 'Leggings')];
+      if (s === 'shorts' || /short/.test(n)) return ['5sho', t('Shorts', 'Shorts')];
+      if (s === 'falda_deportiva' || /falda/.test(n)) return ['6fal', t('Faldas', 'Skirts')];
+      return ['7pan', t('Pantalones', 'Trousers')]; }
+    if (f.cat === 'vestido') return ['9ves', t('Vestidos y monos', 'Dresses & jumpsuits')];
+    if (f.cat === 'capa' || /sudadera|forro_polar/.test(s)) return ['8sud', t('Sudaderas y chaquetas', 'Sweatshirts & jackets')];
+    if ((s === 'top_deportivo' || /\btop\b|sujetador/.test(n)) && E.perfil?.ropa !== 'hombre') return ['1top', t('Tops', 'Tops')];
+    return f.manga === 'larga' ? ['2caml', t('Camisetas de manga larga', 'Long-sleeve tops')] : f.manga === 'corta' ? ['2camc', t('Camisetas de manga corta', 'Short-sleeve tops')] : ['2cams', t('Camisetas sin mangas', 'Sleeveless tops')]; };
   pintarCloset = function () {
     if (E.perfil?.alta) setTimeout(() => E.perfil?.ropa ? preguntarHoyUno() : preguntarRopa(), 400); // 04/11: se entra por el clóset
-    const todas = verPrendas(), cats = ['Todo', ...CATS_ORDEN.filter(c => todas.some(p => catDe(p) === c))];
+    const todas = verPrendas(), cats = catsVer(todas);
     if (!cats.includes(E.filtro)) E.filtro = 'Todo';
     rejCats().innerHTML = cats.map(c => `<button class="${c === E.filtro ? 'activo' : ''}" data-filtro="${c}"${c === E.filtro ? ' aria-current="true"' : ''}>${catTxt(c)}${DOS}</button>`).join('');
     deslizable(rejCats());
-    const subs = E.filtro === 'Todo' ? [] : [...new Map(todas.filter(p => catDe(p) === E.filtro).map(subCloset).filter(Boolean)).entries()].sort((x, y) => x[0].localeCompare(y[0]));
+    const subs = E.filtro === 'Todo' ? [] : [...new Map(todas.filter(p => catVer(p) === E.filtro).map(subCloset).filter(Boolean)).entries()].sort((x, y) => x[0].localeCompare(y[0]));
     if (E.subF && E.subF.c !== E.filtro) E.subF = null; // al cambiar de categoría, el tipo se quita
     const sf = subs.length > 1 && E.subF?.c === E.filtro && subs.some(([k]) => k === E.subF.k) ? E.subF.k : null;
     let fs = $('at-subcats'); if (!fs) { fs = document.createElement('div'); fs.id = 'at-subcats'; fs.className = 'at-fila at-subs at-subs-closet'; fs.setAttribute('role', 'group'); (rejCats().closest('.at-desl') || rejCats()).after(fs);
@@ -626,7 +639,7 @@ if (AT) (() => {
     fs.hidden = subs.length < 2; fs.setAttribute('aria-label', `${catTxt(E.filtro)}: ${t('tipo', 'type')} (${t('opcional', 'optional')})`);
     fs.innerHTML = subs.length < 2 ? '' : subs.map(([k, w]) => `<button class="${k === sf ? 'on' : ''}" data-subf="${k}" aria-pressed="${k === sf}">${w}</button>`).join('');
     const q = E.busca.trim().toLowerCase();
-    const lista = todas.filter(p => (E.filtro === 'Todo' || catDe(p) === E.filtro) && (!sf || subCloset(p)?.[0] === sf) && pasaFiltros(p) && (!q || [p.nombre, p.color, catDe(p), p.notas].join(' ').toLowerCase().includes(q)));
+    const lista = todas.filter(p => (E.filtro === 'Todo' || catVer(p) === E.filtro) && (!sf || subCloset(p)?.[0] === sf) && pasaFiltros(p) && (!q || [p.nombre, p.color, catDe(p), p.notas].join(' ').toLowerCase().includes(q)));
     const nf = Object.values(E.f).reduce((s, v) => s + v.length, 0); $('mc-nf').textContent = nf || '';
     $('pared').innerHTML = lista.map(p => `<button class="at-cel${conCat(p) ? '' : ' sin-cat'}${estPend(p) ? ' est-pend' : ''}" data-ficha="${p.id}" aria-label="${esc(p.nombre)}"><img src="${urlCat(p)}" alt="" loading="lazy">${sinFoto(p) ? `<i>${t('Sin foto', 'No photo')}</i>` : estPend(p) ? `${cargaIco('tc-carga-c')}<i>${t('Estilizando…', 'Styling…')}</i>` : p.estado ? `<i>${estadoTxt(p.estado)}</i>` : ''}</button>`).join('');
     $('closet-vacio').innerHTML = todas.length ? (lista.length ? '' : `<div class="at-vacio"><p>${t('Nada con ese filtro.', 'Nothing matches.')}</p></div>`)
