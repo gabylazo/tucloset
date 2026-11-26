@@ -53,6 +53,7 @@ if (AT) (() => {
     // 10/11 (Sheila): en la barra, al entrar en el Clóset las puertas se abren y se ve la barra con una percha (at.css, .at-puerta)
     armario: svg('<path d="M8 6.5a4 4 0 0 1 8 0M5.5 6.5h13M6.5 6.5v14h11v-14M7 20.5v1.5M17 20.5v1.5"/><path class="at-dentro" d="M8.4 9.6h7.2M12 9.6v.8M12 10.4l2.6 2.8H9.4z"/><g class="at-puerta at-pi"><path d="M6.5 6.5H12v14H6.5z"/><circle cx="11" cy="13.5" r=".5"/></g><g class="at-puerta at-pd"><path d="M12 6.5h5.5v14H12z"/><circle cx="13" cy="13.5" r=".5"/></g>'),
     mas: svg('<path d="M12 5v14M5 12h14"/>'),
+    menos: svg('<path d="M5 12h14"/>'),
     percha: svg('<path d="M12 7.5a2 2 0 1 1 2-2c0 1-2 1.3-2 2.6V9M12 9l8.5 6.5c.6.5.3 1.5-.5 1.5H4c-.8 0-1.1-1-.5-1.5Z"/>'),
     yo: svg('<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20.5c1.2-3.6 4-5.3 7.5-5.3s6.3 1.7 7.5 5.3"/>'),
     iz: svg('<path d="m14.5 5-7 7 7 7"/>'), de: svg('<path d="m9.5 5 7 7-7 7"/>'), abajo: svg('<path d="m6 9.5 6 6 6-6"/>'),
@@ -478,6 +479,18 @@ if (AT) (() => {
       : `<p class="at-con-txt">${t('No te quedan prendas que añadir a este look.', 'You have no garments left to add to this look.')}</p>`;
     abrirPanel(t('Añadir una prenda', 'Add a garment'), html, cap => cap.addEventListener('click', e => { const b = e.target.closest('[data-anpz]'); if (!b) return; cap.remove();
       const q = P(b.dataset.anpz), x = cands.find(c => c.q.id === q.id); anotarCambio(null, q.id, pr.ids); guardar(); alHecho([...pr.ids, q.id]); toast(avisoCon(q, x)); }));
+  }
+  // 26/11 (Gabriela, panel: «como mismo puedes añadir una prenda deberías también poder quitarla»): junto al «+», el «−» abre las prendas que se pueden quitar del look.
+  // Las mismas que «Quitar del look» de cada prenda (19/11, Sheila, 2842 y 3061): complementos, bolso, abrigo o chaqueta y una de arriba si queda otra o un vestido;
+  // nunca el calzado ni la única de arriba o de abajo. El botón solo sale si hay alguna
+  const quitables = (pr, ps) => ps.filter(p => !p.muestra && pr.ids.includes(p.id) && (['Accesorios', 'Bolsos', 'Abrigo'].includes(p.tipo) || (p.tipo === 'Arriba' && ps.some(x => x.id !== p.id && !x.muestra && ['Arriba', 'Vestidos'].includes(x.tipo)))));
+  const icoQuitar = (pr, ps) => quitables(pr, ps).length ? icoAcc('data-atl="quitar"', I.menos, t('Quitar una prenda', 'Remove a garment')) : '';
+  function quitarPrenda(pr, ps, alHecho) {
+    const qs = quitables(pr, ps); if (!qs.length) return;
+    const celda = q => `<button class="at-cel${conCat(q) ? '' : ' sin-cat'}" data-qtpz="${q.id}" aria-label="${t('Quitar', 'Remove')} ${esc(q.nombre.toLowerCase())}"><img src="${urlCat(q) || ''}" alt=""></button>`;
+    const html = `<p class="at-con-txt">${t('Toca la que quieres quitar.', 'Tap the one you want to remove.')}</p><div class="at-con-rej">${qs.map(celda).join('')}</div>`;
+    abrirPanel(t('Quitar una prenda', 'Remove a garment'), html, cap => cap.addEventListener('click', e => { const b = e.target.closest('[data-qtpz]'); if (!b) return; cap.remove();
+      const q = P(b.dataset.qtpz); alHecho(pr.ids.filter(x => x !== q.id)); toast(t(`Sin ${q.nombre.toLowerCase()}`, `Without ${q.nombre.toLowerCase()}`)); }));
   }
 
   /* ---------- HOY: el nombre, la fecha con el tiempo, el look grande y quieto; debajo, la ocasión y «Me lo pongo» ---------- */
@@ -915,7 +928,7 @@ if (AT) (() => {
       <h1 class="at-h1">${esc(nomLook(c) || ocNombre(c.ocasion || 'Diario'))}</h1>
       <div class="at-centro">${figura(psDe(c), W, H, true)}</div>
       <div class="at-acciones"><button class="at-btn" data-atl="pongo">${t('Me lo pongo', 'I’ll wear it')}</button>
-        <div class="at-acc-ic" role="group" aria-label="${t('Opciones del look', 'Look options')}">${botonPuesto() ? icoPuesto(psDe(c)) : ''}${conElevar(c.ids, c.ocasion) ? icoAcc('data-atl="elevar"', IC_ELEVAR, t('Eleva tu look', 'Elevate your look')) : ''}${icoAcc('data-atl="anadir"', I.mas, t('Añadir una prenda', 'Add a garment'))}${c.orig && claveLook(c.orig) !== claveLook(c.ids) ? icoAcc('data-atl="orig"', I.deshacer, t('Volver al look original', 'Back to the original look')) : ''}${NUBE && cuenta() ? icoAcc('data-atl="pareja"', I.pareja, t('Mandar a mi pareja', 'Send to my partner')) : ''}${icoAcc(`data-atl="cal" aria-expanded="${!!E.atCal}"`, IC_CAL, t('Añadir al calendario', 'Add to the calendar'))}${icoAcc('data-atl="borrar"', I.papelera, t('Borrar el look', 'Delete the look'))}</div>
+        <div class="at-acc-ic" role="group" aria-label="${t('Opciones del look', 'Look options')}">${botonPuesto() ? icoPuesto(psDe(c)) : ''}${conElevar(c.ids, c.ocasion) ? icoAcc('data-atl="elevar"', IC_ELEVAR, t('Eleva tu look', 'Elevate your look')) : ''}${icoAcc('data-atl="anadir"', I.mas, t('Añadir una prenda', 'Add a garment'))}${icoQuitar(c, psDe(c))}${c.orig && claveLook(c.orig) !== claveLook(c.ids) ? icoAcc('data-atl="orig"', I.deshacer, t('Volver al look original', 'Back to the original look')) : ''}${NUBE && cuenta() ? icoAcc('data-atl="pareja"', I.pareja, t('Mandar a mi pareja', 'Send to my partner')) : ''}${icoAcc(`data-atl="cal" aria-expanded="${!!E.atCal}"`, IC_CAL, t('Añadir al calendario', 'Add to the calendar'))}${icoAcc('data-atl="borrar"', I.papelera, t('Borrar el look', 'Delete the look'))}</div>
         ${E.atCal ? `<div class="at-fila at-dias">${dias.map(([d, n]) => `<button data-atdia="${d}">${n}</button>`).join('')}</div>` : ''}</div>`;
     // 12/11 (Gabriela: «en Looks aparece en pequeño el avatar coloreado, indicando que ya tiene una prueba, pero cuando lo abres no sale el avatar, salen las prendas sueltas; no tiene sentido»):
     // el look que ya te has probado se abre puesto en tu avatar (la prueba guardada, sin gastar); el botón lo quita y vuelve a las prendas
@@ -934,6 +947,7 @@ if (AT) (() => {
       const k = b.dataset.atl;
       if (k === 'puesto') return verPuesto(b, r.querySelector('.at-centro'), psDe(c), c.como);
       if (k === 'anadir') return anadirPrenda(c, psDe(c), c.ocasion || 'Diario', alLook);
+      if (k === 'quitar') return quitarPrenda(c, psDe(c), alLook);
       if (k === 'pareja') return mandarPareja(c.ids, c.ocasion, c.como);
       if (k === 'elevar') return abrirElevar(c.ids, c.ocasion || 'Diario', async nuevos => { const antes = [...c.ids]; if (!c.orig) c.orig = [...c.ids]; c.ids = [...c.ids, ...nuevos]; await guardar(); trasElevar(antes, c.ids, c.ocasion || 'Diario'); abrirLook(id); });
       if (k === 'orig') { if (c.orig?.every(P)) c.ids = c.orig; delete c.orig; await guardar(); toast(t('El look original', 'The original look')); return abrirLook(id); }
@@ -2441,7 +2455,7 @@ if (AT) (() => {
       <h1 class="at-h1">${esc(ocNombre(x.ocasion))}</h1>
       <div class="at-centro">${figura(psDe(x), W, H, true)}</div>
       <div class="at-acciones"><button class="at-btn" data-atl="pongo">${t('Me lo pongo', 'I’ll wear it')}</button>
-        ${`<div class="at-acc-ic" role="group" aria-label="${t('Opciones del look', 'Look options')}">${pu ? icoPuesto(psDe(x)) : ''}${el ? icoAcc('data-atl="elevar"', IC_ELEVAR, t('Eleva tu look', 'Elevate your look')) : ''}${icoAcc('data-atl="anadir"', I.mas, t('Añadir una prenda', 'Add a garment'))}${NUBE && cuenta() ? icoAcc('data-atl="pareja"', I.pareja, t('Mandar a mi pareja', 'Send to my partner')) : ''}${x.orig && claveLook(x.orig.ids) !== claveLook(x.ids) ? icoAcc('data-atl="orig"', I.deshacer, t('Volver al look original', 'Back to the original look')) : ''}${porque ? icoAcc(`data-atl="porque" aria-expanded="${!!E.ideaPorque}"`, IC_INFO, t('Por qué funciona', 'Why it works')) : ''}</div>${porque && E.ideaPorque ? `<p class="at-porque">${esc(porque)}</p>` : ''}`}</div>`;
+        ${`<div class="at-acc-ic" role="group" aria-label="${t('Opciones del look', 'Look options')}">${pu ? icoPuesto(psDe(x)) : ''}${el ? icoAcc('data-atl="elevar"', IC_ELEVAR, t('Eleva tu look', 'Elevate your look')) : ''}${icoAcc('data-atl="anadir"', I.mas, t('Añadir una prenda', 'Add a garment'))}${icoQuitar(x, psDe(x))}${NUBE && cuenta() ? icoAcc('data-atl="pareja"', I.pareja, t('Mandar a mi pareja', 'Send to my partner')) : ''}${x.orig && claveLook(x.orig.ids) !== claveLook(x.ids) ? icoAcc('data-atl="orig"', I.deshacer, t('Volver al look original', 'Back to the original look')) : ''}${porque ? icoAcc(`data-atl="porque" aria-expanded="${!!E.ideaPorque}"`, IC_INFO, t('Por qué funciona', 'Why it works')) : ''}</div>${porque && E.ideaPorque ? `<p class="at-porque">${esc(porque)}</p>` : ''}`}</div>`;
     // 12/11 (Gabriela: «esto aún no me sale»): las ideas de Looks (y las de viaje, con esta prenda, inspiración y pareja) se abren por aquí, sin avatar ni «Verlo puesto».
     // Ahora llevan el botón como los looks guardados, y la que ya te has probado se abre puesta en tu avatar (la prueba guardada, sin gastar).
     const bpu = r.querySelector('[data-puesto]'); if (bpu && prob) requestAnimationFrame(() => requestAnimationFrame(() => verPuesto(bpu, r.querySelector('.at-centro'), psDe(x), x.como, false, true)));
@@ -2450,6 +2464,7 @@ if (AT) (() => {
       const f = e.target.closest('.at-centro [data-ficha]'); if (f) { e.stopPropagation(); return cambiarPieza(x, psDe(x), f.dataset.ficha, x.ocasion, alIdea); }
       const b = e.target.closest('[data-atl],[data-atfav]'); if (!b) return;
       if (b.dataset.atl === 'anadir') return anadirPrenda(x, psDe(x), x.ocasion, alIdea);
+      if (b.dataset.atl === 'quitar') return quitarPrenda(x, psDe(x), alIdea);
       if (b.dataset.atl === 'pareja') return mandarPareja(x.ids, x.ocasion, x.como);
       if (b.dataset.atfav != null) { await alternarFav(x.ids, x.ocasion); await datosLook(x); return abrirIdea(x); }
       if (b.dataset.atl === 'porque') { E.ideaPorque = !E.ideaPorque; return abrirIdea(x); }
