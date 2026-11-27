@@ -208,7 +208,7 @@ const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { ret
 const PRONTO = true;
 function portadaPronto() {
   const q = new URLSearchParams(location.search);
-  if (!(q.get('pronto') === '1' || (PRONTO && /^(ig|tt|pin)/.test(ORIGEN) && !LS.get('tc_cuenta')))) return;
+  if (!(q.get('pronto') === '1' || (PRONTO && /^(ig|tt|pin|wa)/.test(ORIGEN) && !LS.get('tc_cuenta')))) return;
   const ab = $('p-inicio')?.querySelector('.abajo'); if (!ab) return;
   // 18/11 (formación «Primeras pantallas»; Gabriela, panel: «sí, me parece bien que prepares lo que has aprendido»): antes de pedir nada, un look de verdad del clóset
   // de muestra, tal cual sale en Hoy, y una línea. Apagada hasta el sí de Sheila (MUESTRA_PORTADA); se prueba con ?pronto=1&muestra=1
@@ -219,7 +219,7 @@ function portadaPronto() {
     <a class="${ESPERA ? 'sigue' : 'boton'}" href="https://www.instagram.com/tucloset.app/" rel="noopener">${t('Síguenos en Instagram', 'Follow us on Instagram')}</a><br><a class="sigue" href="${WA_LINK}" target="_blank" rel="noopener">${t('Escríbenos por WhatsApp', 'Message us on WhatsApp')}</a>`;
   // y cuántas visitas de cada red tocan «Síguenos» (solo el día y la red, como las visitas), para comparar la semana antes y la de después
   // (keepalive y texto plano: llega aunque la página se vaya a Instagram, sin consulta previa del navegador)
-  ab.querySelector('a[href*="instagram.com"]').addEventListener('click', () => { if (/^(ig|tt|pin)$/.test(ORIGEN)) try { fetch(API + '/api/visita', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ o: 'sigue-' + ORIGEN }), keepalive: true }).catch(() => { }); } catch (e) { } });
+  ab.querySelector('a[href*="instagram.com"]').addEventListener('click', () => { if (/^(ig|tt|pin|wa)$/.test(ORIGEN)) try { fetch(API + '/api/visita', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ o: 'sigue-' + ORIGEN }), keepalive: true }).catch(() => { }); } catch (e) { } });
 }
 const MUESTRA_PORTADA = true;
 // 20/11 (Gabriela, panel: «la lista de espera tiene que estar funcionando hoy»): en la portada «Muy pronto», «Apúntate a la lista» (espera.html, con la red de origen)

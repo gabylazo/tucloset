@@ -25,6 +25,8 @@ main{max-width:400px;margin:0 auto;padding:56px 0 48px;text-align:center}
 h1{font:400 38px/1.12 'Bellefair',Georgia,serif;margin:44px 0 18px;text-wrap:balance}
 .sub{color:var(--sec);font-size:17px;max-width:30ch;margin:0 auto;text-wrap:pretty}
 .abre{margin:28px auto 0;max-width:30ch;font-size:16px;color:var(--tinta)}
+/* 27/11 (Gabriela: «todas las redacciones de textos con alineación justificada»): la entrada, justificada con guiones */
+.sub,.abre{text-align:justify;hyphens:auto;-webkit-hyphens:auto}
 form{margin-top:36px;text-align:left}
 label.campo{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sec)}
 input[type=email]{display:block;width:100%;font:inherit;font-size:18px;color:var(--tinta);border:0;border-bottom:1px solid var(--linea);padding:10px 0;background:none;border-radius:0;margin-top:6px}
@@ -97,7 +99,7 @@ button:focus-visible{outline:2px solid var(--oro);outline-offset:3px}
   const API = (() => { try { const q = localStorage.getItem('tc_api'); if (q) return q; } catch (e) { } return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://localhost:8787' : 'https://tucloset-api.apptucloset.workers.dev'; })();
   const $ = id => document.getElementById(id), q = new URLSearchParams(location.search);
   // de qué red llega (?o=ig…): se cuenta la visita una vez y se quita de la dirección, como en la app (sin cookies ni nada guardado)
-  let o = (q.get('o') || '').toLowerCase(); if (!/^(ig|tt|pin|g|cartel|mail\d{1,2}|(?:meta|tt|g|pin)-ad\d{1,3})$/.test(o)) o = '';
+  let o = (q.get('o') || '').toLowerCase(); if (!/^(ig|tt|pin|wa|g|cartel|mail\d{1,2}|(?:meta|tt|g|pin)-ad\d{1,3})$/.test(o)) o = '';
   if (q.has('o')) { q.delete('o'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '')); if (o) fetch(API + '/api/visita', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ o }) }).catch(() => { }); }
   const ver = id => { for (const s of ['pedir', 'mira', 'dentro']) $(s).hidden = s !== id; const h = $(id).querySelector('h1'); if (id !== 'pedir') h.focus(); };
   if (q.get('dentro') === '1') ver('dentro');

@@ -437,14 +437,14 @@ html{touch-action:manipulation;-webkit-text-size-adjust:100%}
   const mesesG = meses.slice(-6);
 
   // ── redes ──
-  const RED = { ig: 'Instagram', tt: 'TikTok', pin: 'Pinterest', g: 'Google', cartel: 'Cartel' }, nomRed = o => RED[o] || (/^mail/.test(o) ? 'Correo ' + o.slice(4) : /-ad\d+$/.test(o) ? 'Anuncio ' + o : o || 'Directo');
+  const RED = { ig: 'Instagram', tt: 'TikTok', pin: 'Pinterest', wa: 'WhatsApp', g: 'Google', cartel: 'Cartel' }, nomRed = o => RED[o] || (/^mail/.test(o) ? 'Correo ' + o.slice(4) : /-ad\d+$/.test(o) ? 'Anuncio ' + o : o || 'Directo');
   const MED = (P.medidas || []).filter(x => x.semana), semanasMed = [...new Set(MED.map(x => x.semana))].sort(), semU = semanasMed.at(-1), semA = semanasMed.at(-2);
   const num = v => v === '' || v == null ? null : +String(v).replace(',', '.');
   const sumaMed = (sem, k, red) => { const v = MED.filter(x => x.semana === sem && (!red || x.red === red)).map(x => num(x[k])).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : null; };
   const interes = x => { const v = num(x.visualizaciones), c = (num(x.compartidos) || 0) + (num(x.guardados) || 0); return v ? c / v * 1000 : null; };
   const mediana = a => { const v = a.filter(x => x != null).sort((x, y) => x - y); return v.length ? (v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : null; };
   const intSem = sem => sem ? mediana(MED.filter(x => x.semana === sem && x.pieza !== 'cuenta').map(interes)) : null;
-  const ROJ = /^(ig|tt|pin)(-|$)/, visDe = (a, b, f) => (d.visitas || []).filter(v => v.dia >= dia(b) && v.dia <= dia(a) && f(v.origen)).reduce((s, v) => s + v.n, 0);
+  const ROJ = /^(ig|tt|pin|wa)(-|$)/, visDe = (a, b, f) => (d.visitas || []).filter(v => v.dia >= dia(b) && v.dia <= dia(a) && f(v.origen)).reduce((s, v) => s + v.n, 0);
   const EFs = (d.espera?.filas || []), altas7 = EFs.filter(x => x.dia >= dia(6)).length, altasA = EFs.filter(x => x.dia >= dia(13) && x.dia < dia(6)).length;
   // 24/11 (Gabriela, panel: «añade al centro de control la lista de espera que tengamos»): las confirmadas en Brevo, con su correo
   const EL = d.espera?.lista ?? null, sinConf = d.espera?.confirmadas == null ? null : Math.max(0, EFs.length - d.espera.confirmadas);
