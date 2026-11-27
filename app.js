@@ -216,7 +216,7 @@ function portadaPronto() {
   if (muestra) $('p-inicio').classList.add('con-muestra');
   ab.innerHTML = `${muestra ? `<figure class="muestra"><img src="muestra/look-hoy.webp" width="480" height="611" alt="${t('Un look de ejemplo: jersey de cuello alto crudo, americana negra, pantalón ancho gris, bandolera negra y botines negros', 'A sample outfit: cream turtleneck, black blazer, wide grey trousers, black crossbody bag and black ankle boots')}"><figcaption>${t('Cada día, un look con la ropa que ya tienes', 'Every day, an outfit from the clothes you already own')}</figcaption></figure>` : ''}<p class="pronto">${t('Abrimos muy pronto', 'Opening very soon')}</p>
     ${ESPERA ? `<a class="boton espera" href="espera.html${ORIGEN ? '?o=' + encodeURIComponent(ORIGEN) : ''}">${t('Apúntate a la lista', 'Join the waitlist')}</a>` : ''}
-    <a class="${ESPERA ? 'sigue' : 'boton'}" href="https://www.instagram.com/tucloset.app/" rel="noopener">${t('Síguenos en Instagram', 'Follow us on Instagram')}</a>`;
+    <a class="${ESPERA ? 'sigue' : 'boton'}" href="https://www.instagram.com/tucloset.app/" rel="noopener">${t('Síguenos en Instagram', 'Follow us on Instagram')}</a><br><a class="sigue" href="${WA_LINK}" target="_blank" rel="noopener">${t('Escríbenos por WhatsApp', 'Message us on WhatsApp')}</a>`;
   // y cuántas visitas de cada red tocan «Síguenos» (solo el día y la red, como las visitas), para comparar la semana antes y la de después
   // (keepalive y texto plano: llega aunque la página se vaya a Instagram, sin consulta previa del navegador)
   ab.querySelector('a[href*="instagram.com"]').addEventListener('click', () => { if (/^(ig|tt|pin)$/.test(ORIGEN)) try { fetch(API + '/api/visita', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ o: 'sigue-' + ORIGEN }), keepalive: true }).catch(() => { }); } catch (e) { } });
@@ -224,6 +224,8 @@ function portadaPronto() {
 const MUESTRA_PORTADA = true;
 // 20/11 (Gabriela, panel: «la lista de espera tiene que estar funcionando hoy»): en la portada «Muy pronto», «Apúntate a la lista» (espera.html, con la red de origen)
 // y «Síguenos en Instagram» debajo, como enlace. Con false vuelve el botón de Instagram solo.
+// 27/11 (Gabriela, por la Dirección general: «que todos cambien a ese teléfono y no al mío personal»): el WhatsApp de empresa, común a los proyectos
+const WA_TXT = '+34 621 35 75 03', WA_LINK = 'https://wa.me/34621357503';
 const ESPERA = true; // 23/11, 15:0x: encendida (Brevo con permiso de contactos, listas 4 y 5, plantilla 1; sí de Coordinación tras ver la página y el correo de prueba; orden de Gabriela: «ya debería abrirse sí o sí»)
 let ORIGEN = ''; // 09/11: la red desde la que llegó esta visita (?o=ig|tt|pin…); vive solo mientras la página está abierta
 const cuenta = () => { if (CLOSET_ACT || !NUBE) return null; try { return JSON.parse(LS.get('tc_cuenta') || 'null'); } catch (e) { return null; } };
@@ -3703,7 +3705,7 @@ const AYUDA = [ // 06/11 (revisión de toda la app pedida por Gabriela: «que no
 ];
 function abrirAyuda() { // 0.114: con el panel de Yo; cada grupo en su bloque y, al final, «Escríbenos»
   abrirPanel(t('Ayuda', 'Help'), `<label class="pn-busca">${icY('ayuda')}<input type="search" placeholder="${t('Busca tu duda', 'Search your question')}"></label><div class="ay-lista"></div>`
-    + grupoP('', filaP({ tag: 'a', attr: 'href="mailto:app@tucloset.app"', ic: 'correo', tit: t('Escríbenos', 'Write to us'), val: 'app@tucloset.app', flecha: false })), cap => {
+    + grupoP('', filaP({ tag: 'a', attr: 'href="mailto:app@tucloset.app"', ic: 'correo', tit: t('Escríbenos', 'Write to us'), val: 'app@tucloset.app', flecha: false }) + filaP({ tag: 'a', attr: `href="${WA_LINK}" target="_blank" rel="noopener"`, ic: 'whatsapp', tit: 'WhatsApp', val: WA_TXT, flecha: false })), cap => {
     const n = x => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const pinta = q => { const b = n(q || ''), hay = AYUDA.filter(([, p, r]) => !b || n(p + ' ' + r).includes(b)), grupos = [...new Set(hay.map(h => h[0]))];
       cap.querySelector('.ay-lista').innerHTML = hay.length ? grupos.map(g => grupoP(g, hay.filter(h => h[0] === g).map(([, p, r]) => `<details class="pn-d"><summary>${p}<svg class="pn-fl" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></summary><p>${r}</p></details>`).join(''))).join('')
@@ -3728,6 +3730,7 @@ const IC_Y = {
   medidas: '<path d="M3.5 9.5h17v5h-17z"/><path d="M7 9.5v2.5M10.5 9.5v1.5M14 9.5v2.5M17.5 9.5v1.5"/>',
   ayuda: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.6"/><circle cx="12" cy="16.8" r=".7"/>',
   correo: '<rect x="3.5" y="6" width="17" height="12" rx="1"/><path d="m4 7 8 6 8-6"/>',
+  whatsapp: '<path d="M20 11.5a7.5 7.5 0 0 1-11 6.6L4 19.5l1.4-4.6A7.5 7.5 0 1 1 20 11.5z"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r=".7"/>',
   nube: '<path d="M7 18h10a4 4 0 0 0 .6-8A5.5 5.5 0 0 0 7 9.5 4.3 4.3 0 0 0 7 18z"/>',
   percha: '<path d="M12 7.5a1.8 1.8 0 1 1 1.8-1.8c0 1-.8 1.4-1.8 2.3v1.2L3.8 15.8a1 1 0 0 0 .6 1.7h15.2a1 1 0 0 0 .6-1.7L12 9.2"/>',
@@ -3795,6 +3798,7 @@ function pintarPanelYo() {
     + grupoP(t('Ayuda', 'Help'),
       filaP({ id: 'yo-ayuda', ic: 'ayuda', tit: t('Preguntas frecuentes', 'FAQ') })
       + filaP({ tag: 'a', attr: 'href="mailto:app@tucloset.app"', ic: 'correo', tit: t('Escríbenos', 'Write to us'), val: 'app@tucloset.app', flecha: false })
+      + filaP({ tag: 'a', attr: `href="${WA_LINK}" target="_blank" rel="noopener"`, ic: 'whatsapp', tit: 'WhatsApp', val: WA_TXT, flecha: false })
       + filaP({ ic: 'info', tit: t('Versión', 'Version'), val: ($('yo-version')?.textContent || '').split(' · ')[0].replace('TuCloset web ', ''), flecha: false, tag: 'div' }))
     // 09/11 (decisión 34 y Gabriela: «un enlace al que solo podamos acceder Sheila y yo»): lo de probar y el centro de control, solo para las socias
     // (cuentas de ADMINS, que /api/yo marca como admin), al final de Ajustes. Las demás no ven «Ver la app como» ni el clóset de pruebas.
