@@ -2126,6 +2126,10 @@ function eventoAhora() { // el evento de hoy que toca: el próximo (o el que aca
   // con el orden por hora salía el elegido por la mañana (Evento, 09:00) aunque después tocara Diario (16:00)
   const elegido = (E.agenda[d]?.planes || []).find(p => p.deHoy), evEl = elegido && evs.find(e => e.ref === elegido);
   // 20/11 (Gabriela: «sigue saliendo primero Diario, luego lo que llevo hoy»): si después de elegir la ocasión te has puesto un look («Me lo pongo»), manda la ocasión de ese look
+  // 28/11 (Gabriela, panel: «creé un look, puse que me lo voy a poner hoy, y cuando pongo el evento al que voy a ir no me genera más looks para ese evento»): un evento apuntado
+  // en el calendario DESPUÉS de ponerte el look (su id lleva la hora de creación) manda sobre el look puesto, igual que lo que eliges en Hoy; con la hora, el último apuntado
+  const hecho = e => e.fijo || !e.ref ? 0 : (/^[0-9a-z]{8}/.test(String(e.id)) ? parseInt(String(e.id).slice(0, 8), 36) : 0), tPu = pu ? Date.parse(pu[1].t) || 0 : 0;
+  const nuevo = pu && !elegido && tPu ? evs.filter(e => hecho(e) > tPu && hecho(e) < 4e12).sort((x, y) => hecho(y) - hecho(x))[0] : null; if (nuevo) return nuevo;
   if (pu && (!elegido || String(pu[1].t || '') > String(elegido.t || ''))) { const k = claveLook(pu[1].ids), de = evs.filter(e => e.oc === pu[0]);
     return de.find(e => lookDe(d, e) && claveLook(lookDe(d, e)) === k) || de.find(e => lookDe(d, e)) || de.find(e => e.ref?.deHoy) || de[0] || dePuesto(); }
   return evEl || evs.find(e => !horaEv(e) || horaEv(e) >= ya) || evs[evs.length - 1];
@@ -2299,7 +2303,7 @@ function pintarAgenda(raiz) {
       if (f.edita) { obj = f.edita; if (obj.url !== extra.url) delete obj.lugar; delete obj.sub; Object.assign(obj, { nombre, oc: f.oc, hora, ...sub, ...extra }); if (!obj.dias) obj.fr = frDe(hora); }
       else if (dias) { if (!dias.length) { toast(t('Marca los días en que se repite', 'Pick the days it repeats')); return; } obj = { id: uid(), nombre, oc: f.oc, hora, dias: [...dias].sort(), desde: d, ...(hasta ? { hasta } : {}), ...sub, ...extra }; E.perfil.fijos = [...(E.perfil.fijos || []), obj]; }
       else { obj = { id: uid(), nombre, oc: f.oc, hora, fr: frDe(hora), ...sub, ...extra }; ag(d).planes.push(obj); }
-      E.cal.form = null; await guardar(); E.propuestas = []; toast(f.edita ? t('Cambios guardados', 'Changes saved') : hasta ? t('Evento guardado: ', 'Event saved: ') + rangoEv(obj) : dias ? t('Evento guardado: se repite ', 'Event saved: repeats ') + diasTxt(dias) : t('Evento guardado', 'Event saved'));
+      E.cal.form = null; await guardar(); E.propuestas = []; if (!f.edita && d === diaISO(new Date())) E.hoySalto = 'oc'; toast(f.edita ? t('Cambios guardados', 'Changes saved') : hasta ? t('Evento guardado: ', 'Event saved: ') + rangoEv(obj) : dias ? t('Evento guardado: se repite ', 'Event saved: repeats ') + diasTxt(dias) : t('Evento guardado', 'Event saved'));
       registrar('plan', { dia: d, hora, oc: f.oc, sub: f.sub || '', nombre, desc, url, repite: hasta ? rangoEv(obj) : dias ? diasTxt(dias) : '' });
       if (url && !obj.lugar) leerEnlace(obj, d);
       if (hasta) planear = [eventosDe(d).find(x => x.id === obj.id), d]; // recién apuntado, sale ya un look para cada día
